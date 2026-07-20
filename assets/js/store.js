@@ -11,7 +11,7 @@
   // Colecciones del portal. Agregar nuevas NO borra las existentes.
   const COLLECTIONS = [
     "usuarios", "apoyoMejora", "documentos", "guiasBPSO", "evaluacionesRNAO",
-    "accionesRNAO", "actividades", "edicionesEVI", "reconocimientos",
+    "accionesRNAO", "redChampion", "actividades", "edicionesEVI", "reconocimientos",
     "reuniones", "acuerdos", "articulaciones", "respaldos", "solicitudes", "nt234",
     "planesNT234", "colaboraciones", "notificaciones", "hitos", "kanban",
     "bibliotecaBitacora", "evidenciaRef", "capacitacionRef", "monitoreoRef",
