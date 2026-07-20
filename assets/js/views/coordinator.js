@@ -22,7 +22,7 @@
     ]},
     { label: "Administración", items: [
       { key: "solicitudes", label: "Solicitudes técnicas", ico: "📨",
-        badgeFn: () => S().all("solicitudes").filter(x => x.estadoReferente === "Completada por referente").length },
+        badgeFn: () => S().all("solicitudes").filter(x => x.estado === "Completada por referente").length },
       { key: "usuarios", label: "Usuarios y perfiles", ico: "👥" },
       { key: "perfil", label: "Mi perfil", ico: "🪪" },
       { key: "config", label: "Configuración", ico: "⚙️" }

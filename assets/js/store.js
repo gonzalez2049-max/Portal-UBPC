@@ -12,7 +12,7 @@
   const COLLECTIONS = [
     "usuarios", "apoyoMejora", "documentos", "guiasBPSO", "evaluacionesRNAO",
     "accionesRNAO", "actividades", "edicionesEVI", "reconocimientos",
-    "reuniones", "acuerdos", "articulaciones", "solicitudes", "nt234",
+    "reuniones", "acuerdos", "articulaciones", "respaldos", "solicitudes", "nt234",
     "planesNT234", "colaboraciones", "notificaciones", "hitos", "kanban",
     "bibliotecaBitacora", "evidenciaRef", "capacitacionRef", "monitoreoRef",
     "evidenciaSemana", "actividadReciente", "config"

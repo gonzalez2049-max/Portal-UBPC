@@ -23,7 +23,7 @@
     ]},
     { label: "Cuenta", items: [
       { key: "solicitudesRecibidas", label: "Solicitudes recibidas", ico: "📨",
-        badgeFn: () => S().all("solicitudes").filter(x => x.estadoReferente === "Enviada" || x.estadoReferente === "En curso").length },
+        badgeFn: () => S().all("solicitudes").filter(x => (x.direccion || "coord-a-ref") === "coord-a-ref" && (x.estado === "Enviada" || x.estado === "En curso")).length },
       { key: "config", label: "Configuración", ico: "⚙️" }
     ]}
   ];
@@ -32,7 +32,7 @@
   function inicio() {
     const u = ui(); const me = U.auth.current();
     const noLeidas = U.notif.unread("referente").length;
-    const sols = S().all("solicitudes").filter(x => x.estadoReferente && x.estadoReferente !== "Cerrada por coordinación");
+    const sols = S().all("solicitudes").filter(x => (x.direccion || "coord-a-ref") === "coord-a-ref" && x.estado && x.estado !== "Cerrada por coordinación");
     const prioritarias = sols.filter(x => x.prioridad === "alta");
     const kanban = S().all("kanban").filter(c => c.owner === "referente");
     const pend = kanban.filter(c => c.columna !== "Completado");
@@ -91,7 +91,7 @@
     return `<ul class="feed">${sols.slice(0, 5).map(s => `<li>
       <span class="feed__ico">${s.prioridad === "alta" ? "🔴" : "📨"}</span>
       <div><strong>${u.esc(s.titulo || s.codigo)}</strong> <span class="mono">${u.esc(s.codigo || "")}</span>
-      <div class="feed__meta">${u.esc(s.unidad || "")} · ${u.estadoBadge(s.estadoReferente)}</div></div></li>`).join("")}</ul>`;
+      <div class="feed__meta">${u.esc(s.unidad || "")} · ${u.estadoBadge(s.estado)}</div></div></li>`).join("")}</ul>`;
   }
   function resultadosRecientes() {
     const u = ui();
@@ -145,6 +145,13 @@
     document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
   }
 
+  function solicitudesRecibidas() {
+    return `<div class="page-head"><h1>Solicitudes recibidas</h1>
+      <p>Solicitudes técnicas enviadas por Coordinación. Ábrelas para gestionar y registrar la respuesta técnica y el medio de verificación.</p></div>
+      <div id="refsol-body"></div>`;
+  }
+  function solicitudesRecibidasBind() { U.solicitudes.refPanel(document.getElementById("refsol-body")); }
+
   function placeholder(titulo, desc) {
     return () => `<div class="page-head"><h1>${titulo}</h1><p>${desc}</p></div>
       ${ui().empty("Submódulo en implementación por etapas.", "La estructura de datos y trazabilidad ya está preparada para este submódulo.", "🛠️")}`;
@@ -164,9 +171,9 @@
       apoyo: placeholder("Solicitud de apoyo técnico", "Solicita apoyo o intervención del Coordinador UBPC."),
       reunion: placeholder("Reunión de seguimiento", "Programación y registro de reuniones de seguimiento."),
       monitoreo: placeholder("Monitoreo e implementación", "Auditorías, indicadores, brechas e intervenciones."),
-      solicitudesRecibidas: placeholder("Solicitudes recibidas", "Solicitudes técnicas enviadas por Coordinación."),
+      solicitudesRecibidas,
       config
     },
-    binders: { inicio: inicioBind, config: configBind }
+    binders: { inicio: inicioBind, config: configBind, solicitudesRecibidas: solicitudesRecibidasBind }
   };
 })();

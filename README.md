@@ -63,7 +63,13 @@ Sin dependencias externas. JavaScript modular con espacio de nombres `UBPC`:
   del Coordinador** completo (3 niveles, tendencia, Kanban, actividad reciente,
   evidencia de la semana con mascota EVI, línea de tiempo) e **Inicio del
   Referente**.
-- [ ] Fase 2 — Módulos 1, 2 y 5 (incluye flujo de solicitudes técnicas).
+- [x] **Fase 2 — Módulos 1, 2 y 5** + **flujo completo de solicitudes
+  técnicas** (envío → alerta al Referente → “En curso” → respuesta técnica +
+  medio de verificación → “Completada por referente” → revisión del Coordinador
+  → cierre o devolución, con trazabilidad visual). Incluye framework CRUD
+  reutilizable (tabla + formulario + exportación + trazabilidad), códigos
+  automáticos DOC/REU/ACU/ART/SOL, historial de versiones documentales y las
+  guardas de negocio (no cerrar sin respaldo, no eliminar solicitudes cerradas).
 - [ ] Fase 3 — Módulo 3 (Programa RNAO) y Dashboard RNAO.
 - [ ] Fase 4 — Módulo 4 (Fortalecimiento: actividades, EVI, reconocimientos).
 - [ ] Fase 5 — Módulo 6 (NT 234) y Módulo 7 (Red de Colaboración).
