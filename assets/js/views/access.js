@@ -37,38 +37,38 @@
     <div class="access">
       <div class="franja"></div>
       <div class="access__main">
-        <div class="access__inner">
+        <div class="access__stage">
           <div class="access__brand">
             <div class="access__logo">HUAP</div>
             <div>
-              <div class="access__eyebrow">Centro de Operaciones</div>
-              <h1 class="access__title">Unidad de Buenas Prácticas Clínicas – UBPC</h1>
-              <div class="muted">Hospital de Urgencia Asistencia Pública – HUAP</div>
+              <div class="access__eyebrow">Centro de Operaciones · HUAP</div>
+              <h1 class="access__title">Unidad de Buenas Prácticas Clínicas</h1>
+              <div class="access__sub">Hospital de Urgencia Asistencia Pública</div>
             </div>
           </div>
 
-          <div class="access__welcome">
-            <div class="access__welcome-txt">
-              <h2 style="margin:.1rem 0 .3rem;font-size:1.15rem">Bienvenido/a al Portal de Gestión Operativa</h2>
-              <p class="narrativo mb0">Este portal permite registrar, organizar, monitorear y respaldar la gestión
-              de la Unidad de Buenas Prácticas Clínicas: procesos, documentos, reuniones, evaluaciones, capacitaciones,
-              evidencias y colaboraciones, manteniendo trazabilidad de responsables, fechas, estados y resultados.
-              Seleccione su perfil para ingresar.</p>
+          <div class="access__panel">
+            <div class="access__intro">
+              <h2>Bienvenido/a al<br>Portal de Gestión Operativa</h2>
+              <p class="narrativo">Registra, organiza, monitorea y respalda la gestión de la Unidad de Buenas
+              Prácticas Clínicas, manteniendo trazabilidad de responsables, fechas, estados y resultados.</p>
+              <div class="access__frase">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
+              <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
             </div>
-            <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
-          </div>
-
-          <h3 style="margin-bottom:.7rem">Perfiles habilitados</h3>
-          <div class="profiles">
-            ${coord.map(profileCard).join("")}
-            ${ref.map(profileCard).join("")}
-            ${otros.map(profileCard).join("")}
+            <div class="access__profiles">
+              <h3>Seleccione su perfil para ingresar</h3>
+              <div class="profiles">
+                ${coord.map(profileCard).join("")}
+                ${ref.map(profileCard).join("")}
+                ${otros.map(profileCard).join("")}
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div class="franja"></div>
       <div class="access__foot">
-        Portal de Gestión Operativa · UBPC · HUAP — La evidencia cobra valor cuando transforma la práctica y mejora el cuidado.
+        Portal de Gestión Operativa · UBPC · HUAP
       </div>
     </div>`;
   }
