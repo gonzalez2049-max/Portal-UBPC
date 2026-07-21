@@ -388,3 +388,108 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .card, .table-wrap { box-shadow: none; }
   @page { size: A4; margin: 14mm; }
 }
+
+/* ============================================================
+   TEMA "EVIDENCIA VIVA" — piel orgánica del portal
+   (overrides al final: reescala colores, tipografía y superficies)
+   ============================================================ */
+@font-face{font-family:"Fraunces";src:url(../fonts/fraunces.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Nunito Sans";src:url(../fonts/nunitosans.woff2) format("woff2");font-weight:200 900;font-display:swap}
+
+:root{
+  --azul-900:#0e6b62; --azul-800:#0f8f83; --azul-700:#12b5a5; --azul-50:#e6f7f2;
+  --surface:#ffffff; --surface-2:#f3faf8; --border:#dde9e5; --border-2:#cbddd7;
+  --text:#17302b; --text-2:#3f5f58; --text-muted:#6f8880;
+  --ok:#1f9d57; --ok-bg:#e4f6ec; --warn:#e0912f; --warn-bg:#fbf1de;
+  --danger:#e0526f; --danger-bg:#fbe6ea; --info:#12b5a5; --info-bg:#e0f6f2;
+  --neutral:#5f7d76; --neutral-bg:#eef4f2;
+  --c-azul:#0f8f83; --c-celeste:#12b5a5; --c-turquesa:#37c6a0; --naranjo:#e0912f;
+  --verde:#37a04a; --rosado:#e0526f; --morado:#7a5cd0;
+  --radius:15px; --radius-sm:11px;
+  --font: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-disp: "Fraunces", Georgia, serif;
+  --shadow: 0 2px 6px rgba(18,90,80,.06), 0 12px 30px -14px rgba(18,90,80,.18);
+  --shadow-lg: 0 18px 46px -18px rgba(18,90,80,.34);
+}
+
+/* Fondo con degradado + blobs orgánicos */
+body{ background:
+  radial-gradient(1100px 520px at 92% -6%, rgba(122,92,208,.13), transparent),
+  radial-gradient(900px 520px at -6% 108%, rgba(18,181,165,.14), transparent),
+  linear-gradient(160deg,#e9f7f1 0%,#eef1fb 55%,#f4edfb 100%);
+  background-attachment: fixed; }
+body::before,body::after{ content:""; position:fixed; z-index:-1; border-radius:50%; filter:blur(60px); pointer-events:none; }
+body::before{ width:34vw; height:34vw; left:-8vw; bottom:-10vw; background:radial-gradient(#7fe0c6,#12b5a5); opacity:.28; }
+body::after{ width:30vw; height:30vw; right:-7vw; top:6vw; background:radial-gradient(#c3aef2,#7a5cd0); opacity:.22; }
+
+/* Tipografía editorial */
+h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__value{ font-family: var(--font-disp); font-weight:600; letter-spacing:-.01em; }
+.kpi__value{ font-weight:600; }
+.franja{ height:5px; }
+
+/* Encabezado glass */
+.app__header{ background: rgba(255,255,255,.72); backdrop-filter: blur(10px); border-bottom:1px solid rgba(255,255,255,.7);
+  box-shadow: 0 10px 24px -18px rgba(18,90,80,.4); }
+.brand-mini__logo{ background: linear-gradient(140deg,#12b5a5,#7a5cd0); border-radius:12px; font-family:var(--font-disp); }
+
+/* Sidebar orgánico (Coordinador turquesa · Referente turquesa→morado) */
+.app__side{ background: linear-gradient(180deg,#0f9f8f 0%,#12b5a5 58%,#17b3a6 100%); color:#eafff9;
+  border-right:none; border-radius:0 20px 20px 0; }
+.app__side.ref{ background: linear-gradient(180deg,#12b0a4 0%,#3a8fb0 55%,#6a4fc4 100%); color:#f0fbff; }
+.nav-group__label{ color: rgba(255,255,255,.72); }
+.app__side.ref .nav-group__label{ color: rgba(255,255,255,.75); }
+.nav-item{ color: rgba(255,255,255,.9); font-weight:600; border-radius:11px; }
+.nav-item:hover{ background: rgba(255,255,255,.16); }
+.nav-item.active{ background: rgba(255,255,255,.92); color:#0d8175; font-weight:800; box-shadow:0 10px 20px -10px rgba(6,60,54,.5); }
+.app__side.ref .nav-item.active{ background: rgba(255,255,255,.94); color:#5b34b0; }
+.nav-item__badge{ background:#7a5cd0; }
+.app__side.ref .nav-item__badge{ background:#e0526f; }
+
+/* Tarjetas y superficies */
+.card{ border-radius:18px; border:1px solid rgba(255,255,255,.9); background: rgba(255,255,255,.86);
+  backdrop-filter: blur(4px); box-shadow: var(--shadow); transition: transform .28s cubic-bezier(.22,.7,.3,1), box-shadow .28s; }
+.card:hover{ box-shadow: 0 22px 46px -22px rgba(18,90,80,.34); }
+.kpi{ border-left-width:5px; border-radius:16px; }
+.table-wrap{ border-radius:16px; background: rgba(255,255,255,.9); }
+.tbl thead th{ background:#f0f8f5; }
+.tbl tbody tr:hover{ background:#f1fbf8; }
+
+/* Botones con degradado de marca */
+.btn--primary{ background: linear-gradient(90deg,#12b5a5,#7a5cd0); box-shadow:0 10px 20px -12px rgba(122,92,208,.7); }
+.btn--primary:hover{ filter:brightness(1.04); background: linear-gradient(90deg,#12b5a5,#7a5cd0); }
+.btn{ border-radius:11px; }
+
+/* Etiquetas / badges */
+.tag{ background:#e6f7f2; color:#0d8175; border-color:#cdeee6; }
+.badge{ border-radius:999px; }
+
+/* Timeline y avatares en tono de marca */
+.timeline::before{ background: linear-gradient(#12b5a5,#7a5cd0); }
+.tl-item__dot{ border-color:#12b5a5; }
+.tl-item__date{ color:#0d8175; }
+.avatar{ background: linear-gradient(140deg,#12b5a5,#7a5cd0); }
+.feed__ico{ background:#e6f7f2; }
+.franja--top{ height:5px; }
+
+/* Pantalla de acceso */
+.access{ background:
+  radial-gradient(1000px 460px at 85% -8%, rgba(122,92,208,.16), transparent),
+  radial-gradient(820px 460px at 0% 110%, rgba(18,181,165,.16), transparent),
+  linear-gradient(155deg,#e9f7f1,#eef1fb 55%,#f4edfb); }
+.access__logo{ background: linear-gradient(140deg,#0f8f83,#7a5cd0); font-family:var(--font-disp); }
+.access__eyebrow{ color:#0d8175; }
+.profile-card{ border-radius:18px; border-top-width:5px; border-top-color:#12b5a5; }
+.profile-card--ref{ border-top-color:#7a5cd0; }
+.profile-card .avatar--lg{ background: linear-gradient(140deg,#12b5a5,#7a5cd0)!important; }
+
+/* ---- Transición al cambiar de módulo ---- */
+@keyframes viewRise{ from{ opacity:0; transform: translateY(12px); } to{ opacity:1; transform:none; } }
+.app__main.view-enter > *{ animation: viewRise .42s cubic-bezier(.22,.7,.3,1) backwards; }
+.app__main.view-enter > *:nth-child(1){ animation-delay:.02s }
+.app__main.view-enter > *:nth-child(2){ animation-delay:.08s }
+.app__main.view-enter > *:nth-child(3){ animation-delay:.14s }
+.app__main.view-enter > *:nth-child(4){ animation-delay:.20s }
+.app__main.view-enter > *:nth-child(5){ animation-delay:.26s }
+.app__main.view-enter > *:nth-child(6){ animation-delay:.32s }
+.app__main.view-enter > *:nth-child(n+7){ animation-delay:.36s }
+@media (prefers-reduced-motion:reduce){ .app__main.view-enter > *{ animation:none } body::before,body::after{ display:none } }

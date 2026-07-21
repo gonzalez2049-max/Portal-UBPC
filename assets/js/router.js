@@ -45,9 +45,17 @@
 
     root.innerHTML = layout(portal, config, viewKey, session, mainHTML);
     bindLayout(portal, config, session);
+    // Transición de entrada solo al cambiar de módulo/vista (no en refrescos de la misma vista)
+    const routeKey = portal + "/" + viewKey;
+    if (routeKey !== _lastRoute) {
+      const m = el("view-main");
+      if (m) m.classList.add("view-enter");
+    }
+    _lastRoute = routeKey;
     if (view && config.binders && config.binders[viewKey]) config.binders[viewKey](el("view-main"), parse().params);
     window.scrollTo(0, 0);
   }
+  let _lastRoute = null;
 
   /* ---------- Layout del portal ---------- */
   function layout(portal, config, activeKey, user, mainHTML) {
