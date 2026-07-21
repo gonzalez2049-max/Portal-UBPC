@@ -79,6 +79,13 @@ Sin dependencias externas. JavaScript modular con espacio de nombres `UBPC`:
   prioridades, comparativas por guía/unidad, indicadores críticos, alertas),
   **acciones de mejora** (generables desde indicadores bajo meta), Guías BPSO,
   Red Champion e índice de implementación.
-- [ ] Fase 4 — Módulo 4 (Fortalecimiento: actividades, EVI, reconocimientos).
-- [ ] Fase 5 — Módulo 6 (NT 234) y Módulo 7 (Red de Colaboración).
+- [x] **Fase 4 — Módulo 4 (Fortalecimiento):** actividades y capacitación
+  (código UBPC-CAP, cobertura calculada), **EVI** (edición completa con varias
+  evidencias y botón “agregar otra evidencia”, código UBPC-EVI) y
+  reconocimientos.
+- [x] **Fase 5 — Módulo 6 (NT 234)** con semáforo por unidad (verde/amarillo/
+  rojo con nombres en negrita de color), tendencia, planes de mejora e informe
+  A4 imprimible con firma; y **Módulo 7 (Red de Colaboración)** en tabla, con
+  tipo como etiqueta de color, participantes solo en actividades formativas,
+  observaciones en detalle desplegable y código UBPC-COL.
 - [ ] Fase 6 — Submódulos operativos del Referente y exportaciones completas.
