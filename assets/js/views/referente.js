@@ -39,28 +39,44 @@
     const reuniones = S().all("reuniones").filter(r => r.fecha && new Date(r.fecha) >= new Date().setHours(0,0,0,0))
       .sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 4);
 
+    const firstName = u.esc(me.nombre.split(" ")[0]);
+    const prioHTML = prioritarias.length
+      ? prioritarias.slice(0, 3).map(s => `<div class="rt-ps">
+          <div><div class="rt-ps__code">${u.esc(s.codigo || "")}</div>
+          <b>${u.esc(s.titulo || "Solicitud")}</b>
+          <span>${u.esc(s.unidad || "")}${s.plazo ? " · vence " + u.fechaCL(s.plazo) : ""}</span></div>
+          <span class="rt-ps__badge">Alta</span></div>`).join("")
+      : u.empty("Sin solicitudes prioritarias.", "Las solicitudes urgentes de Coordinación aparecerán aquí.", "📨");
+
     return `
-    <div class="page-head">
-      <h1>Hola, ${u.esc(me.nombre.split(" ")[0])} 👋</h1>
-      <p>${u.esc(me.cargo)} · Bienvenido/a a tu espacio de trabajo.</p>
-    </div>
-
-    ${prioritarias.length ? `<div class="card kpi--danger" style="border-left:5px solid var(--danger);margin-bottom:1rem;background:var(--danger-bg)">
-      <strong style="color:var(--danger)">🔴 ${prioritarias.length} solicitud(es) prioritaria(s)</strong>
-      <div class="kpi__sub">Requieren tu atención inmediata. Revísalas en “Solicitudes recibidas”.</div>
-    </div>` : ""}
-
-    <div class="grid grid--kpi">
-      ${kpi("Solicitudes en gestión", sols.length, sols.length ? "Enviadas por Coordinación" : "Sin solicitudes activas", sols.length ? "info" : "ok")}
-      ${kpi("Notificaciones sin leer", noLeidas, noLeidas ? "Revisa tu campana" : "Estás al día", noLeidas ? "warn" : "ok")}
-      ${kpi("Pendientes personales", pend.length, pend.length ? "En tu tablero Kanban" : "Sin pendientes", pend.length ? "warn" : "ok")}
-      ${kpi("Próximas reuniones", reuniones.length, reuniones.length ? "Programadas" : "Sin reuniones programadas", "info")}
-    </div>
-
-    <div class="section" style="margin-top:1.4rem">
-      <div class="section__head"><h2 class="section__title">Solicitudes prioritarias</h2></div>
-      <div class="card">${solicitudesResumen(sols)}</div>
-    </div>
+    <section class="home-hero rt-hero">
+      <div class="hh-welcome">
+        <div class="hh-eb">Espacio de trabajo · Referente Técnico</div>
+        <h1>Hola, ${firstName}</h1>
+        <p>${u.esc(me.cargo)} — tus solicitudes, avances y evidencia clínica en un solo lugar.</p>
+        <div class="hh-frase">"Adaptar la evidencia a cada unidad: lesiones por presión, accesos vasculares y dolor."</div>
+      </div>
+      <div class="card rt-prio ${prioritarias.length ? "has-prio" : ""}">
+        <div class="rt-prio__head"><span class="rt-live"></span><span class="hh-lbl">Solicitudes prioritarias</span>
+          <span class="rt-count">${prioritarias.length}</span></div>
+        <div class="rt-prio__list">${prioHTML}</div>
+        <a class="rt-all" href="#/ref/solicitudesRecibidas">Ver todas las solicitudes →</a>
+      </div>
+      <div class="hh-side">
+        <div class="card rt-ind">
+          <span class="hh-lbl">Indicadores personales</span>
+          <div class="rt-row"><i style="background:#e0526f"></i><span class="nm">Solicitudes en gestión</span><b>${sols.length}</b></div>
+          <div class="rt-row"><i style="background:#e0912f"></i><span class="nm">Pendientes</span><b>${pend.length}</b></div>
+          <div class="rt-row"><i style="background:#12b5a5"></i><span class="nm">Reuniones programadas</span><b>${reuniones.length}</b></div>
+          <div class="rt-row"><i style="background:#7a5cd0"></i><span class="nm">Notificaciones sin leer</span><b>${noLeidas}</b></div>
+        </div>
+        <div class="card rt-reun">
+          <span class="hh-lbl">Próximas reuniones</span>
+          ${reuniones.length ? `<ul class="feed" style="margin-top:.2rem">${reuniones.slice(0, 2).map(r => `<li><span class="feed__ico">📅</span><div><strong>${u.esc(r.tema || "Reunión")}</strong><div class="feed__meta">${u.fechaCL(r.fecha)}</div></div></li>`).join("")}</ul>`
+            : u.empty("Sin reuniones programadas.", "", "📅")}
+        </div>
+      </div>
+    </section>
 
     <div class="section">
       <div class="section__head"><div><h2 class="section__title">Mi tablero Kanban</h2>
@@ -70,12 +86,16 @@
 
     <div class="grid grid--2">
       <div class="section">
-        <div class="section__head"><h2 class="section__title">Próximas reuniones</h2></div>
-        <div class="card">${reuniones.length ? `<ul class="feed">${reuniones.map(r => `<li><span class="feed__ico">📅</span><div><strong>${u.esc(r.tema || "Reunión")}</strong><div class="feed__meta">${u.fechaCL(r.fecha)} · ${u.esc(r.tipo || "")}</div></div></li>`).join("")}</ul>` : u.empty("Sin reuniones programadas.", "", "📅")}</div>
-      </div>
-      <div class="section">
         <div class="section__head"><h2 class="section__title">Resultados recientes</h2></div>
         <div class="card">${resultadosRecientes()}</div>
+      </div>
+      <div class="section">
+        <div class="section__head"><h2 class="section__title">Evidencia y recomendación</h2></div>
+        <div class="card rt-evi">
+          <div><p class="narrativo" style="margin-top:0">Busca, analiza y registra evidencia científica para apoyar decisiones clínicas y actualizar buenas prácticas.</p>
+          <a class="btn btn--primary btn--sm" href="#/ref/evidencia">Abrir evidencia y recomendación</a></div>
+          <img class="evi-img" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
+        </div>
       </div>
     </div>`;
   }

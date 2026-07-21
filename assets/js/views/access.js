@@ -55,7 +55,7 @@
               evidencias y colaboraciones, manteniendo trazabilidad de responsables, fechas, estados y resultados.
               Seleccione su perfil para ingresar.</p>
             </div>
-            <img class="access__evi" src="assets/img/evi.png" alt="EVI, mascota de la UBPC">
+            <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
           </div>
 
           <h3 style="margin-bottom:.7rem">Perfiles habilitados</h3>

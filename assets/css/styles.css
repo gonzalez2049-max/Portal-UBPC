@@ -517,6 +517,40 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
 .hh-venc{ margin-top:auto; font-size:.82rem; font-weight:700; color:#c23a56; background:#fbe6ea; border-radius:9px; padding:.35rem .6rem; }
 @media (max-width:1024px){ .home-hero{ grid-template-columns:1fr; } }
 
+/* ---- Inicio Referente: piezas bento ---- */
+@keyframes pulseDot{ 0%,100%{ box-shadow:0 0 0 0 rgba(224,82,111,.5) } 50%{ box-shadow:0 0 0 9px rgba(224,82,111,0) } }
+.rt-prio{ display:flex; flex-direction:column; gap:.6rem; }
+.rt-prio.has-prio{ background:linear-gradient(160deg,#ffffff,#fff5f7); border-color:#f6d7de; }
+.rt-prio__head{ display:flex; align-items:center; gap:.55rem; }
+.rt-live{ width:.7rem; height:.7rem; border-radius:50%; background:#c9d4d0; flex:none; }
+.rt-prio.has-prio .rt-live{ background:#e0526f; animation:pulseDot 2.2s infinite; }
+.rt-prio.has-prio .hh-lbl{ color:#c23a56; }
+.rt-count{ margin-left:auto; font-family:var(--font-disp); font-size:1.3rem; color:#c23a56; }
+.rt-prio:not(.has-prio) .rt-count{ color:var(--text-2); }
+.rt-prio__list{ flex:1; display:flex; flex-direction:column; gap:.5rem; }
+.rt-ps{ display:flex; gap:.7rem; align-items:flex-start; background:#fff; border:1px solid #f4dbe1;
+  border-left:4px solid #e0526f; border-radius:11px; padding:.6rem .7rem; }
+.rt-ps__code{ font-family:var(--font-disp); font-size:.78rem; color:#b2455c; }
+.rt-ps b{ display:block; font-size:.95rem; color:#28413c; line-height:1.2; }
+.rt-ps span{ font-size:.82rem; color:#6c8a83; }
+.rt-ps__badge{ margin-left:auto; font-size:.72rem; font-weight:800; color:#fff; background:#e0526f; padding:.15rem .55rem; border-radius:999px; white-space:nowrap; }
+.rt-all{ font-size:.85rem; font-weight:800; color:#c23a56; text-decoration:none; }
+.rt-prio:not(.has-prio) .rt-all{ color:var(--azul-700); }
+.rt-ind{ display:flex; flex-direction:column; gap:.45rem; }
+.rt-row{ display:flex; align-items:center; gap:.55rem; }
+.rt-row i{ width:.8rem; height:.8rem; border-radius:50%; flex:none; }
+.rt-row .nm{ flex:1; font-size:.9rem; font-weight:700; color:var(--text-2); }
+.rt-row b{ font-family:var(--font-disp); font-size:1.15rem; color:var(--text); }
+.rt-evi{ display:flex; align-items:center; gap:1rem; }
+.rt-evi .evi-img{ width:128px; }
+@media (max-width:640px){ .rt-evi{ flex-direction:column-reverse; align-items:flex-start; } }
+/* Referente en oscuro */
+body.night .rt-prio{ background:rgba(18,32,28,.82); }
+body.night .rt-prio.has-prio{ background:linear-gradient(160deg,rgba(42,22,27,.92),rgba(28,17,21,.92)); border-color:rgba(224,82,111,.32); }
+body.night .rt-ps{ background:rgba(30,18,22,.7); border-color:rgba(224,82,111,.25); }
+body.night .rt-ps b{ color:#f0dbe0; } body.night .rt-ps span{ color:#b79aa0; }
+body.night .rt-row .nm{ color:#a9c4bb; } body.night .rt-row b{ color:#eaf5ef; }
+
 /* ---- Transición al cambiar de módulo ---- */
 @keyframes viewRise{ from{ opacity:0; transform: translateY(12px); } to{ opacity:1; transform:none; } }
 .app__main.view-enter > *{ animation: viewRise .42s cubic-bezier(.22,.7,.3,1) backwards; }
@@ -531,13 +565,12 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
 
 /* ---- Mascota EVI ---- */
 @keyframes eviFloat{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
-.evi__mascot{ width:auto; }
-.evi-img{ width:96px; height:auto; display:block; filter:drop-shadow(0 8px 14px rgba(18,90,80,.28)); animation:eviFloat 5s ease-in-out infinite; }
-.evi__mascot small{ display:block; text-align:center; font-weight:800; color:#7a5cd0; font-size:12px; margin-top:.2rem; }
+.evi__mascot{ width:auto; align-self:center; }
+.evi-img{ width:150px; height:auto; display:block; filter:drop-shadow(0 8px 14px rgba(18,90,80,.28)); animation:eviFloat 5s ease-in-out infinite; }
 .access__welcome{ display:flex; align-items:center; gap:1.6rem; }
 .access__welcome-txt{ flex:1; }
-.access__evi{ width:132px; height:auto; flex:none; filter:drop-shadow(0 10px 18px rgba(18,90,80,.3)); animation:eviFloat 5.5s ease-in-out infinite; }
-@media (max-width:640px){ .access__evi{ display:none; } .evi-img{ width:74px; } }
+.access__evi{ width:210px; height:auto; flex:none; filter:drop-shadow(0 10px 18px rgba(18,90,80,.3)); animation:eviFloat 5.5s ease-in-out infinite; }
+@media (max-width:760px){ .access__evi{ display:none; } .evi-img{ width:120px; } }
 @media (prefers-reduced-motion:reduce){ .evi-img,.access__evi{ animation:none; } }
 
 /* ============================================================
