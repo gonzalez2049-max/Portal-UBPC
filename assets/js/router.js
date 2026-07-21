@@ -88,6 +88,7 @@
           </div>
         </div>
         <div class="header__spacer"></div>
+        <button class="btn-icon" id="themeToggle" title="Cambiar modo claro/oscuro" aria-label="Cambiar tema">🌙</button>
         <div class="bell">
           <button class="btn-icon" id="bellBtn" aria-label="Notificaciones">🔔${unread ? `<span class="bell__count">${unread}</span>` : ""}</button>
         </div>
@@ -116,6 +117,16 @@
 
     const bell = el("bellBtn");
     if (bell) bell.onclick = e => { e.stopPropagation(); toggleNotifPanel(rol); };
+
+    const tt = el("themeToggle");
+    if (tt) {
+      tt.textContent = document.body.classList.contains("night") ? "☀️" : "🌙";
+      tt.onclick = () => {
+        const night = document.body.classList.toggle("night");
+        try { localStorage.setItem("ubpc:theme", night ? "night" : "day"); } catch (e) {}
+        tt.textContent = night ? "☀️" : "🌙";
+      };
+    }
   }
 
   /* ---------- Panel de notificaciones ---------- */

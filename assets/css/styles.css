@@ -528,3 +528,86 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
 .app__main.view-enter > *:nth-child(6){ animation-delay:.32s }
 .app__main.view-enter > *:nth-child(n+7){ animation-delay:.36s }
 @media (prefers-reduced-motion:reduce){ .app__main.view-enter > *{ animation:none } body::before,body::after{ display:none } }
+
+/* ---- Mascota EVI ---- */
+@keyframes eviFloat{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
+.evi__mascot{ width:auto; }
+.evi-img{ width:96px; height:auto; display:block; filter:drop-shadow(0 8px 14px rgba(18,90,80,.28)); animation:eviFloat 5s ease-in-out infinite; }
+.evi__mascot small{ display:block; text-align:center; font-weight:800; color:#7a5cd0; font-size:12px; margin-top:.2rem; }
+.access__welcome{ display:flex; align-items:center; gap:1.6rem; }
+.access__welcome-txt{ flex:1; }
+.access__evi{ width:132px; height:auto; flex:none; filter:drop-shadow(0 10px 18px rgba(18,90,80,.3)); animation:eviFloat 5.5s ease-in-out infinite; }
+@media (max-width:640px){ .access__evi{ display:none; } .evi-img{ width:74px; } }
+@media (prefers-reduced-motion:reduce){ .evi-img,.access__evi{ animation:none; } }
+
+/* ============================================================
+   MODO OSCURO — "Evidencia nocturna"
+   ============================================================ */
+body.night{ color:#e8f5ef;
+  background:
+    radial-gradient(1100px 520px at 92% -6%, rgba(122,92,208,.18), transparent),
+    radial-gradient(900px 520px at -6% 108%, rgba(18,181,165,.15), transparent),
+    linear-gradient(160deg,#0a1714 0%,#0b1520 55%,#120f1c 100%); }
+body.night::before{ opacity:.20 } body.night::after{ opacity:.16 }
+body.night a{ color:#5fd8c4; }
+body.night h1,body.night h2,body.night h3,body.night h4,
+body.night .section__title,body.night .card__title,body.night .page-head h1,body.night .kpi__value{ color:#eaf5ef; }
+body.night .app__header{ background:rgba(12,24,20,.74); border-bottom-color:rgba(255,255,255,.06); }
+body.night .brand-mini__txt strong{ color:#eaf5ef; }
+body.night .brand-mini__txt span{ color:#8aa89e; }
+body.night .header__user-txt strong{ color:#eaf5ef; }
+body.night .card{ background:rgba(18,32,28,.82); border-color:rgba(255,255,255,.07); }
+body.night .card__hint,body.night .kpi__sub,body.night .section__hint,body.night .muted{ color:#8fa89e; }
+body.night .kpi__label{ color:#a9c4bb; }
+body.night .table-wrap{ background:rgba(16,30,26,.85); border-color:rgba(255,255,255,.07); }
+body.night .tbl thead th{ background:#122822; color:#a9c4bb; border-bottom-color:rgba(255,255,255,.09); }
+body.night .tbl tbody td{ border-bottom-color:rgba(255,255,255,.06); }
+body.night .tbl tbody tr:hover{ background:rgba(18,181,165,.09); }
+body.night .tbl .mono{ color:#7fe0d0; }
+body.night .empty{ background:rgba(16,30,26,.5); border-color:rgba(255,255,255,.13); color:#9fbcb2; }
+body.night .empty__title{ color:#c8ddd5; }
+body.night .btn{ background:rgba(255,255,255,.06); color:#e8f5ef; }
+body.night .btn--ghost{ border-color:rgba(255,255,255,.16); color:#cfe3db; }
+body.night .btn-icon{ border-color:rgba(255,255,255,.14); color:#bfe0d6; background:rgba(255,255,255,.04); }
+body.night .btn-icon:hover{ background:rgba(255,255,255,.1); color:#7fe0d0; }
+body.night .input,body.night .select,body.night .textarea{ background:#10201c; border-color:rgba(255,255,255,.15); color:#e8f5ef; }
+body.night .field>label{ color:#a9c4bb; }
+body.night .modal{ background:#122019; color:#e8f5ef; }
+body.night .modal__head,body.night .modal__foot{ border-color:rgba(255,255,255,.08); }
+body.night .modal__foot{ background:rgba(255,255,255,.03); }
+body.night .tag{ background:rgba(18,181,165,.15); color:#7fe0d0; border-color:rgba(18,181,165,.3); }
+body.night .tabs{ border-bottom-color:rgba(255,255,255,.1); }
+body.night .tab{ color:#a9c4bb; }
+body.night .tab:hover{ background:rgba(255,255,255,.05); }
+body.night .tab.active{ color:#7fe0d0; background:rgba(18,181,165,.12); border-bottom-color:#12b5a5; }
+body.night .traza,body.night .dl div span{ color:#8fa89e; }
+body.night .feed li{ border-bottom-color:rgba(255,255,255,.06); }
+body.night .feed__ico{ background:rgba(18,181,165,.14); }
+body.night .feed__meta{ color:#8fa89e; }
+body.night .kanban__col{ background:rgba(16,30,26,.6); border-color:rgba(255,255,255,.08); }
+body.night .kcard{ background:#132621; border-color:rgba(255,255,255,.08); color:#e8f5ef; }
+body.night .kcard__meta{ color:#9fbcb2; }
+body.night .kcount{ background:rgba(255,255,255,.06); color:#cfe3db; border-color:rgba(255,255,255,.12); }
+body.night .tl-item__desc{ color:#b9d2ca; }
+body.night .tl-item__dot{ background:#122019; }
+body.night .badge--neutral{ background:rgba(255,255,255,.08); color:#c8ddd5; border-color:rgba(255,255,255,.14); }
+body.night .notif-panel{ background:#122019; border-color:rgba(255,255,255,.1); }
+body.night .notif-item{ border-bottom-color:rgba(255,255,255,.07); }
+body.night .notif-item--unread{ background:rgba(18,181,165,.1); }
+body.night .notif-item__meta{ color:#8fa89e; }
+/* Home hero en oscuro */
+body.night .hh-welcome h1{ color:#eaf5ef; } body.night .hh-welcome p{ color:#a9c4bb; }
+body.night .hh-eb{ color:#5fd8c4; } body.night .hh-lbl{ color:#8fa89e; }
+body.night .hh-date{ color:#7fe0d0; } body.night .hh-prox__sub{ color:#a9c4bb; }
+body.night .hh-al{ color:#dbeee7; } body.night .hh-venc{ background:rgba(224,82,111,.16); color:#ff9fb0; }
+body.night .hh-side .card,body.night .stat,body.night .kpi{ background:rgba(18,32,28,.82); }
+/* Acceso en oscuro */
+body.night .access{ background:
+  radial-gradient(1000px 460px at 85% -8%, rgba(122,92,208,.2), transparent),
+  radial-gradient(820px 460px at 0% 110%, rgba(18,181,165,.18), transparent),
+  linear-gradient(155deg,#0a1714,#0b1520 55%,#120f1c); }
+body.night .access__welcome,body.night .profile-card{ background:rgba(18,32,28,.85); border-color:rgba(255,255,255,.08); }
+body.night .access__title{ color:#eaf5ef; } body.night .access__foot{ color:#8fa89e; }
+body.night .profile-card__name{ color:#eaf5ef; }
+/* Toggle de tema */
+#themeToggle{ font-size:15px; }

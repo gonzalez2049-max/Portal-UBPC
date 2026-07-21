@@ -48,11 +48,14 @@
           </div>
 
           <div class="access__welcome">
-            <h2 style="margin:.1rem 0 .3rem;font-size:1.15rem">Bienvenido/a al Portal de Gestión Operativa</h2>
-            <p class="narrativo mb0">Este portal permite registrar, organizar, monitorear y respaldar la gestión
-            de la Unidad de Buenas Prácticas Clínicas: procesos, documentos, reuniones, evaluaciones, capacitaciones,
-            evidencias y colaboraciones, manteniendo trazabilidad de responsables, fechas, estados y resultados.
-            Seleccione su perfil para ingresar.</p>
+            <div class="access__welcome-txt">
+              <h2 style="margin:.1rem 0 .3rem;font-size:1.15rem">Bienvenido/a al Portal de Gestión Operativa</h2>
+              <p class="narrativo mb0">Este portal permite registrar, organizar, monitorear y respaldar la gestión
+              de la Unidad de Buenas Prácticas Clínicas: procesos, documentos, reuniones, evaluaciones, capacitaciones,
+              evidencias y colaboraciones, manteniendo trazabilidad de responsables, fechas, estados y resultados.
+              Seleccione su perfil para ingresar.</p>
+            </div>
+            <img class="access__evi" src="assets/img/evi.png" alt="EVI, mascota de la UBPC">
           </div>
 
           <h3 style="margin-bottom:.7rem">Perfiles habilitados</h3>

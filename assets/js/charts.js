@@ -92,11 +92,15 @@
     opts = opts || {};
     const track = opts.track || "rgba(9,70,63,.16)";
     const radii = opts.radii || [52, 41, 30];
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
     const rings = (segs || []).slice(0, 3).map((s, i) => {
       const r = radii[i], c = 2 * Math.PI * r, off = c * (1 - (Number(s.pct) || 0) / 100);
+      const start = reduce ? off.toFixed(1) : c.toFixed(1);
+      const anim = reduce ? "" : `<animate attributeName="stroke-dashoffset" from="${c.toFixed(1)}" to="${off.toFixed(1)}"
+          dur="1.1s" begin="${(0.15 + i * 0.12).toFixed(2)}s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.22 0.7 0.3 1"/>`;
       return `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${track}" stroke-width="7"/>
         <circle cx="60" cy="60" r="${r}" fill="none" stroke="${s.color}" stroke-width="7" stroke-linecap="round"
-          stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 60 60)"/>`;
+          stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${start}" transform="rotate(-90 60 60)">${anim}</circle>`;
     }).join("");
     return `<svg viewBox="0 0 120 120" width="100%" role="img" aria-label="Cumplimiento por guía">
       ${rings}<circle cx="60" cy="60" r="23" fill="${opts.disc || "rgba(9,70,63,.28)"}"/></svg>`;
