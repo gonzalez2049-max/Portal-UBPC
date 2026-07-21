@@ -63,7 +63,14 @@
   };
   function estadoBadge(estado) {
     const key = String(estado || "").toLowerCase().trim();
-    const kind = ESTADO_MAP[key] || "neutral";
+    let kind = ESTADO_MAP[key];
+    if (!kind) { // respaldo por palabra clave
+      if (/cerrad|complet|finaliz|vigente|aprobad|dentro de meta/.test(key)) kind = "ok";
+      else if (/curso|gesti|revisi|respond|enviad|seguimiento/.test(key)) kind = "info";
+      else if (/pendiente|observ|amarillo/.test(key)) kind = "warn";
+      else if (/vencid|devuel|crític|interven|rojo|atrasad/.test(key)) kind = "danger";
+      else kind = "neutral";
+    }
     return `<span class="badge badge--${kind}">${esc(estado || "—")}</span>`;
   }
 

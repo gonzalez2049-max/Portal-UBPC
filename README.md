@@ -88,4 +88,9 @@ Sin dependencias externas. JavaScript modular con espacio de nombres `UBPC`:
   A4 imprimible con firma; y **Módulo 7 (Red de Colaboración)** en tabla, con
   tipo como etiqueta de color, participantes solo en actividades formativas,
   observaciones en detalle desplegable y código UBPC-COL.
-- [ ] Fase 6 — Submódulos operativos del Referente y exportaciones completas.
+- [x] **Fase 6 — Submódulos operativos del Referente:** Bitácora de Biblioteca
+  Digital, Capacitación clínica por turno, Evidencia y recomendación, Solicitud
+  de apoyo al Coordinador (flujo inverso ref→coord completo), Reunión de
+  seguimiento y Monitoreo e implementación; más “Mi gestión” y “Mi seguimiento”.
+  El flujo de solicitudes es bidireccional y la consola del Coordinador
+  consolida ambas direcciones. Exportación CSV disponible en todas las tablas.

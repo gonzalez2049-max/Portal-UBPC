@@ -7,23 +7,37 @@
   const U = window.UBPC;
   const S = () => U.store, ui = () => U.ui;
 
-  // Estados canónicos (visibles según la especificación)
+  // Estados canónicos del flujo principal (Coordinador → Referente)
   const E = { ENVIADA: "Enviada", CURSO: "En curso", COMPLETADA: "Completada por referente", CERRADA: "Cerrada por coordinación" };
-  const STEPS = ["Enviada", "En gestión", "Respuesta técnica", "Cierre del Coordinador"];
 
+  // Actores según la dirección de la solicitud
+  function actores(sol) {
+    return (sol.direccion || "coord-a-ref") === "ref-a-coord"
+      ? { gestor: "coordinador", revisor: "referente", gLabel: "coordinación", rLabel: "el referente" }
+      : { gestor: "referente", revisor: "coordinador", gLabel: "referente", rLabel: "coordinación" };
+  }
+  function stepsFor(sol) {
+    const a = actores(sol);
+    return ["Enviada", "En gestión", "Respuesta " + (a.gestor === "coordinador" ? "del Coordinador" : "técnica"),
+      "Cierre " + (a.revisor === "coordinador" ? "del Coordinador" : "del Referente")];
+  }
   function stepIndex(estado) {
-    if (estado === E.ENVIADA) return 0;
-    if (estado === E.CURSO) return 1;
-    if (estado === E.COMPLETADA) return 2;
-    if (estado === E.CERRADA) return 3;
+    const e = String(estado || "").toLowerCase();
+    if (/cerrad/.test(e)) return 3;
+    if (/complet|respond/.test(e)) return 2;
+    if (/curso|gesti/.test(e)) return 1;
     return 0;
   }
-  function stepper(estado) {
-    const cur = stepIndex(estado);
-    return `<div class="stepper">${STEPS.map((s, i) => {
+  function stepper(sol) {
+    const cur = stepIndex(sol.estado);
+    return `<div class="stepper">${stepsFor(sol).map((s, i) => {
       const cls = i < cur ? "done" : (i === cur ? "current" : "");
       return `<div class="step ${cls}"><span class="step__n">${i < cur ? "✓" : i + 1}</span>${ui().esc(s)}</div>`;
     }).join("")}</div>`;
+  }
+  function refLink(rol, dir) {
+    if (rol === "coordinador") return "#/coord/solicitudes";
+    return dir === "ref-a-coord" ? "#/ref/apoyo" : "#/ref/solicitudesRecibidas";
   }
 
   /* ---------- Crear solicitud desde cualquier módulo ---------- */
@@ -81,8 +95,10 @@
       return `<div><span>${u.esc(label)}</span><strong class="${mono ? "mono" : ""}">${val ? u.esc(val) : "—"}</strong></div>`;
     }
 
+    const a = actores(sol);
+    const dirigidoA = a.gestor === "coordinador" ? "Coordinador/a UBPC" : (sol.referente || "Referente Técnico");
     const info = `
-      ${stepper(sol.estado)}
+      ${stepper(sol)}
       <div class="dl">
         ${fila("Código", sol.codigo, true)}
         ${fila("Módulo de origen", sol.moduloOrigen)}
@@ -91,7 +107,7 @@
         ${fila("Unidad", sol.unidad)}
         ${fila("Prioridad", sol.prioridad)}
         ${fila("Plazo", u.fechaCL(sol.plazo))}
-        ${fila("Referente asignado", sol.referente)}
+        ${fila("Dirigida a", dirigidoA)}
         <div style="grid-column:1/-1">${fila("Estado", "").replace("—", u.estadoBadge(sol.estado))}</div>
       </div>
       <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Descripción</span>
@@ -112,15 +128,18 @@
         </div>` : ""}
       ${U.components.resource.trazabilidad(sol)}`;
 
-    // Botonera según rol y estado
+    // Botonera según actor (gestor/revisor) y fase
+    const soyGestor = me && me.rol === a.gestor;
+    const soyRevisor = me && me.rol === a.revisor;
+    const fase = stepIndex(sol.estado);
     let footer = `<button class="btn btn--ghost" data-close>Cerrar</button>`;
-    if (soyReferente && sol.estado === E.ENVIADA)
+    if (soyGestor && fase === 0)
       footer += `<button class="btn btn--primary" data-tomar>Marcar “En curso”</button>`;
-    if (soyReferente && sol.estado === E.CURSO)
+    if (soyGestor && fase === 1)
       footer += `<button class="btn btn--primary" data-responder>Registrar respuesta técnica</button>`;
-    if (soyReferente && sol.estado === E.CURSO && sol.respuestaTecnica && sol.medioVerificacion)
-      footer += `<button class="btn" style="background:var(--verde);color:#fff" data-completar>Completada por referente</button>`;
-    if (soyCoordinador && sol.estado === E.COMPLETADA) {
+    if (soyGestor && fase === 1 && sol.respuestaTecnica && sol.medioVerificacion)
+      footer += `<button class="btn" style="background:var(--verde);color:#fff" data-completar>Marcar respondida</button>`;
+    if (soyRevisor && fase === 2) {
       footer += `<button class="btn btn--ghost" data-devolver>Devolver con observaciones</button>
                  <button class="btn btn--primary" data-cerrar>Cerrar solicitud</button>`;
     }
@@ -132,20 +151,22 @@
       footer,
       onMount(m) {
         const refresh = () => { u.closeModal(); if (onChange) onChange(); };
+        const dir = sol.direccion || "coord-a-ref";
         const tomar = m.querySelector("[data-tomar]");
         if (tomar) tomar.onclick = () => {
           S().update("solicitudes", sol.id, { estado: E.CURSO });
-          U.notif.push({ titulo: "Solicitud en gestión: " + sol.titulo, modulo: "Solicitudes de apoyo", destinatario: "coordinador", ref: "#/coord/solicitudes" });
+          U.notif.push({ titulo: "Solicitud en gestión: " + sol.titulo, modulo: "Solicitudes de apoyo", destinatario: a.revisor, ref: refLink(a.revisor, dir) });
           u.toast("Solicitud tomada", "ok"); refresh();
         };
         const responder = m.querySelector("[data-responder]");
         if (responder) responder.onclick = () => formRespuesta(sol, onChange);
         const completar = m.querySelector("[data-completar]");
         if (completar) completar.onclick = () => {
-          S().update("solicitudes", sol.id, { estado: E.COMPLETADA });
-          S().stamp("solicitudes", sol.id, "revisado"); // marca de gestión técnica
-          U.notif.push({ titulo: "Respuesta técnica lista: " + sol.titulo, modulo: "Solicitudes de apoyo", prioridad: "alta", destinatario: "coordinador", ref: "#/coord/solicitudes" });
-          u.toast("Marcada como completada por referente", "ok"); refresh();
+          const estadoResp = dir === "ref-a-coord" ? "Respondida por coordinación" : E.COMPLETADA;
+          S().update("solicitudes", sol.id, { estado: estadoResp });
+          S().stamp("solicitudes", sol.id, "revisado");
+          U.notif.push({ titulo: "Respuesta lista: " + sol.titulo, modulo: "Solicitudes de apoyo", prioridad: "alta", destinatario: a.revisor, ref: refLink(a.revisor, dir) });
+          u.toast("Marcada como respondida", "ok"); refresh();
         };
         const cerrar = m.querySelector("[data-cerrar]");
         if (cerrar) cerrar.onclick = () => {
@@ -186,17 +207,19 @@
 
   function formCierre(sol, onChange) {
     const u = ui();
+    const a = actores(sol); const dir = sol.direccion || "coord-a-ref";
+    const estadoCerrada = dir === "ref-a-coord" ? "Cerrada por el referente" : E.CERRADA;
     u.modal({
       title: "Cerrar solicitud",
-      body: `<p class="narrativo">Al cerrar, la solicitud queda “Cerrada por coordinación” y se conserva en el historial (no se puede eliminar).</p>
+      body: `<p class="narrativo">Al cerrar, la solicitud queda “${u.esc(estadoCerrada)}” y se conserva en el historial (no se puede eliminar).</p>
         ${u.formHTML([{ name: "obsCierre", label: "Observaciones de cierre", type: "textarea", full: true, value: sol.obsCierre }], {})}`,
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Confirmar cierre</button>`,
       onMount(m) {
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
-          S().update("solicitudes", sol.id, { estado: E.CERRADA, decisionCoordinador: "Cerrada por coordinación", obsCierre: d.obsCierre, fechaCierre: new Date().toISOString() });
+          S().update("solicitudes", sol.id, { estado: estadoCerrada, decisionCoordinador: estadoCerrada, obsCierre: d.obsCierre, fechaCierre: new Date().toISOString() });
           S().stamp("solicitudes", sol.id, "cerrado");
-          U.notif.push({ titulo: "Solicitud cerrada: " + sol.titulo, modulo: "Solicitudes de apoyo", destinatario: "referente", ref: "#/ref/solicitudesRecibidas" });
+          U.notif.push({ titulo: "Solicitud cerrada: " + sol.titulo, modulo: "Solicitudes de apoyo", destinatario: a.gestor, ref: refLink(a.gestor, dir) });
           u.closeModal(); u.toast("Solicitud cerrada", "ok");
           if (onChange) onChange();
         };
@@ -206,20 +229,72 @@
 
   function formDevolver(sol, onChange) {
     const u = ui();
+    const a = actores(sol); const dir = sol.direccion || "coord-a-ref";
     u.modal({
       title: "Devolver con observaciones",
-      body: u.formHTML([{ name: "obsCierre", label: "Observaciones para el Referente", type: "textarea", full: true, required: true, value: "" }], {}),
+      body: u.formHTML([{ name: "obsCierre", label: "Observaciones", type: "textarea", full: true, required: true, value: "" }], {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--danger" data-save>Devolver</button>`,
       onMount(m) {
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           if (!d.obsCierre) { u.toast("Escribe las observaciones", "danger"); return; }
           S().update("solicitudes", sol.id, { estado: E.CURSO, decisionCoordinador: "Devuelta con observaciones", obsCierre: d.obsCierre });
-          U.notif.push({ titulo: "Solicitud devuelta: " + sol.titulo, modulo: "Solicitudes de apoyo", prioridad: "alta", destinatario: "referente", ref: "#/ref/solicitudesRecibidas" });
-          u.closeModal(); u.toast("Solicitud devuelta al Referente", "ok");
+          U.notif.push({ titulo: "Solicitud devuelta: " + sol.titulo, modulo: "Solicitudes de apoyo", prioridad: "alta", destinatario: a.gestor, ref: refLink(a.gestor, dir) });
+          u.closeModal(); u.toast("Solicitud devuelta", "ok");
           if (onChange) onChange();
         };
       }
+    });
+  }
+
+  /* ---------- Crear apoyo del Referente hacia el Coordinador ---------- */
+  function crearApoyo(prefill, onDone) {
+    const u = ui(); prefill = prefill || {};
+    const fields = [
+      { name: "titulo", label: "Título de la solicitud", required: true, full: true },
+      { name: "unidad", label: "Unidad", type: "select", options: U.data.CAT.unidades, placeholder: "Seleccionar…" },
+      { name: "prioridad", label: "Prioridad", type: "select", options: U.data.CAT.prioridades },
+      { name: "plazo", label: "Plazo", type: "date" },
+      { name: "descripcion", label: "Descripción", type: "textarea", full: true, required: true }
+    ];
+    u.modal({
+      title: "Solicitar apoyo al Coordinador",
+      body: `<p class="card__hint">Se enviará al Coordinador/a UBPC y se consolidará con código automático.</p>${u.formHTML(fields, { prioridad: "media" })}`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Enviar solicitud</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.titulo || !d.descripcion) { u.toast("Título y descripción son obligatorios", "danger"); return; }
+          const me = U.auth.current();
+          const rec = S().insert("solicitudes", Object.assign({
+            direccion: "ref-a-coord", moduloOrigen: "Perfil del Referente",
+            solicitante: me ? me.nombre : "Referente", fechaEnvio: new Date().toISOString(),
+            referente: me ? me.nombre : "", estado: E.ENVIADA,
+            respuestaTecnica: "", intervencion: "", medioVerificacion: "", conclusion: "", decisionCoordinador: "", obsCierre: ""
+          }, d), { withCode: true });
+          U.notif.push({ titulo: "Solicitud del Referente: " + rec.titulo, modulo: "Solicitudes de apoyo",
+            prioridad: d.prioridad === "alta" ? "alta" : "normal", destinatario: "coordinador", ref: "#/coord/solicitudes" });
+          u.closeModal(); u.toast("Solicitud enviada al Coordinador (" + rec.codigo + ")", "ok");
+          if (onDone) onDone();
+        };
+      }
+    });
+  }
+
+  function apoyoRefPanel(container) {
+    U.components.resource.mount(container, {
+      collection: "solicitudes", title: "Solicitud de apoyo al Coordinador", readOnly: true,
+      hint: "Solicitudes de apoyo que has enviado al Coordinador/a UBPC.",
+      emptyMsg: "Aún no has enviado solicitudes de apoyo.", emptySub: "Crea una solicitud para el Coordinador.", icon: "🆘",
+      filter: r => r.direccion === "ref-a-coord",
+      columns: [
+        { key: "codigo", label: "Código", mono: true, width: "150px" },
+        { key: "titulo", label: "Título" },
+        { key: "unidad", label: "Unidad" },
+        { key: "prioridad", label: "Prioridad", render: (r, u) => `<span class="tag" style="text-transform:capitalize">${u.esc(r.prioridad)}</span>` },
+        { key: "estado", label: "Estado", badge: true }
+      ],
+      detail: detalle
     });
   }
 
@@ -230,16 +305,17 @@
       hint: "Todas las solicitudes enviadas al Referente Técnico se consolidan aquí. No se eliminan las solicitudes cerradas.",
       newLabel: "Nueva solicitud", icon: "📨",
       emptyMsg: "Aún no hay solicitudes registradas.", emptySub: "Envía una intervención técnica desde cualquier módulo o crea una aquí.",
-      filter: r => (r.direccion || "coord-a-ref") === "coord-a-ref",
       columns: [
         { key: "codigo", label: "Código", mono: true, width: "150px" },
         { key: "titulo", label: "Título" },
+        { key: "direccion", label: "Dirección", render: (r) => (r.direccion === "ref-a-coord")
+          ? `<span class="tag" style="background:#eae2fb;color:#5b34b0">Del Referente</span>` : `<span class="tag">Al Referente</span>` },
         { key: "unidad", label: "Unidad" },
         { key: "prioridad", label: "Prioridad", render: (r, u) => `<span class="tag" style="text-transform:capitalize">${u.esc(r.prioridad)}</span>` },
         { key: "fechaEnvio", label: "Envío", date: true },
         { key: "estado", label: "Estado", badge: true }
       ],
-      canDelete: r => r.estado !== E.CERRADA,
+      canDelete: r => !/cerrad/i.test(r.estado || ""),
       deleteMsg: "¿Eliminar esta solicitud? (Solo se permite si no está cerrada).",
       detail: detalle,
       // Formulario de creación desde el panel
@@ -289,5 +365,5 @@
     });
   }
 
-  U.solicitudes = { crearDesde, detalle, coordPanel, refPanel, E };
+  U.solicitudes = { crearDesde, crearApoyo, detalle, coordPanel, refPanel, apoyoRefPanel, E };
 })();
