@@ -87,6 +87,21 @@
     }).join("") + `</div>`;
   }
 
+  /* Bloom: anillos concéntricos (global + hasta 3 segmentos) */
+  function bloomRings(segs, opts) {
+    opts = opts || {};
+    const track = opts.track || "rgba(9,70,63,.16)";
+    const radii = opts.radii || [52, 41, 30];
+    const rings = (segs || []).slice(0, 3).map((s, i) => {
+      const r = radii[i], c = 2 * Math.PI * r, off = c * (1 - (Number(s.pct) || 0) / 100);
+      return `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${track}" stroke-width="7"/>
+        <circle cx="60" cy="60" r="${r}" fill="none" stroke="${s.color}" stroke-width="7" stroke-linecap="round"
+          stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 60 60)"/>`;
+    }).join("");
+    return `<svg viewBox="0 0 120 120" width="100%" role="img" aria-label="Cumplimiento por guía">
+      ${rings}<circle cx="60" cy="60" r="23" fill="${opts.disc || "rgba(9,70,63,.28)"}"/></svg>`;
+  }
+
   window.UBPC = window.UBPC || {};
-  window.UBPC.charts = { gauge, lineChart, bars };
+  window.UBPC.charts = { gauge, lineChart, bars, bloomRings };
 })();

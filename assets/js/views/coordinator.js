@@ -100,6 +100,15 @@
   }
   U.coordStats = { stats, globalCumplimiento, pctIndicador, indicadoresBajoMeta };
 
+  // Cumplimiento promedio por guía BPSO (para el bloom del Home)
+  function cumplPorGuia() {
+    const evals = S().all("evaluacionesRNAO");
+    return U.data.CAT.guiasArea.map(g => {
+      const vals = evals.filter(e => e.guia === g).map(globalCumplimiento).filter(v => v != null);
+      return { label: g, pct: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0, hasData: vals.length > 0 };
+    });
+  }
+
   /* ---------- KPI helper ---------- */
   function kpi(label, value, sub, kind) {
     return `<div class="card kpi ${kind ? "kpi--" + kind : ""}">
@@ -117,13 +126,52 @@
     const globalSub = st.global == null ? "Aún sin evaluaciones registradas"
       : (st.global >= 90 ? "Dentro de la meta institucional" : "Bajo la meta institucional (90%)");
 
-    // NIVEL 1
-    const n1 = `<div class="grid grid--kpi">
-      ${kpi("Alertas activas", st.alertas.length, st.alertas.length ? st.alertas[0] : "No existen alertas activas", st.alertas.length ? "danger" : "ok")}
-      ${kpi("Cumplimiento global", globalTxt, globalSub, st.global == null ? "info" : (st.global >= 90 ? "ok" : "warn"))}
-      ${kpi("Tareas vencidas", st.vencidas, st.vencidas ? "Requieren atención inmediata" : "Sin tareas vencidas", st.vencidas ? "danger" : "ok")}
-      ${kpi("Próxima evaluación", st.proxEval ? u.fechaCL(st.proxEval.proximaMedicion) : "—", st.proxEval ? (st.proxEval.guia || "") : "Sin evaluaciones programadas", "info")}
-    </div>`;
+    // HERO BENTO (Nivel 1 — prioridad)
+    const me = U.auth.current();
+    const guias = cumplPorGuia();
+    const GC = [{ color: "#7fe0d0" }, { color: "#c9b6f5" }, { color: "#ffd98a" }];
+    const bloomSegs = guias.map((g, i) => ({ pct: g.pct, color: GC[i].color }));
+    const bloomLegend = guias.map((g, i) => `
+      <div class="bloom-lg"><i style="background:${GC[i].color}"></i>
+      <span class="nm">${u.esc(g.label)}</span><span class="pc">${g.hasData ? g.pct + "%" : "—"}</span></div>`).join("");
+    const globalColor = st.global == null ? "#ffffff" : (st.global >= 90 ? "#eafff7" : "#fff");
+    const heroAlertas = st.alertas.length
+      ? st.alertas.slice(0, 3).map((a, i) => `<div class="hh-al ${["d","w","i"][i] || "i"}"><span class="dot"></span>${u.esc(a)}</div>`).join("")
+      : `<div class="hh-al ok"><span class="dot"></span>No existen alertas activas</div>`;
+
+    const hero = `
+    <section class="home-hero">
+      <div class="hh-welcome">
+        <div class="hh-eb">Resumen ejecutivo · UBPC</div>
+        <h1>Buenos días${me ? ", " + u.esc(me.nombre.split(" ")[0]) : ""}</h1>
+        <p>Estado general de la gestión y principales indicadores de la Unidad de Buenas Prácticas Clínicas.</p>
+        <div class="hh-frase">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
+      </div>
+      <div class="card hh-bloom">
+        <div class="hh-bloom__top"><span class="hh-lbl">Cumplimiento por guía</span>
+          ${st.global != null ? `<span class="hh-trend ${st.global >= 90 ? "ok" : "warn"}">Meta 90%</span>` : ""}</div>
+        <div class="hh-bloom__mid">
+          <div class="ringwrap">${U.charts.bloomRings(bloomSegs, { track: "rgba(255,255,255,.18)", disc: "rgba(9,70,63,.32)" })}
+            <div class="ringwrap__ctr"><b style="color:${globalColor}">${globalTxt}</b><span>Global</span></div></div>
+          <div class="bloom-legend">${bloomLegend}</div>
+        </div>
+        <div class="hh-bloom__foot">${st.global == null ? "Aún sin evaluaciones RNAO registradas." : globalSub + "."}</div>
+      </div>
+      <div class="hh-side">
+        <div class="card hh-prox">
+          <span class="hh-lbl">Próxima evaluación</span>
+          <div class="hh-date">${st.proxEval ? u.fechaCL(st.proxEval.proximaMedicion) : "—"}</div>
+          <div class="hh-prox__sub">${st.proxEval ? (u.esc(st.proxEval.guia || "") + " · " + u.esc(st.proxEval.unidad || "")) : "Sin evaluaciones programadas"}</div>
+        </div>
+        <div class="card hh-alerts">
+          <span class="hh-lbl">Alertas activas ${st.alertas.length ? "· " + st.alertas.length : ""}</span>
+          <div class="hh-al-list">${heroAlertas}</div>
+          ${st.vencidas ? `<div class="hh-venc">⏱ ${st.vencidas} tarea(s) vencida(s)</div>` : ""}
+        </div>
+      </div>
+    </section>`;
+    // Compat: n1 ya no se usa (integrado en el hero)
+    const n1 = "";
 
     // NIVEL 2
     const n2 = `<div class="grid grid--kpi">
@@ -135,15 +183,7 @@
     </div>`;
 
     return `
-    <div class="page-head">
-      <h1>Resumen ejecutivo</h1>
-      <p>Estado general de la gestión y principales indicadores de la Unidad.</p>
-    </div>
-
-    <div class="section">
-      <div class="section__head"><h2 class="section__title">Información prioritaria</h2></div>
-      ${n1}
-    </div>
+    ${hero}
 
     <div class="section">
       <div class="section__head"><h2 class="section__title">Indicadores de actividad</h2></div>
