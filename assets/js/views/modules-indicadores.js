@@ -282,7 +282,7 @@
     if (!recs.length) { box.innerHTML = ""; return; }
     box.innerHTML = `<div class="card" style="border-left:4px solid var(--c-morado);margin-bottom:1.2rem">
       <div class="flex" style="gap:.6rem;align-items:center;margin-bottom:.5rem">
-        <img src="assets/img/evi.png" alt="EVI" style="width:46px;height:auto;filter:drop-shadow(0 4px 8px rgba(18,90,80,.25))">
+        <img src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC" style="width:64px;height:auto;filter:drop-shadow(0 4px 8px rgba(18,90,80,.25))">
         <div><strong>EVI recomienda indicadores</strong>
         <div class="kpi__sub">Sugerencias a partir de RNAO, NT 234, capacitaciones, auditorías, documentos y evidencia registrada.</div></div></div>
       <div class="flex wrap" style="gap:.5rem">${recs.map((r, i) => `<button class="btn btn--ghost btn--sm" data-rec="${i}">
