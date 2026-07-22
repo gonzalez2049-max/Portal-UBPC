@@ -145,9 +145,10 @@
       const v = values[f.name] != null ? values[f.name] : (f.value != null ? f.value : "");
       const req = f.required ? "req" : "";
       const style = f.full ? 'style="grid-column:1/-1"' : "";
+      const id = "fld-" + f.name + "-" + Math.random().toString(36).slice(2, 6);
       let control;
       if (f.type === "select") {
-        control = `<select class="select" name="${f.name}">
+        control = `<select class="select" id="${id}" name="${f.name}">
           ${(f.placeholder ? `<option value="">${esc(f.placeholder)}</option>` : "")}
           ${(f.options || []).map(o => {
             const val = typeof o === "object" ? o.value : o;
@@ -156,12 +157,12 @@
           }).join("")}
         </select>`;
       } else if (f.type === "textarea") {
-        control = `<textarea class="textarea" name="${f.name}" rows="${f.rows || 3}">${esc(v)}</textarea>`;
+        control = `<textarea class="textarea" id="${id}" name="${f.name}" rows="${f.rows || 3}">${esc(v)}</textarea>`;
       } else {
-        control = `<input class="input" type="${f.type || "text"}" name="${f.name}" value="${esc(v)}" ${f.attrs || ""}>`;
+        control = `<input class="input" id="${id}" type="${f.type || "text"}" name="${f.name}" value="${esc(v)}" ${f.attrs || ""}>`;
       }
       return `<div class="field" ${style}>
-        <label class="${req}">${esc(f.label)}</label>
+        <label class="${req}" for="${id}">${esc(f.label)}</label>
         ${control}
         ${f.hint ? `<div class="kpi__sub">${esc(f.hint)}</div>` : ""}
       </div>`;

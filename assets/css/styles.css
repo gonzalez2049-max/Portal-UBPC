@@ -727,6 +727,45 @@ body.night .reporte{ --text:#17263d; --text-2:#40536f; --text-muted:#5a6b84; --c
 .cell-date{ white-space:nowrap; }
 
 /* ============================================================
+   ACCESIBILIDAD Y MÓVIL
+   ============================================================ */
+/* Foco de teclado visible */
+a:focus-visible, .nav-item:focus-visible, .tab:focus-visible, .kcard:focus-visible,
+[data-login]:focus-visible, [data-detail]:focus-visible, [data-gen]:focus-visible{
+  outline:3px solid #37c6a0; outline-offset:2px; border-radius:8px; }
+.btn-icon:focus-visible, .btn:focus-visible{ outline:3px solid #37c6a0; outline-offset:1px; }
+body.night a:focus-visible, body.night .btn:focus-visible, body.night .btn-icon:focus-visible,
+body.night .nav-item:focus-visible{ outline-color:#5fd8c4; }
+/* Skip link */
+.skip-link{ position:fixed; left:-9999px; top:0; z-index:300; background:#0f8f83; color:#fff;
+  padding:.55rem 1rem; border-radius:0 0 10px 0; font-weight:800; text-decoration:none; }
+.skip-link:focus{ left:0; }
+
+/* Overlay del cajón lateral */
+.side-overlay{ display:none; }
+@media (max-width:860px){
+  .side-overlay.show{ display:block; position:fixed; inset:0; background:rgba(9,30,26,.5); z-index:95;
+    backdrop-filter:blur(1px); animation:fadeIn .2s; }
+}
+@keyframes fadeIn{ from{ opacity:0 } }
+
+/* Cabecera adaptable */
+@media (max-width:760px){
+  .app__header{ gap:.45rem; padding:.5rem .7rem; }
+  .header__user-txt{ display:none; }
+  .brand-mini__txt span{ display:none; }
+  .brand-mini__logo{ width:34px; height:34px; }
+  #logoutBtn{ padding:.32em .55em; }
+  .page-head h1{ font-size:1.25rem; }
+  .hh-welcome h1{ font-size:1.7rem; }
+}
+@media (max-width:420px){
+  .brand-mini__txt strong{ font-size:12.5px; }
+  .app__main{ padding:.8rem; }
+  .rep-actions{ flex-direction:column; align-items:stretch; }
+}
+
+/* ============================================================
    PANTALLA DE ACCESO — rediseño (color único turquesa)
    ============================================================ */
 .access{ position:relative; background:

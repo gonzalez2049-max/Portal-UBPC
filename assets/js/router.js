@@ -102,6 +102,7 @@
         <button class="btn btn--ghost btn--sm" id="logoutBtn" title="Cambiar de perfil">Salir</button>
       </header>
       <aside class="${sideClass}" id="sidebar">${nav}</aside>
+      <div class="side-overlay no-print" id="sideOverlay" aria-hidden="true"></div>
       <main class="app__main" id="view-main">${mainHTML}</main>
     </div>`;
   }
@@ -111,9 +112,15 @@
     const logout = el("logoutBtn");
     if (logout) logout.onclick = () => { U.auth.logout(); go("#/acceso"); };
     const toggle = el("menuToggle");
-    if (toggle) toggle.onclick = () => el("sidebar").classList.toggle("open");
+    const closeSide = () => { el("sidebar").classList.remove("open"); const o = el("sideOverlay"); if (o) o.classList.remove("show"); };
+    if (toggle) toggle.onclick = () => {
+      const open = el("sidebar").classList.toggle("open");
+      const o = el("sideOverlay"); if (o) o.classList.toggle("show", open);
+    };
+    const overlay = el("sideOverlay");
+    if (overlay) overlay.onclick = closeSide;
     // Cerrar sidebar al navegar en móvil
-    document.querySelectorAll(".nav-item").forEach(a => a.addEventListener("click", () => el("sidebar").classList.remove("open")));
+    document.querySelectorAll(".nav-item").forEach(a => a.addEventListener("click", closeSide));
 
     const bell = el("bellBtn");
     if (bell) bell.onclick = e => { e.stopPropagation(); toggleNotifPanel(rol); };
