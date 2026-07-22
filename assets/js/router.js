@@ -76,8 +76,9 @@
         }).join("")}
       </div>`).join("");
 
+    let pinned = false; try { pinned = localStorage.getItem("ubpc:sidePinned") === "1"; } catch (e) {}
     return `
-    <div class="app">
+    <div class="app${pinned ? " side-pinned" : ""}">
       <header class="app__header no-print">
         <button class="btn-icon menu-toggle" id="menuToggle" aria-label="Menú">☰</button>
         <div class="brand-mini">
@@ -102,6 +103,8 @@
         <button class="btn btn--ghost btn--sm" id="logoutBtn" title="Cambiar de perfil">Salir</button>
       </header>
       <aside class="${sideClass}" id="sidebar">
+        <button class="side-pin no-print" id="sidePin" title="Fijar / recoger menú" aria-label="Fijar menú" aria-pressed="${pinned}">
+          <span class="side-pin__ico">📌</span></button>
         <div class="side-nav">${nav}</div>
         <div class="side-foot">
           <span class="side-foot__band" aria-hidden="true"></span>
@@ -127,6 +130,17 @@
     if (overlay) overlay.onclick = closeSide;
     // Cerrar sidebar al navegar en móvil
     document.querySelectorAll(".nav-item").forEach(a => a.addEventListener("click", closeSide));
+
+    // Fijar / recoger el rail lateral (escritorio)
+    const pin = el("sidePin");
+    if (pin) {
+      const app = document.querySelector(".app");
+      const setPin = (on) => { if (app) app.classList.toggle("side-pinned", on);
+        pin.classList.toggle("active", on); pin.setAttribute("aria-pressed", on ? "true" : "false"); };
+      let cur = false; try { cur = localStorage.getItem("ubpc:sidePinned") === "1"; } catch (e) {}
+      setPin(cur);
+      pin.onclick = () => { cur = !cur; setPin(cur); try { localStorage.setItem("ubpc:sidePinned", cur ? "1" : "0"); } catch (e) {} };
+    }
 
     const bell = el("bellBtn");
     if (bell) bell.onclick = e => { e.stopPropagation(); toggleNotifPanel(rol); };

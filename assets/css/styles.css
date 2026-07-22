@@ -915,3 +915,45 @@ body.night .access .btn--primary:hover{ background:#37c6a0; }
 .nt-trend td{ vertical-align:middle; }
 .nt-trend tbody tr:hover{ background:rgba(18,181,165,.06); }
 body.night .nt-lectura{ background:linear-gradient(100deg, rgba(18,181,165,.14), rgba(122,92,208,.12)); border-color:rgba(255,255,255,.1); }
+
+/* ============================================================
+   RAIL LATERAL EXPANDIBLE (escritorio) — se recoge a íconos y
+   se expande elegantemente al pasar el mouse; botón 📌 para fijar.
+   ============================================================ */
+.side-pin{ display:none; }
+@media (min-width: 861px) {
+  /* El rail queda fijo en pantalla mientras el contenido scrollea */
+  .app__side{ position:sticky; top:70px; align-self:start; height:calc(100vh - 82px); z-index:60; }
+
+  /* Recogido por defecto: solo íconos */
+  .app:not(.side-pinned){ grid-template-columns: 78px 1fr; }
+  .app:not(.side-pinned) .app__side{
+    width:78px; overflow:hidden; padding-left:.55rem; padding-right:.55rem;
+    transition: width .24s cubic-bezier(.22,.7,.3,1), box-shadow .26s, padding .24s; }
+  .app:not(.side-pinned) .app__side:hover{
+    width:266px; padding-left:.7rem; padding-right:.7rem;
+    box-shadow: 26px 0 60px -22px rgba(6,60,54,.55); }
+
+  /* Etiquetas: se desvanecen al recoger, aparecen al expandir */
+  .app:not(.side-pinned) .app__side .nav-item > span:not(.nav-item__ico),
+  .app:not(.side-pinned) .app__side .nav-group__label,
+  .app:not(.side-pinned) .app__side .side-foot{ opacity:0; white-space:nowrap; transition: opacity .14s ease; }
+  .app:not(.side-pinned) .app__side:hover .nav-item > span:not(.nav-item__ico),
+  .app:not(.side-pinned) .app__side:hover .nav-group__label,
+  .app:not(.side-pinned) .app__side:hover .side-foot{ opacity:1; transition: opacity .22s ease .06s; }
+  .app:not(.side-pinned) .app__side:not(:hover) .nav-group__label::after{ opacity:0; }
+
+  /* Alerta como punto sobre el ícono cuando está recogido */
+  .app:not(.side-pinned) .app__side:not(:hover) .nav-item__badge{
+    position:absolute; top:2px; left:33px; margin:0; min-width:15px; height:15px; font-size:9.5px; padding:0 3px; }
+
+  /* Botón de fijar */
+  .side-pin{ display:grid; place-items:center; align-self:flex-end; width:30px; height:30px; flex:none;
+    margin-bottom:.35rem; border:none; cursor:pointer; border-radius:9px; color:#fff; font-size:13px;
+    background:rgba(255,255,255,.16); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+    transition: background .2s, transform .2s; }
+  .side-pin:hover{ background:rgba(255,255,255,.3); transform: rotate(-15deg); }
+  .side-pin.active{ background:rgba(255,255,255,.92); box-shadow:0 6px 14px -6px rgba(6,60,54,.5); }
+  .app:not(.side-pinned) .app__side:not(:hover) .side-pin{ align-self:center; }
+  .side-pin__ico{ line-height:1; }
+}
