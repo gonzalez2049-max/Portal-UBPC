@@ -421,9 +421,13 @@ body::before{ content:""; position:fixed; inset:0; z-index:-2; pointer-events:no
   radial-gradient(42vw 42vw at -6% 108%, rgba(18,181,165,.20), transparent 60%),
   radial-gradient(40vw 40vw at 106% 0%, rgba(122,92,208,.16), transparent 60%),
   radial-gradient(32vw 32vw at 62% 122%, rgba(55,198,160,.13), transparent 60%); }
-/* Capa de figuras transparentes (innovación y evidencia científica) */
+/* Capa de figuras transparentes (innovación y evidencia científica).
+   Marca de agua sutil: se desvanece hacia el centro para respirar
+   detrás del contenido y quedar claramente en formato transparente. */
 body::after{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
-  background:url(../img/pattern.svg) center center / cover no-repeat; opacity:.5; }
+  background:url(../img/pattern.svg) center center / cover no-repeat; opacity:.34;
+  -webkit-mask-image: radial-gradient(120% 100% at 50% 42%, transparent 8%, #000 78%);
+          mask-image: radial-gradient(120% 100% at 50% 42%, transparent 8%, #000 78%); }
 
 /* Tipografía editorial */
 h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__value{ font-family: var(--font-disp); font-weight:600; letter-spacing:-.01em; }
@@ -435,18 +439,68 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
   box-shadow: 0 10px 24px -18px rgba(18,90,80,.4); }
 .brand-mini__logo{ background: linear-gradient(140deg,#12b5a5,#7a5cd0); border-radius:12px; font-family:var(--font-disp); }
 
-/* Sidebar orgánico (Coordinador turquesa · Referente turquesa→morado) */
-.app__side{ background: linear-gradient(180deg,#0f9f8f 0%,#12b5a5 58%,#17b3a6 100%); color:#eafff9;
-  border-right:none; border-radius:0 20px 20px 0; }
-.app__side.ref{ background: linear-gradient(180deg,#12b0a4 0%,#3a8fb0 55%,#6a4fc4 100%); color:#f0fbff; }
-.nav-group__label{ color: rgba(255,255,255,.72); }
-.app__side.ref .nav-group__label{ color: rgba(255,255,255,.75); }
-.nav-item{ color: rgba(255,255,255,.9); font-weight:600; border-radius:11px; }
-.nav-item:hover{ background: rgba(255,255,255,.16); }
-.nav-item.active{ background: rgba(255,255,255,.92); color:#0d8175; font-weight:800; box-shadow:0 10px 20px -10px rgba(6,60,54,.5); }
-.app__side.ref .nav-item.active{ background: rgba(255,255,255,.94); color:#5b34b0; }
-.nav-item__badge{ background:#7a5cd0; }
+/* ============================================================
+   SIDEBAR — "Riel de vidrio con aurora" (rediseño)
+   Degradado profundo + destello diagonal + marca de agua de
+   ciencia (patrón transparente) + ítems tipo píldora con chip.
+   ============================================================ */
+.app__side{ position:relative; isolation:isolate; display:flex; flex-direction:column;
+  color:#eafff9; border-right:none; border-radius:0 22px 22px 0; padding:1rem .7rem .8rem;
+  background:
+    radial-gradient(120% 60% at 12% -8%, rgba(255,255,255,.22), transparent 55%),
+    radial-gradient(90% 40% at 108% 108%, rgba(122,92,208,.34), transparent 60%),
+    linear-gradient(178deg,#0a8377 0%,#0fa392 46%,#13b8a7 100%);
+  box-shadow: 18px 0 40px -30px rgba(6,60,54,.7), inset -1px 0 0 rgba(255,255,255,.08); }
+/* Destello diagonal sutil */
+.app__side::before{ content:""; position:absolute; inset:0; z-index:-2; border-radius:inherit;
+  background: linear-gradient(125deg, rgba(255,255,255,.10) 0%, transparent 34%); pointer-events:none; }
+/* Marca de agua: figuras de ciencia transparentes, desvanecidas */
+.app__side::after{ content:""; position:absolute; inset:0; z-index:-1; border-radius:inherit; pointer-events:none;
+  background:url(../img/pattern.svg) left -30px top -20px / 340px auto repeat-y; opacity:.12;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 18% 74%, transparent 100%);
+          mask-image: linear-gradient(180deg, transparent 0, #000 18% 74%, transparent 100%); }
+.app__side.ref{ background:
+    radial-gradient(120% 60% at 12% -8%, rgba(255,255,255,.20), transparent 55%),
+    radial-gradient(95% 46% at 106% 112%, rgba(224,82,111,.30), transparent 60%),
+    linear-gradient(178deg,#109f9f 0%,#3a8fb0 52%,#6a4fc4 100%); color:#f0fbff; }
+
+.side-nav{ flex:1; overflow-y:auto; padding-right:.1rem; }
+.nav-group{ margin-bottom:1.05rem; }
+.nav-group__label{ display:flex; align-items:center; gap:.5rem; color: rgba(255,255,255,.66);
+  font-size:10px; letter-spacing:1.4px; font-weight:800; padding:.3rem .75rem .35rem; }
+.nav-group__label::after{ content:""; flex:1; height:1px; background:linear-gradient(90deg, rgba(255,255,255,.28), transparent); }
+.app__side.ref .nav-group__label{ color: rgba(255,255,255,.7); }
+
+.nav-item{ position:relative; display:flex; align-items:center; gap:.65rem; padding:.5rem .7rem;
+  color: rgba(255,255,255,.9); font-weight:600; font-size:14px; border-radius:13px; text-decoration:none;
+  cursor:pointer; transition: background .2s, transform .2s cubic-bezier(.22,.7,.3,1), box-shadow .2s; }
+.nav-item__ico{ width:30px; height:30px; flex:none; display:grid; place-items:center; font-size:15px;
+  border-radius:9px; background: rgba(255,255,255,.14); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1);
+  transition: background .2s, transform .2s, color .2s; }
+.nav-item:hover{ background: rgba(255,255,255,.14); transform: translateX(3px); }
+.nav-item:hover .nav-item__ico{ background: rgba(255,255,255,.26); transform: scale(1.06); }
+/* Activo: píldora esmerilada con barra de acento y brillo */
+.nav-item.active{ background: linear-gradient(100deg, rgba(255,255,255,.97), rgba(255,255,255,.86));
+  color:#0c7d70; font-weight:800; box-shadow: 0 14px 26px -14px rgba(6,60,54,.6), 0 2px 8px -4px rgba(6,60,54,.3); transform:none; }
+.nav-item.active::before{ content:""; position:absolute; left:-.7rem; top:50%; transform:translateY(-50%);
+  width:4px; height:56%; border-radius:0 4px 4px 0; background:#0fa392; box-shadow:0 0 10px rgba(19,184,167,.8); }
+.nav-item.active .nav-item__ico{ background: linear-gradient(140deg,#12b5a5,#0d8175); color:#fff;
+  box-shadow: 0 6px 12px -5px rgba(6,60,54,.55); }
+.app__side.ref .nav-item.active{ color:#5b34b0; }
+.app__side.ref .nav-item.active::before{ background:#6a4fc4; box-shadow:0 0 10px rgba(106,79,196,.85); }
+.app__side.ref .nav-item.active .nav-item__ico{ background: linear-gradient(140deg,#7a5cd0,#5b34b0); }
+.nav-item__badge{ margin-left:auto; background:#7a5cd0; color:#fff; font-size:11px; font-weight:800;
+  min-width:18px; height:18px; border-radius:9px; display:grid; place-items:center; padding:0 4px;
+  box-shadow:0 3px 8px -3px rgba(122,92,208,.7); }
+.nav-item.active .nav-item__badge{ background:#e0526f; box-shadow:0 3px 8px -3px rgba(224,82,111,.7); }
 .app__side.ref .nav-item__badge{ background:#e0526f; }
+
+/* Pie de la barra: eslogan + banda multicolor (eco de la franja superior) */
+.side-foot{ margin-top:.4rem; padding:.7rem .5rem .2rem; }
+.side-foot__band{ display:block; height:4px; border-radius:3px; margin-bottom:.55rem; opacity:.9;
+  background:linear-gradient(90deg,#1554b8,#1e9fe0,#0fb5ad,#37a04a,#f2c53d,#f07f2e,#7d4bcf,#e0538a); }
+.side-foot__slogan{ font-family:var(--font-disp); font-size:12px; font-weight:600; letter-spacing:.02em;
+  color: rgba(255,255,255,.82); text-align:center; }
 
 /* Tarjetas y superficies */
 .card{ border-radius:18px; border:1px solid rgba(255,255,255,.9); background: rgba(255,255,255,.86);

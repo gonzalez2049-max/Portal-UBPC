@@ -101,7 +101,13 @@
         </div>
         <button class="btn btn--ghost btn--sm" id="logoutBtn" title="Cambiar de perfil">Salir</button>
       </header>
-      <aside class="${sideClass}" id="sidebar">${nav}</aside>
+      <aside class="${sideClass}" id="sidebar">
+        <div class="side-nav">${nav}</div>
+        <div class="side-foot">
+          <span class="side-foot__band" aria-hidden="true"></span>
+          <div class="side-foot__slogan">Seguridad · Evidencia · Cuidado</div>
+        </div>
+      </aside>
       <div class="side-overlay no-print" id="sideOverlay" aria-hidden="true"></div>
       <main class="app__main" id="view-main">${mainHTML}</main>
     </div>`;
