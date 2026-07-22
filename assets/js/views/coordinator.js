@@ -152,10 +152,12 @@
         <h1>Buenos días${me ? ", " + u.esc(me.nombre.split(" ")[0]) : ""}</h1>
         <p>Estado general de la gestión y principales indicadores de la Unidad de Buenas Prácticas Clínicas.</p>
         <div class="hh-frase">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
-        <div class="pillars" style="margin-top:.7rem">
-          <span class="pillar"><span class="ic">🛡️</span>Seguridad</span>
-          <span class="pillar ev"><span class="ic">🔬</span>Evidencia</span>
-          <span class="pillar cu"><span class="ic">💙</span>Cuidado</span>
+        <div class="pillars-card" style="margin-top:.75rem">
+          <span class="pilar"><span class="ic">🛡️</span>Seguridad</span>
+          <span class="pilar-sep" aria-hidden="true"></span>
+          <span class="pilar ev"><span class="ic">🔬</span>Evidencia</span>
+          <span class="pilar-sep" aria-hidden="true"></span>
+          <span class="pilar cu"><span class="ic">💙</span>Cuidado</span>
         </div>
       </div>
       <div class="card hh-bloom">

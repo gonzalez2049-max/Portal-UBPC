@@ -722,16 +722,24 @@ body.night .profile-card__name{ color:#eaf5ef; }
 body.night .guia-card{ background:rgba(18,32,28,.82); border-color:rgba(255,255,255,.07); border-left-color:var(--c-turquesa); }
 
 /* ---- Eslogan de la Unidad: Seguridad · Evidencia · Cuidado ---- */
-.pillars{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
-.pillar{ display:inline-flex; align-items:center; gap:.4rem; font-weight:800; font-size:.82rem;
-  padding:.32rem .8rem; border-radius:999px; background:rgba(18,181,165,.12); color:#0d8175;
-  border:1px solid rgba(18,181,165,.28); }
-.pillar.ev{ background:rgba(122,92,208,.12); color:#5b34b0; border-color:rgba(122,92,208,.28); }
-.pillar.cu{ background:rgba(224,145,47,.14); color:#a2670f; border-color:rgba(224,145,47,.3); }
-.pillar .ic{ font-size:.95em; }
-body.night .pillar{ background:rgba(18,181,165,.16); color:#7fe0d0; border-color:rgba(18,181,165,.32); }
-body.night .pillar.ev{ background:rgba(122,92,208,.18); color:#c3aef2; border-color:rgba(122,92,208,.35); }
-body.night .pillar.cu{ background:rgba(224,145,47,.18); color:#f0b968; border-color:rgba(224,145,47,.35); }
+/* Pilares de la unidad — una sola tarjeta con separadores */
+.pillars-card{ display:inline-flex; align-items:center; gap:.2rem; flex-wrap:wrap;
+  padding:.42rem .5rem; border-radius:15px;
+  background:linear-gradient(100deg, rgba(18,181,165,.12), rgba(122,92,208,.10) 52%, rgba(224,145,47,.13));
+  border:1px solid rgba(255,255,255,.7); box-shadow: var(--shadow); backdrop-filter: blur(4px); }
+.pilar{ display:inline-flex; align-items:center; gap:.42rem; font-weight:800; font-size:.86rem;
+  padding:.2rem .62rem; border-radius:10px; color:#0d8175; letter-spacing:-.01em; }
+.pilar.ev{ color:#5b34b0; }
+.pilar.cu{ color:#a2670f; }
+.pilar .ic{ font-size:1.05em; }
+.pilar-sep{ width:1px; height:17px; border-radius:1px; flex:none;
+  background:linear-gradient(180deg, transparent, rgba(23,48,43,.22), transparent); }
+body.night .pillars-card{ background:linear-gradient(100deg, rgba(18,181,165,.18), rgba(122,92,208,.15) 52%, rgba(224,145,47,.16));
+  border-color:rgba(255,255,255,.1); }
+body.night .pilar{ color:#7fe0d0; }
+body.night .pilar.ev{ color:#c3aef2; }
+body.night .pilar.cu{ color:#f0b968; }
+body.night .pilar-sep{ background:linear-gradient(180deg, transparent, rgba(255,255,255,.25), transparent); }
 .slogan-mini{ font-weight:800; font-size:.78rem; letter-spacing:.04em; color:#0d8175; }
 .slogan-mini b{ color:#7a5cd0; } .slogan-mini i{ color:#a2670f; font-style:normal; }
 

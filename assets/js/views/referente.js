@@ -55,10 +55,12 @@
         <h1>Hola, ${firstName}</h1>
         <p>${u.esc(me.cargo)} — tus solicitudes, avances y evidencia clínica en un solo lugar.</p>
         <div class="hh-frase">"Adaptar la evidencia a cada unidad: lesiones por presión, accesos vasculares y dolor."</div>
-        <div class="pillars" style="margin-top:.7rem">
-          <span class="pillar"><span class="ic">🛡️</span>Seguridad</span>
-          <span class="pillar ev"><span class="ic">🔬</span>Evidencia</span>
-          <span class="pillar cu"><span class="ic">💙</span>Cuidado</span>
+        <div class="pillars-card" style="margin-top:.75rem">
+          <span class="pilar"><span class="ic">🛡️</span>Seguridad</span>
+          <span class="pilar-sep" aria-hidden="true"></span>
+          <span class="pilar ev"><span class="ic">🔬</span>Evidencia</span>
+          <span class="pilar-sep" aria-hidden="true"></span>
+          <span class="pilar cu"><span class="ic">💙</span>Cuidado</span>
         </div>
       </div>
       <div class="card rt-prio ${prioritarias.length ? "has-prio" : ""}">
