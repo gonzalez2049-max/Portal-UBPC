@@ -304,6 +304,7 @@
       collection: "solicitudes", title: "Solicitud de apoyo técnico",
       hint: "Todas las solicitudes enviadas al Referente Técnico se consolidan aquí. No se eliminan las solicitudes cerradas.",
       newLabel: "Nueva solicitud", icon: "📨",
+      filters: [{ key: "estado", label: "Estado" }, { key: "prioridad", label: "Prioridad" }, { key: "unidad", label: "Unidad" }],
       emptyMsg: "Aún no hay solicitudes registradas.", emptySub: "Envía una intervención técnica desde cualquier módulo o crea una aquí.",
       columns: [
         { key: "codigo", label: "Código", mono: true, width: "150px" },
@@ -350,6 +351,7 @@
     U.components.resource.mount(container, {
       collection: "solicitudes", title: "Solicitud recibida", readOnly: true, export: true,
       hint: "Solicitudes técnicas enviadas por Coordinación. Ábrelas para gestionar y registrar la respuesta técnica.",
+      filters: [{ key: "estado", label: "Estado" }, { key: "prioridad", label: "Prioridad" }],
       emptyMsg: "No hay solicitudes recibidas.", emptySub: "Las solicitudes enviadas por Coordinación aparecerán aquí.", icon: "📨",
       filter: r => (r.direccion || "coord-a-ref") === "coord-a-ref",
       columns: [

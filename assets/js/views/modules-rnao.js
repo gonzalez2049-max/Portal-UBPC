@@ -317,6 +317,7 @@
       collection: "accionesRNAO", title: "Acción de mejora RNAO", icon: "🛠️",
       hint: "Una acción de mejora se genera cuando un indicador queda bajo la meta.",
       newLabel: "Nueva acción",
+      filters: [{ key: "estado", label: "Estado" }, { key: "guia", label: "Guía" }, { key: "unidad", label: "Unidad" }],
       emptyMsg: "Aún no hay acciones de mejora.", emptySub: "Genera acciones desde los indicadores bajo meta o crea una aquí.",
       columns: [
         { key: "guia", label: "Guía", render: (r, u) => `<span class="tag">${u.esc(r.guia || "—")}</span>` },

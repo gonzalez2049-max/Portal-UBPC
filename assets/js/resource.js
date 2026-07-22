@@ -39,16 +39,39 @@
     if (!container) return;
     const u = ui();
     const canEdit = cfg.readOnly ? false : true;
+    const state = { q: "", f: {} };
 
-    function records() {
+    function baseRecords() {
       let list = S().all(cfg.collection);
       if (cfg.filter) list = list.filter(cfg.filter);
+      return list;
+    }
+    function searchText(rec) {
+      return cfg.columns.map(c => exportValue(c, rec)).join(" ").toLowerCase() + " " + String(rec.codigo || "").toLowerCase();
+    }
+    function records() {
+      let list = baseRecords();
+      (cfg.filters || []).forEach(f => { const v = state.f[f.key]; if (v) list = list.filter(r => String(r[f.key] || "") === v); });
+      const q = state.q.trim().toLowerCase();
+      if (q) list = list.filter(r => searchText(r).includes(q));
       list.sort(cfg.sort || ((a, b) => new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0)));
       return list;
     }
 
     function render() {
-      const list = records();
+      const base = baseRecords();
+      const filtersHTML = (cfg.filters || []).map(f => {
+        const opts = f.options || [...new Set(base.map(r => r[f.key]).filter(x => x != null && x !== ""))];
+        return `<select class="select res-filter" data-fkey="${f.key}" aria-label="${u.esc(f.label)}">
+          <option value="">${u.esc(f.label)}: todos</option>
+          ${opts.map(o => `<option value="${u.esc(o)}">${u.esc(o)}</option>`).join("")}</select>`;
+      }).join("");
+      const tools = base.length ? `<div class="res-tools no-print">
+          <div class="res-search"><span class="ic">🔍</span>
+            <input class="input" type="search" id="res-q" placeholder="Buscar…" aria-label="Buscar en la tabla"></div>
+          ${filtersHTML}
+          <span class="res-count" id="res-count"></span>
+        </div>` : "";
       const toolbar = `<div class="section__head">
         <p class="section__hint">${u.esc(cfg.hint || "")}</p>
         <div class="btn-row">
@@ -57,50 +80,70 @@
           ${canEdit ? `<button class="btn btn--primary btn--sm" data-new>+ ${u.esc(cfg.newLabel || "Nuevo registro")}</button>` : ""}
         </div>
       </div>`;
-
-      let body;
-      if (!list.length) {
-        body = u.empty(cfg.emptyMsg || "Aún no hay registros disponibles.",
-          cfg.emptySub || "Agrega el primer registro para comenzar.", cfg.icon || "🗂️");
-      } else {
-        const cols = cfg.columns;
-        body = `<div class="table-wrap"><table class="tbl"><thead><tr>
-          ${cols.map(c => `<th scope="col" ${c.width ? `style="width:${c.width}"` : ""}>${u.esc(c.label)}</th>`).join("")}
-          <th scope="col" class="right">Acciones</th></tr></thead><tbody>
-          ${list.map(rec => `<tr data-id="${rec.id}">
-            ${cols.map(c => `<td class="${c.num ? "num" : ""}">${cell(c, rec)}</td>`).join("")}
-            <td class="acciones"><div class="btn-row" style="justify-content:flex-end">
-              ${(cfg.rowActions || []).map((a, i) =>
-                (!a.show || a.show(rec)) ? `<button class="btn-icon" data-act="${i}" data-id="${rec.id}" title="${u.esc(a.title)}">${a.ico}</button>` : "").join("")}
-              ${canEdit ? `<button class="btn-icon" data-edit="${rec.id}" title="Editar">✏️</button>` : ""}
-              ${canEdit && (!cfg.canDelete || cfg.canDelete(rec)) ? `<button class="btn-icon" data-del="${rec.id}" title="Eliminar">🗑️</button>` : ""}
-              ${cfg.detail ? `<button class="btn-icon" data-detail="${rec.id}" title="Ver detalle">👁️</button>` : ""}
-            </div></td></tr>`).join("")}
-        </tbody></table></div>`;
-      }
-      container.innerHTML = toolbar + body;
-      bind(list);
+      container.innerHTML = toolbar + tools + `<div class="res-body" id="res-body"></div>`;
+      bindToolbar();
+      bindTools();
+      renderBody();
     }
 
-    function bind(list) {
+    function renderBody() {
+      const bodyEl = container.querySelector("#res-body");
+      const countEl = container.querySelector("#res-count");
+      if (!baseRecords().length) {
+        bodyEl.innerHTML = u.empty(cfg.emptyMsg || "Aún no hay registros disponibles.",
+          cfg.emptySub || "Agrega el primer registro para comenzar.", cfg.icon || "🗂️");
+        return;
+      }
+      const list = records();
+      if (countEl) countEl.textContent = list.length + " registro" + (list.length === 1 ? "" : "s");
+      if (!list.length) {
+        bodyEl.innerHTML = u.empty("Sin resultados.", "Ajusta la búsqueda o los filtros.", "🔍");
+        return;
+      }
+      const cols = cfg.columns;
+      bodyEl.innerHTML = `<div class="table-wrap"><table class="tbl"><thead><tr>
+        ${cols.map(c => `<th scope="col" ${c.width ? `style="width:${c.width}"` : ""}>${u.esc(c.label)}</th>`).join("")}
+        <th scope="col" class="right">Acciones</th></tr></thead><tbody>
+        ${list.map(rec => `<tr data-id="${rec.id}">
+          ${cols.map(c => `<td class="${c.num ? "num" : ""}">${cell(c, rec)}</td>`).join("")}
+          <td class="acciones"><div class="btn-row" style="justify-content:flex-end">
+            ${(cfg.rowActions || []).map((a, i) =>
+              (!a.show || a.show(rec)) ? `<button class="btn-icon" data-act="${i}" data-id="${rec.id}" title="${u.esc(a.title)}">${a.ico}</button>` : "").join("")}
+            ${canEdit ? `<button class="btn-icon" data-edit="${rec.id}" title="Editar">✏️</button>` : ""}
+            ${canEdit && (!cfg.canDelete || cfg.canDelete(rec)) ? `<button class="btn-icon" data-del="${rec.id}" title="Eliminar">🗑️</button>` : ""}
+            ${cfg.detail ? `<button class="btn-icon" data-detail="${rec.id}" title="Ver detalle">👁️</button>` : ""}
+          </div></td></tr>`).join("")}
+      </tbody></table></div>`;
+      bindBody();
+    }
+
+    function bindToolbar() {
       const nb = container.querySelector("[data-new]");
       if (nb) nb.onclick = () => form(null);
       const ex = container.querySelector("[data-export]");
       if (ex) ex.onclick = () => {
         const rows = records().map(rec => {
-          const o = {};
-          cfg.columns.forEach(c => { o[c.label] = exportValue(c, rec); });
-          return o;
+          const o = {}; cfg.columns.forEach(c => { o[c.label] = exportValue(c, rec); }); return o;
         });
         u.exportCSV((cfg.collection || "export") + "-ubpc", rows, cfg.columns.map(c => c.label));
       };
       const pr = container.querySelector("[data-print]");
       if (pr) pr.onclick = () => u.printSection();
+    }
+    function bindTools() {
+      const q = container.querySelector("#res-q");
+      if (q) { q.value = state.q; q.oninput = () => { state.q = q.value; renderBody(); }; }
+      container.querySelectorAll(".res-filter").forEach(sel => {
+        sel.value = state.f[sel.dataset.fkey] || "";
+        sel.onchange = () => { state.f[sel.dataset.fkey] = sel.value; renderBody(); };
+      });
+    }
+    function bindBody() {
       container.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => form(S().get(cfg.collection, b.dataset.edit)));
       container.querySelectorAll("[data-del]").forEach(b => b.onclick = () =>
         u.confirmDelete(cfg.deleteMsg || "¿Deseas eliminar este registro? Esta acción no se puede deshacer.",
           () => { S().remove(cfg.collection, b.dataset.del); render(); }));
-      container.querySelectorAll("[data-detail]").forEach(b => b.onclick = () => cfg.detail(S().get(cfg.collection, b.dataset.detail), render));
+      container.querySelectorAll("[data-detail]").forEach(b => b.onclick = () => cfg.detail(S().get(cfg.collection, b.dataset.detail), renderBody));
       (cfg.rowActions || []).forEach((a, i) => {
         container.querySelectorAll(`[data-act="${i}"]`).forEach(b => b.onclick = () => a.fn(S().get(cfg.collection, b.dataset.id), render));
       });

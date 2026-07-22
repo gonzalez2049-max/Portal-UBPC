@@ -37,6 +37,7 @@
       collection: "apoyoMejora", title: "Proceso de apoyo", icon: "🤝",
       hint: "Registra el apoyo técnico, la intervención y el resultado por unidad.",
       newLabel: "Nuevo proceso",
+      filters: [{ key: "estado", label: "Estado" }, { key: "unidad", label: "Unidad" }],
       emptyMsg: "Aún no hay procesos de apoyo registrados.",
       columns: [
         { key: "unidad", label: "Unidad" },
@@ -78,6 +79,7 @@
       collection: "documentos", title: "Documento", icon: "📄", withCode: true,
       hint: "Cada documento recibe un código automático permanente (UBPC-DOC-AAAA-000) y conserva su historial de versiones.",
       newLabel: "Nuevo documento",
+      filters: [{ key: "estado", label: "Estado" }, { key: "tipo", label: "Tipo" }],
       emptyMsg: "Aún no hay documentos registrados.",
       columns: [
         { key: "codigo", label: "Código", mono: true, width: "150px" },

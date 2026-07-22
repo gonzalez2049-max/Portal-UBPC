@@ -218,6 +218,7 @@
       collection: "colaboraciones", title: "Colaboración", icon: "🌐", withCode: true,
       hint: "Registro en tabla. Las observaciones se abren en un detalle desplegable. Código UBPC-COL-AAAA-000.",
       newLabel: "Nueva colaboración", wideForm: true,
+      filters: [{ key: "tipo", label: "Tipo" }, { key: "estado", label: "Estado" }, { key: "rolUBPC", label: "Rol" }],
       emptyMsg: "Aún no hay colaboraciones registradas.",
       columns: [
         { key: "fecha", label: "Fecha", date: true },
