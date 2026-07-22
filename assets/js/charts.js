@@ -87,6 +87,30 @@
     }).join("") + `</div>`;
   }
 
+  /* Sparkline limpio (mini tendencia, sin ejes) */
+  function sparkline(values, opts) {
+    opts = opts || {};
+    if (!values || !values.length) return "";
+    const w = 280, h = 42, pad = 5;
+    const extra = opts.meta != null ? [opts.meta] : [];
+    const mn = Math.min.apply(0, values.concat(extra)), mx = Math.max.apply(0, values.concat(extra)), rng = (mx - mn) || 1;
+    const x = i => pad + (values.length <= 1 ? (w - 2 * pad) / 2 : (w - 2 * pad) * i / (values.length - 1));
+    const y = v => h - pad - ((v - mn) / rng) * (h - 2 * pad);
+    const pts = values.map((v, i) => [x(i), y(v)]);
+    const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+    const area = line + ` L${x(values.length - 1).toFixed(1)} ${h - pad} L${x(0).toFixed(1)} ${h - pad} Z`;
+    const col = opts.color || "var(--c-celeste)";
+    const last = pts[pts.length - 1];
+    const id = "sp" + Math.random().toString(36).slice(2, 7);
+    const metaLine = opts.meta != null
+      ? `<line x1="${pad}" y1="${y(opts.meta).toFixed(1)}" x2="${w - pad}" y2="${y(opts.meta).toFixed(1)}" stroke="var(--morado)" stroke-width="1.3" stroke-dasharray="4 3" opacity=".6"/>` : "";
+    return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Tendencia" style="display:block">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".26"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+      ${metaLine}<path d="${area}" fill="url(#${id})"/>
+      <path d="${line}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.2" fill="${col}"/></svg>`;
+  }
+
   /* Bloom: anillos concéntricos (global + hasta 3 segmentos) */
   function bloomRings(segs, opts) {
     opts = opts || {};
@@ -107,5 +131,5 @@
   }
 
   window.UBPC = window.UBPC || {};
-  window.UBPC.charts = { gauge, lineChart, bars, bloomRings };
+  window.UBPC.charts = { gauge, lineChart, bars, bloomRings, sparkline };
 })();

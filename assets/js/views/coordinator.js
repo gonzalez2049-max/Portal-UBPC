@@ -9,12 +9,14 @@
   /* ---------- Navegación ---------- */
   const NAV = [
     { label: "Principal", items: [
-      { key: "home", label: "Inicio", ico: "🏠" }
+      { key: "home", label: "Inicio", ico: "🏠" },
+      { key: "guia", label: "Guía del Coordinador", ico: "🧑‍🏫" }
     ]},
     { label: "Módulos de gestión", items: [
       { key: "m1", label: "Apoyo y Mejora Continua", ico: "🤝" },
       { key: "m2", label: "Gestión Documental", ico: "📄" },
       { key: "m3", label: "Programa RNAO", ico: "🧭" },
+      { key: "indicadores", label: "Indicadores UBPC", ico: "📏" },
       { key: "m4", label: "Fortalecimiento", ico: "💪" },
       { key: "m5", label: "Gestión y Respaldo", ico: "🗂️" },
       { key: "m6", label: "Norma Técnica 234", ico: "📊" },
@@ -215,19 +217,10 @@
       <div id="homeKanban"></div>
     </div>
 
-    <div class="grid grid--2">
-      <div class="section">
-        <div class="section__head"><div><h2 class="section__title">Actividad reciente</h2>
-          <p class="section__hint">Últimos movimientos registrados en el portal.</p></div></div>
-        <div class="card">${actividadHTML()}</div>
-      </div>
-      <div class="section">
-        <div class="section__head">
-          <div><h2 class="section__title">Evidencia de la semana</h2></div>
-          <button class="btn btn--primary btn--sm" id="addEvidencia">+ Nueva evidencia</button>
-        </div>
-        <div class="card" id="evidenciaBox">${evidenciaHTML()}</div>
-      </div>
+    <div class="section">
+      <div class="section__head"><div><h2 class="section__title">Actividad reciente</h2>
+        <p class="section__hint">Últimos movimientos registrados en el portal.</p></div></div>
+      <div class="card">${actividadHTML()}</div>
     </div>
 
     <div class="section">
@@ -317,8 +310,6 @@
   function homeBind(root) {
     U.components.kanban.mount(document.getElementById("homeKanban"), "coordinador");
 
-    const addEv = document.getElementById("addEvidencia");
-    if (addEv) addEv.onclick = () => evidenciaForm();
     const addHito = document.getElementById("addHito");
     if (addHito) addHito.onclick = () => hitoForm();
 

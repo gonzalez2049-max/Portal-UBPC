@@ -15,7 +15,7 @@
     "reuniones", "acuerdos", "articulaciones", "respaldos", "solicitudes", "nt234",
     "planesNT234", "colaboraciones", "notificaciones", "hitos", "kanban",
     "bibliotecaBitacora", "evidenciaRef", "capacitacionRef", "monitoreoRef",
-    "evidenciaSemana", "actividadReciente", "config"
+    "indicadores", "evidenciaSemana", "actividadReciente", "config"
   ];
 
   // Prefijos de códigos automáticos por colección
