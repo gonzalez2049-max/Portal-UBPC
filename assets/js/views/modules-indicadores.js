@@ -292,4 +292,7 @@
 
   U.coord.views.indicadores = indicadores;
   U.coord.binders.indicadores = refresh;
+
+  /* Cálculos expuestos para reportes u otros módulos */
+  U.indicadoresCalc = { currentValue, semaforo, cumplimiento, serie, tendencia, SEM, TIPO_COLOR };
 })();

@@ -130,6 +130,54 @@
     };
   }
 
+  function repIndicadores() {
+    const IC = U.indicadoresCalc || {};
+    const list = S().all("indicadores");
+    const semLabel = { verde: "En meta", amarillo: "En seguimiento", rojo: "Intervención", sd: "Sin datos" };
+    const by = k => list.filter(i => (IC.semaforo ? IC.semaforo(i) : "sd") === k).length;
+    const rows = list.map(i => {
+      const cur = IC.currentValue ? IC.currentValue(i) : null;
+      const sem = IC.semaforo ? IC.semaforo(i) : "sd";
+      const tnd = IC.tendencia ? IC.tendencia(i) : { arrow: "→", txt: "" };
+      return [
+        esc(i.nombre || ""), esc(i.tipo || ""),
+        (cur == null ? "—" : cur + (i.unidad ? " " + esc(i.unidad) : "")),
+        (i.meta === "" || i.meta == null ? "—" : i.meta + "%"),
+        pctFmt(IC.cumplimiento ? IC.cumplimiento(i) : null),
+        `<strong>${esc(semLabel[sem])}</strong>`,
+        esc(tnd.arrow + " " + (tnd.txt || "")),
+        esc(i.responsable || ""), esc(i.periodicidad || "")
+      ];
+    });
+    const alertas = list.filter(i => (IC.semaforo ? IC.semaforo(i) : "sd") === "rojo")
+      .map(i => [esc(i.nombre || ""), esc(i.tipo || ""), pctFmt(IC.cumplimiento ? IC.cumplimiento(i) : null), esc(i.responsable || "")]);
+    return {
+      titulo: "Reporte de Indicadores UBPC", periodo: periodoActual(),
+      body: kpiRow([
+        { v: list.length, l: "Indicadores" }, { v: by("verde"), l: "En meta" },
+        { v: by("amarillo"), l: "En seguimiento" }, { v: by("rojo"), l: "En intervención" }
+      ]) + `<h3>Indicadores registrados</h3>` +
+        table(["Indicador", "Tipo", "Resultado", "Meta", "Cumplimiento", "Semáforo", "Tendencia", "Responsable", "Periodicidad"], rows) +
+        `<h3>Alertas — indicadores en intervención</h3>` +
+        table(["Indicador", "Tipo", "Cumplimiento", "Responsable"], alertas),
+      excel: {
+        headers: ["Indicador", "Tipo", "Resultado", "Meta", "Cumplimiento", "Semáforo", "Tendencia", "Responsable", "Periodicidad"],
+        rows: list.map(i => {
+          const cur = IC.currentValue ? IC.currentValue(i) : null;
+          const tnd = IC.tendencia ? IC.tendencia(i) : { arrow: "", txt: "" };
+          return {
+            Indicador: i.nombre, Tipo: i.tipo, Resultado: cur == null ? "" : cur,
+            Meta: i.meta === "" || i.meta == null ? "" : i.meta + "%",
+            Cumplimiento: pctFmt(IC.cumplimiento ? IC.cumplimiento(i) : null),
+            "Semáforo": semLabel[IC.semaforo ? IC.semaforo(i) : "sd"],
+            Tendencia: (tnd.arrow + " " + (tnd.txt || "")).trim(),
+            Responsable: i.responsable || "", Periodicidad: i.periodicidad || ""
+          };
+        })
+      }
+    };
+  }
+
   function periodoActual() {
     const y = new Date().getFullYear();
     return y + (new Date().getMonth() < 6 ? "-S1" : "-S2");
@@ -139,6 +187,7 @@
     { key: "consolidado", title: "Consolidado institucional", icon: "🏛️", desc: "Resumen ejecutivo de todos los programas de la UBPC.", build: repConsolidado },
     { key: "rnao", title: "Programa RNAO", icon: "🧭", desc: "Cumplimiento, evaluaciones y acciones de mejora.", build: repRNAO },
     { key: "capacitacion", title: "Capacitación y cobertura", icon: "🎓", desc: "Actividades, personas capacitadas y cobertura.", build: repCapacitacion },
+    { key: "indicadores", title: "Indicadores UBPC", icon: "📏", desc: "Semáforo, cumplimiento, tendencias y alertas por indicador.", build: repIndicadores },
     { key: "colaboracion", title: "Red de Colaboración", icon: "🌐", desc: "Colaboraciones institucionales y participación.", build: repColaboracion }
   ];
 
