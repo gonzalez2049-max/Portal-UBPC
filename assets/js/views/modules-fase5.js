@@ -262,11 +262,64 @@
   function m7() {
     return `<div class="page-head"><h1>Red de Colaboración UBPC</h1>
       <p>Asesorías, visitas técnicas, cursos y colaboraciones institucionales. Fechas en formato chileno.</p></div>
-      <div id="m7-body"></div>`;
+      <div id="m7-chart"></div><div id="m7-body"></div>`;
+  }
+  function renderColabChart(el) {
+    if (!el) return;
+    const u = ui();
+    const cols = S().all("colaboraciones");
+    if (!cols.length) { el.innerHTML = ""; return; }
+    const completadas = cols.filter(c => /completad/i.test(c.estado || "")).length;
+    const formativos = cols.filter(c => FORMATIVAS.includes(c.tipo)).reduce((n, c) => n + (parseInt(c.nParticipantes) || 0), 0);
+    const instituciones = new Set(cols.map(c => (c.institucion || "").trim()).filter(Boolean)).size;
+
+    const cuenta = (campo) => {
+      const m = {}; cols.forEach(c => { const k = c[campo] || "Sin dato"; m[k] = (m[k] || 0) + 1; });
+      return Object.keys(m).map(k => ({ label: k, value: m[k] })).sort((a, b) => b.value - a.value);
+    };
+    const porTipo = cuenta("tipo"), porPilar = cuenta("pilar");
+    const maxT = Math.max.apply(0, porTipo.map(i => i.value)) || 1;
+    const maxP = Math.max.apply(0, porPilar.map(i => i.value)) || 1;
+    const barList = (items, max, colorFn) => `<div class="bars">${items.map(i => `<div style="margin-bottom:.55rem">
+      <div class="flex" style="justify-content:space-between;font-size:13px;font-weight:600"><span>${u.esc(i.label)}</span><span>${i.value}</span></div>
+      <div style="background:var(--chart-track,#e9eff7);border-radius:6px;height:12px;overflow:hidden">
+        <div style="width:${Math.round(i.value / max * 100)}%;height:100%;background:${colorFn ? colorFn(i.label) : "var(--celeste)"};border-radius:6px"></div></div></div>`).join("")}</div>`;
+
+    const topTipo = porTipo[0], topPilar = porPilar[0];
+    const lectura = `La UBPC mantiene <strong>${cols.length} colaboración(es)</strong> con ${instituciones} institución(es); ${completadas} completada(s).`;
+    const accion = `Predomina <strong>${u.esc(topTipo.label)}</strong> (${topTipo.value})${topPilar ? ` y el pilar <strong>${u.esc(topPilar.label)}</strong>` : ""}. Equilibrar hacia los tipos y pilares con menor presencia para ampliar la red.`;
+
+    el.innerHTML = `
+      <div class="grid grid--kpi" style="margin-bottom:1rem">
+        ${kpiMiniC("Colaboraciones", cols.length, "Registradas", "info", "🌐")}
+        ${kpiMiniC("Instituciones", instituciones, "En la red", "ok", "🏥")}
+        ${kpiMiniC("Completadas", completadas, "Cerradas con resultado", "ok", "✅")}
+        ${kpiMiniC("Participantes formativos", formativos, "En actividades formativas", "info", "👥")}
+      </div>
+      <div class="grid grid--2" style="margin-bottom:1.1rem">
+        <div class="card"><h3 class="card__title">Colaboraciones por tipo</h3>
+          <p class="card__hint" style="margin:.1rem 0 .5rem">Naturaleza de la colaboración.</p>
+          ${barList(porTipo, maxT, (l) => TIPO_COLOR[l] || "var(--celeste)")}</div>
+        <div class="card"><h3 class="card__title">Colaboraciones por pilar estratégico</h3>
+          <p class="card__hint" style="margin:.1rem 0 .5rem">Alineación con los pilares de la UBPC.</p>
+          ${barList(porPilar, maxP)}
+          <div class="nt-lectura"><span class="nt-lectura__ico">🧭</span>
+            <div><div style="margin-bottom:.15rem">${lectura}</div><div style="color:var(--text-2)"><strong>Decisión sugerida:</strong> ${accion}</div></div></div>
+        </div>
+      </div>`;
+  }
+  function kpiMiniC(label, value, sub, kind, icon) {
+    const u = ui();
+    return `<div class="card kpi kpi--${kind || "info"}">
+      <div class="kpi__top"><div class="kpi__label">${u.esc(label)}</div><div class="kpi__ico">${icon || ""}</div></div>
+      <div class="kpi__value">${value}</div><div class="kpi__sub">${u.esc(sub || "")}</div></div>`;
   }
   function m7Bind() {
     const box = document.getElementById("m7-body");
+    const draw = () => renderColabChart(document.getElementById("m7-chart"));
+    draw();
     R().mount(box, {
+      afterChange: draw,
       collection: "colaboraciones", title: "Colaboración", icon: "🌐", withCode: true,
       hint: "Registro en tabla. Las observaciones se abren en un detalle desplegable. Código UBPC-COL-AAAA-000.",
       newLabel: "Nueva colaboración", wideForm: true,

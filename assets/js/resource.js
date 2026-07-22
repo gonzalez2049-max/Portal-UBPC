@@ -142,7 +142,7 @@
       container.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => form(S().get(cfg.collection, b.dataset.edit)));
       container.querySelectorAll("[data-del]").forEach(b => b.onclick = () =>
         u.confirmDelete(cfg.deleteMsg || "¿Deseas eliminar este registro? Esta acción no se puede deshacer.",
-          () => { S().remove(cfg.collection, b.dataset.del); render(); }));
+          () => { S().remove(cfg.collection, b.dataset.del); render(); if (cfg.afterChange) cfg.afterChange(); }));
       container.querySelectorAll("[data-detail]").forEach(b => b.onclick = () => cfg.detail(S().get(cfg.collection, b.dataset.detail), renderBody));
       (cfg.rowActions || []).forEach((a, i) => {
         container.querySelectorAll(`[data-act="${i}"]`).forEach(b => b.onclick = () => a.fn(S().get(cfg.collection, b.dataset.id), render));
@@ -172,6 +172,7 @@
             u.toast(rec ? "Registro actualizado" : "Registro creado", "ok");
             if (cfg.afterSave) cfg.afterSave();
             render();
+            if (cfg.afterChange) cfg.afterChange();
           };
         }
       });

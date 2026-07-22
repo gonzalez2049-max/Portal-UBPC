@@ -28,8 +28,81 @@
   }
 
   /* ---------- Actividades y capacitación ---------- */
+  function kpiMini(label, value, sub, kind, icon) {
+    return `<div class="card kpi kpi--${kind || "info"}">
+      <div class="kpi__top"><div class="kpi__label">${ui().esc(label)}</div><div class="kpi__ico">${icon || ""}</div></div>
+      <div class="kpi__value">${value}</div><div class="kpi__sub">${ui().esc(sub || "")}</div></div>`;
+  }
+  function periodoDe(fecha) {
+    if (!fecha) return "—";
+    const d = new Date(fecha); if (isNaN(d)) return "—";
+    return d.getFullYear() + "-S" + (d.getMonth() < 6 ? 1 : 2);
+  }
+  function renderCapChart(el) {
+    if (!el) return;
+    const u = ui();
+    const acts = S().all("actividades");
+    if (!acts.length) { el.innerHTML = ""; return; }
+    const totalCap = acts.reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0);
+    const sumPO = acts.reduce((n, a) => n + (parseInt(a.poblacionObjetivo) || 0), 0);
+    const cob = sumPO > 0 ? Math.round(totalCap / sumPO * 100) : null;
+
+    // Capacitados por período
+    const periodos = [...new Set(acts.map(a => periodoDe(a.fecha)).filter(p => p !== "—"))].sort();
+    const serie = periodos.map(pr => acts.filter(a => periodoDe(a.fecha) === pr)
+      .reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0));
+    const multi = periodos.length > 1;
+    const delta = multi ? serie[serie.length - 1] - serie[serie.length - 2] : null;
+
+    // Capacitados por estamento (dónde falta cobertura)
+    const porEst = {};
+    acts.forEach(a => { const e = a.estamento || "Sin estamento"; porEst[e] = (porEst[e] || 0) + (parseInt(a.personasCapacitadas) || 0); });
+    const estItems = Object.keys(porEst).map(k => ({ label: k, value: porEst[k] }))
+      .sort((a, b) => b.value - a.value);
+    const maxEst = Math.max.apply(0, estItems.map(i => i.value)) || 1;
+
+    const dBadge = delta == null ? "" : `<span class="badge badge--${delta > 0 ? "ok" : delta < 0 ? "danger" : "neutral"}">${delta > 0 ? "▲ +" + delta : delta < 0 ? "▼ " + delta : "→ 0"} vs período anterior</span>`;
+    const menor = estItems[estItems.length - 1];
+    const lectura = multi
+      ? (delta > 0 ? `La capacitación <strong>creció ${delta} personas</strong> respecto al período anterior.`
+        : delta < 0 ? `La capacitación <strong>bajó ${Math.abs(delta)} personas</strong> respecto al período anterior; conviene reactivar actividades.`
+        : `La capacitación se mantuvo estable respecto al período anterior.`)
+      : `Registra actividades en más períodos para ver la evolución.`;
+    const accion = estItems.length > 1 ? `El estamento con menor cobertura es <strong>${u.esc(menor.label)}</strong> (${menor.value}). Priorizar actividades dirigidas a ese grupo.` : `Diversifica los estamentos para ampliar el alcance.`;
+
+    el.innerHTML = `
+      <div class="grid grid--kpi" style="margin-bottom:1rem">
+        ${kpiMini("Actividades", acts.length, "Registradas", "info", "🎓")}
+        ${kpiMini("Personas capacitadas", totalCap, "Total acumulado", "ok", "👥")}
+        ${kpiMini("Cobertura global", cob == null ? "—" : cob + "%", "Capacitados / población objetivo", cob == null ? "neutral" : cob >= 80 ? "ok" : "warn", "🎯")}
+        ${kpiMini("Estamentos alcanzados", estItems.length, "Grupos con capacitación", "info", "🩺")}
+      </div>
+      <div class="grid grid--2" style="margin-bottom:1.1rem">
+        <div class="card"><div class="section__head" style="margin-bottom:.4rem">
+          <h3 class="card__title" style="margin:0">📈 Personas capacitadas por período</h3>${dBadge}</div>
+          ${multi ? `<div style="padding:.2rem .2rem .1rem">${U.charts.sparkline(serie, { color: "var(--verde)" })}</div>
+            <div class="flex" style="justify-content:space-between;font-size:12px;color:var(--text-muted);margin-top:.2rem">
+              ${periodos.map((pr, i) => `<span>${u.esc(pr)}: <strong style="color:var(--text-2)">${serie[i]}</strong></span>`).join("")}</div>`
+            : `<div class="kpi__value" style="font-size:2rem">${serie[0] || 0}</div><div class="kpi__sub">personas en ${u.esc(periodos[0] || "—")}</div>`}
+          <div class="nt-lectura"><span class="nt-lectura__ico">🧭</span>
+            <div><div style="margin-bottom:.15rem">${lectura}</div><div style="color:var(--text-2)"><strong>Decisión sugerida:</strong> ${accion}</div></div></div>
+        </div>
+        <div class="card"><h3 class="card__title">Capacitados por estamento</h3>
+          <p class="card__hint" style="margin:.1rem 0 .5rem">Distribución del alcance para equilibrar la cobertura.</p>
+          <div class="bars">${estItems.map(i => `<div style="margin-bottom:.55rem">
+            <div class="flex" style="justify-content:space-between;font-size:13px;font-weight:600"><span>${u.esc(i.label)}</span><span>${i.value}</span></div>
+            <div style="background:var(--chart-track,#e9eff7);border-radius:6px;height:12px;overflow:hidden">
+              <div style="width:${Math.round(i.value / maxEst * 100)}%;height:100%;background:var(--celeste);border-radius:6px"></div></div></div>`).join("")}</div>
+        </div>
+      </div>`;
+  }
+
   function actividades(box) {
-    R().mount(box, {
+    box.innerHTML = `<div id="cap-chart"></div><div id="cap-res"></div>`;
+    const draw = () => renderCapChart(document.getElementById("cap-chart"));
+    draw();
+    R().mount(document.getElementById("cap-res"), {
+      afterChange: draw,
       collection: "actividades", title: "Actividad", icon: "🎓", withCode: true,
       hint: "Actividades de capacitación con estamento, personas capacitadas y cobertura. Código UBPC-CAP-AAAA-000.",
       newLabel: "Nueva actividad",
