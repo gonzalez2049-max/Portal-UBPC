@@ -53,6 +53,11 @@
               <p class="narrativo">Registra, organiza, monitorea y respalda la gestión de la Unidad de Buenas
               Prácticas Clínicas, manteniendo trazabilidad de responsables, fechas, estados y resultados.</p>
               <div class="access__frase">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
+              <div class="pillars" style="margin:.2rem 0 .4rem">
+                <span class="pillar"><span class="ic">🛡️</span>Seguridad</span>
+                <span class="pillar ev"><span class="ic">🔬</span>Evidencia</span>
+                <span class="pillar cu"><span class="ic">💙</span>Cuidado</span>
+              </div>
               <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
             </div>
             <div class="access__profiles">

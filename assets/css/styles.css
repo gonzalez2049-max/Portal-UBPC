@@ -412,15 +412,18 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   --shadow-lg: 0 18px 46px -18px rgba(18,90,80,.34);
 }
 
-/* Fondo con degradado + blobs orgánicos */
+/* Fondo pastel + blobs de color + figuras de ciencia/evidencia */
 body{ background:
-  radial-gradient(1100px 520px at 92% -6%, rgba(122,92,208,.13), transparent),
-  radial-gradient(900px 520px at -6% 108%, rgba(18,181,165,.14), transparent),
-  linear-gradient(160deg,#e9f7f1 0%,#eef1fb 55%,#f4edfb 100%);
+  linear-gradient(160deg,#eff9f6 0%,#f3f5fd 50%,#f8f2fd 100%);
   background-attachment: fixed; }
-body::before,body::after{ content:""; position:fixed; z-index:-1; border-radius:50%; filter:blur(60px); pointer-events:none; }
-body::before{ width:34vw; height:34vw; left:-8vw; bottom:-10vw; background:radial-gradient(#7fe0c6,#12b5a5); opacity:.28; }
-body::after{ width:30vw; height:30vw; right:-7vw; top:6vw; background:radial-gradient(#c3aef2,#7a5cd0); opacity:.22; }
+/* Capa de blobs pastel (color de marca) */
+body::before{ content:""; position:fixed; inset:0; z-index:-2; pointer-events:none; background:
+  radial-gradient(42vw 42vw at -6% 108%, rgba(18,181,165,.20), transparent 60%),
+  radial-gradient(40vw 40vw at 106% 0%, rgba(122,92,208,.16), transparent 60%),
+  radial-gradient(32vw 32vw at 62% 122%, rgba(55,198,160,.13), transparent 60%); }
+/* Capa de figuras transparentes (innovación y evidencia científica) */
+body::after{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:url(../img/pattern.svg) center center / cover no-repeat; opacity:.5; }
 
 /* Tipografía editorial */
 h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__value{ font-family: var(--font-disp); font-weight:600; letter-spacing:-.01em; }
@@ -581,7 +584,10 @@ body.night{ color:#e8f5ef;
     radial-gradient(1100px 520px at 92% -6%, rgba(122,92,208,.18), transparent),
     radial-gradient(900px 520px at -6% 108%, rgba(18,181,165,.15), transparent),
     linear-gradient(160deg,#0a1714 0%,#0b1520 55%,#120f1c 100%); }
-body.night::before{ opacity:.20 } body.night::after{ opacity:.16 }
+body.night::before{ background:
+  radial-gradient(42vw 42vw at -6% 108%, rgba(18,181,165,.16), transparent 60%),
+  radial-gradient(40vw 40vw at 106% 0%, rgba(122,92,208,.16), transparent 60%); }
+body.night::after{ opacity:.26; filter:brightness(2.3) saturate(.65); }
 body.night a{ color:#5fd8c4; }
 body.night h1,body.night h2,body.night h3,body.night h4,
 body.night .section__title,body.night .card__title,body.night .page-head h1,body.night .kpi__value{ color:#eaf5ef; }
@@ -645,13 +651,30 @@ body.night .profile-card__name{ color:#eaf5ef; }
 /* Toggle de tema */
 #themeToggle{ font-size:15px; }
 
+/* ---- Eslogan de la Unidad: Seguridad · Evidencia · Cuidado ---- */
+.pillars{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+.pillar{ display:inline-flex; align-items:center; gap:.4rem; font-weight:800; font-size:.82rem;
+  padding:.32rem .8rem; border-radius:999px; background:rgba(18,181,165,.12); color:#0d8175;
+  border:1px solid rgba(18,181,165,.28); }
+.pillar.ev{ background:rgba(122,92,208,.12); color:#5b34b0; border-color:rgba(122,92,208,.28); }
+.pillar.cu{ background:rgba(224,145,47,.14); color:#a2670f; border-color:rgba(224,145,47,.3); }
+.pillar .ic{ font-size:.95em; }
+body.night .pillar{ background:rgba(18,181,165,.16); color:#7fe0d0; border-color:rgba(18,181,165,.32); }
+body.night .pillar.ev{ background:rgba(122,92,208,.18); color:#c3aef2; border-color:rgba(122,92,208,.35); }
+body.night .pillar.cu{ background:rgba(224,145,47,.18); color:#f0b968; border-color:rgba(224,145,47,.35); }
+.slogan-mini{ font-weight:800; font-size:.78rem; letter-spacing:.04em; color:#0d8175; }
+.slogan-mini b{ color:#7a5cd0; } .slogan-mini i{ color:#a2670f; font-style:normal; }
+
 /* ============================================================
    PANTALLA DE ACCESO — rediseño (color único turquesa)
    ============================================================ */
-.access{ background:
+.access{ position:relative; background:
   radial-gradient(900px 520px at 86% -12%, rgba(255,255,255,.20), transparent),
   radial-gradient(760px 520px at -4% 112%, rgba(6,70,63,.45), transparent),
   linear-gradient(155deg,#13b7a7 0%,#0f9f8f 46%,#0b736a 100%); }
+.access::after{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:url(../img/pattern.svg) center center / cover no-repeat; opacity:.10; filter:brightness(1.7); }
+.access > *{ position:relative; z-index:1; }
 .access__main{ display:flex; align-items:center; justify-content:center; padding:2.2rem 1.2rem; }
 .access__stage{ width:min(1080px,100%); }
 .access__brand{ display:flex; align-items:center; gap:1rem; margin-bottom:1.3rem; }
