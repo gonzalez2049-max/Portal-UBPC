@@ -23,6 +23,7 @@
     { label: "Administración", items: [
       { key: "solicitudes", label: "Solicitudes técnicas", ico: "📨",
         badgeFn: () => S().all("solicitudes").filter(x => x.estado === "Completada por referente").length },
+      { key: "reportes", label: "Reportes", ico: "📑" },
       { key: "usuarios", label: "Usuarios y perfiles", ico: "👥" },
       { key: "perfil", label: "Mi perfil", ico: "🪪" },
       { key: "config", label: "Configuración", ico: "⚙️" }

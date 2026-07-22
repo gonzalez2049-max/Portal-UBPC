@@ -196,10 +196,33 @@
   }
   function printSection() { window.print(); }
 
+  // Exporta una tabla a Excel (.xls que abre en Excel con formato)
+  function exportExcel(filename, rows, headers, title) {
+    if (!rows || !rows.length) { toast("No hay datos para exportar", "danger"); return; }
+    headers = headers || Object.keys(rows[0]);
+    const th = headers.map(h => `<th style="background:#0f8f83;color:#fff;padding:6px;border:1px solid #ccc;text-align:left">${esc(h)}</th>`).join("");
+    const trs = rows.map(r => `<tr>${headers.map(h => `<td style="padding:5px;border:1px solid #ddd">${esc(r[h] == null ? "" : r[h])}</td>`).join("")}</tr>`).join("");
+    const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head>
+      <body>${title ? `<h3>${esc(title)}</h3>` : ""}<table>${`<thead><tr>${th}</tr></thead>`}<tbody>${trs}</tbody></table></body></html>`;
+    download(filename.replace(/\.\w+$/, "") + ".xls", "﻿" + html, "application/vnd.ms-excel");
+  }
+
+  // Exporta contenido HTML a Word (.doc que abre en Word)
+  function exportWord(filename, title, innerHTML) {
+    const styles = `<style>body{font-family:'Segoe UI',Arial,sans-serif;color:#17263d;font-size:11pt}
+      h1,h2,h3{font-family:'Georgia',serif;color:#0d5044} table{border-collapse:collapse;width:100%;font-size:10pt}
+      th{background:#0f8f83;color:#fff;text-align:left;padding:6px;border:1px solid #bbb}
+      td{padding:5px;border:1px solid #ddd} .muted{color:#5a6b84}</style>`;
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(title || "")}</title>${styles}</head>
+      <body>${innerHTML}</body></html>`;
+    download(filename.replace(/\.\w+$/, "") + ".doc", "﻿" + html, "application/msword");
+  }
+
   window.UBPC = window.UBPC || {};
   window.UBPC.ui = {
     fechaCL, fechaHoraCL, isoDay, hoyISO, diasHasta,
     esc, initials, estadoBadge, empty, toast, modal, closeModal,
-    confirmDelete, formHTML, readForm, download, exportCSV, printSection
+    confirmDelete, formHTML, readForm, download, exportCSV, exportExcel, exportWord, printSection
   };
 })();
