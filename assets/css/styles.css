@@ -610,16 +610,18 @@ body.night .rt-ps b{ color:#f0dbe0; } body.night .rt-ps span{ color:#b79aa0; }
 body.night .rt-row .nm{ color:#a9c4bb; } body.night .rt-row b{ color:#eaf5ef; }
 
 /* ---- Transición al cambiar de módulo ---- */
-@keyframes viewRise{ from{ opacity:0; transform: translateY(12px); } to{ opacity:1; transform:none; } }
-.app__main.view-enter > *{ animation: viewRise .42s cubic-bezier(.22,.7,.3,1) backwards; }
+@keyframes viewRise{ from{ opacity:0; transform: translateY(16px) scale(.992); } to{ opacity:1; transform:none; } }
+.app__main.view-enter{ animation: viewFade .3s ease backwards; }
+@keyframes viewFade{ from{ opacity:.4 } to{ opacity:1 } }
+.app__main.view-enter > *{ animation: viewRise .46s cubic-bezier(.22,.72,.28,1) backwards; }
 .app__main.view-enter > *:nth-child(1){ animation-delay:.02s }
-.app__main.view-enter > *:nth-child(2){ animation-delay:.08s }
-.app__main.view-enter > *:nth-child(3){ animation-delay:.14s }
-.app__main.view-enter > *:nth-child(4){ animation-delay:.20s }
-.app__main.view-enter > *:nth-child(5){ animation-delay:.26s }
-.app__main.view-enter > *:nth-child(6){ animation-delay:.32s }
-.app__main.view-enter > *:nth-child(n+7){ animation-delay:.36s }
-@media (prefers-reduced-motion:reduce){ .app__main.view-enter > *{ animation:none } body::before,body::after{ display:none } }
+.app__main.view-enter > *:nth-child(2){ animation-delay:.07s }
+.app__main.view-enter > *:nth-child(3){ animation-delay:.12s }
+.app__main.view-enter > *:nth-child(4){ animation-delay:.17s }
+.app__main.view-enter > *:nth-child(5){ animation-delay:.22s }
+.app__main.view-enter > *:nth-child(6){ animation-delay:.27s }
+.app__main.view-enter > *:nth-child(n+7){ animation-delay:.31s }
+@media (prefers-reduced-motion:reduce){ .app__main.view-enter,.app__main.view-enter > *{ animation:none } body::before,body::after{ display:none } }
 
 /* ---- Mascota EVI ---- */
 @keyframes eviFloat{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }

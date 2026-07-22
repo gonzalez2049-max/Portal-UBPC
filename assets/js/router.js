@@ -43,19 +43,62 @@
     const view = config.views[viewKey];
     const mainHTML = view ? view(parse().params) : U.ui.empty("Sección en construcción", "Esta sección estará disponible próximamente.", "🛠️");
 
-    root.innerHTML = layout(portal, config, viewKey, session, mainHTML);
-    bindLayout(portal, config, session);
-    // Transición de entrada solo al cambiar de módulo/vista (no en refrescos de la misma vista)
     const routeKey = portal + "/" + viewKey;
-    if (routeKey !== _lastRoute) {
-      const m = el("view-main");
-      if (m) m.classList.add("view-enter");
+    const binder = () => { if (view && config.binders && config.binders[viewKey]) config.binders[viewKey](el("view-main"), parse().params); };
+    const existingMain = el("view-main");
+    const canSwap = existingMain && _lastPortal === portal && document.querySelector(".app");
+
+    if (canSwap && routeKey !== _lastRoute) {
+      // Cambio de módulo dentro del mismo perfil: solo se actualiza el contenido
+      // (el sidebar y el encabezado permanecen), con transición de entrada elegante.
+      updateActiveNav(portal, viewKey);
+      updateBell(rolFor(portal));
+      updateNavBadges(config, portal);
+      const m = existingMain;
+      if (_enterTimer) { clearTimeout(_enterTimer); _enterTimer = null; }
+      m.classList.remove("view-enter");
+      void m.offsetWidth;                 // reinicia la animación
+      m.innerHTML = mainHTML;
+      m.classList.add("view-enter");
+      binder();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      _enterTimer = setTimeout(() => m.classList.remove("view-enter"), 720);
+    } else {
+      // Primera carga o cambio de perfil: se construye el layout completo.
+      root.innerHTML = layout(portal, config, viewKey, session, mainHTML);
+      bindLayout(portal, config, session);
+      if (routeKey !== _lastRoute) { const m = el("view-main"); if (m) m.classList.add("view-enter"); }
+      binder();
+      window.scrollTo(0, 0);
     }
     _lastRoute = routeKey;
-    if (view && config.binders && config.binders[viewKey]) config.binders[viewKey](el("view-main"), parse().params);
-    window.scrollTo(0, 0);
+    _lastPortal = portal;
   }
-  let _lastRoute = null;
+  let _lastRoute = null, _lastPortal = null, _enterTimer = null;
+  function rolFor(portal) { return portal === "coord" ? "coordinador" : "referente"; }
+  function updateActiveNav(portal, viewKey) {
+    document.querySelectorAll(".nav-item").forEach(a => a.classList.remove("active"));
+    const active = document.querySelector('.nav-item[href="#/' + portal + '/' + viewKey + '"]');
+    if (active) active.classList.add("active");
+  }
+  function updateBell(rol) {
+    const b = el("bellBtn"); if (!b) return;
+    const n = U.notif.unread(rol).length;
+    let c = b.querySelector(".bell__count");
+    if (n && !c) { c = document.createElement("span"); c.className = "bell__count"; b.appendChild(c); }
+    if (c) { if (n) c.textContent = n; else c.remove(); }
+  }
+  function updateNavBadges(config, portal) {
+    (config.nav || []).forEach(group => (group.items || []).forEach(it => {
+      if (!it.badgeFn) return;
+      const link = document.querySelector('.nav-item[href="#/' + portal + '/' + it.key + '"]');
+      if (!link) return;
+      const n = it.badgeFn();
+      let badge = link.querySelector(".nav-item__badge");
+      if (n && !badge) { badge = document.createElement("span"); badge.className = "nav-item__badge"; link.appendChild(badge); }
+      if (badge) { if (n) badge.textContent = n; else badge.remove(); }
+    }));
+  }
 
   /* ---------- Layout del portal ---------- */
   function layout(portal, config, activeKey, user, mainHTML) {
