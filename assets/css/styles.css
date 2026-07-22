@@ -444,7 +444,7 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
    Degradado profundo + destello diagonal + marca de agua de
    ciencia (patrón transparente) + ítems tipo píldora con chip.
    ============================================================ */
-.app__side{ position:relative; isolation:isolate; display:flex; flex-direction:column;
+.app__side{ isolation:isolate; display:flex; flex-direction:column;
   color:#eafff9; border-right:none; border-radius:0 22px 22px 0; padding:1rem .7rem .8rem;
   background:
     radial-gradient(120% 60% at 12% -8%, rgba(255,255,255,.22), transparent 55%),
