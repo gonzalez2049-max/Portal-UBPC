@@ -19,7 +19,7 @@
     const u = ui();
     if (col.render) return col.render(rec, u);
     let v = rec[col.key];
-    if (col.date) return u.fechaCL(v);
+    if (col.date) return `<span class="cell-date">${u.fechaCL(v)}</span>`;
     if (col.badge) return u.estadoBadge(v);
     if (v == null || v === "") return `<span class="muted">—</span>`;
     if (col.mono) return `<span class="mono">${u.esc(v)}</span>`;

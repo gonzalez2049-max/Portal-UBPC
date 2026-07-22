@@ -705,6 +705,28 @@ body.night .reporte{ background:#f4faf8; }
 @media (max-width:640px){ .rep-hd{ flex-direction:column; } .rep-hd__meta{ text-align:left; } }
 
 /* ============================================================
+   PULIDO — gráficos theme-aware y densidad de tablas
+   ============================================================ */
+:root{ --chart-grid:#eef2f8; --chart-track:#e9eff7; }
+/* En oscuro: aclara textos de tokens (gauge, ejes) y grillas/tracks */
+body.night{ --text:#e8f5ef; --text-2:#a9c4bb; --text-muted:#8fa89e;
+  --chart-grid:rgba(255,255,255,.10); --chart-track:rgba(255,255,255,.12); }
+/* El reporte se mantiene claro aunque el portal esté en oscuro */
+body.night .reporte{ --text:#17263d; --text-2:#40536f; --text-muted:#5a6b84; --chart-grid:#eef2f8; --chart-track:#e9eff7; }
+.chart-legend{ color:var(--text-2); }
+
+/* Densidad de tablas */
+.tbl thead th{ padding:.5rem .65rem; }
+.tbl tbody td{ padding:.5rem .65rem; vertical-align:top; }
+.tbl tbody td .narrativo, .tbl td.narrativo{ text-align:justify; }
+.tbl td.acciones{ padding-left:.4rem; }
+.tbl td.acciones .btn-row{ flex-wrap:nowrap; gap:.25rem; justify-content:flex-end; }
+.tbl td.acciones .btn-icon{ width:28px; height:28px; }
+.tbl tbody td:first-child{ font-weight:600; }
+.tbl tbody td.mono, .tbl tbody td .mono{ font-weight:400; }
+.cell-date{ white-space:nowrap; }
+
+/* ============================================================
    PANTALLA DE ACCESO — rediseño (color único turquesa)
    ============================================================ */
 .access{ position:relative; background:

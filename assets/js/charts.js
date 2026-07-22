@@ -16,7 +16,7 @@
     const color = p >= (meta || 0) ? "var(--verde)" : (p >= (meta || 0) - 15 ? "var(--naranjo)" : "var(--danger)");
     const off = circ * (1 - p / 100);
     return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Cumplimiento ${p}%">
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e6edf6" stroke-width="14"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--chart-track,#e6edf6)" stroke-width="14"/>
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round"
         stroke-dasharray="${circ}" stroke-dashoffset="${off}" transform="rotate(-90 ${cx} ${cy})"/>
       <text x="${cx}" y="${cy - 2}" text-anchor="middle" font-size="30" font-weight="800" fill="var(--text)">${p}%</text>
@@ -36,7 +36,7 @@
     const y = v => padT + ih - (ih * (v - minY)) / (maxY - minY);
 
     const grid = [0, 25, 50, 75, 100].map(v =>
-      `<line x1="${padL}" y1="${y(v)}" x2="${w - padR}" y2="${y(v)}" stroke="#eef2f8"/>
+      `<line x1="${padL}" y1="${y(v)}" x2="${w - padR}" y2="${y(v)}" stroke="var(--chart-grid,#eef2f8)"/>
        <text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--text-muted)">${v}</text>`).join("");
 
     const xlabels = labels.map((l, i) =>
@@ -80,7 +80,7 @@
         <div class="flex" style="justify-content:space-between;font-size:13px;font-weight:600">
           <span>${esc(it.label)}</span><span>${v}%</span>
         </div>
-        <div style="background:#e9eff7;border-radius:6px;height:12px;overflow:hidden">
+        <div style="background:var(--chart-track,#e9eff7);border-radius:6px;height:12px;overflow:hidden">
           <div style="width:${v}%;height:100%;background:${color};border-radius:6px"></div>
         </div>
       </div>`;
