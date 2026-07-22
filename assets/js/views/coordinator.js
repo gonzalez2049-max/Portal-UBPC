@@ -110,9 +110,12 @@
   }
 
   /* ---------- KPI helper ---------- */
-  function kpi(label, value, sub, kind) {
+  function kpi(label, value, sub, kind, icon) {
     return `<div class="card kpi ${kind ? "kpi--" + kind : ""}">
-      <div class="kpi__label">${ui().esc(label)}</div>
+      <div class="kpi__top">
+        <div class="kpi__label">${ui().esc(label)}</div>
+        ${icon ? `<span class="kpi__ico kpi__ico--${kind || "info"}">${icon}</span>` : ""}
+      </div>
       <div class="kpi__value">${value}</div>
       <div class="kpi__sub">${ui().esc(sub)}</div>
     </div>`;
@@ -180,11 +183,11 @@
 
     // NIVEL 2
     const n2 = `<div class="grid grid--kpi">
-      ${kpi("Procesos activos", st.procesosActivos, st.procesosActivos ? "En desarrollo actualmente" : "Aún sin procesos registrados", "info")}
-      ${kpi("Documentos pendientes", st.docPendientes, st.docPendientes ? st.docPendientes + " requieren validación" : "Sin documentos pendientes", st.docPendientes ? "warn" : "ok")}
-      ${kpi("Guías BPSO activas", st.guiasActivas, st.guiasActivas ? st.guiasActivas + " guías en implementación" : "0 guías activas · Aún sin registros", st.guiasActivas ? "ok" : "neutral")}
-      ${kpi("Personas capacitadas", st.personasCapacitadas, st.personasCapacitadas ? "Total acumulado registrado" : "Aún sin capacitaciones", "info")}
-      ${kpi("Cobertura institucional", st.cobertura, st.cobertura ? st.cobertura + " unidades con actividad registrada" : "Sin cobertura registrada", "ok")}
+      ${kpi("Procesos activos", st.procesosActivos, st.procesosActivos ? "En desarrollo actualmente" : "Aún sin procesos registrados", "info", "🤝")}
+      ${kpi("Documentos pendientes", st.docPendientes, st.docPendientes ? st.docPendientes + " requieren validación" : "Sin documentos pendientes", st.docPendientes ? "warn" : "ok", "📄")}
+      ${kpi("Guías BPSO activas", st.guiasActivas, st.guiasActivas ? st.guiasActivas + " guías en implementación" : "0 guías activas · Aún sin registros", st.guiasActivas ? "ok" : "neutral", "🧭")}
+      ${kpi("Personas capacitadas", st.personasCapacitadas, st.personasCapacitadas ? "Total acumulado registrado" : "Aún sin capacitaciones", "info", "🎓")}
+      ${kpi("Cobertura institucional", st.cobertura, st.cobertura ? st.cobertura + " unidades con actividad registrada" : "Sin cobertura registrada", "ok", "🏥")}
     </div>`;
 
     return `
@@ -425,6 +428,11 @@
 
   function config() {
     return `<div class="page-head"><h1>Configuración</h1><p>Respaldo, trazabilidad y mantenimiento de datos.</p></div>
+      <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--c-turquesa)">
+        <h3 class="card__title">Datos de demostración</h3>
+        <p class="card__hint">Carga un conjunto de datos de ejemplo (evaluaciones RNAO, documentos, reuniones, colaboraciones, capacitaciones, solicitudes, tablero, hitos y más) para ver el portal con contenido. Reemplaza los datos actuales.</p>
+        <button class="btn btn--primary" id="loadDemo">✨ Cargar datos de ejemplo</button>
+      </div>
       <div class="grid grid--2">
         <div class="card"><h3 class="card__title">Respaldo de datos</h3>
           <p class="card__hint">Exporta o restaura todos los registros del portal (formato JSON).</p>
@@ -453,6 +461,10 @@
     };
     document.getElementById("resetAll").onclick = () =>
       u.confirmDelete("Esto eliminará TODOS los registros del portal. ¿Continuar?", () => { S().reset(); U.data.seedIfEmpty(); U.router.render(); });
+    const demo = document.getElementById("loadDemo");
+    if (demo) demo.onclick = () => u.confirmDelete("Esto reemplazará los datos actuales por un conjunto de ejemplo. ¿Continuar?", () => {
+      U.demo.load(); u.toast("Datos de ejemplo cargados", "ok"); U.router.go("#/coord/home");
+    });
   }
 
   /* ---------- Placeholder de módulos (se completan por etapas) ---------- */

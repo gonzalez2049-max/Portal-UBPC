@@ -665,6 +665,17 @@ body.night .pillar.cu{ background:rgba(224,145,47,.18); color:#f0b968; border-co
 .slogan-mini{ font-weight:800; font-size:.78rem; letter-spacing:.04em; color:#0d8175; }
 .slogan-mini b{ color:#7a5cd0; } .slogan-mini i{ color:#a2670f; font-style:normal; }
 
+/* ---- KPI cards con más densidad (icono) ---- */
+.grid--kpi{ grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); }
+.kpi__top{ display:flex; align-items:flex-start; justify-content:space-between; gap:.5rem; }
+.kpi__ico{ width:2.15rem; height:2.15rem; border-radius:11px; display:grid; place-items:center; font-size:1.05rem;
+  flex:none; background:rgba(18,181,165,.13); }
+.kpi__ico--warn{ background:rgba(224,145,47,.16); }
+.kpi__ico--danger{ background:rgba(224,82,111,.16); }
+.kpi__ico--ok{ background:rgba(31,157,87,.15); }
+.kpi__ico--neutral{ background:rgba(95,125,118,.14); }
+body.night .kpi__ico{ background:rgba(18,181,165,.2); }
+
 /* ============================================================
    PANTALLA DE ACCESO — rediseño (color único turquesa)
    ============================================================ */
