@@ -39,7 +39,7 @@
       <div class="access__main">
         <div class="access__stage">
           <div class="access__brand">
-            <div class="access__logo">HUAP</div>
+            <div class="access__logo"><img src="assets/img/huap-logo.png" alt="Hospital de Urgencia Asistencia Pública"></div>
             <div>
               <div class="access__eyebrow">Centro de Operaciones · HUAP</div>
               <h1 class="access__title">Unidad de Buenas Prácticas Clínicas</h1>

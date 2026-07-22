@@ -233,7 +233,7 @@
       <div class="card informe-a4" id="informe">
         <div class="franja" style="border-radius:4px"></div>
         <div class="flex" style="justify-content:space-between;margin:.8rem 0">
-          <div class="flex"><div class="brand-mini__logo" style="width:52px;height:52px">HUAP</div>
+          <div class="flex"><div class="brand-mini__logo" style="width:52px;height:52px"><img src="assets/img/huap-logo.png" alt="HUAP"></div>
             <div><strong style="font-size:1.1rem">Informe de Cumplimiento · Norma Técnica 234</strong>
             <div class="muted">Unidad de Buenas Prácticas Clínicas – UBPC · HUAP</div></div></div>
           <div class="right"><div class="kpi__sub">Periodo</div><strong>${u.esc(per || "—")}</strong>

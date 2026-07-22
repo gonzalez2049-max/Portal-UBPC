@@ -993,3 +993,11 @@ body.night .theme-switch__knob .ts-night{ display:block; }
 /* Estado oscuro: el knob se desliza a la derecha, cambia el cielo */
 body.night .theme-switch{ background:linear-gradient(120deg,#2a3557,#161d33); box-shadow: inset 0 1px 3px rgba(0,0,0,.4); }
 body.night .theme-switch__knob{ left:37px; background:#eef1ff; box-shadow:0 2px 8px rgba(0,0,0,.5); }
+
+/* ---- Logo institucional HUAP (imagen) ---- */
+.brand-mini__logo, .access__logo, .reporte .rep-logo{ background:#fff; overflow:hidden; }
+.brand-mini__logo{ padding:3px; }
+.access__logo{ padding:5px; }
+.reporte .rep-logo{ padding:2px; }
+.brand-mini__logo img, .access__logo img, .reporte .rep-logo img{ width:100%; height:100%; object-fit:contain; display:block; }
+body.night .brand-mini__logo, body.night .access__logo{ background:#fff; }

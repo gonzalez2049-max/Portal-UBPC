@@ -125,7 +125,7 @@
       <header class="app__header no-print">
         <button class="btn-icon menu-toggle" id="menuToggle" aria-label="Menú">☰</button>
         <div class="brand-mini">
-          <div class="brand-mini__logo">HUAP</div>
+          <div class="brand-mini__logo"><img src="assets/img/huap-logo.png" alt="Hospital de Urgencia Asistencia Pública"></div>
           <div class="brand-mini__txt">
             <strong>Portal de Gestión Operativa</strong>
             <span>Unidad de Buenas Prácticas Clínicas – UBPC</span>
