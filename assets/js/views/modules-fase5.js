@@ -70,11 +70,14 @@
     list.forEach(m => grupos[categoria(Number(m.porcentaje))].push(m));
 
     // Tendencia global por periodo
+    const meta = meta234();
     const periodos = [...new Set(meds.map(m => m.periodo).filter(Boolean))].sort();
     const serie = periodos.map(pr => {
       const l = meds.filter(m => m.periodo === pr);
       return Math.round(l.reduce((a, b) => a + (Number(b.porcentaje) || 0), 0) / l.length);
     });
+    const multi = periodos.length > 1;
+    const delta = multi ? serie[serie.length - 1] - serie[serie.length - 2] : null;
 
     const semaforoHTML = ["Rojo", "Amarillo", "Verde"].map(cat => {
       const s = SEM[cat], g = grupos[cat];
@@ -83,18 +86,67 @@
         <div>${g.length ? g.map(m => `<span style="display:inline-block;font-weight:800;color:#fff;background:${s.color};padding:.2em .6em;border-radius:6px;margin:.15rem;font-size:12.5px">${u.esc(m.unidad)} · ${Number(m.porcentaje)}%</span>`).join("") : `<span class="muted">Sin unidades en esta categoría.</span>`}</div></div>`;
     }).join("");
 
+    // Tendencia por unidad (sparklines) — para decidir dónde intervenir
+    const unidades = [...new Set(meds.map(m => m.unidad).filter(Boolean))];
+    const filasUnidad = unidades.map(un => {
+      const vals = periodos.map(pr => {
+        const rec = meds.find(m => m.unidad === un && m.periodo === pr);
+        return rec ? Number(rec.porcentaje) : null;
+      }).filter(v => v != null);
+      const cur = vals[vals.length - 1];
+      const d = vals.length > 1 ? cur - vals[vals.length - 2] : null;
+      const cat = categoria(cur), s = SEM[cat];
+      const dTxt = d == null ? "—" : (d > 0 ? "▲ +" + d : d < 0 ? "▼ " + d : "→ 0");
+      const dColor = d == null ? "var(--text-muted)" : d > 0 ? "var(--verde)" : d < 0 ? "var(--danger)" : "var(--text-muted)";
+      return `<tr>
+        <td style="font-weight:700">${u.esc(un)}</td>
+        <td style="width:150px">${vals.length > 1 ? U.charts.sparkline(vals, { meta, color: s.color }) : `<span class="muted">1 período</span>`}</td>
+        <td style="text-align:right;font-weight:800">${cur}%</td>
+        <td style="text-align:right;font-weight:700;color:${dColor}">${dTxt}</td>
+        <td><span class="badge badge--${s.badge}">${cat}</span></td>
+      </tr>`;
+    }).join("");
+
+    // Lectura automática para la toma de decisiones
+    const rojos = grupos.Rojo.map(m => u.esc(m.unidad));
+    let lectura = "";
+    if (multi) {
+      const prev = periodos[periodos.length - 2];
+      if (delta > 0) lectura = `La adherencia global <strong>subió ${delta} pts</strong> respecto a ${u.esc(prev)} (de ${serie[serie.length - 2]}% a ${prom}%). La tendencia es positiva.`;
+      else if (delta < 0) lectura = `La adherencia global <strong>bajó ${Math.abs(delta)} pts</strong> respecto a ${u.esc(prev)} (de ${serie[serie.length - 2]}% a ${prom}%). Conviene revisar causas.`;
+      else lectura = `La adherencia global se <strong>mantuvo estable</strong> respecto a ${u.esc(prev)} (${prom}%).`;
+    } else {
+      lectura = `Solo hay un período registrado. Registra más períodos para visualizar la tendencia de adherencia.`;
+    }
+    const accion = prom >= meta
+      ? `Cumplimiento sobre la meta (${meta}%).${rojos.length ? " Aun así, " + rojos.length + " unidad(es) siguen bajo meta: " + rojos.join(", ") + ". Priorizar plan de mejora focalizado." : " Sostener las buenas prácticas."}`
+      : `Cumplimiento bajo la meta (${meta}%).${rojos.length ? " Priorizar intervención en: " + rojos.join(", ") + "." : " Focalizar seguimiento en las unidades en amarillo."}`;
+    const decBadge = delta == null ? "" : `<span class="badge badge--${delta > 0 ? "ok" : delta < 0 ? "danger" : "neutral"}" style="font-size:13px">${delta > 0 ? "▲ +" + delta : delta < 0 ? "▼ " + delta : "→ 0"} pts vs período anterior</span>`;
+
     box.innerHTML = datos + `
       <div class="grid grid--kpi" style="margin-top:1rem">
         <div class="card kpi kpi--info"><div class="kpi__label">Periodo</div><div class="kpi__value" style="font-size:1.3rem">${u.esc(per || "—")}</div><div class="kpi__sub">Último registrado</div></div>
-        <div class="card kpi ${prom >= meta234() ? "kpi--ok" : "kpi--danger"}"><div class="kpi__label">Cumplimiento global</div><div class="kpi__value">${prom}%</div><div class="kpi__sub">Promedio de ${list.length} unidad(es)</div></div>
+        <div class="card kpi ${prom >= meta ? "kpi--ok" : "kpi--danger"}"><div class="kpi__label">Cumplimiento global</div><div class="kpi__value">${prom}%</div><div class="kpi__sub">Promedio de ${list.length} unidad(es)</div></div>
         <div class="card kpi kpi--danger"><div class="kpi__label">En intervención</div><div class="kpi__value">${grupos.Rojo.length}</div><div class="kpi__sub">Unidades en rojo</div></div>
         <div class="card kpi kpi--warn"><div class="kpi__label">En seguimiento</div><div class="kpi__value">${grupos.Amarillo.length}</div><div class="kpi__sub">Unidades en amarillo</div></div>
       </div>
+
+      <div class="card" style="margin-top:1rem;border-left:4px solid var(--c-celeste)">
+        <div class="section__head" style="margin-bottom:.5rem">
+          <h3 class="card__title" style="margin:0">📈 Tendencia de adherencia a la NT 234</h3>${decBadge}</div>
+        ${multi ? U.charts.lineChart({ labels: periodos, series: [{ name: "Adherencia global", color: "var(--c-celeste)", values: serie }], meta })
+          : U.charts.bars(list.map(m => ({ label: m.unidad, value: Number(m.porcentaje) })), { meta })}
+        <div class="nt-lectura"><span class="nt-lectura__ico">🧭</span>
+          <div><div style="margin-bottom:.15rem">${lectura}</div><div style="color:var(--text-2)"><strong>Decisión sugerida:</strong> ${accion}</div></div></div>
+      </div>
+
       <div class="grid grid--2" style="margin-top:1rem">
         <div class="card"><h3 class="card__title">Semáforo por unidad</h3>${semaforoHTML}</div>
-        <div class="card"><h3 class="card__title">Tendencia global</h3>
-          ${periodos.length > 1 ? U.charts.lineChart({ labels: periodos, series: [{ name: "Cumplimiento NT 234", color: "var(--c-celeste)", values: serie }], meta: meta234() })
-            : U.charts.bars(list.map(m => ({ label: m.unidad, value: Number(m.porcentaje) })), { meta: meta234() })}</div>
+        <div class="card"><h3 class="card__title">Tendencia por unidad</h3>
+          <p class="card__hint" style="margin:.1rem 0 .5rem">Comportamiento por unidad para priorizar dónde intervenir.</p>
+          <div style="overflow-x:auto"><table class="tbl nt-trend">
+            <thead><tr><th>Unidad</th><th>Tendencia</th><th style="text-align:right">Actual</th><th style="text-align:right">Δ</th><th>Semáforo</th></tr></thead>
+            <tbody>${filasUnidad}</tbody></table></div></div>
       </div>`;
     document.getElementById("editNT").onclick = editDatos234.bind(null, box);
   }

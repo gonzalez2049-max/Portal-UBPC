@@ -236,7 +236,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 /* ========================================================
    LAYOUT DEL PORTAL (Coordinador / Referente)
    ======================================================== */
-.app { min-height: 100vh; display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr; }
+.app { min-height: 100vh; display: grid; grid-template-columns: 264px 1fr; grid-template-rows: auto 1fr; }
 .app__header { grid-column: 1 / -1; background: var(--surface); border-bottom:1px solid var(--border);
   display:flex; align-items:center; gap: 1rem; padding: .55rem 1.1rem; position: sticky; top:6px; z-index:50; }
 .brand-mini { display:flex; align-items:center; gap:.6rem; }
@@ -464,14 +464,15 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
     radial-gradient(95% 46% at 106% 112%, rgba(224,82,111,.30), transparent 60%),
     linear-gradient(178deg,#109f9f 0%,#3a8fb0 52%,#6a4fc4 100%); color:#f0fbff; }
 
-.side-nav{ flex:1; overflow-y:auto; padding-right:.1rem; }
-.nav-group{ margin-bottom:1.05rem; }
-.nav-group__label{ display:flex; align-items:center; gap:.5rem; color: rgba(255,255,255,.66);
-  font-size:10px; letter-spacing:1.4px; font-weight:800; padding:.3rem .75rem .35rem; }
-.nav-group__label::after{ content:""; flex:1; height:1px; background:linear-gradient(90deg, rgba(255,255,255,.28), transparent); }
-.app__side.ref .nav-group__label{ color: rgba(255,255,255,.7); }
+.side-nav{ flex:1; overflow-y:auto; padding-right:.15rem; display:flex; flex-direction:column; gap:.35rem; }
+.nav-group{ display:flex; flex-direction:column; gap:3px; margin-bottom:.55rem; }
+.nav-group:last-child{ margin-bottom:0; }
+.nav-group__label{ display:flex; align-items:center; gap:.5rem; color: rgba(255,255,255,.62);
+  font-size:10px; letter-spacing:1.5px; font-weight:800; padding:.5rem .75rem .3rem; }
+.nav-group__label::after{ content:""; flex:1; height:1px; background:linear-gradient(90deg, rgba(255,255,255,.26), transparent); }
+.app__side.ref .nav-group__label{ color: rgba(255,255,255,.68); }
 
-.nav-item{ position:relative; display:flex; align-items:center; gap:.65rem; padding:.5rem .7rem;
+.nav-item{ position:relative; display:flex; align-items:center; gap:.7rem; padding:.52rem .7rem;
   color: rgba(255,255,255,.9); font-weight:600; font-size:14px; border-radius:13px; text-decoration:none;
   cursor:pointer; transition: background .2s, transform .2s cubic-bezier(.22,.7,.3,1), box-shadow .2s; }
 .nav-item__ico{ width:30px; height:30px; flex:none; display:grid; place-items:center; font-size:15px;
@@ -904,3 +905,13 @@ body.night .access .profile-card{ background:rgba(20,34,30,.92); border-color:rg
 body.night .access .profile-card__name{ color:#eaf5ef; }
 body.night .access .btn--primary{ background:#12b5a5; color:#04231f; }
 body.night .access .btn--primary:hover{ background:#37c6a0; }
+
+/* ---- NT 234: lectura automática para decisiones + tendencia por unidad ---- */
+.nt-lectura{ display:flex; gap:.6rem; align-items:flex-start; margin-top:.85rem; padding:.7rem .85rem;
+  background:linear-gradient(100deg, rgba(18,181,165,.10), rgba(122,92,208,.08)); border:1px solid var(--border);
+  border-radius:12px; font-size:13.5px; line-height:1.4; }
+.nt-lectura__ico{ font-size:18px; line-height:1; margin-top:.05rem; }
+.nt-trend th{ font-size:11.5px; }
+.nt-trend td{ vertical-align:middle; }
+.nt-trend tbody tr:hover{ background:rgba(18,181,165,.06); }
+body.night .nt-lectura{ background:linear-gradient(100deg, rgba(18,181,165,.14), rgba(122,92,208,.12)); border-color:rgba(255,255,255,.1); }

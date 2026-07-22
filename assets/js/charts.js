@@ -28,7 +28,7 @@
   function lineChart(cfg) {
     // cfg: { width, height, labels:[], series:[{name,color,values:[]}], meta, metaLabel, yUnit:"%" }
     const w = cfg.width || 640, h = cfg.height || 260;
-    const padL = 42, padR = 16, padT = 16, padB = 40;
+    const padL = 46, padR = 30, padT = 22, padB = 40;
     const iw = w - padL - padR, ih = h - padT - padB;
     const labels = cfg.labels || [];
     const maxY = 100, minY = 0;
@@ -51,9 +51,12 @@
 
     const paths = (cfg.series || []).map(s => {
       const pts = s.values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
-      const dots = s.values.map((v, i) =>
-        `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}"/>
-         <text x="${x(i)}" y="${y(v) - 9}" text-anchor="middle" font-size="11" font-weight="700" fill="${s.color}">${v}%</text>`).join("");
+      const dots = s.values.map((v, i) => {
+        const anchor = i === 0 ? "start" : (i === s.values.length - 1 ? "end" : "middle");
+        const dx = i === 0 ? 5 : (i === s.values.length - 1 ? -5 : 0);
+        return `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}"/>
+         <text x="${x(i) + dx}" y="${y(v) - 9}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="${s.color}">${v}%</text>`;
+      }).join("");
       return `<polyline fill="none" stroke="${s.color}" stroke-width="3" points="${pts}"/>${dots}`;
     }).join("");
 

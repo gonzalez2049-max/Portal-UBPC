@@ -180,6 +180,19 @@
     s.setConfig("nt234.subdireccion", "Subdirección de Gestión del Cuidado");
     s.setConfig("nt234.meta", 90);
     add("nt234", [
+      /* 2025-S1 (línea base) */
+      { periodo: "2025-S1", unidad: "UTI", porcentaje: 78, indicadores: "6 indicadores LPP", observaciones: "" },
+      { periodo: "2025-S1", unidad: "UCI", porcentaje: 72, indicadores: "Accesos vasculares", observaciones: "" },
+      { periodo: "2025-S1", unidad: "Urgencia Adulto", porcentaje: 51, indicadores: "Dolor", observaciones: "Brecha inicial importante." },
+      { periodo: "2025-S1", unidad: "Pabellón", porcentaje: 60, indicadores: "LPP", observaciones: "" },
+      { periodo: "2025-S1", unidad: "Medicina", porcentaje: 80, indicadores: "LPP", observaciones: "" },
+      /* 2025-S2 (seguimiento) */
+      { periodo: "2025-S2", unidad: "UTI", porcentaje: 86, indicadores: "6 indicadores LPP", observaciones: "" },
+      { periodo: "2025-S2", unidad: "UCI", porcentaje: 81, indicadores: "Accesos vasculares", observaciones: "" },
+      { periodo: "2025-S2", unidad: "Urgencia Adulto", porcentaje: 58, indicadores: "Dolor", observaciones: "Avance leve." },
+      { periodo: "2025-S2", unidad: "Pabellón", porcentaje: 69, indicadores: "LPP", observaciones: "" },
+      { periodo: "2025-S2", unidad: "Medicina", porcentaje: 87, indicadores: "LPP", observaciones: "" },
+      /* 2026-S1 (actual) */
       { periodo: "2026-S1", unidad: "UTI", porcentaje: 95, indicadores: "6 indicadores LPP", observaciones: "" },
       { periodo: "2026-S1", unidad: "UCI", porcentaje: 88, indicadores: "Accesos vasculares", observaciones: "" },
       { periodo: "2026-S1", unidad: "Urgencia Adulto", porcentaje: 63, indicadores: "Dolor", observaciones: "Requiere intervención." },
