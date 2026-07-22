@@ -165,11 +165,36 @@
           <div><h2 style="margin:0">${u.esc(me.nombre)}</h2><div class="muted">${u.esc(me.cargo)}</div></div>
         </div>
         <button class="btn btn--primary" id="editMe">✏️ Editar mi perfil</button>
+      </div>
+      <div class="card" style="max-width:560px;margin-top:1rem">
+        <h3 class="card__title">Respaldo de datos</h3>
+        <p class="card__hint">Exporta o restaura todos los registros del portal (formato JSON). Úsalo para respaldar y para mover tus datos entre dispositivos.</p>
+        <div class="btn-row">
+          <button class="btn btn--primary" id="expJson">⬇️ Exportar respaldo</button>
+          <button class="btn btn--ghost" id="impJson">⬆️ Importar respaldo</button>
+        </div>
+        <input type="file" id="impFile" accept="application/json" class="hidden">
       </div>`;
   }
   function configBind() {
-    const me = U.auth.current();
+    const u = ui(); const me = U.auth.current();
     document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
+    document.getElementById("expJson").onclick = () =>
+      u.download("respaldo-ubpc-" + u.hoyISO() + ".json", S().exportJSON(), "application/json");
+    document.getElementById("impJson").onclick = () => document.getElementById("impFile").click();
+    document.getElementById("impFile").onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        let data; try { data = JSON.parse(r.result); } catch (err) { u.toast("Archivo inválido", "danger"); return; }
+        u.confirmDelete("Esto reemplazará TODOS los datos actuales por el respaldo importado. ¿Continuar?", () => {
+          try { S().importJSON(data); u.toast("Respaldo importado", "ok"); U.router.render(); }
+          catch (err) { u.toast("No se pudo importar el respaldo", "danger"); }
+        });
+      };
+      r.readAsText(f);
+      e.target.value = "";
+    };
   }
 
   function solicitudesRecibidas() {

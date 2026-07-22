@@ -450,8 +450,15 @@
     document.getElementById("impFile").onchange = e => {
       const f = e.target.files[0]; if (!f) return;
       const r = new FileReader();
-      r.onload = () => { try { S().importJSON(r.result); u.toast("Respaldo importado", "ok"); U.router.render(); } catch (err) { u.toast("Archivo inválido", "danger"); } };
+      r.onload = () => {
+        let data; try { data = JSON.parse(r.result); } catch (err) { u.toast("Archivo inválido", "danger"); return; }
+        u.confirmDelete("Esto reemplazará TODOS los datos actuales por el respaldo importado. ¿Continuar?", () => {
+          try { S().importJSON(data); u.toast("Respaldo importado", "ok"); U.router.render(); }
+          catch (err) { u.toast("No se pudo importar el respaldo", "danger"); }
+        });
+      };
       r.readAsText(f);
+      e.target.value = "";
     };
     document.getElementById("resetAll").onclick = () =>
       u.confirmDelete("Esto eliminará TODOS los registros del portal. ¿Continuar?", () => { S().reset(); U.data.seedIfEmpty(); U.router.render(); });
