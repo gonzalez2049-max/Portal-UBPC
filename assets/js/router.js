@@ -89,7 +89,13 @@
           </div>
         </div>
         <div class="header__spacer"></div>
-        <button class="btn-icon" id="themeToggle" title="Cambiar modo claro/oscuro" aria-label="Cambiar tema">🌙</button>
+        <button class="theme-switch" id="themeToggle" role="switch" aria-checked="false" title="Cambiar modo claro / oscuro" aria-label="Cambiar modo claro u oscuro">
+          <span class="theme-switch__ico theme-switch__ico--sun" aria-hidden="true">☀️</span>
+          <span class="theme-switch__ico theme-switch__ico--moon" aria-hidden="true">🌙</span>
+          <span class="theme-switch__knob" aria-hidden="true">
+            <span class="ts-day">☀️</span><span class="ts-night">🌙</span>
+          </span>
+        </button>
         <div class="bell">
           <button class="btn-icon" id="bellBtn" aria-label="Notificaciones">🔔${unread ? `<span class="bell__count">${unread}</span>` : ""}</button>
         </div>
@@ -147,11 +153,11 @@
 
     const tt = el("themeToggle");
     if (tt) {
-      tt.textContent = document.body.classList.contains("night") ? "☀️" : "🌙";
+      tt.setAttribute("aria-checked", document.body.classList.contains("night") ? "true" : "false");
       tt.onclick = () => {
         const night = document.body.classList.toggle("night");
         try { localStorage.setItem("ubpc:theme", night ? "night" : "day"); } catch (e) {}
-        tt.textContent = night ? "☀️" : "🌙";
+        tt.setAttribute("aria-checked", night ? "true" : "false");
       };
     }
   }
