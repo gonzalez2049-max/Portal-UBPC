@@ -74,6 +74,7 @@
     const cuerpo = !e ? u.empty("Aún no hay evidencia registrada.", "Agrega la primera evidencia para comenzar.", "🔬")
       : `<div class="evi">
           <div>
+            ${e.codigo ? `<span class="mono" style="font-size:12px">${u.esc(e.codigo)}</span>` : ""}
             <h3 style="margin:.1rem 0">${u.esc(e.titulo)}</h3>
             <div class="kpi__sub">${u.esc(e.fuente || "")} · ${u.fechaCL(e.fecha)}</div>
             <p class="narrativo" style="margin:.5rem 0 .3rem">${u.esc(e.resumen || "")}</p>
@@ -85,7 +86,7 @@
     const otras = list.slice(1, 5);
     return cuerpo +
       (otras.length ? `<div style="margin-top:.6rem"><span class="muted" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Más evidencia</span>
-        <ul class="feed">${otras.map(o => `<li><span class="feed__ico">🔬</span><div><strong>${u.esc(o.titulo)}</strong><div class="feed__meta">${u.esc(o.fuente || "")} · ${u.fechaCL(o.fecha)}</div></div></li>`).join("")}</ul></div>` : "") +
+        <ul class="feed">${otras.map(o => `<li><span class="feed__ico">🔬</span><div><strong>${u.esc(o.titulo)}</strong><div class="feed__meta">${o.codigo ? u.esc(o.codigo) + " · " : ""}${u.esc(o.fuente || "")} · ${u.fechaCL(o.fecha)}</div></div></li>`).join("")}</ul></div>` : "") +
       `<p class="evi__quote">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</p>`;
   }
   function eviForm() {
@@ -100,7 +101,7 @@
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
       onMount(m) { m.querySelector("[data-save]").onclick = () => {
         const d = u.readForm(m); if (!d.titulo) { u.toast("El título es obligatorio", "danger"); return; }
-        S().insert("evidenciaSemana", d); u.closeModal(); guiaBind();
+        S().insert("evidenciaSemana", d, { withCode: true }); u.closeModal(); guiaBind();
       }; } });
   }
 

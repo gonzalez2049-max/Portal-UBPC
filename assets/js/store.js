@@ -22,7 +22,8 @@
   const CODE_PREFIX = {
     solicitudes: "SOL", reuniones: "REU", acuerdos: "ACU",
     documentos: "DOC", edicionesEVI: "EVI", colaboraciones: "COL",
-    actividades: "CAP", articulaciones: "ART", accionesRNAO: "ACC"
+    actividades: "CAP", articulaciones: "ART", accionesRNAO: "ACC",
+    evidenciaSemana: "EVA"
   };
 
   function emptyDB() {

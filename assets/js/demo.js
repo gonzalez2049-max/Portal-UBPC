@@ -237,7 +237,7 @@
       { titulo: "Reposicionamiento cada 2 h reduce LPP", fuente: "Revisión sistemática · JBI 2025", fecha: iso(3),
         resumen: "El reposicionamiento programado disminuye significativamente la incidencia de lesiones por presión en pacientes críticos.",
         recomendacion: "Estandarizar el registro de cambios de posición en UTI y UCI.", enlace: "" }
-    ], { silent: true });
+    ], { withCode: true, silent: true });
 
     const kb = (owner, titulo, columna, prioridad, resp, dias, orden) =>
       ({ owner, titulo, columna, prioridad, responsable: resp, fechaLimite: dias == null ? "" : isoIn(dias), orden });
