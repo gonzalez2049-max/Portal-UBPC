@@ -7,11 +7,10 @@
 
   /* ---------- Catálogos reutilizables ---------- */
   const CAT = {
-    // UTI 1.º y UTI 5.º se consolidan como una sola unidad "UTI"
     unidades: [
-      "UTI", "UCI", "Urgencia Adulto", "Urgencia Infantil", "Pabellón",
-      "Medicina", "Cirugía", "Reanimación", "UTAC", "Neurocirugía",
-      "Recuperación", "Todas las unidades"
+      "Emergencia Hospitalaria", "UCI Valech", "Quemados",
+      "UCM 3 piso", "UCM 4 piso", "UCM 6 piso", "UTI",
+      "Clínica Asistencial", "Pabellón y Anestesia", "Todas las unidades"
     ],
     estamentos: ["Enfermería", "TENS", "Médico", "Kinesiología", "Matrona", "Multiestamento", "Otro"],
     prioridades: ["alta", "media", "baja"],
