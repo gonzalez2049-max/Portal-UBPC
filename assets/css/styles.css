@@ -1042,7 +1042,7 @@ body.night .reco-podio-card{ background:linear-gradient(160deg, rgba(224,161,47,
 
 /* ---- Reconocimientos: coronación de EVI + confeti ---- */
 .reco-podio-card{ position:relative; overflow:hidden; }
-.reco-corona{ display:flex; align-items:center; gap:.9rem; justify-content:center; flex-wrap:wrap;
+.reco-corona{ position:relative; display:flex; align-items:center; gap:.9rem; justify-content:center; flex-wrap:wrap;
   margin:.2rem auto .3rem; padding:.6rem .9rem; max-width:640px;
   background:linear-gradient(100deg, rgba(224,161,47,.16), rgba(122,92,208,.12)); border-radius:14px; }
 .reco-corona__evi{ width:74px; height:auto; flex:none; filter:drop-shadow(0 8px 14px rgba(18,90,80,.28));
@@ -1060,3 +1060,14 @@ body.night .reco-corona__msg strong span{ color:#f2c53d; }
   0%{ transform:translateY(0) rotate(0); opacity:1; }
   100%{ transform:translateY(560px) rotate(700deg); opacity:0; } }
 @media (prefers-reduced-motion:reduce){ .reco-corona__evi{ animation:none } }
+
+/* ---- Reconocimientos: destaque de nueva unidad líder ---- */
+.reco-corona--nuevo{ animation: coronaPulse 1.1s ease-in-out 2; box-shadow:0 0 0 2px rgba(224,161,47,.5) inset; }
+@keyframes coronaPulse{ 0%,100%{ box-shadow:0 0 0 2px rgba(224,161,47,.4) inset; }
+  50%{ box-shadow:0 0 26px 4px rgba(224,161,47,.55), 0 0 0 2px rgba(224,161,47,.7) inset; } }
+.reco-corona__flash{ position:absolute; top:-2px; left:50%; transform:translateX(-50%);
+  background:linear-gradient(100deg,#e0a12f,#f2c53d); color:#3a2600; font-weight:800; font-size:11px;
+  letter-spacing:.4px; padding:.16rem .7rem; border-radius:0 0 10px 10px; box-shadow:0 6px 14px -6px rgba(224,161,47,.7);
+  animation: flashDrop .5s cubic-bezier(.22,.7,.3,1.4) backwards; }
+@keyframes flashDrop{ from{ transform:translate(-50%,-14px); opacity:0 } to{ transform:translateX(-50%); opacity:1 } }
+@media (prefers-reduced-motion:reduce){ .reco-corona--nuevo{ animation:none } .reco-corona__flash{ animation:none } }

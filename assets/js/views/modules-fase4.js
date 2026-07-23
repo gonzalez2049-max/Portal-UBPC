@@ -261,6 +261,7 @@
 
   function reconocimientos(box) {
     const u = ui();
+    let prevLeader = null;
     const render = (celebrate) => {
       const list = S().all("reconocimientos").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
       const now = new Date(), mesActual = now.getFullYear() + "-" + now.getMonth();
@@ -269,12 +270,16 @@
       // Ranking de unidades (podio)
       const byUnit = {};
       list.forEach(r => { const un = r.unidad || "Sin unidad"; byUnit[un] = (byUnit[un] || 0) + 1; });
-      const ranking = Object.keys(byUnit).map(k => ({ unidad: k, n: byUnit[k] })).sort((a, b) => b.n - a.n);
+      // En empates, el líder actual conserva la corona (solo se pierde si alguien lo supera).
+      const ranking = Object.keys(byUnit).map(k => ({ unidad: k, n: byUnit[k] }))
+        .sort((a, b) => b.n - a.n || (a.unidad === prevLeader ? -1 : b.unidad === prevLeader ? 1 : 0));
       const top = ranking.slice(0, 3);
       const medal = ["🥇", "🥈", "🥉"];
       const spots = [{ t: top[1], p: 2 }, { t: top[0], p: 1 }, { t: top[2], p: 3 }].filter(x => x.t);
       const rey = top[0];
-      const corona = rey ? `<div class="reco-corona">
+      const nuevoLider = !!(celebrate && rey && prevLeader && rey.unidad !== prevLeader);
+      const corona = rey ? `<div class="reco-corona${nuevoLider ? " reco-corona--nuevo" : ""}">
+          ${nuevoLider ? `<div class="reco-corona__flash">👑 ¡Nueva unidad líder!</div>` : ""}
           <img class="reco-corona__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
           <div class="reco-corona__msg">
             <strong>🎉 ¡EVI corona a <span>${u.esc(rey.unidad)}</span> como la unidad más reconocida!</strong>
@@ -323,7 +328,12 @@
       box.querySelectorAll("[data-del]").forEach(b => b.onclick = () =>
         u.confirmDelete("¿Eliminar este reconocimiento?", () => { S().remove("reconocimientos", b.dataset.del); render(false); }));
 
-      if (celebrate && top.length) confettiBurst(box.querySelector(".reco-podio-card"));
+      if (celebrate && top.length) {
+        const host = box.querySelector(".reco-podio-card");
+        confettiBurst(host);
+        if (nuevoLider) { confettiBurst(host); u.toast("👑 ¡" + rey.unidad + " es la nueva unidad líder!", "ok"); }
+      }
+      prevLeader = rey ? rey.unidad : null;
     };
     render(true);
   }
