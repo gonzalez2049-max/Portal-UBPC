@@ -1205,3 +1205,22 @@ body.night .gsearch__row:hover{ background:rgba(18,181,165,.14); }
 /* Agenda: acciones de eventos propios */
 .agc-item__acts{ display:flex; gap:.15rem; flex:none; opacity:.55; transition:opacity .15s; }
 .agc-item:hover .agc-item__acts{ opacity:1; }
+
+/* ============================================================
+   SCROLLBARS — sutiles y modernos (sin flechas del sistema)
+   ============================================================ */
+* { scrollbar-width: thin; scrollbar-color: rgba(18,90,80,.28) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(18,90,80,.26); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(18,90,80,.44); background-clip: padding-box; }
+::-webkit-scrollbar-button { display: none !important; width: 0; height: 0; }
+::-webkit-scrollbar-corner { background: transparent; }
+body.night * { scrollbar-color: rgba(255,255,255,.22) transparent; }
+body.night ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); }
+
+/* Rail lateral: barra blanca translúcida que combina con el panel */
+.side-nav { scrollbar-color: rgba(255,255,255,.42) transparent; }
+.side-nav::-webkit-scrollbar { width: 7px; }
+.side-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.34); border: none; }
+.side-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.6); }
