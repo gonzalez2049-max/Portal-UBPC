@@ -1173,3 +1173,30 @@ body.night .agc-item{ background:rgba(255,255,255,.05); }
 body.night .agc-item:hover{ background:rgba(18,181,165,.14); }
 body.night .agc-when{ background:rgba(255,255,255,.08); }
 @media (max-width:860px){ .agc-day__n{ font-size:11px } }
+
+/* ============================================================
+   BÚSQUEDA GLOBAL — paleta de comandos
+   ============================================================ */
+.gsearch{ position:fixed; inset:0; z-index:200; background:rgba(9,30,26,.42); backdrop-filter:blur(3px);
+  display:flex; justify-content:center; align-items:flex-start; padding:12vh 1rem 2rem; animation:fadeIn .16s ease; }
+.gsearch__panel{ width:min(620px,96vw); background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  box-shadow:var(--shadow-lg); overflow:hidden; display:flex; flex-direction:column; max-height:74vh;
+  animation: viewRise .24s cubic-bezier(.22,.7,.3,1) backwards; }
+.gsearch__bar{ display:flex; align-items:center; gap:.6rem; padding:.8rem 1rem; border-bottom:1px solid var(--border); }
+.gsearch__ic{ font-size:1.1rem; }
+.gsearch__input{ flex:1; border:none; outline:none; background:transparent; font-size:1.05rem; color:var(--text); font-family:inherit; }
+.gsearch__kbd{ font-size:11px; font-weight:700; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:.1rem .4rem; }
+.gsearch__results{ overflow-y:auto; padding:.4rem; }
+.gsearch__hint{ color:var(--text-muted); font-size:13px; padding:1rem; text-align:center; margin:0; }
+.gsearch__group{ margin-bottom:.4rem; }
+.gsearch__glabel{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); padding:.5rem .6rem .2rem; }
+.gsearch__row{ display:flex; align-items:center; gap:.7rem; padding:.5rem .6rem; border-radius:10px; text-decoration:none; color:inherit; }
+.gsearch__row:hover{ background:var(--azul-50); }
+.gsearch__rowic{ font-size:1.15rem; flex:none; }
+.gsearch__rowtx{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.gsearch__rowtx strong{ font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gsearch__rowtx span{ font-size:11.5px; color:var(--text-muted); }
+.gsearch__go{ color:var(--text-muted); font-size:13px; opacity:0; }
+.gsearch__row:hover .gsearch__go{ opacity:1; }
+.gsearch__count{ font-size:11.5px; color:var(--text-muted); text-align:right; padding:.3rem .6rem; }
+body.night .gsearch__row:hover{ background:rgba(18,181,165,.14); }

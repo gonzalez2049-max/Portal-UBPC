@@ -132,6 +132,7 @@
           </div>
         </div>
         <div class="header__spacer"></div>
+        ${portal === "coord" ? `<button class="btn-icon" id="searchBtn" title="Buscar en el portal (Ctrl+K)" aria-label="Buscar en el portal">🔎</button>` : ""}
         <button class="theme-switch" id="themeToggle" role="switch" aria-checked="false" title="Cambiar modo claro / oscuro" aria-label="Cambiar modo claro u oscuro">
           <span class="theme-switch__ico theme-switch__ico--sun" aria-hidden="true">☀️</span>
           <span class="theme-switch__ico theme-switch__ico--moon" aria-hidden="true">🌙</span>
@@ -190,6 +191,9 @@
       setPin(cur);
       pin.onclick = () => { cur = !cur; setPin(cur); try { localStorage.setItem("ubpc:sidePinned", cur ? "1" : "0"); } catch (e) {} };
     }
+
+    const searchBtn = el("searchBtn");
+    if (searchBtn) searchBtn.onclick = () => U.gsearch && U.gsearch.open();
 
     const bell = el("bellBtn");
     if (bell) bell.onclick = e => { e.stopPropagation(); toggleNotifPanel(rol); };
