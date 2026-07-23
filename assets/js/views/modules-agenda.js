@@ -15,7 +15,8 @@
     evalRNAO: { ic: "🧭", c: "#1e9fe0", lab: "Evaluación RNAO" },
     tarea: { ic: "✅", c: "#37c6a0", lab: "Tarea del tablero" },
     capacitacion: { ic: "🎓", c: "#37a04a", lab: "Capacitación" },
-    colaboracion: { ic: "🌐", c: "#1554b8", lab: "Colaboración" }
+    colaboracion: { ic: "🌐", c: "#1554b8", lab: "Colaboración" },
+    propio: { ic: "📌", c: "#e0526f", lab: "Evento propio" }
   };
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const DOW = ["L", "M", "M", "J", "V", "S", "D"];
@@ -41,12 +42,35 @@
     s.all("kanban").forEach(r => push(r.fechaLimite, r.titulo || r.tarea || "Tarea", "tarea", "#/coord/home", { deadline: true, done: /complet/i.test(r.columna || "") }));
     s.all("actividades").forEach(r => push(r.fecha, "Capacitación · " + (r.actividad || ""), "capacitacion", "#/coord/m4"));
     s.all("colaboraciones").forEach(r => push(r.fecha, "Colaboración · " + (r.institucion || ""), "colaboracion", "#/coord/m7"));
+    s.all("agendaEventos").forEach(r => push(r.fecha, r.titulo || "Evento", "propio", null, { propio: true, id: r.id, hora: r.hora, nota: r.nota }));
     return ev.sort((a, b) => a.d - b.d);
+  }
+
+  function eventoForm(rec, done) {
+    const u = ui();
+    u.modal({
+      title: rec ? "Editar evento" : "Nuevo evento",
+      body: u.formHTML([
+        { name: "titulo", label: "Título del evento", required: true, full: true, value: rec ? rec.titulo : "" },
+        { name: "fecha", label: "Fecha", type: "date", required: true, value: rec ? rec.fecha : u.hoyISO() },
+        { name: "hora", label: "Hora (opcional)", type: "time", value: rec ? rec.hora : "" },
+        { name: "nota", label: "Nota (opcional)", type: "textarea", full: true, value: rec ? rec.nota : "" }
+      ], {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.titulo || !d.fecha) { u.toast("Completa el título y la fecha", "danger"); return; }
+          if (rec) S().update("agendaEventos", rec.id, d); else S().insert("agendaEventos", d);
+          u.closeModal(); u.toast(rec ? "Evento actualizado" : "Evento agregado", "ok"); done();
+        };
+      }
+    });
   }
 
   function agenda() {
     return `<div class="page-head"><h1>Agenda UBPC</h1>
-      <p>Reuniones, plazos, acciones comprometidas, evaluaciones y actividades en un solo lugar.</p></div>
+      <p>Reuniones, plazos, acciones, evaluaciones y actividades de todos los módulos — más tus propios eventos y recordatorios.</p></div>
       <div id="agenda-body"></div>`;
   }
 
@@ -95,10 +119,20 @@
           : dias === 0 ? `<span class="agc-when hoy">Hoy</span>`
           : dias === 1 ? `<span class="agc-when">Mañana</span>`
           : dias > 0 ? `<span class="agc-when">En ${dias} días</span>` : "";
+        const meta = `${u.fechaCL(e.d)}${e.hora ? " · " + u.esc(e.hora) : ""} · ${m.lab}`;
+        if (e.propio) {
+          return `<div class="agc-item" style="--tc:${m.c}">
+            <span class="agc-item__ic">${m.ic}</span>
+            <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
+              <span class="agc-item__meta">${meta}${e.nota ? " · " + u.esc(e.nota) : ""}</span></div>
+            ${cuando}
+            <span class="agc-item__acts"><button class="btn btn--ghost btn--sm" data-evedit="${e.id}" title="Editar">✏️</button>
+            <button class="btn btn--ghost btn--sm" data-evdel="${e.id}" title="Eliminar">🗑️</button></span></div>`;
+        }
         return `<a class="agc-item" href="${e.ruta}" style="--tc:${m.c}">
           <span class="agc-item__ic">${m.ic}</span>
           <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
-            <span class="agc-item__meta">${u.fechaCL(e.d)} · ${m.lab}</span></div>
+            <span class="agc-item__meta">${meta}</span></div>
           ${cuando}</a>`;
       };
       const lista = listEvents.length ? listEvents.map(itemHTML).join("")
@@ -131,7 +165,9 @@
           </div>
           <div class="card">
             <div class="section__head" style="margin-bottom:.4rem"><h3 class="card__title" style="margin:0">${listTitle}</h3>
-              ${selIso ? `<button class="btn btn--ghost btn--sm" id="agc-clear">Ver próximos</button>` : ""}</div>
+              <div class="btn-row">
+                ${selIso ? `<button class="btn btn--ghost btn--sm" id="agc-clear">Ver próximos</button>` : ""}
+                <button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button></div></div>
             <div class="agc-list">${lista}</div>
           </div>
         </div>`;
@@ -140,6 +176,10 @@
       document.getElementById("agc-next").onclick = () => { monthOffset++; selIso = null; draw(); };
       const clr = document.getElementById("agc-clear"); if (clr) clr.onclick = () => { selIso = null; draw(); };
       container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => { selIso = b.dataset.iso; draw(); });
+      document.getElementById("agc-newev").onclick = () => eventoForm(null, () => { selIso = null; draw(); });
+      container.querySelectorAll("[data-evedit]").forEach(b => b.onclick = () => eventoForm(S().get("agendaEventos", b.dataset.evedit), draw));
+      container.querySelectorAll("[data-evdel]").forEach(b => b.onclick = () =>
+        u.confirmDelete("¿Eliminar este evento?", () => { S().remove("agendaEventos", b.dataset.evdel); draw(); }));
     };
     draw();
   }

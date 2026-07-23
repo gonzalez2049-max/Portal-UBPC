@@ -1201,3 +1201,7 @@ body.night .agc-when{ background:rgba(255,255,255,.08); }
 .gsearch__row:hover .gsearch__go{ opacity:1; }
 .gsearch__count{ font-size:11.5px; color:var(--text-muted); text-align:right; padding:.3rem .6rem; }
 body.night .gsearch__row:hover{ background:rgba(18,181,165,.14); }
+
+/* Agenda: acciones de eventos propios */
+.agc-item__acts{ display:flex; gap:.15rem; flex:none; opacity:.55; transition:opacity .15s; }
+.agc-item:hover .agc-item__acts{ opacity:1; }
