@@ -10,7 +10,8 @@
   const NAV = [
     { label: "Principal", items: [
       { key: "home", label: "Inicio", ico: "🏠" },
-      { key: "guia", label: "Guía del Coordinador", ico: "🧑‍🏫" }
+      { key: "guia", label: "Guía del Coordinador", ico: "🧑‍🏫" },
+      { key: "agenda", label: "Agenda", ico: "🗓️" }
     ]},
     { label: "Módulos de gestión", items: [
       { key: "m1", label: "Apoyo y Mejora Continua", ico: "🤝" },

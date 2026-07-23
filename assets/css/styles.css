@@ -1130,3 +1130,46 @@ body.night .doc-tb__btn:hover{ background:rgba(18,181,165,.18); color:#7fe0d0; }
 /* La página del documento se mantiene clara aunque el portal esté en modo oscuro */
 body.night .doc-page{ background:#fff; }
 @media (max-width:860px){ .doc-tb{ top:56px; } .doc-page__title,.doc-page__body{ padding-left:1rem; padding-right:1rem; margin-left:1rem; margin-right:1rem; width:auto; } }
+
+/* ============================================================
+   AGENDA — calendario mensual + lista de eventos
+   ============================================================ */
+.agc-cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem; }
+.agc-cal-head strong{ font-family:var(--font-disp); font-size:1.1rem; }
+.agc-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.agc-dow{ margin-bottom:4px; }
+.agc-dow__c{ text-align:center; font-size:11px; font-weight:800; color:var(--text-muted); padding:.2rem 0; }
+.agc-day{ position:relative; aspect-ratio:1/1; border:1px solid transparent; border-radius:10px; background:var(--surface-2);
+  cursor:default; padding:.25rem; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  font: inherit; color:var(--text-2); transition:background .15s, transform .15s, box-shadow .15s; }
+.agc-day--blank{ background:transparent; border:none; }
+.agc-day__n{ font-size:12.5px; font-weight:700; }
+.agc-day.has-ev{ cursor:pointer; background:var(--surface); border-color:var(--border); }
+.agc-day.has-ev:hover{ transform:translateY(-2px); box-shadow:var(--shadow); }
+.agc-day.is-today{ background:var(--azul-50); border-color:var(--c-celeste); }
+.agc-day.is-today .agc-day__n{ color:var(--c-azul); }
+.agc-day.is-sel{ outline:2px solid var(--c-celeste); outline-offset:1px; }
+.agc-day.is-over .agc-day__n{ color:var(--danger); }
+.agc-day__dots{ display:flex; gap:2px; margin-top:auto; flex-wrap:wrap; justify-content:center; }
+.agc-day__dots i{ width:6px; height:6px; border-radius:50%; }
+.agc-legend{ display:flex; flex-wrap:wrap; gap:.4rem .8rem; margin-top:.8rem; }
+.agc-leg{ display:inline-flex; align-items:center; gap:.35rem; font-size:11.5px; color:var(--text-2); }
+.agc-leg i{ width:9px; height:9px; border-radius:50%; }
+.agc-list{ display:flex; flex-direction:column; gap:.4rem; }
+.agc-item{ display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem; border-radius:11px; text-decoration:none;
+  color:inherit; background:var(--surface-2); border-left:3px solid var(--tc,#12b5a5); transition:background .15s, transform .15s; }
+.agc-item:hover{ background:var(--azul-50); transform:translateX(2px); }
+.agc-item__ic{ font-size:1.2rem; flex:none; }
+.agc-item__body{ flex:1; min-width:0; }
+.agc-item__body strong{ display:block; font-size:13.5px; }
+.agc-item__meta{ font-size:11.5px; color:var(--text-muted); }
+.agc-when{ font-size:11px; font-weight:800; color:var(--text-2); background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:.1rem .5rem; white-space:nowrap; }
+.agc-when.hoy{ color:#fff; background:var(--c-celeste); border-color:transparent; }
+.agc-when.over{ color:#fff; background:var(--danger); border-color:transparent; }
+body.night .agc-day{ background:rgba(255,255,255,.04); }
+body.night .agc-day.has-ev{ background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.1); }
+body.night .agc-day.is-today{ background:rgba(18,181,165,.18); }
+body.night .agc-item{ background:rgba(255,255,255,.05); }
+body.night .agc-item:hover{ background:rgba(18,181,165,.14); }
+body.night .agc-when{ background:rgba(255,255,255,.08); }
+@media (max-width:860px){ .agc-day__n{ font-size:11px } }
