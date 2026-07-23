@@ -240,9 +240,28 @@
   const PREMIOS = Object.keys(PREMIO_META);
   const pMeta = t => PREMIO_META[t] || PREMIO_META["Otro"];
 
+  function confettiBurst(host) {
+    if (!host) return;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (reduce) return;
+    const colors = ["#e0a12f", "#12b5a5", "#7a5cd0", "#1e9fe0", "#e0526f", "#37a04a", "#f2c53d"];
+    const wrap = document.createElement("div"); wrap.className = "confetti";
+    for (let i = 0; i < 46; i++) {
+      const s = document.createElement("i");
+      s.style.left = (Math.random() * 100).toFixed(1) + "%";
+      s.style.background = colors[i % colors.length];
+      s.style.animationDelay = (Math.random() * 0.6).toFixed(2) + "s";
+      s.style.animationDuration = (1.6 + Math.random() * 1.3).toFixed(2) + "s";
+      if (i % 3 === 0) { s.style.width = "7px"; s.style.height = "7px"; s.style.borderRadius = "50%"; }
+      wrap.appendChild(s);
+    }
+    host.appendChild(wrap);
+    setTimeout(() => wrap.remove(), 3400);
+  }
+
   function reconocimientos(box) {
     const u = ui();
-    const render = () => {
+    const render = (celebrate) => {
       const list = S().all("reconocimientos").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
       const now = new Date(), mesActual = now.getFullYear() + "-" + now.getMonth();
       const esteMes = list.filter(r => { const d = new Date(r.fecha); return !isNaN(d) && (d.getFullYear() + "-" + d.getMonth()) === mesActual; }).length;
@@ -254,8 +273,16 @@
       const top = ranking.slice(0, 3);
       const medal = ["🥇", "🥈", "🥉"];
       const spots = [{ t: top[1], p: 2 }, { t: top[0], p: 1 }, { t: top[2], p: 3 }].filter(x => x.t);
+      const rey = top[0];
+      const corona = rey ? `<div class="reco-corona">
+          <img class="reco-corona__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
+          <div class="reco-corona__msg">
+            <strong>🎉 ¡EVI corona a <span>${u.esc(rey.unidad)}</span> como la unidad más reconocida!</strong>
+            <span>${rey.n} reconocimiento${rey.n !== 1 ? "s" : ""} · ¡Sigan fortaleciendo el cuidado con evidencia!</span>
+          </div></div>` : "";
       const podio = top.length ? `<div class="card reco-podio-card">
           <h3 class="card__title" style="text-align:center">🏆 Podio de unidades más reconocidas</h3>
+          ${corona}
           <div class="reco-podio">${spots.map(({ t, p }) => `
             <div class="podio__spot podio__spot--${p}">
               <div class="podio__medal">${medal[p - 1]}</div>
@@ -291,12 +318,14 @@
           <button class="btn btn--primary btn--sm" id="reco-new">+ Nuevo reconocimiento</button></div>
         ${wall}`;
 
-      document.getElementById("reco-new").onclick = () => recoForm(null, render);
-      box.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => recoForm(S().get("reconocimientos", b.dataset.edit), render));
+      document.getElementById("reco-new").onclick = () => recoForm(null, () => render(true));
+      box.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => recoForm(S().get("reconocimientos", b.dataset.edit), () => render(false)));
       box.querySelectorAll("[data-del]").forEach(b => b.onclick = () =>
-        u.confirmDelete("¿Eliminar este reconocimiento?", () => { S().remove("reconocimientos", b.dataset.del); render(); }));
+        u.confirmDelete("¿Eliminar este reconocimiento?", () => { S().remove("reconocimientos", b.dataset.del); render(false); }));
+
+      if (celebrate && top.length) confettiBurst(box.querySelector(".reco-podio-card"));
     };
-    render();
+    render(true);
   }
 
   function recoForm(rec, done) {
