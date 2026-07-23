@@ -43,6 +43,75 @@
         <h2>Acciones</h2><ol><li>Acción 1</li><li>Acción 2</li></ol>
         <h2>Responsable y plazo</h2><p>Responsable: — · Plazo: —</p>
         <h2>Indicador de éxito</h2><p>Cómo se medirá el logro de la mejora.</p>`
+    },
+    actaReunion: {
+      label: "Acta de Reunión", ic: "🗒️", color: "#0f8f83",
+      titulo: "Acta de Reunión · UBPC",
+      html: `<h2>Datos de la reunión</h2>
+        <p><strong>Fecha:</strong> — · <strong>Hora:</strong> — · <strong>Lugar:</strong> —<br><strong>Tipo:</strong> Comité / Reunión técnica · <strong>Convoca:</strong> Coordinación UBPC</p>
+        <h2>Asistentes</h2><ul><li>Nombre — Cargo / Unidad</li><li>Nombre — Cargo / Unidad</li></ul>
+        <h2>Temas tratados</h2><ol><li>Tema 1</li><li>Tema 2</li></ol>
+        <h2>Acuerdos y compromisos</h2>
+        <table><thead><tr><th>Acuerdo</th><th>Responsable</th><th>Plazo</th></tr></thead>
+        <tbody><tr><td>—</td><td>—</td><td>—</td></tr><tr><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+        <h2>Próxima reunión</h2><p>Fecha: — · Tema: —</p>`
+    },
+    auditoria: {
+      label: "Informe de Auditoría", ic: "🔍", color: "#7a5cd0",
+      titulo: "Informe de Auditoría Clínica · UBPC",
+      html: `<h2>1. Objetivo</h2><p>Propósito de la auditoría clínica.</p>
+        <h2>2. Alcance</h2><p>Unidad(es), período y proceso auditado.</p>
+        <h2>3. Metodología</h2><p>Criterios, muestra e instrumentos aplicados.</p>
+        <h2>4. Resultados y hallazgos</h2><ul><li>Hallazgo 1</li><li>Hallazgo 2</li></ul>
+        <h2>5. No conformidades</h2>
+        <table><thead><tr><th>Hallazgo</th><th>Criterio / estándar</th><th>Severidad</th></tr></thead>
+        <tbody><tr><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+        <h2>6. Recomendaciones y plan de acción</h2><ol><li>Recomendación 1</li><li>Recomendación 2</li></ol>
+        <h2>7. Conclusión</h2><p>Síntesis y nivel de cumplimiento global.</p>`
+    },
+    protocolo: {
+      label: "Protocolo / Procedimiento", ic: "📘", color: "#1554b8",
+      titulo: "Protocolo / Procedimiento · UBPC",
+      html: `<h2>1. Objetivo</h2><p>Finalidad del protocolo o procedimiento.</p>
+        <h2>2. Alcance</h2><p>Unidades y situaciones en que aplica.</p>
+        <h2>3. Responsables</h2><ul><li>Rol — responsabilidad</li></ul>
+        <h2>4. Definiciones</h2><p>Términos clave.</p>
+        <h2>5. Desarrollo del procedimiento</h2><ol><li>Paso 1</li><li>Paso 2</li><li>Paso 3</li></ol>
+        <h2>6. Registros y evidencias</h2><p>Documentos y registros asociados.</p>
+        <h2>7. Referencias</h2><ul><li>Guía / norma de referencia</li></ul>`
+    },
+    planCapacitacion: {
+      label: "Plan de Capacitación", ic: "🎓", color: "#37a04a",
+      titulo: "Plan de Capacitación · UBPC",
+      html: `<h2>Fundamentación</h2><p>Necesidad formativa detectada y su relación con la calidad del cuidado.</p>
+        <h2>Objetivos de aprendizaje</h2><ul><li>Objetivo 1</li><li>Objetivo 2</li></ul>
+        <h2>Población objetivo</h2><p>Estamentos y unidades a capacitar.</p>
+        <h2>Contenidos</h2><ol><li>Contenido 1</li><li>Contenido 2</li></ol>
+        <h2>Cronograma</h2>
+        <table><thead><tr><th>Actividad</th><th>Fecha</th><th>Modalidad</th><th>Responsable</th></tr></thead>
+        <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+        <h2>Evaluación</h2><p>Forma de evaluar el aprendizaje y la cobertura.</p>`
+    },
+    fichaBP: {
+      label: "Ficha de Buena Práctica", ic: "🌟", color: "#e0a12f",
+      titulo: "Ficha de Buena Práctica · UBPC",
+      html: `<h2>Nombre de la buena práctica</h2><p>—</p>
+        <h2>Unidad y contexto</h2><p>Unidad, equipo y contexto en que se implementa.</p>
+        <h2>Problema abordado</h2><p>Brecha o necesidad que motivó la práctica.</p>
+        <h2>Intervención implementada</h2><p>Descripción de la práctica realizada.</p>
+        <h2>Resultados obtenidos</h2><ul><li>Resultado 1</li><li>Resultado 2</li></ul>
+        <h2>Evidencia que la respalda</h2><p>Referencia a la evidencia científica o datos locales.</p>
+        <h2>Lecciones aprendidas</h2><p>Aprendizajes y condiciones para replicarla.</p>`
+    },
+    memo: {
+      label: "Memorándum", ic: "✉️", color: "#5f7d76",
+      titulo: "Memorándum · UBPC",
+      html: `<h2>MEMORÁNDUM</h2>
+        <p><strong>Para:</strong> —<br><strong>De:</strong> Coordinación UBPC<br><strong>Fecha:</strong> —<br><strong>Asunto:</strong> —</p>
+        <hr>
+        <p>Cuerpo del mensaje. Redacta aquí el contenido de la comunicación interna.</p>
+        <p>Sin otro particular, saluda atentamente,</p>
+        <p>—<br>Coordinación · Unidad de Buenas Prácticas Clínicas</p>`
     }
   };
 

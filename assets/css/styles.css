@@ -1123,6 +1123,7 @@ body.night .doc-tb__btn:hover{ background:rgba(18,181,165,.18); color:#7fe0d0; }
 .doc-page__body h2{ font-family:var(--font-disp); color:#0f8f83; font-size:1.15rem; margin:1.1em 0 .3em; border-bottom:1px solid #eef2f8; padding-bottom:.2em; }
 .doc-page__body h3{ font-family:var(--font-disp); color:#5b34b0; font-size:1rem; margin:.9em 0 .2em; }
 .doc-page__body p{ margin:.4em 0; } .doc-page__body ul,.doc-page__body ol{ margin:.4em 0 .4em 1.3em; }
+.doc-page__body hr{ border:none; border-top:1px solid #dbe6f2; margin:.9em 0; }
 .doc-page__body li{ margin:.2em 0; }
 .doc-page__body table{ border-collapse:collapse; width:100%; margin:.6em 0; font-size:13px; }
 .doc-page__body th{ background:#0f8f83; color:#fff; text-align:left; padding:6px 8px; border:1px solid #cdd8e2; }
