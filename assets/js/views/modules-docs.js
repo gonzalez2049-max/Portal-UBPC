@@ -22,14 +22,7 @@
     informeAnual: {
       label: "Informe Anual", ic: "📅", color: "#7a5cd0",
       titulo: "Informe Anual de Gestión · UBPC",
-      html: `<h2>Resumen ejecutivo</h2><p>Síntesis del año de gestión de la Unidad.</p>
-        <h2>Logros del año</h2><ul><li>Logro destacado 1</li><li>Logro destacado 2</li></ul>
-        <h2>Indicadores clave</h2><p>Cumplimiento RNAO, Norma Técnica 234, cobertura de capacitación e indicadores UBPC.</p>
-        <h2>Programa RNAO</h2><p>Avances en la implementación de guías de buenas prácticas.</p>
-        <h2>Norma Técnica 234</h2><p>Adherencia institucional y planes de mejora.</p>
-        <h2>Fortalecimiento y capacitación</h2><p>Actividades formativas y cobertura por estamento.</p>
-        <h2>Red de colaboración</h2><p>Alianzas y colaboraciones institucionales del período.</p>
-        <h2>Desafíos y proyecciones</h2><p>Metas y focos para el próximo período.</p>`
+      build: buildInformeAnual
     },
     planTrabajo: {
       label: "Plan de Trabajo", ic: "🗺️", color: "#1e9fe0",
@@ -54,6 +47,60 @@
   };
 
   const plMeta = k => PLANTILLAS[k] || PLANTILLAS.informeTecnico;
+  const tplContenido = p => (typeof p.build === "function" ? p.build() : p.html);
+
+  /* Informe Anual pre-rellenado con los datos reales del portal */
+  function buildInformeAnual() {
+    const s = S(), CS = U.coordStats || {};
+    const year = new Date().getFullYear();
+    const pct = v => v == null ? "—" : v + "%";
+    const evals = s.all("evaluacionesRNAO");
+    const gl = CS.globalCumplimiento ? evals.map(CS.globalCumplimiento).filter(v => v != null) : [];
+    const rnao = gl.length ? Math.round(gl.reduce((a, b) => a + b, 0) / gl.length) : null;
+    const nt = s.all("nt234");
+    const ntG = nt.length ? Math.round(nt.reduce((a, b) => a + (Number(b.porcentaje) || 0), 0) / nt.length) : null;
+    const acts = s.all("actividades");
+    const cap = acts.reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0);
+    const po = acts.reduce((n, a) => n + (parseInt(a.poblacionObjetivo) || 0), 0);
+    const cob = po > 0 ? Math.round(cap / po * 100) : null;
+    const cols = s.all("colaboraciones");
+    const inst = new Set(cols.map(c => (c.institucion || "").trim()).filter(Boolean)).size;
+    const guias = s.all("guiasBPSO").filter(g => g.estado === "Activa").length;
+    const docs = s.all("documentos").filter(d => /vigente/i.test(d.estado || "")).length;
+    const recon = s.all("reconocimientos");
+    const byU = {}; recon.forEach(r => { const un = r.unidad || "—"; byU[un] = (byU[un] || 0) + 1; });
+    const lider = Object.keys(byU).sort((a, b) => byU[b] - byU[a])[0];
+    const planes = s.all("planesNT234").length, acc = s.all("accionesRNAO").length;
+
+    const rows = [
+      ["Programa RNAO", "Cumplimiento institucional", pct(rnao)],
+      ["Norma Técnica 234", "Adherencia promedio", pct(ntG)],
+      ["Fortalecimiento", "Personas capacitadas", cap],
+      ["Fortalecimiento", "Cobertura", pct(cob)],
+      ["Gestión documental", "Documentos vigentes", docs],
+      ["Red de colaboración", "Colaboraciones / instituciones", cols.length + " / " + inst],
+      ["Reconocimientos", "Registrados en el año", recon.length]
+    ].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td><strong>${r[2]}</strong></td></tr>`).join("");
+
+    const logros = [
+      guias ? `${guias} guía(s) BPSO en implementación activa.` : null,
+      cap ? `${cap} personas capacitadas${cob != null ? " (cobertura " + cob + "%)" : ""}.` : null,
+      rnao != null ? `Cumplimiento RNAO institucional de ${rnao}%.` : null,
+      lider ? `Unidad más reconocida del año: <strong>${lider}</strong>.` : null,
+      cols.length ? `${cols.length} colaboración(es) con ${inst} institución(es).` : null
+    ].filter(Boolean).map(x => `<li>${x}</li>`).join("") || "<li>Registra actividad en el portal para poblar los logros.</li>";
+
+    return `<h2>Resumen ejecutivo</h2>
+      <p>Durante el año ${year}, la Unidad de Buenas Prácticas Clínicas mantuvo un cumplimiento RNAO institucional de <strong>${pct(rnao)}</strong> y una adherencia promedio a la Norma Técnica 234 de <strong>${pct(ntG)}</strong>. Se capacitó a <strong>${cap}</strong> personas${cob != null ? " (cobertura " + cob + "%)" : ""} y se registraron <strong>${cols.length}</strong> colaboración(es) institucional(es). <em>(Redacta aquí el análisis cualitativo del período.)</em></p>
+      <h2>Indicadores clave</h2>
+      <table><thead><tr><th>Programa</th><th>Indicador</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table>
+      <h2>Logros del año</h2><ul>${logros}</ul>
+      <h2>Programa RNAO</h2><p>Cumplimiento institucional ${pct(rnao)} sobre ${evals.length} evaluación(es); ${acc} acción(es) de mejora registradas. <em>(Describe los avances por guía.)</em></p>
+      <h2>Norma Técnica 234</h2><p>Adherencia promedio ${pct(ntG)} sobre ${nt.length} medición(es); ${planes} plan(es) de mejora. <em>(Comenta las unidades priorizadas.)</em></p>
+      <h2>Fortalecimiento y capacitación</h2><p>${acts.length} actividad(es), ${cap} personas capacitadas${cob != null ? ", cobertura " + cob + "%" : ""}. <em>(Detalla los estamentos alcanzados.)</em></p>
+      <h2>Red de colaboración</h2><p>${cols.length} colaboración(es) con ${inst} institución(es). <em>(Destaca las alianzas más relevantes.)</em></p>
+      <h2>Desafíos y proyecciones</h2><p><em>(Define las metas y focos para el próximo período.)</em></p>`;
+  }
 
   function mount(container) { renderList(container); }
 
@@ -103,7 +150,7 @@
     const p = plMeta(plantilla);
     const me = U.auth.current();
     const titulo = rec ? (rec.titulo || p.titulo) : p.titulo;
-    const contenido = rec ? (rec.contenido || p.html) : p.html;
+    const contenido = rec ? (rec.contenido || tplContenido(p)) : tplContenido(p);
 
     const tools = [
       { c: "bold", ic: "𝗕", t: "Negrita" }, { c: "italic", ic: "𝘐", t: "Cursiva" }, { c: "underline", ic: "U̲", t: "Subrayado" },
