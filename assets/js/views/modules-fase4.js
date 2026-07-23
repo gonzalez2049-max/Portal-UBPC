@@ -229,30 +229,97 @@
   }
 
   /* ---------- Reconocimientos ---------- */
+  /* ---------- Reconocimientos: podio + muro de trofeos (editable) ---------- */
+  const PREMIO_META = {
+    "Buena práctica del mes": { ic: "🏆", c: "#e0a12f" },
+    "Reconocimiento institucional": { ic: "🏛️", c: "#7a5cd0" },
+    "Mención destacada": { ic: "🌟", c: "#12b5a5" },
+    "Felicitación": { ic: "👏", c: "#1e9fe0" },
+    "Otro": { ic: "🎖️", c: "#5f7d76" }
+  };
+  const PREMIOS = Object.keys(PREMIO_META);
+  const pMeta = t => PREMIO_META[t] || PREMIO_META["Otro"];
+
   function reconocimientos(box) {
-    R().mount(box, {
-      collection: "reconocimientos", title: "Reconocimiento", icon: "🏆",
-      hint: "Reconocimientos a unidades y buenas prácticas destacadas.",
-      newLabel: "Nuevo reconocimiento",
-      emptyMsg: "Aún no hay reconocimientos registrados.",
-      columns: [
-        { key: "fecha", label: "Fecha", date: true },
-        { key: "unidad", label: "Unidad" },
-        { key: "tipo", label: "Tipo", render: (r, u) => `<span class="tag">${u.esc(r.tipo || "—")}</span>` },
-        { key: "motivo", label: "Motivo" },
-        { key: "buenaPractica", label: "Buena práctica destacada" },
-        { key: "responsable", label: "Responsable" }
-      ],
-      fields: [
-        { name: "fecha", label: "Fecha", type: "date", required: true },
-        { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
-        { name: "tipo", label: "Tipo de reconocimiento", type: "select", options: ["Felicitación", "Mención destacada", "Reconocimiento institucional", "Buena práctica del mes", "Otro"] },
-        { name: "motivo", label: "Motivo", type: "textarea", full: true },
-        { name: "buenaPractica", label: "Buena práctica destacada", type: "textarea", full: true },
-        { name: "responsable", label: "Responsable" },
-        { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
-      ],
-      defaults: () => ({ fecha: ui().hoyISO() })
+    const u = ui();
+    const render = () => {
+      const list = S().all("reconocimientos").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      const now = new Date(), mesActual = now.getFullYear() + "-" + now.getMonth();
+      const esteMes = list.filter(r => { const d = new Date(r.fecha); return !isNaN(d) && (d.getFullYear() + "-" + d.getMonth()) === mesActual; }).length;
+
+      // Ranking de unidades (podio)
+      const byUnit = {};
+      list.forEach(r => { const un = r.unidad || "Sin unidad"; byUnit[un] = (byUnit[un] || 0) + 1; });
+      const ranking = Object.keys(byUnit).map(k => ({ unidad: k, n: byUnit[k] })).sort((a, b) => b.n - a.n);
+      const top = ranking.slice(0, 3);
+      const medal = ["🥇", "🥈", "🥉"];
+      const spots = [{ t: top[1], p: 2 }, { t: top[0], p: 1 }, { t: top[2], p: 3 }].filter(x => x.t);
+      const podio = top.length ? `<div class="card reco-podio-card">
+          <h3 class="card__title" style="text-align:center">🏆 Podio de unidades más reconocidas</h3>
+          <div class="reco-podio">${spots.map(({ t, p }) => `
+            <div class="podio__spot podio__spot--${p}">
+              <div class="podio__medal">${medal[p - 1]}</div>
+              <div class="podio__unit">${u.esc(t.unidad)}</div>
+              <div class="podio__count">${t.n} reconocimiento${t.n !== 1 ? "s" : ""}</div>
+              <div class="podio__base"><span>${p}°</span></div>
+            </div>`).join("")}</div></div>` : "";
+
+      const wall = list.length
+        ? `<div class="grid grid--3">${list.map(r => {
+            const m = pMeta(r.tipo);
+            return `<div class="trophy" style="--tc:${m.c}">
+              <div class="trophy__top"><span class="trophy__ic">${m.ic}</span>
+                <div class="trophy__acts">
+                  <button class="btn btn--ghost btn--sm" data-edit="${r.id}" title="Editar">✏️</button>
+                  <button class="btn btn--ghost btn--sm" data-del="${r.id}" title="Eliminar">🗑️</button></div></div>
+              <div class="trophy__tipo">${u.esc(r.tipo || "Reconocimiento")}</div>
+              <div class="trophy__unit">${u.esc(r.unidad || "—")}</div>
+              ${r.motivo ? `<p class="trophy__motivo">${u.esc(r.motivo)}</p>` : ""}
+              ${r.buenaPractica ? `<div class="trophy__bp"><span>Buena práctica</span>${u.esc(r.buenaPractica)}</div>` : ""}
+              <div class="trophy__foot">${u.fechaCL(r.fecha)}${r.responsable ? " · " + u.esc(r.responsable) : ""}</div>
+            </div>`;
+          }).join("")}</div>`
+        : u.empty("Aún no hay reconocimientos registrados.", "Agrega el primero y arma el podio de unidades destacadas.", "🏆");
+
+      box.innerHTML = `<div class="grid grid--kpi" style="margin-bottom:1rem">
+          ${kpiMini("Reconocimientos", list.length, "Registrados en total", "info", "🏆")}
+          ${kpiMini("Unidades reconocidas", ranking.length, "Con al menos uno", "ok", "🏥")}
+          ${kpiMini("Este mes", esteMes, "Reconocimientos del mes", "warn", "📅")}
+        </div>
+        ${podio}
+        <div class="section__head" style="margin-top:1.1rem"><h2 class="section__title">Muro de reconocimientos</h2>
+          <button class="btn btn--primary btn--sm" id="reco-new">+ Nuevo reconocimiento</button></div>
+        ${wall}`;
+
+      document.getElementById("reco-new").onclick = () => recoForm(null, render);
+      box.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => recoForm(S().get("reconocimientos", b.dataset.edit), render));
+      box.querySelectorAll("[data-del]").forEach(b => b.onclick = () =>
+        u.confirmDelete("¿Eliminar este reconocimiento?", () => { S().remove("reconocimientos", b.dataset.del); render(); }));
+    };
+    render();
+  }
+
+  function recoForm(rec, done) {
+    const u = ui();
+    u.modal({
+      title: rec ? "Editar reconocimiento" : "Nuevo reconocimiento",
+      body: u.formHTML([
+        { name: "fecha", label: "Fecha", type: "date", required: true, value: rec ? rec.fecha : u.hoyISO() },
+        { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…", value: rec ? rec.unidad : "" },
+        { name: "tipo", label: "Premio / distinción", type: "select", options: PREMIOS, value: rec ? rec.tipo : "Buena práctica del mes" },
+        { name: "motivo", label: "Motivo (¿por qué el premio?)", type: "textarea", full: true, value: rec ? rec.motivo : "" },
+        { name: "buenaPractica", label: "Buena práctica destacada", type: "textarea", full: true, value: rec ? rec.buenaPractica : "" },
+        { name: "responsable", label: "Responsable", value: rec ? rec.responsable : "" }
+      ], {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.fecha || !d.unidad) { u.toast("Completa la fecha y la unidad", "danger"); return; }
+          if (rec) S().update("reconocimientos", rec.id, d); else S().insert("reconocimientos", d);
+          u.closeModal(); u.toast(rec ? "Reconocimiento actualizado" : "Reconocimiento registrado", "ok"); done();
+        };
+      }
     });
   }
 

@@ -129,8 +129,13 @@
     ], { withCode: true, silent: true });
 
     add("reconocimientos", [
-      { fecha: iso(22), unidad: "UTI", tipo: "Buena práctica del mes", motivo: "Reducción sostenida de LPP.", buenaPractica: "Bundle de prevención de LPP.", responsable: "EU. Marcos Soto", observaciones: "" },
-      { fecha: iso(5), unidad: "UCI", tipo: "Felicitación", motivo: "Alta adherencia a vigilancia de accesos.", buenaPractica: "Checklist diario de accesos.", responsable: "EU. Diego Fuentes", observaciones: "" }
+      { fecha: iso(22), unidad: "UTI", tipo: "Buena práctica del mes", motivo: "Reducción sostenida de lesiones por presión durante tres períodos consecutivos.", buenaPractica: "Bundle de prevención de LPP con reposicionamiento cada 2 h.", responsable: "EU. Marcos Soto", observaciones: "" },
+      { fecha: iso(48), unidad: "UTI", tipo: "Reconocimiento institucional", motivo: "Liderazgo en la implementación de la guía BPSO.", buenaPractica: "Champions de guía activos por turno.", responsable: "EU. Carolina Reyes", observaciones: "" },
+      { fecha: iso(80), unidad: "UTI", tipo: "Mención destacada", motivo: "Participación destacada en auditorías clínicas.", buenaPractica: "Registro trazable de cambios de posición.", responsable: "EU. Marcos Soto", observaciones: "" },
+      { fecha: iso(5), unidad: "UCI", tipo: "Felicitación", motivo: "Alta adherencia a la vigilancia de accesos vasculares.", buenaPractica: "Checklist diario de accesos.", responsable: "EU. Diego Fuentes", observaciones: "" },
+      { fecha: iso(40), unidad: "UCI", tipo: "Buena práctica del mes", motivo: "Cero infecciones asociadas a accesos en el período.", buenaPractica: "Higiene de manos supervisada y bundle CVC.", responsable: "EU. Diego Fuentes", observaciones: "" },
+      { fecha: iso(15), unidad: "Medicina", tipo: "Mención destacada", motivo: "Mejora continua en la valoración del dolor.", buenaPractica: "Escala del dolor aplicada en cada turno.", responsable: "EU. Paula Ríos", observaciones: "" },
+      { fecha: iso(30), unidad: "Pabellón", tipo: "Felicitación", motivo: "Compromiso con la seguridad quirúrgica.", buenaPractica: "Checklist de pausa quirúrgica al 100%.", responsable: "EU. Ignacio Vera", observaciones: "" }
     ], { silent: true });
 
     /* ---------- Módulo 5 — Gestión y respaldo ---------- */
