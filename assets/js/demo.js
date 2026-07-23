@@ -138,6 +138,11 @@
       { fecha: iso(30), unidad: "Pabellón", tipo: "Felicitación", motivo: "Compromiso con la seguridad quirúrgica.", buenaPractica: "Checklist de pausa quirúrgica al 100%.", responsable: "EU. Ignacio Vera", observaciones: "" }
     ], { silent: true });
 
+    add("docsTrabajo", [
+      { titulo: "Plan de Mejora · Prevención de LPP en UTI", plantilla: "planMejora",
+        contenido: "<h2>Problema o brecha detectada</h2><p>Incidencia de lesiones por presión sobre la meta en pacientes críticos de UTI.</p><h2>Objetivo de mejora</h2><p>Reducir la incidencia de LPP a menos del 5% en el semestre.</p><h2>Acciones</h2><ol><li>Estandarizar el reposicionamiento cada 2 horas.</li><li>Capacitar al equipo en la escala de Braden.</li><li>Auditar el registro de cambios de posición.</li></ol><h2>Responsable y plazo</h2><p>Responsable: EU. Marcos Soto · Plazo: 6 meses</p><h2>Indicador de éxito</h2><p>Incidencia de LPP < 5% y adherencia al registro > 90%.</p>" }
+    ], { silent: true });
+
     /* ---------- Módulo 5 — Gestión y respaldo ---------- */
     add("reuniones", [
       { fecha: iso(25), tipo: "Comité", tema: "Comité de Calidad y Seguridad", unidad: "Dirección", responsable: "EU. Carolina Reyes", resultado: "Se aprueba plan de prevención de LPP." },

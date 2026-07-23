@@ -18,12 +18,24 @@
   }
 
   /* ===================== MÓDULO 1 — APOYO Y MEJORA CONTINUA ===================== */
-  function m1() {
+  const M1_TABS = [
+    { key: "procesos", label: "Procesos de apoyo" },
+    { key: "docs", label: "Documentos de trabajo" }
+  ];
+  function m1(params) {
+    const tab = (params && params.tab) || "procesos";
     return `<div class="page-head"><h1>Apoyo y Mejora Continua</h1>
       <p>Apoyo técnico, asesorías, intervenciones y procesos de mejora del cuidado.</p></div>
-      <div id="m1-kpi"></div><div id="m1-body"></div>`;
+      ${R().tabsBar("coord", "m1", M1_TABS, tab)}<div id="m1-tab"></div>`;
   }
-  function m1Bind(main) {
+  function m1Bind(main, params) {
+    const tab = (params && params.tab) || "procesos";
+    const box = document.getElementById("m1-tab");
+    if (tab === "docs") { U.docsEditor.mount(box); return; }
+    box.innerHTML = `<div id="m1-kpi"></div><div id="m1-body"></div>`;
+    procesosApoyo();
+  }
+  function procesosApoyo() {
     const list = S().all("apoyoMejora");
     const fin = list.filter(a => /finaliz/i.test(a.estado || "")).length;
     const unidades = new Set(list.map(a => a.unidad).filter(Boolean)).size;
@@ -64,7 +76,7 @@
       ]),
       rowActions: [solicitarAction("Apoyo y Mejora Continua", r => ({
         titulo: "Apoyo en " + (r.unidad || "unidad"), unidad: r.unidad, descripcion: r.problema || "" }))],
-      afterSave: () => m1Bind()
+      afterSave: () => procesosApoyo()
     });
   }
 
