@@ -9,38 +9,66 @@
   const S = () => U.store, ui = () => U.ui, CS = () => U.coordStats;
 
   const ORIENTACIONES = [
-    { ic: "🏛️", t: "Posicionar la UBPC en el hospital público", p: [
+    { ic: "🏛️", c: "#7a5cd0", t: "Posicionar la UBPC en el hospital público", p: [
       "Vincula cada acción de la UBPC con los objetivos de calidad y seguridad del paciente de la dirección.",
       "Haz visible el aporte con datos: usa el Dashboard RNAO, la NT 234 y los Indicadores UBPC en comités.",
-      "Formaliza la unidad con actas, resoluciones y respaldos (Módulo de Gestión y Respaldo)." ] },
-    { ic: "🧭", t: "Fortalecer el liderazgo del coordinador", p: [
+      "Formaliza la unidad con actas, resoluciones y respaldos (Módulo de Gestión y Respaldo)." ],
+      ej: "En el comité de calidad, presenta un panel con el cumplimiento RNAO y NT 234 del trimestre y propón 2 metas priorizadas por brecha.",
+      link: { label: "Ir a Indicadores UBPC", route: "#/coord/indicadores" } },
+    { ic: "🧭", c: "#1e9fe0", t: "Fortalecer el liderazgo del coordinador", p: [
       "Lidera con evidencia y ejemplo: prioriza pocas metas claras y hazles seguimiento visible.",
       "Delega con responsables y fechas (usa el tablero Kanban y las solicitudes técnicas).",
-      "Comunica avances y reconoce logros; cierra los ciclos de mejora que inicias." ] },
-    { ic: "🤝", t: "Trabajar con referentes, líderes de guía y Champions", p: [
+      "Comunica avances y reconoce logros; cierra los ciclos de mejora que inicias." ],
+      ej: "Cada lunes revisa el tablero de seguimiento: mueve 3 tareas y define responsable y fecha para las nuevas prioridades de la semana.",
+      link: { label: "Ir a la Agenda", route: "#/coord/agenda" } },
+    { ic: "🤝", c: "#12b5a5", t: "Trabajar con referentes, líderes de guía y Champions", p: [
       "Define roles: el Referente Técnico ejecuta y responde solicitudes; los Champions dan sostén en cada unidad.",
       "Reúnete periódicamente (Reuniones de seguimiento) y deja acuerdos con plazos.",
-      "Mantén la Red Champion activa por guía y unidad (Módulo RNAO)." ] },
-    { ic: "💪", t: "Motivación, adherencia y participación de los equipos", p: [
+      "Mantén la Red Champion activa por guía y unidad (Módulo RNAO)." ],
+      ej: "Agenda una reunión mensual de 30 min con los Champions de LPP; registra 2 acuerdos con responsable y plazo en Gestión y Respaldo.",
+      link: { label: "Ir a Programa RNAO", route: "#/coord/m3" } },
+    { ic: "💪", c: "#e0526f", t: "Motivación, adherencia y participación de los equipos", p: [
       "Muestra el impacto clínico de las buenas prácticas, no solo el cumplimiento administrativo.",
       "Reduce la carga: integra los registros al flujo de trabajo del turno.",
-      "Retroalimenta con datos por unidad y celebra avances (Reconocimientos)." ] },
-    { ic: "🎓", t: "Aula virtual para refuerzos educativos (no certificados)", p: [
+      "Retroalimenta con datos por unidad y celebra avances (Reconocimientos)." ],
+      ej: "Cuando una unidad mejora su cumplimiento, reconócela como \"Buena práctica del mes\" y comunícalo en el cambio de turno.",
+      link: { label: "Ir a Reconocimientos", route: "#/coord/m4?tab=reconocimientos" } },
+    { ic: "🎓", c: "#37a04a", t: "Aula virtual para refuerzos educativos (no certificados)", p: [
       "Usa cápsulas breves de refuerzo por turno para reforzar escalas, criterios y prácticas.",
       "Vincula cada refuerzo a una brecha detectada; registra la capacitación por turno.",
-      "Estos refuerzos no reemplazan la capacitación certificada: son apoyo continuo." ] },
-    { ic: "🔬", t: "Avanzar desde la evidencia hacia la acción", p: [
+      "Estos refuerzos no reemplazan la capacitación certificada: son apoyo continuo." ],
+      ej: "Ante baja adherencia a la escala de Braden, difunde una cápsula de 5 min por turno y registra la actividad en Fortalecimiento.",
+      link: { label: "Ir a Fortalecimiento", route: "#/coord/m4" } },
+    { ic: "🔬", c: "#0f8f83", t: "Avanzar desde la evidencia hacia la acción", p: [
       "Convierte cada hallazgo de evidencia en una recomendación aplicable y un responsable.",
-      "Usa 'Evidencia para la acción' (abajo) y EVI para traducir evidencia en práctica.",
-      "Cierra el ciclo: evidencia → protocolo/flujo → capacitación → auditoría → mejora." ] },
-    { ic: "♾️", t: "Sostener las buenas prácticas en el tiempo", p: [
+      "Usa 'Evidencia para la acción' (arriba) y EVI para traducir evidencia en práctica.",
+      "Cierra el ciclo: evidencia → protocolo/flujo → capacitación → auditoría → mejora." ],
+      ej: "De una revisión sobre reposicionamiento cada 2 h, genera un flujo, capacita al turno y programa una auditoría a 30 días.",
+      link: { label: "Ir a Gestión Documental", route: "#/coord/m2" } },
+    { ic: "♾️", c: "#1554b8", t: "Sostener las buenas prácticas en el tiempo", p: [
       "Estandariza en protocolos y flujos vigentes (Gestión Documental) y mantenlos actualizados.",
       "Monitorea con indicadores y auditorías periódicas; actúa ante cada semáforo amarillo/rojo.",
-      "Institucionaliza: acuerdos, responsables y periodicidad definida." ] },
-    { ic: "🎯", t: "Priorizar según las brechas del portal", p: [
+      "Institucionaliza: acuerdos, responsables y periodicidad definida." ],
+      ej: "Define una revisión semestral de cada protocolo y una auditoría trimestral; ante un semáforo rojo, abre un plan de mejora.",
+      link: { label: "Ir a Norma Técnica 234", route: "#/coord/m6" } },
+    { ic: "🎯", c: "#e0912f", t: "Priorizar según las brechas del portal", p: [
       "El portal detecta automáticamente indicadores bajo meta, acciones vencidas y planes pendientes.",
-      "Concentra el esfuerzo en la guía y la unidad con mayor brecha (ver panel de prioridades abajo).",
-      "Traduce cada brecha en una acción de mejora con responsable y plazo." ] }
+      "Concentra el esfuerzo en la guía y la unidad con mayor brecha (ver panel de prioridades arriba).",
+      "Traduce cada brecha en una acción de mejora con responsable y plazo." ],
+      ej: "Toma la unidad con menor cumplimiento del mapa de alertas y crea un plan de mejora con 3 acciones y plazo a 45 días.",
+      link: { label: "Ver mapa de alertas", route: "#/coord/m6?tab=alertas" } },
+    { ic: "🌐", c: "#7d4bcf", t: "Trabajar en red con otras unidades e instituciones", p: [
+      "Comparte y recibe buenas prácticas con otras unidades y hospitales de la red.",
+      "Registra asesorías, visitas técnicas y cursos en el Módulo de Red de Colaboración.",
+      "Alinea cada colaboración con un pilar estratégico de la Unidad." ],
+      ej: "Coordina una visita técnica con otra UCI para conocer su bundle de prevención de LPP y registra el aprendizaje.",
+      link: { label: "Ir a Red de Colaboración", route: "#/coord/m7" } },
+    { ic: "🗂️", c: "#5f7d76", t: "Respaldar y dar trazabilidad a todo", p: [
+      "Deja evidencia de cada decisión: actas, acuerdos, respaldos y códigos internos permanentes.",
+      "Usa los códigos automáticos (UBPC-DOC, UBPC-REU, etc.) como referencia oficial.",
+      "Exporta respaldos periódicos de los datos del portal (Configuración)." ],
+      ej: "Antes de un comité, exporta un respaldo del portal y adjunta los códigos de los documentos y reuniones que citarás.",
+      link: { label: "Ir a Gestión y Respaldo", route: "#/coord/m5" } }
   ];
 
   function guia() {
@@ -58,12 +86,75 @@
         <div class="card" id="guia-evi"></div>
       </div>
       <div class="section">
-        <div class="section__head"><h2 class="section__title">Orientaciones prácticas</h2></div>
-        <div class="guia-grid">${ORIENTACIONES.map((o, i) => `<details class="guia-card" ${i === 0 ? "open" : ""}>
-          <summary><span class="guia-ic">${o.ic}</span>${ui().esc(o.t)}</summary>
-          <ul>${o.p.map(x => `<li>${ui().esc(x)}</li>`).join("")}</ul>
-        </details>`).join("")}</div>
+        <div class="section__head"><div><h2 class="section__title">Orientaciones prácticas</h2>
+          <p class="section__hint">Toca cada tarjeta para ver las claves, un ejemplo práctico y el módulo donde aplicarla.</p></div></div>
+        <div class="orient-grid">${ORIENTACIONES.map((o, i) => `<button class="orient-card" data-orient="${i}" style="--tc:${o.c}">
+          <span class="orient-card__ic">${o.ic}</span>
+          <span class="orient-card__body">
+            <span class="orient-card__title">${ui().esc(o.t)}</span>
+            <span class="orient-card__hint">${ui().esc(o.p[0])}</span>
+          </span>
+          <span class="orient-card__go">Ver orientación →</span>
+        </button>`).join("")}</div>
+      </div>
+      <div class="section">
+        <div class="section__head"><div><h2 class="section__title">Recursos y enlaces de la Unidad</h2>
+          <p class="section__hint">Guarda aquí links importantes: guías BPSO, protocolos, formularios, RNAO, MINSAL, etc.</p></div>
+          <button class="btn btn--primary btn--sm" id="guia-addrec">+ Agregar enlace</button></div>
+        <div id="guia-recursos"></div>
       </div>`;
+  }
+
+  /* ---------- Orientación: detalle en modal ---------- */
+  function openOrientacion(o) {
+    const u = ui();
+    u.modal({
+      title: `${o.ic}  ${o.t}`,
+      body: `<div class="orient-detail" style="--tc:${o.c}">
+          <ul class="orient-list">${o.p.map(x => `<li>${u.esc(x)}</li>`).join("")}</ul>
+          <div class="orient-ej"><span class="orient-ej__lbl">💡 Ejemplo práctico</span><p>${u.esc(o.ej)}</p></div>
+        </div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
+               ${o.link ? `<a class="btn btn--primary" href="${o.link.route}" data-close>${u.esc(o.link.label)} →</a>` : ""}`
+    });
+  }
+
+  /* ---------- Recursos y enlaces editables ---------- */
+  function recursosHTML() {
+    const u = ui();
+    const list = S().all("recursosGuia").sort((a, b) => new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0));
+    if (!list.length) return u.empty("Aún no hay enlaces guardados.", "Agrega guías, protocolos o formularios de uso frecuente.", "🔗");
+    return `<div class="rec-grid">${list.map(r => {
+      const url = /^https?:\/\//i.test(r.url || "") ? r.url : "https://" + (r.url || "");
+      let host = ""; try { host = new URL(url).hostname.replace(/^www\./, ""); } catch (e) { host = r.url || ""; }
+      return `<div class="rec-card">
+        <a class="rec-card__main" href="${u.esc(url)}" target="_blank" rel="noopener">
+          <span class="rec-card__ic">${u.esc(r.icono || "🔗")}</span>
+          <span class="rec-card__body"><span class="rec-card__title">${u.esc(r.titulo)}</span>
+            <span class="rec-card__host">${u.esc(host)} ↗</span></span>
+        </a>
+        <span class="rec-card__act">
+          <button class="btn-icon" data-recedit="${r.id}" title="Editar">✏️</button>
+          <button class="btn-icon" data-recdel="${r.id}" title="Eliminar">🗑️</button>
+        </span>
+      </div>`;
+    }).join("")}</div>`;
+  }
+  function recursoForm(rec) {
+    const u = ui();
+    u.modal({ title: rec ? "Editar enlace" : "Nuevo enlace", body: u.formHTML([
+      { name: "titulo", label: "Título del recurso", required: true, full: true, value: rec ? rec.titulo : "" },
+      { name: "url", label: "Enlace (URL)", required: true, full: true, value: rec ? rec.url : "", placeholder: "https://..." },
+      { name: "icono", label: "Ícono (emoji)", value: rec ? rec.icono : "🔗", hint: "Opcional. Ej.: 📘 📄 🔬 🏥" }
+    ], {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
+      onMount(m) { m.querySelector("[data-save]").onclick = () => {
+        const d = u.readForm(m);
+        if (!d.titulo || !d.url) { u.toast("Título y enlace son obligatorios", "danger"); return; }
+        if (!d.icono) d.icono = "🔗";
+        if (rec) S().update("recursosGuia", rec.id, d); else S().insert("recursosGuia", d);
+        u.closeModal(); guiaBind();
+      }; } });
   }
 
   /* ---------- Evidencia para la acción (EVI, movida del Home) ---------- */
@@ -166,6 +257,17 @@
     document.getElementById("guia-evi").innerHTML = eviHTML();
     const add = document.getElementById("guia-addevi");
     if (add) add.onclick = () => eviForm();
+    // Orientaciones -> modal
+    document.querySelectorAll("[data-orient]").forEach(b => b.onclick = () => openOrientacion(ORIENTACIONES[+b.dataset.orient]));
+    // Recursos y enlaces
+    const rec = document.getElementById("guia-recursos");
+    if (rec) rec.innerHTML = recursosHTML();
+    const addRec = document.getElementById("guia-addrec");
+    if (addRec) addRec.onclick = () => recursoForm(null);
+    document.querySelectorAll("[data-recedit]").forEach(b => b.onclick = () => recursoForm(S().get("recursosGuia", b.dataset.recedit)));
+    document.querySelectorAll("[data-recdel]").forEach(b => b.onclick = () => {
+      ui().confirmDelete("¿Eliminar este enlace?", () => { S().remove("recursosGuia", b.dataset.recdel); guiaBind(); });
+    });
   }
 
   U.coord.views.guia = guia;
