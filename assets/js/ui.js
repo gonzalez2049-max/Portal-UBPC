@@ -112,8 +112,12 @@
       </div>`;
     document.body.appendChild(back);
     _modalEl = back;
+    // Solo se cierra con ✕, Cancelar/Cerrar o la tecla Esc.
+    // Hacer clic o soltar el mouse fuera de la ventana NO la cierra, para no
+    // perder lo que se está escribiendo, seleccionando o copiando.
     back.addEventListener("click", e => {
-      if (e.target === back || e.target.hasAttribute("data-close")) closeModal();
+      const btn = e.target.closest && e.target.closest("[data-close]");
+      if (btn && back.contains(btn)) closeModal();
     });
     document.addEventListener("keydown", escClose);
     if (typeof opts.onMount === "function") opts.onMount(back.querySelector(".modal"));
