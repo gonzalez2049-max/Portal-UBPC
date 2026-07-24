@@ -8,20 +8,22 @@
   function profileCard(u) {
     const ui = U.ui;
     const isRef = u.rol === "referente";
+    const chip = isRef ? "Referente Técnico" : (u.rol === "coordinador" ? "Coordinador/a" : (u.rol || ""));
     return `
     <div class="profile-card ${isRef ? "profile-card--ref" : ""}">
       <div class="profile-card__top">
         <div class="avatar avatar--lg" style="${isRef ? "background:var(--c-turquesa)" : ""}">
           ${u.foto ? `<img src="${ui.esc(u.foto)}" alt="">` : ui.initials(u.nombre)}
         </div>
-        <div>
+        <div class="profile-card__id">
+          ${chip ? `<span class="profile-card__chip">${ui.esc(chip)}</span>` : ""}
           <h3 class="profile-card__name">${ui.esc(u.nombre)}</h3>
           <div class="profile-card__role">${ui.esc(u.cargo)}</div>
-          <div class="profile-card__unit">${ui.esc(u.unidad)}</div>
+          <div class="profile-card__unit">🏥 ${ui.esc(u.unidad)}</div>
         </div>
       </div>
       <div class="btn-row" style="margin-top:auto">
-        <button class="btn btn--primary btn--block" data-login="${u.id}">Ingresar</button>
+        <button class="btn btn--primary btn--block" data-login="${u.id}">Ingresar al portal →</button>
         <button class="btn btn--ghost btn--sm" data-edit="${u.id}" title="Editar perfil">✏️ Editar</button>
       </div>
     </div>`;
@@ -53,10 +55,12 @@
               <p class="narrativo">Registra, organiza, monitorea y respalda la gestión de la Unidad de Buenas
               Prácticas Clínicas, manteniendo trazabilidad de responsables, fechas, estados y resultados.</p>
               <div class="access__frase">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
-              <div class="pillars" style="margin:.2rem 0 .4rem">
-                <span class="pillar"><span class="ic">🛡️</span>Seguridad</span>
-                <span class="pillar ev"><span class="ic">🔬</span>Evidencia</span>
-                <span class="pillar cu"><span class="ic">💙</span>Cuidado</span>
+              <div class="access__pillars">
+                <span class="access__pillar"><span class="ic">🛡️</span>Seguridad</span>
+                <span class="access__pillar-sep"></span>
+                <span class="access__pillar ev"><span class="ic">🔬</span>Evidencia</span>
+                <span class="access__pillar-sep"></span>
+                <span class="access__pillar cu"><span class="ic">💙</span>Cuidado</span>
               </div>
               <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
             </div>

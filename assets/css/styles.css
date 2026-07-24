@@ -983,6 +983,42 @@ body.night .access .profile-card__name{ color:#eaf5ef; }
 body.night .access .btn--primary{ background:#12b5a5; color:#04231f; }
 body.night .access .btn--primary:hover{ background:#37c6a0; }
 
+/* --- Ojo de diseñador: pantalla de acceso --- */
+/* Pilares como chips con separadores (antes iban sin estilo) */
+.access__pillars{ display:inline-flex; align-items:center; gap:.35rem; flex-wrap:wrap; margin:.9rem 0 1.1rem;
+  padding:.4rem .55rem; border-radius:14px;
+  background:linear-gradient(100deg, rgba(18,181,165,.12), rgba(122,92,208,.10) 52%, rgba(224,145,47,.13));
+  border:1px solid rgba(18,90,80,.10); }
+.access__pillar{ display:inline-flex; align-items:center; gap:.4rem; font-weight:800; font-size:.86rem;
+  padding:.18rem .55rem; border-radius:10px; color:#0d8175; letter-spacing:-.01em; }
+.access__pillar.ev{ color:#5b34b0; } .access__pillar.cu{ color:#a2670f; }
+.access__pillar .ic{ font-size:1.05em; }
+.access__pillar-sep{ width:1px; height:16px; flex:none;
+  background:linear-gradient(180deg, transparent, rgba(23,48,43,.24), transparent); }
+body.night .access__pillars{ background:linear-gradient(100deg, rgba(18,181,165,.2), rgba(122,92,208,.16) 52%, rgba(224,145,47,.18)); border-color:rgba(255,255,255,.1); }
+body.night .access__pillar{ color:#7fe0d0; } body.night .access__pillar.ev{ color:#c3aef2; } body.night .access__pillar.cu{ color:#e7bf7a; }
+
+/* Tarjetas de perfil más finas: chip de rol, hover con elevación y flecha */
+.access .profile-card{ display:flex; flex-direction:column; gap:1rem; padding:1.15rem 1.2rem;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.access .profile-card:hover{ transform:translateY(-3px);
+  box-shadow:0 22px 44px -22px rgba(15,90,80,.55); border-left-color:#0f9f8f; }
+.access .profile-card--ref{ border-left-color:#7a5cd0; }
+.access .profile-card--ref:hover{ border-left-color:#6a45c9; }
+.access .profile-card--ref .avatar--lg{ background:linear-gradient(140deg,#7a5cd0,#5b34b0)!important; }
+.profile-card__top{ align-items:center; }
+.access .profile-card .avatar--lg{ box-shadow:0 6px 16px -6px rgba(15,90,80,.5);
+  outline:3px solid rgba(255,255,255,.9); outline-offset:0; }
+.profile-card__id{ min-width:0; }
+.profile-card__chip{ display:inline-block; font-size:.68rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:#0d8175; background:rgba(18,181,165,.14); padding:.12rem .5rem; border-radius:999px; margin-bottom:.28rem; }
+.access .profile-card--ref .profile-card__chip{ color:#5b34b0; background:rgba(122,92,208,.15); }
+.access .profile-card .btn--primary{ font-weight:800; letter-spacing:.01em; transition:background .16s ease, transform .16s ease; }
+.access .profile-card:hover .btn--primary{ transform:translateY(-1px); }
+body.night .profile-card__chip{ color:#7fe0d0; background:rgba(18,181,165,.2); }
+body.night .access .profile-card--ref .profile-card__chip{ color:#c3aef2; background:rgba(122,92,208,.22); }
+body.night .access .profile-card .avatar--lg{ outline-color:rgba(20,34,30,.9); }
+
 /* ---- NT 234: lectura automática para decisiones + tendencia por unidad ---- */
 .nt-lectura{ display:flex; gap:.6rem; align-items:flex-start; margin-top:.85rem; padding:.7rem .85rem;
   background:linear-gradient(100deg, rgba(18,181,165,.10), rgba(122,92,208,.08)); border:1px solid var(--border);
