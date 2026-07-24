@@ -11,7 +11,10 @@
   const U = window.UBPC;
   const CFG_KEY = "ubpc:cloud";        // { url, anonKey }
   const SESS_KEY = "ubpc:cloud:sess";  // { access_token, refresh_token, uid, email }
-  const TABLE = "portal_data";
+  // Portal compartido: coordinador/a y referente entran con SUS propias
+  // credenciales pero trabajan sobre un único registro común.
+  const TABLE = "portal_shared";
+  const ROW_ID = "portal";
 
   let cfg = load(CFG_KEY);
   let sess = load(SESS_KEY);
@@ -68,18 +71,19 @@
   }
 
   async function remoteGet() {
-    let res = await api("/rest/v1/" + TABLE + "?select=data,updated_at&limit=1", { method: "GET" }, true);
-    if (res.status === 401 && await refresh()) res = await api("/rest/v1/" + TABLE + "?select=data,updated_at&limit=1", { method: "GET" }, true);
+    const q = "/rest/v1/" + TABLE + "?select=data,updated_at&id=eq." + ROW_ID + "&limit=1";
+    let res = await api(q, { method: "GET" }, true);
+    if (res.status === 401 && await refresh()) res = await api(q, { method: "GET" }, true);
     if (!res.ok) throw new Error("No se pudo leer la nube (" + res.status + ").");
     const arr = await res.json().catch(() => []);
     return arr && arr[0] ? arr[0] : null;
   }
 
   async function remoteUpsert(dbObj) {
-    const body = JSON.stringify({ user_id: sess.uid, data: dbObj, updated_at: new Date().toISOString() });
+    const body = JSON.stringify({ id: ROW_ID, data: dbObj, updated_at: new Date().toISOString() });
     const opts = { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body };
-    let res = await api("/rest/v1/" + TABLE + "?on_conflict=user_id", opts, true);
-    if (res.status === 401 && await refresh()) res = await api("/rest/v1/" + TABLE + "?on_conflict=user_id", opts, true);
+    let res = await api("/rest/v1/" + TABLE + "?on_conflict=id", opts, true);
+    if (res.status === 401 && await refresh()) res = await api("/rest/v1/" + TABLE + "?on_conflict=id", opts, true);
     if (!res.ok) throw new Error("No se pudo guardar en la nube (" + res.status + ").");
     return true;
   }
