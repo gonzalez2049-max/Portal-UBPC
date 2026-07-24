@@ -5,10 +5,11 @@
   "use strict";
   const U = window.UBPC;
   const COLS = [
-    { key: "Pendiente", label: "Pendiente" },
+    { key: "Pendiente", label: "Pendientes" },
     { key: "En curso", label: "En curso" },
     { key: "Completado", label: "Completado" }
   ];
+  const PRIO = { alta: "Alta", media: "Media", baja: "Baja" };
 
   function cards(owner) {
     return U.store.all("kanban").filter(c => (c.owner || "coordinador") === owner)
@@ -39,12 +40,13 @@
     const ui = U.ui;
     const dias = ui.diasHasta(c.fechaLimite);
     const venc = dias != null && dias < 0 && c.columna !== "Completado";
-    return `<div class="kcard kcard--${c.prioridad || "media"}" draggable="true" data-kid="${c.id}">
+    const prio = c.prioridad || "media";
+    return `<div class="kcard kcard--${prio}" draggable="true" data-kid="${c.id}">
+      <span class="kprio kprio--${prio}">${PRIO[prio] || prio}</span>
       <div class="kcard__title">${ui.esc(c.titulo)}</div>
       <div class="kcard__meta">
         ${c.responsable ? `<span>👤 ${ui.esc(c.responsable)}</span>` : ""}
         ${c.fechaLimite ? `<span style="${venc ? "color:var(--danger);font-weight:700" : ""}">📅 ${ui.fechaCL(c.fechaLimite)}${venc ? " · vencida" : ""}</span>` : ""}
-        <span class="tag" style="text-transform:capitalize">${ui.esc(c.prioridad || "media")}</span>
         <span style="margin-left:auto" class="btn-row">
           <button class="btn-icon" data-kedit="${c.id}" title="Editar">✏️</button>
           <button class="btn-icon" data-kdel="${c.id}" title="Eliminar">🗑️</button>

@@ -1278,3 +1278,33 @@ body.night .nt-alert--verde{ background:rgba(55,160,74,.16); } body.night .nt-al
 .nt-chip{ background:rgba(18,181,165,.12); color:#0d8175; font-size:11.5px; margin:.1rem; display:inline-block; }
 .nt-obs{ font-size:12px; color:var(--text-2); max-width:340px; }
 body.night .nt-chip{ background:rgba(18,181,165,.2); color:#7fe0d0; }
+
+/* ============================================================
+   TABLERO — tarjetas tipo post-it por prioridad
+   Alta → rojo · Media → amarillo · Baja → negro
+   ============================================================ */
+.kcard{ position:relative; border:none !important; border-radius:11px; padding:.75rem .85rem;
+  box-shadow:0 7px 18px -10px rgba(20,40,35,.45), 0 1px 2px rgba(20,40,35,.1);
+  transition: transform .18s cubic-bezier(.22,.7,.3,1), box-shadow .18s; }
+.kcard:hover{ transform: translateY(-3px) rotate(-.7deg); box-shadow:0 16px 30px -12px rgba(20,40,35,.5); }
+.kcard::after{ content:""; position:absolute; right:0; bottom:0; width:0; height:0;
+  border-style:solid; border-width:0 0 16px 16px; border-color:transparent transparent rgba(0,0,0,.10) rgba(0,0,0,.10);
+  border-bottom-right-radius:11px; }
+/* Colores de post-it */
+.kcard--alta{ background:linear-gradient(180deg,#ffe2e6,#ffd0d6); }
+.kcard--media{ background:linear-gradient(180deg,#fff4d1,#ffe9a6); }
+.kcard--baja{ background:linear-gradient(180deg,#3a434f,#252c35); color:#eaf0f6; }
+.kcard--baja .kcard__title{ color:#fff; }
+.kcard--baja .kcard__meta{ color:#b8c4d0; }
+.kcard--baja .btn-icon{ color:#dbe6f0; }
+/* Etiqueta de prioridad */
+.kprio{ display:inline-block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.6px;
+  padding:.12rem .55rem; border-radius:999px; color:#fff; margin-bottom:.35rem; }
+.kprio--alta{ background:#e0526f; }
+.kprio--media{ background:#e8b21f; color:#3a2c00; }
+.kprio--baja{ background:#1c232d; color:#fff; box-shadow:0 0 0 1px rgba(255,255,255,.15) inset; }
+/* En modo oscuro, los post-it claros conservan su color (son notas) */
+body.night .kcard--alta{ background:linear-gradient(180deg,#f7c9ce,#eeb2b9); color:#2a1418; }
+body.night .kcard--media{ background:linear-gradient(180deg,#f3e2ac,#e9d488); color:#33280a; }
+body.night .kcard--alta .kcard__meta,body.night .kcard--media .kcard__meta{ color:#5a5040; }
+body.night .kcard--baja{ background:linear-gradient(180deg,#3a434f,#252c35); }
