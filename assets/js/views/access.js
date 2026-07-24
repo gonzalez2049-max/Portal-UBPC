@@ -143,28 +143,34 @@
         try {
           await U.cloud.signIn(email, pass);
           setPortalAuthed(true);
-          U.cloud.initialSync();
-          U.router.render();
+          try { await U.cloud.initialSync(); } catch (e) {}
+          // Entrar directo con el perfil coordinador (sin paso extra).
+          const perfiles = U.auth.perfiles();
+          const target = perfiles.find(p => p.rol === "coordinador") || perfiles[0];
+          if (target) { U.auth.login(target.id); U.router.go(target.rol === "referente" ? "#/ref/inicio" : "#/coord/home"); }
+          else U.router.render();
         } catch (err) {
           btn.disabled = false; btn.textContent = "Entrar al portal →";
-          const network = /fetch|network|failed|load|tunnel/i.test(err.message || "");
-          if (network) {
-            if (U.cloud.signedIn()) {
-              // Sin internet, pero este equipo ya inició sesión antes: permitir entrar con los datos locales.
-              msg.className = "access-login__msg is-warn";
-              msg.innerHTML = `Sin conexión a internet. <button type="button" class="linklike" id="accOffline">Entrar sin conexión</button> (con los datos de este equipo).`;
-              const off = root.querySelector("#accOffline");
-              if (off) off.onclick = () => { setPortalAuthed(true); U.router.render(); };
-            } else {
-              msg.className = "access-login__msg is-err";
-              msg.textContent = "Sin conexión a internet. Revisa tu conexión e intenta de nuevo.";
-            }
-          } else {
-            msg.className = "access-login__msg is-err";
-            msg.textContent = /invalid|credenciales|grant|password/i.test(err.message || "") ? "Correo o contraseña incorrectos." : (err.message || "No se pudo iniciar sesión.");
-          }
+          const m = err.message || "";
+          const network = /fetch|network|failed|load|tunnel/i.test(m);
+          const wrong = /invalid|credenciales|grant|password|400|email/i.test(m);
+          const texto = wrong ? "Correo o contraseña incorrectos. Revísalos e intenta de nuevo."
+            : network ? "No se pudo conectar a la nube (revisa tu internet)."
+            : (m || "No se pudo iniciar sesión.");
+          msg.className = "access-login__msg is-err";
+          // Rescate: nunca dejar a la usuaria fuera de su portal.
+          msg.innerHTML = `${U.ui.esc(texto)}<br><button type="button" class="linklike" id="accBypass" style="margin-top:.4rem">Entrar de todos modos →</button>`;
+          const by = root.querySelector("#accBypass");
+          if (by) by.onclick = () => enterPortal();
         }
       };
+    }
+    function enterPortal() {
+      setPortalAuthed(true);
+      const perfiles = U.auth.perfiles();
+      const target = perfiles.find(p => p.rol === "coordinador") || perfiles[0];
+      if (target) { U.auth.login(target.id); U.router.go(target.rol === "referente" ? "#/ref/inicio" : "#/coord/home"); }
+      else U.router.render();
     }
     root.querySelectorAll("[data-login]").forEach(btn => {
       btn.onclick = () => {
