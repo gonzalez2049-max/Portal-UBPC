@@ -408,6 +408,8 @@
   function config() {
     const u = ui(); const me = U.auth.current();
     const rolLabel = { coordinador: "Coordinador/a", referente: "Referente Técnico", colaborador: "Colaborador/a" }[me.rol] || me.rol || "";
+    const lb = S().getConfig("__lastBackup", null);
+    const lastBackup = lb ? u.fechaHoraCL(lb) : null;
     return `<div class="page-head"><h1>Configuración</h1><p>Tu perfil, respaldo, trazabilidad y mantenimiento de datos.</p></div>
       <div class="prof-hero prof-hero--solo" style="margin-bottom:1.1rem">
         <div class="prof-hero__banner"><span class="prof-hero__glow"></span></div>
@@ -426,14 +428,20 @@
         <p class="card__hint">Elige la paleta de color y el modo claro u oscuro. Se aplica en todo el portal y se recuerda en este dispositivo.</p>
         ${U.theme ? U.theme.pickerHTML() : ""}
       </div>
+      <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--ok)">
+        <h3 class="card__title">Guardado en este equipo</h3>
+        <p class="card__hint">Todo lo que ingresas (tu nombre, foto, registros y configuración) se guarda automáticamente en este dispositivo. Para que el navegador <strong>no borre</strong> tus datos con el tiempo, mantén activada la protección.</p>
+        <div id="cfg-storage" class="storage-row"><span class="muted">Comprobando estado del almacenamiento…</span></div>
+        <p class="card__hint" style="margin-top:.6rem">💡 Consejo: exporta un respaldo cada cierto tiempo (abajo). Es tu copia de seguridad si cambias de navegador o equipo, o si limpias el historial.</p>
+      </div>
       <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--c-turquesa)">
         <h3 class="card__title">Datos de demostración</h3>
-        <p class="card__hint">Carga un conjunto de datos de ejemplo (evaluaciones RNAO, documentos, reuniones, colaboraciones, capacitaciones, solicitudes, tablero, hitos y más) para ver el portal con contenido. Reemplaza los datos actuales.</p>
+        <p class="card__hint">Carga un conjunto de datos de ejemplo (evaluaciones RNAO, documentos, reuniones, colaboraciones, capacitaciones, solicitudes, tablero, hitos y más) para ver el portal con contenido. <strong>Tu nombre y foto de perfil se conservan.</strong></p>
         <button class="btn btn--primary" id="loadDemo">✨ Cargar datos de ejemplo</button>
       </div>
       <div class="grid grid--2">
         <div class="card"><h3 class="card__title">Respaldo de datos</h3>
-          <p class="card__hint">Exporta o restaura todos los registros del portal (formato JSON).</p>
+          <p class="card__hint">Exporta o restaura todos los registros del portal (formato JSON). ${lastBackup ? `<br><span class="muted">Último respaldo exportado: <strong>${lastBackup}</strong>.</span>` : `<br><span class="muted">Aún no has exportado un respaldo.</span>`}</p>
           <div class="btn-row">
             <button class="btn btn--primary" id="expJson">⬇️ Exportar respaldo</button>
             <button class="btn btn--ghost" id="impJson">⬆️ Importar respaldo</button>
@@ -446,12 +454,39 @@
         </div>
       </div>`;
   }
+  async function renderStorage() {
+    const box = document.getElementById("cfg-storage");
+    if (!box || !U.storage) return;
+    const supported = await U.storage.supported();
+    if (!supported) {
+      box.innerHTML = `<span class="storage-badge storage-badge--warn">ⓘ Este navegador guarda los datos localmente, pero no permite marcarlos como protegidos. Exporta un respaldo con frecuencia.</span>`;
+      return;
+    }
+    const persisted = await U.storage.isPersisted();
+    if (persisted) {
+      box.innerHTML = `<span class="storage-badge storage-badge--ok">✅ Protegido · el navegador no borrará automáticamente tus datos en este equipo.</span>`;
+    } else {
+      box.innerHTML = `<span class="storage-badge storage-badge--warn">⚠️ Sin protección · el navegador podría borrar los datos tras un tiempo sin usar el portal.</span>
+        <button class="btn btn--primary btn--sm" id="protectBtn">🔒 Proteger mis datos</button>`;
+      const b = document.getElementById("protectBtn");
+      if (b) b.onclick = async () => {
+        const ok = await U.storage.ensurePersist();
+        ui().toast(ok ? "Datos protegidos en este equipo" : "El navegador no concedió la protección. Exporta un respaldo por seguridad.", ok ? "ok" : "warn");
+        renderStorage();
+      };
+    }
+  }
+
   function configBind() {
     const u = ui(); const me = U.auth.current();
     if (U.theme) U.theme.bindPicker(document);
+    renderStorage();
     document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
-    document.getElementById("expJson").onclick = () =>
+    document.getElementById("expJson").onclick = () => {
       u.download("respaldo-ubpc-" + u.hoyISO() + ".json", S().exportJSON(), "application/json");
+      S().setConfig("__lastBackup", new Date().toISOString());
+      u.toast("Respaldo descargado. Guárdalo en un lugar seguro.", "ok");
+    };
     document.getElementById("impJson").onclick = () => document.getElementById("impFile").click();
     document.getElementById("impFile").onchange = e => {
       const f = e.target.files[0]; if (!f) return;

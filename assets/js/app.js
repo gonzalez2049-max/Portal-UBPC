@@ -57,8 +57,32 @@
   };
   U.theme = Theme;
 
+  /* ---------- Durabilidad del almacenamiento local ----------
+     Pide al navegador marcar los datos como "persistentes" para que
+     NO los borre automáticamente (evita perder nombre, foto, registros). */
+  const Storage = {
+    async supported() { return !!(navigator.storage && navigator.storage.persist); },
+    async isPersisted() {
+      try { return navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false; }
+      catch (e) { return false; }
+    },
+    async ensurePersist() {
+      try {
+        if (!(navigator.storage && navigator.storage.persist)) return false;
+        if (await navigator.storage.persisted()) return true;
+        return await navigator.storage.persist();
+      } catch (e) { return false; }
+    },
+    async estimate() {
+      try { return navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null; }
+      catch (e) { return null; }
+    }
+  };
+  U.storage = Storage;
+
   function boot() {
     Theme.apply();
+    Storage.ensurePersist();
     U.data.seedIfEmpty();
     window.addEventListener("hashchange", U.router.render);
     U.router.render();
