@@ -224,14 +224,20 @@
     const tools = [
       { c: "bold", ic: "𝗕", t: "Negrita" }, { c: "italic", ic: "𝘐", t: "Cursiva" }, { c: "underline", ic: "U̲", t: "Subrayado" },
       { sep: 1 },
-      { c: "formatBlock", v: "H2", ic: "T", t: "Título" }, { c: "formatBlock", v: "H3", ic: "t", t: "Subtítulo" }, { c: "formatBlock", v: "P", ic: "¶", t: "Texto" },
+      { c: "formatBlock", v: "H2", ic: "T", t: "Título" }, { c: "formatBlock", v: "H3", ic: "t", t: "Subtítulo" }, { c: "formatBlock", v: "P", ic: "¶", t: "Texto normal" },
       { sep: 1 },
-      { c: "insertUnorderedList", ic: "•—", t: "Lista con viñetas" }, { c: "insertOrderedList", ic: "1.", t: "Lista numerada" },
+      { c: "insertUnorderedList", ic: "•", t: "Lista con viñetas" }, { c: "insertOrderedList", ic: "1.", t: "Lista numerada" },
       { sep: 1 },
       { c: "undo", ic: "↶", t: "Deshacer" }, { c: "redo", ic: "↷", t: "Rehacer" }
     ];
-    const toolbar = tools.map(x => x.sep ? `<span class="doc-tb__sep"></span>`
+    const FONTS = [["", "Fuente…"], ["'Nunito Sans',sans-serif", "Nunito Sans"], ["Arial,Helvetica,sans-serif", "Arial"], ["Georgia,serif", "Georgia"], ["'Times New Roman',serif", "Times"], ["'Courier New',monospace", "Courier"]];
+    const SIZES = [["", "Tamaño…"], ["2", "Pequeña"], ["3", "Normal"], ["4", "Media"], ["5", "Grande"], ["6", "Muy grande"], ["7", "Enorme"]];
+    const btns = tools.map(x => x.sep ? `<span class="doc-tb__sep"></span>`
       : `<button class="doc-tb__btn" data-cmd="${x.c}" ${x.v ? `data-val="${x.v}"` : ""} title="${x.t}" type="button">${x.ic}</button>`).join("");
+    const selFont = `<select class="doc-tb__sel" id="doc-font" title="Tipo de letra">${FONTS.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
+    const selSize = `<select class="doc-tb__sel" id="doc-size" title="Tamaño de letra">${SIZES.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
+    const toolbar = btns + `<span class="doc-tb__sep"></span>` + selFont + selSize
+      + `<span class="doc-tb__sep"></span><button class="doc-tb__btn doc-tb__wide" id="doc-pagebreak" title="Insertar salto de página" type="button">⤓ Salto de hoja</button>`;
 
     container.innerHTML = `
       <div class="doc-editor">
@@ -262,13 +268,38 @@
     const bodyEl = document.getElementById("doc-body");
     const titleEl = document.getElementById("doc-title");
 
-    // Toolbar (execCommand sobre la selección; mousedown para no perder foco)
-    container.querySelectorAll(".doc-tb__btn").forEach(b => b.addEventListener("mousedown", e => {
-      e.preventDefault();
-      bodyEl.focus();
-      const cmd = b.dataset.cmd, val = b.dataset.val || null;
-      try { document.execCommand(cmd, false, val); } catch (err) {}
+    // El formato se aplica como CSS (para que negrita/fuente/tamaño se impriman igual)
+    try { document.execCommand("styleWithCSS", false, true); } catch (e) {}
+
+    // Preservar la selección del editor aunque el foco pase a un menú de la barra
+    let savedRange = null;
+    const saveSel = () => { const s = window.getSelection(); if (s && s.rangeCount && bodyEl.contains(s.anchorNode)) savedRange = s.getRangeAt(0).cloneRange(); };
+    const restoreSel = () => { bodyEl.focus(); if (savedRange) { const s = window.getSelection(); s.removeAllRanges(); s.addRange(savedRange); } };
+    bodyEl.addEventListener("keyup", saveSel);
+    bodyEl.addEventListener("mouseup", saveSel);
+    bodyEl.addEventListener("focus", saveSel);
+
+    // Botones (mousedown + preventDefault conserva la selección)
+    container.querySelectorAll(".doc-tb__btn[data-cmd]").forEach(b => b.addEventListener("mousedown", e => {
+      e.preventDefault(); bodyEl.focus();
+      try { document.execCommand(b.dataset.cmd, false, b.dataset.val || null); } catch (err) {}
+      saveSel();
     }));
+
+    // Tipo y tamaño de letra
+    const applySel = (cmd, val) => { restoreSel(); try { document.execCommand(cmd, false, val); } catch (e) {} saveSel(); };
+    const fontSel = document.getElementById("doc-font"), sizeSel = document.getElementById("doc-size");
+    fontSel.addEventListener("mousedown", saveSel);
+    sizeSel.addEventListener("mousedown", saveSel);
+    fontSel.addEventListener("change", () => { if (fontSel.value) applySel("fontName", fontSel.value); fontSel.selectedIndex = 0; });
+    sizeSel.addEventListener("change", () => { if (sizeSel.value) applySel("fontSize", sizeSel.value); sizeSel.selectedIndex = 0; });
+
+    // Salto de hoja (nueva página)
+    document.getElementById("doc-pagebreak").addEventListener("mousedown", e => {
+      e.preventDefault(); restoreSel();
+      try { document.execCommand("insertHTML", false, '<div class="doc-pagebreak" contenteditable="false">Salto de hoja</div><p><br></p>'); } catch (err) {}
+      saveSel();
+    });
 
     let current = rec;
     document.getElementById("doc-back").onclick = () => renderList(container);
@@ -279,35 +310,62 @@
       u.toast("Documento guardado", "ok");
     };
     document.getElementById("doc-print").onclick = () => printDoc(titleEl.value, bodyEl.innerHTML, me);
-    document.getElementById("doc-word").onclick = () =>
-      u.exportWord("documento-ubpc-" + u.hoyISO(), titleEl.value || p.titulo,
-        `<h1 style="color:#0d5044">${u.esc(titleEl.value || p.titulo)}</h1>` + bodyEl.innerHTML);
+    document.getElementById("doc-word").onclick = () => {
+      const title = titleEl.value || p.titulo;
+      const franja = `<div style="border-top:6px solid #12b5a5;height:0;margin:0 0 10px"></div>`;
+      const header = `<table style="width:100%;border:none;margin-bottom:12px"><tr>
+        <td style="border:none;padding:0;font-size:11pt"><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong><br><span style="color:#5a6b84;font-size:9pt">Hospital de Urgencia Asistencia Pública</span></td>
+        <td style="border:none;padding:0;text-align:right;color:#5a6b84;font-size:9pt">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}</td></tr></table>`;
+      const h1 = `<h1 style="font-family:Georgia,serif;color:#0d5044">${u.esc(title)}</h1>`;
+      const body = bodyEl.innerHTML
+        .replace(/<h2>/g, '<h2 style="font-family:Georgia,serif;color:#0f8f83;border-bottom:1px solid #dbe6f2;padding-bottom:3px">')
+        .replace(/<h3>/g, '<h3 style="font-family:Georgia,serif;color:#5b34b0">')
+        .replace(/<div class="doc-pagebreak"[^>]*>.*?<\/div>/g, '<br clear="all" style="page-break-before:always">');
+      u.exportWord("documento-ubpc-" + u.hoyISO(), title, franja + header + h1 + body);
+    };
   }
 
   function printDoc(titulo, html, me) {
     const u = ui();
     const w = window.open("", "_blank");
     if (!w) { u.toast("Permite las ventanas emergentes para imprimir", "danger"); return; }
+    const fr = new URL("assets/fonts/fraunces.woff2", document.baseURI).href;
+    const ns = new URL("assets/fonts/nunitosans.woff2", document.baseURI).href;
     w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${u.esc(titulo || "Documento")}</title>
       <style>
-        @page{size:A4;margin:16mm} *{box-sizing:border-box}
-        body{font-family:'Segoe UI',Arial,sans-serif;color:#17263d;margin:0;padding:4mm;line-height:1.5}
-        h1{font-family:Georgia,serif;color:#0d5044;font-size:22px;margin:.2em 0 .5em}
-        h2{font-family:Georgia,serif;color:#0f8f83;font-size:15px;margin:1em 0 .3em;border-bottom:1px solid #dbe6f2;padding-bottom:3px}
-        h3{font-family:Georgia,serif;color:#5b34b0;font-size:13px;margin:.8em 0 .2em}
-        p,li{font-size:12.5px} table{border-collapse:collapse;width:100%;font-size:11.5px;margin:6px 0}
-        th{background:#0f8f83;color:#fff;text-align:left;padding:6px;border:1px solid #bbb} td{padding:5px;border:1px solid #ddd}
-        .franja{height:6px;border-radius:3px;margin-bottom:12px;background:linear-gradient(90deg,#1554b8,#1e9fe0,#0fb5ad,#37a04a,#f2c53d,#f07f2e,#7d4bcf,#e0538a)}
-        .hd{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #dbe6f2;padding-bottom:8px;margin-bottom:14px}
-        .hd img{width:48px;height:48px} .hd .b{display:flex;gap:10px;align-items:center} .muted{color:#5a6b84;font-size:11px}
-        .meta{text-align:right;font-size:11px;color:#5a6b84}
+        @font-face{font-family:'Fraunces';src:url('${fr}') format('woff2');font-weight:100 900;font-display:swap}
+        @font-face{font-family:'Nunito Sans';src:url('${ns}') format('woff2');font-weight:200 900;font-display:swap}
+        @page{size:A4;margin:0}
+        *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        html,body{margin:0}
+        body{font-family:'Nunito Sans',system-ui,Arial,sans-serif;color:#22303a;line-height:1.6;font-size:14.5px}
+        .franja{height:7px;background:linear-gradient(90deg,#1554b8,#1e9fe0,#0fb5ad,#37a04a,#f2c53d,#f07f2e,#7d4bcf,#e0538a)}
+        .sheet{padding:15mm 16mm 18mm}
+        .hd{display:flex;justify-content:space-between;align-items:center;gap:1rem;border-bottom:2px solid #eef2f8;padding-bottom:9px;margin-bottom:16px}
+        .hd .b{display:flex;gap:10px;align-items:center} .hd img{width:46px;height:46px;object-fit:contain}
+        .hd strong{font-size:14px;color:#17263d} .muted{color:#5a6b84;font-size:11.5px}
+        .meta{text-align:right;font-size:11.5px;color:#5a6b84}
+        h1{font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0d5044;font-size:1.7rem;margin:0 0 .25em}
+        h2{font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0f8f83;font-size:1.15rem;margin:1.1em 0 .3em;border-bottom:1px solid #eef2f8;padding-bottom:.2em}
+        h3{font-family:'Fraunces',Georgia,serif;font-weight:700;color:#5b34b0;font-size:1rem;margin:.9em 0 .2em}
+        p{margin:.4em 0} ul,ol{margin:.4em 0 .4em 1.3em} li{margin:.2em 0}
+        hr{border:none;border-top:1px solid #dbe6f2;margin:.9em 0}
+        em{color:#6f8880}
+        table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:13px}
+        th{background:#0f8f83;color:#fff;text-align:left;padding:6px 8px;border:1px solid #cdd8e2}
+        td{padding:6px 8px;border:1px solid #e2e9f0}
+        .doc-pagebreak{break-before:page;page-break-before:always;height:0;color:transparent;font-size:0}
       </style></head><body>
       <div class="franja"></div>
-      <div class="hd"><div class="b"><img src="${logoData()}" alt="HUAP"><div><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong><div class="muted">Hospital de Urgencia Asistencia Pública</div></div></div>
-        <div class="meta">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}</div></div>
-      <h1>${u.esc(titulo || "Documento")}</h1>${html}</body></html>`);
+      <div class="sheet">
+        <div class="hd"><div class="b"><img src="${logoData()}" alt="HUAP"><div><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong><div class="muted">Hospital de Urgencia Asistencia Pública</div></div></div>
+          <div class="meta">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}</div></div>
+        <h1>${u.esc(titulo || "Documento")}</h1>${html}
+      </div></body></html>`);
     w.document.close();
-    setTimeout(() => { w.focus(); w.print(); }, 350);
+    const go = () => { try { w.focus(); w.print(); } catch (e) {} };
+    if (w.document.fonts && w.document.fonts.ready) { w.document.fonts.ready.then(() => setTimeout(go, 150)); setTimeout(go, 1400); }
+    else setTimeout(go, 500);
   }
 
   // Logo embebido para la ventana de impresión (ruta relativa no resuelve en la ventana nueva)
