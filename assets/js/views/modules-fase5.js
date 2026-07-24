@@ -8,151 +8,251 @@
 
   /* ===================== MÓDULO 6 — NORMA TÉCNICA 234 ===================== */
   const M6_TABS = [
-    { key: "panel", label: "Panel y semáforo" },
-    { key: "unidades", label: "Cumplimiento por unidad" },
-    { key: "planes", label: "Planes de mejora" },
+    { key: "seguimiento", label: "Seguimiento NT 234" },
+    { key: "alertas", label: "Mapa de Alertas NT 234" },
+    { key: "planes", label: "Plan de Mejora" },
     { key: "informe", label: "Informe A4" }
   ];
+  const NT_IND = [
+    { k: "riesgo", l: "Riesgo" }, { k: "piel", l: "Piel" },
+    { k: "cambiosPosicion", l: "Cambios de posición" }, { k: "prominenciasOseas", l: "Prominencias óseas" },
+    { k: "humedadHigiene", l: "Humedad / higiene" }, { k: "superficiesApoyo", l: "Superficies de apoyo" },
+    { k: "nutricion", l: "Nutrición" }, { k: "registroResponsable", l: "Registro responsable" }
+  ];
+  const MESES6 = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   function meta234() { return Number(S().getConfig("nt234.meta", 90)); }
-  function categoria(pct) {
-    const m = meta234();
-    if (pct >= m) return "Verde";
-    if (pct >= m - 15) return "Amarillo";
-    return "Rojo";
-  }
-  const SEM = { Verde: { badge: "ok", label: "Dentro de meta", color: "var(--verde)" },
-    Amarillo: { badge: "warn", label: "Seguimiento", color: "var(--naranjo)" },
-    Rojo: { badge: "danger", label: "Intervención", color: "var(--danger)" } };
 
-  function m6(params) {
-    const tab = (params && params.tab) || "panel";
-    return `<div class="page-head"><h1>Norma Técnica 234</h1>
-      <p>Cumplimiento institucional por unidad, semáforo, planes de mejora e informe imprimible.</p></div>
-      ${R().tabsBar("coord", "m6", M6_TABS, tab)}<div id="m6-body"></div>`;
+  function promInd(r) {
+    const vals = NT_IND.map(i => Number(r[i.k])).filter((v, idx) => r[NT_IND[idx].k] !== "" && r[NT_IND[idx].k] != null && !isNaN(v));
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
   }
-  function m6Bind(main, params) {
-    const tab = (params && params.tab) || "panel";
-    const box = document.getElementById("m6-body");
-    ({ panel: panel234, unidades: unidades234, planes: planes234, informe: informe234 }[tab] || panel234)(box);
+  function globalNT(r) {
+    if (r.porcentaje !== "" && r.porcentaje != null && !isNaN(r.porcentaje)) return Math.round(Number(r.porcentaje));
+    return promInd(r);
   }
-
-  function ultimoPeriodo(meds) {
-    const periodos = [...new Set(meds.map(m => m.periodo).filter(Boolean))].sort();
-    return periodos[periodos.length - 1];
+  function estadoNT(pct) {
+    if (pct == null) return { k: "sd", label: "Sin datos", inter: "Sin datos", color: "var(--neutral)", badge: "neutral" };
+    if (pct >= 80) return { k: "verde", label: "En cumplimiento", inter: "Sin intervención", color: "var(--verde)", badge: "ok" };
+    if (pct >= 70) return { k: "amarillo", label: "En seguimiento", inter: "Seguimiento", color: "var(--naranjo)", badge: "warn" };
+    return { k: "rojo", label: "Intervención", inter: "Prioridad alta", color: "var(--danger)", badge: "danger" };
   }
+  function periodoNT(p) {
+    const m = String(p || "").match(/^(\d{4})-(\d{2})/);
+    return m ? MESES6[Number(m[2]) - 1] + " de " + m[1] : (p || "—");
+  }
+  function periodoNTshort(p) {
+    const m = String(p || "").match(/^(\d{4})-(\d{2})/);
+    return m ? m[2] + "/" + m[1].slice(2) : (p || "—");
+  }
+  function periodosNT(meds) { return [...new Set(meds.map(m => m.periodo).filter(Boolean))].sort(); }
   function medsUltimoPeriodo() {
-    const meds = S().all("nt234");
-    const per = ultimoPeriodo(meds);
+    const meds = S().all("nt234"); const p = periodosNT(meds);
+    const per = p[p.length - 1];
     return { per, list: meds.filter(m => m.periodo === per) };
   }
 
-  function panel234(box) {
+  function m6(params) {
+    const tab = (params && params.tab) || "seguimiento";
+    return `<div class="page-head"><h1>Norma Técnica 234</h1>
+      <p>Seguimiento mensual del cumplimiento por unidad, mapa de alertas, planes de mejora e informe.</p></div>
+      ${R().tabsBar("coord", "m6", M6_TABS, tab)}<div id="m6-body"></div>`;
+  }
+  function m6Bind(main, params) {
+    const tab = (params && params.tab) || "seguimiento";
+    const box = document.getElementById("m6-body");
+    ({ seguimiento: seguimiento234, alertas: alertas234, planes: planes234, informe: informe234 }[tab] || seguimiento234)(box);
+  }
+
+  /* ---------- Tab 1: Seguimiento (tendencia + historial editable) ---------- */
+  function seguimiento234(box) {
+    const u = ui();
+    let filtro = "Todas";
+    const render = () => {
+      const meds = S().all("nt234");
+      const periodos = periodosNT(meds);
+      const unidades = [...new Set(meds.map(m => m.unidad).filter(Boolean))];
+      const serie = periodos.map(pr => {
+        let l = meds.filter(m => m.periodo === pr);
+        if (filtro !== "Todas") l = l.filter(m => m.unidad === filtro);
+        const vals = l.map(globalNT).filter(v => v != null);
+        return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+      });
+      const labels = periodos.map(periodoNTshort);
+      const trend = periodos.length
+        ? U.charts.lineChart({ labels, series: [{ name: filtro === "Todas" ? "Cumplimiento institucional" : filtro, color: "var(--danger)", values: serie }], meta: meta234() })
+        : `<p class="muted">Registra mediciones para ver la tendencia.</p>`;
+
+      let rows = "";
+      periodos.slice().reverse().forEach(pr => {
+        rows += `<tr class="nt-h-group"><td colspan="${NT_IND.length + 4}"><span class="nt-h-plabel">Periodo evaluado</span> ${u.esc(periodoNT(pr))}</td></tr>`;
+        meds.filter(m => m.periodo === pr).forEach(m => {
+          const g = globalNT(m), e = estadoNT(g);
+          rows += `<tr>
+            <td><strong>${u.esc(m.unidad || "—")}</strong>${m.jefatura ? `<div class="kpi__sub">${u.esc(m.jefatura)}</div>` : ""}</td>
+            ${NT_IND.map(i => `<td class="num">${m[i.k] !== "" && m[i.k] != null ? Number(m[i.k]) + "%" : "—"}</td>`).join("")}
+            <td class="num"><span class="badge badge--${e.badge}">${g != null ? g + "%" : "—"}</span></td>
+            <td>${m.enviadoUnidad === "Sí" ? `<span class="badge badge--ok">Sí</span>` : "—"}</td>
+            <td class="nowrap">${m.fechaEnvio ? u.fechaCL(m.fechaEnvio) : "—"}</td>
+            <td class="nowrap"><button class="btn btn--ghost btn--sm" data-edit="${m.id}">Editar</button> <button class="btn btn--ghost btn--sm" data-del="${m.id}">Eliminar</button></td></tr>`;
+        });
+      });
+      const hist = meds.length
+        ? `<div style="overflow-x:auto"><table class="tbl nt-hist"><thead><tr><th>Unidad</th>${NT_IND.map(i => `<th class="num">${u.esc(i.l)}</th>`).join("")}<th class="num">Cumpl. global</th><th>Enviado</th><th>Fecha envío</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : u.empty("Sin mediciones registradas.", "Agrega la primera evaluación de la unidad.", "📊");
+
+      box.innerHTML = `
+        <div class="card">
+          <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Tendencia de cumplimiento global</h3>
+            <p class="card__hint" style="margin:0">Evolución mensual por unidad</p></div>
+            <select class="select" id="nt-filtro" style="max-width:230px"><option>Todas</option>${unidades.map(x => `<option ${x === filtro ? "selected" : ""}>${u.esc(x)}</option>`).join("")}</select></div>
+          ${trend}
+        </div>
+        <div class="section__head" style="margin-top:1.1rem"><div><h3 class="section__title" style="margin:0">${meds.length} registro(s)</h3><p class="section__hint">Historial editable del módulo</p></div>
+          <button class="btn btn--primary btn--sm" id="nt-new">+ Agregar registro</button></div>
+        ${hist}`;
+
+      document.getElementById("nt-filtro").onchange = e => { filtro = e.target.value; render(); };
+      document.getElementById("nt-new").onclick = () => formNT(null, render);
+      box.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => formNT(S().get("nt234", b.dataset.edit), render));
+      box.querySelectorAll("[data-del]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar esta medición?", () => { S().remove("nt234", b.dataset.del); render(); }));
+    };
+    render();
+  }
+
+  function formNT(rec, done) {
+    const u = ui();
+    const fields = [
+      { name: "periodo", label: "Periodo (mes)", type: "month", required: true, value: rec ? rec.periodo : "" },
+      { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, required: true, placeholder: "Seleccionar…", value: rec ? rec.unidad : "" },
+      { name: "jefatura", label: "Jefatura / EU responsable", value: rec ? rec.jefatura : "" }
+    ].concat(NT_IND.map(i => ({ name: i.k, label: i.l + " (%)", type: "number", value: rec ? rec[i.k] : "" })))
+      .concat([
+        { name: "enviadoUnidad", label: "Enviado a la unidad", type: "select", options: ["No", "Sí"], value: rec ? rec.enviadoUnidad : "No" },
+        { name: "fechaEnvio", label: "Fecha de envío", type: "date", value: rec && rec.fechaEnvio ? u.isoDay(rec.fechaEnvio) : "" },
+        { name: "observaciones", label: "Observaciones", type: "textarea", full: true, value: rec ? rec.observaciones : "" }
+      ]);
+    u.modal({
+      title: rec ? "Editar registro NT 234" : "Nuevo registro NT 234", wide: true,
+      body: u.formHTML(fields, {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.periodo || !d.unidad) { u.toast("Completa periodo y unidad", "danger"); return; }
+          d.porcentaje = promInd(d);
+          if (rec) S().update("nt234", rec.id, d); else S().insert("nt234", d);
+          u.closeModal(); u.toast("Registro guardado", "ok"); done();
+        };
+      }
+    });
+  }
+
+  /* ---------- Tab 2: Mapa Inteligente de Alertas ---------- */
+  function kpiA(label, value, kind, sub) {
+    const u = ui();
+    return `<div class="card kpi kpi--${kind}"><div class="kpi__label">${u.esc(label)}</div><div class="kpi__value">${value}</div>${sub ? `<div class="nt-kpichip">${u.esc(sub)}</div>` : ""}</div>`;
+  }
+  function alertas234(box) {
     const u = ui();
     const meds = S().all("nt234");
-    const responsable = S().getConfig("nt234.responsable", "");
-    const resolucion = S().getConfig("nt234.resolucion", "");
-    const subdireccion = S().getConfig("nt234.subdireccion", "");
-    const datos = `<div class="card"><div class="card__head"><h3 class="card__title">Datos institucionales NT 234</h3>
-        <button class="btn btn--ghost btn--sm" id="editNT">✏️ Editar</button></div>
-      <div class="dl"><div><span>Responsable institucional</span><strong>${u.esc(responsable) || "—"}</strong></div>
-        <div><span>Resolución</span><strong>${u.esc(resolucion) || "—"}</strong></div>
-        <div><span>Subdirección</span><strong>${u.esc(subdireccion) || "—"}</strong></div>
-        <div><span>Meta de cumplimiento</span><strong>${meta234()}%</strong></div></div></div>`;
-
-    if (!meds.length) {
-      box.innerHTML = datos + u.empty("Sin mediciones registradas.", "Agrega cumplimiento por unidad para activar el semáforo.", "📊");
-      document.getElementById("editNT").onclick = editDatos234.bind(null, box);
-      return;
-    }
-    const { per, list } = medsUltimoPeriodo();
-    const prom = Math.round(list.reduce((a, b) => a + (Number(b.porcentaje) || 0), 0) / list.length);
-    const grupos = { Verde: [], Amarillo: [], Rojo: [] };
-    list.forEach(m => grupos[categoria(Number(m.porcentaje))].push(m));
-
-    // Tendencia global por periodo
-    const meta = meta234();
-    const periodos = [...new Set(meds.map(m => m.periodo).filter(Boolean))].sort();
-    const serie = periodos.map(pr => {
-      const l = meds.filter(m => m.periodo === pr);
-      return Math.round(l.reduce((a, b) => a + (Number(b.porcentaje) || 0), 0) / l.length);
-    });
-    const multi = periodos.length > 1;
-    const delta = multi ? serie[serie.length - 1] - serie[serie.length - 2] : null;
-
-    const semaforoHTML = ["Rojo", "Amarillo", "Verde"].map(cat => {
-      const s = SEM[cat], g = grupos[cat];
-      return `<div style="margin-bottom:.7rem"><div class="flex" style="gap:.4rem;margin-bottom:.3rem">
-        <span class="badge badge--${s.badge}">${cat} · ${s.label}</span><span class="kpi__sub">${g.length} unidad(es)</span></div>
-        <div>${g.length ? g.map(m => `<span style="display:inline-block;font-weight:800;color:#fff;background:${s.color};padding:.2em .6em;border-radius:6px;margin:.15rem;font-size:12.5px">${u.esc(m.unidad)} · ${Number(m.porcentaje)}%</span>`).join("") : `<span class="muted">Sin unidades en esta categoría.</span>`}</div></div>`;
-    }).join("");
-
-    // Tendencia por unidad (sparklines) — para decidir dónde intervenir
+    const periodos = periodosNT(meds);
+    const ultimo = periodos[periodos.length - 1];
     const unidades = [...new Set(meds.map(m => m.unidad).filter(Boolean))];
-    const filasUnidad = unidades.map(un => {
-      const vals = periodos.map(pr => {
-        const rec = meds.find(m => m.unidad === un && m.periodo === pr);
-        return rec ? Number(rec.porcentaje) : null;
-      }).filter(v => v != null);
-      const cur = vals[vals.length - 1];
-      const d = vals.length > 1 ? cur - vals[vals.length - 2] : null;
-      const cat = categoria(cur), s = SEM[cat];
-      const dTxt = d == null ? "—" : (d > 0 ? "▲ +" + d : d < 0 ? "▼ " + d : "→ 0");
-      const dColor = d == null ? "var(--text-muted)" : d > 0 ? "var(--verde)" : d < 0 ? "var(--danger)" : "var(--text-muted)";
-      return `<tr>
-        <td style="font-weight:700">${u.esc(un)}</td>
-        <td style="width:150px">${vals.length > 1 ? U.charts.sparkline(vals, { meta, color: s.color }) : `<span class="muted">1 período</span>`}</td>
-        <td style="text-align:right;font-weight:800">${cur}%</td>
-        <td style="text-align:right;font-weight:700;color:${dColor}">${dTxt}</td>
-        <td><span class="badge badge--${s.badge}">${cat}</span></td>
-      </tr>`;
-    }).join("");
-
-    // Lectura automática para la toma de decisiones
-    const rojos = grupos.Rojo.map(m => u.esc(m.unidad));
-    let lectura = "";
-    if (multi) {
-      const prev = periodos[periodos.length - 2];
-      if (delta > 0) lectura = `La adherencia global <strong>subió ${delta} pts</strong> respecto a ${u.esc(prev)} (de ${serie[serie.length - 2]}% a ${prom}%). La tendencia es positiva.`;
-      else if (delta < 0) lectura = `La adherencia global <strong>bajó ${Math.abs(delta)} pts</strong> respecto a ${u.esc(prev)} (de ${serie[serie.length - 2]}% a ${prom}%). Conviene revisar causas.`;
-      else lectura = `La adherencia global se <strong>mantuvo estable</strong> respecto a ${u.esc(prev)} (${prom}%).`;
-    } else {
-      lectura = `Solo hay un período registrado. Registra más períodos para visualizar la tendencia de adherencia.`;
-    }
-    const accion = prom >= meta
-      ? `Cumplimiento sobre la meta (${meta}%).${rojos.length ? " Aun así, " + rojos.length + " unidad(es) siguen bajo meta: " + rojos.join(", ") + ". Priorizar plan de mejora focalizado." : " Sostener las buenas prácticas."}`
-      : `Cumplimiento bajo la meta (${meta}%).${rojos.length ? " Priorizar intervención en: " + rojos.join(", ") + "." : " Focalizar seguimiento en las unidades en amarillo."}`;
-    const decBadge = delta == null ? "" : `<span class="badge badge--${delta > 0 ? "ok" : delta < 0 ? "danger" : "neutral"}" style="font-size:13px">${delta > 0 ? "▲ +" + delta : delta < 0 ? "▼ " + delta : "→ 0"} pts vs período anterior</span>`;
-
-    box.innerHTML = datos + `
-      <div class="grid grid--kpi" style="margin-top:1rem">
-        <div class="card kpi kpi--info"><div class="kpi__label">Periodo</div><div class="kpi__value" style="font-size:1.3rem">${u.esc(per || "—")}</div><div class="kpi__sub">Último registrado</div></div>
-        <div class="card kpi ${prom >= meta ? "kpi--ok" : "kpi--danger"}"><div class="kpi__label">Cumplimiento global</div><div class="kpi__value">${prom}%</div><div class="kpi__sub">Promedio de ${list.length} unidad(es)</div></div>
-        <div class="card kpi kpi--danger"><div class="kpi__label">En intervención</div><div class="kpi__value">${grupos.Rojo.length}</div><div class="kpi__sub">Unidades en rojo</div></div>
-        <div class="card kpi kpi--warn"><div class="kpi__label">En seguimiento</div><div class="kpi__value">${grupos.Amarillo.length}</div><div class="kpi__sub">Unidades en amarillo</div></div>
+    const cards = unidades.map(un => {
+      const recs = meds.filter(m => m.unidad === un).sort((a, b) => (a.periodo || "").localeCompare(b.periodo || ""));
+      const last = recs[recs.length - 1], prev = recs[recs.length - 2];
+      const g = globalNT(last), gp = prev ? globalNT(prev) : null, e = estadoNT(g);
+      let vari;
+      if (gp == null) vari = `<span class="nt-var">Sin comparación</span>`;
+      else { const d = g - gp; vari = d > 0 ? `<span class="nt-var up">↗ Mejoró +${d}%</span>` : d < 0 ? `<span class="nt-var down">↘ Disminuyó ${d}%</span>` : `<span class="nt-var eq">→ Se mantiene</span>`; }
+      return { un, g, e, vari, jef: last.jefatura };
+    }).filter(c => c.g != null).sort((a, b) => a.g - b.g);
+    const evaluadas = cards.length;
+    const enCumpl = cards.filter(c => c.e.k === "verde").length;
+    const seg = cards.filter(c => c.e.k === "amarillo"), inter = cards.filter(c => c.e.k === "rojo");
+    const instit = cards.length ? (cards.reduce((a, c) => a + c.g, 0) / cards.length).toFixed(1) : "—";
+    box.innerHTML = `
+      <div class="nt-monitor">
+        <div class="nt-monitor__eyebrow">Centro de Monitoreo Institucional</div>
+        <h2 class="nt-monitor__title">Mapa Inteligente de Alertas NT 234</h2>
+        <p class="nt-monitor__sub">Actualización automática desde las evaluaciones registradas · ${u.esc(periodoNT(ultimo))}</p>
       </div>
-
-      <div class="card" style="margin-top:1rem;border-left:4px solid var(--c-celeste)">
-        <div class="section__head" style="margin-bottom:.5rem">
-          <h3 class="card__title" style="margin:0">📈 Tendencia de adherencia a la NT 234</h3>${decBadge}</div>
-        ${multi ? U.charts.lineChart({ labels: periodos, series: [{ name: "Adherencia global", color: "var(--c-celeste)", values: serie }], meta })
-          : U.charts.bars(list.map(m => ({ label: m.unidad, value: Number(m.porcentaje) })), { meta })}
-        <div class="nt-lectura"><span class="nt-lectura__ico">🧭</span>
-          <div><div style="margin-bottom:.15rem">${lectura}</div><div style="color:var(--text-2)"><strong>Decisión sugerida:</strong> ${accion}</div></div></div>
+      <div class="grid grid--kpi" style="margin:1rem 0">
+        ${kpiA("Cumplimiento institucional", instit + "%", "info")}
+        ${kpiA("Unidades evaluadas", evaluadas, "info")}
+        ${kpiA("En cumplimiento", enCumpl, "ok")}
+        ${kpiA("Unidades en seguimiento", seg.length, "warn", seg.map(c => c.un).join(", "))}
+        ${kpiA("Unidades con intervención", inter.length, "danger", inter.map(c => c.un).join(", "))}
       </div>
-
-      <div class="grid grid--2" style="margin-top:1rem">
-        <div class="card"><h3 class="card__title">Semáforo por unidad</h3>${semaforoHTML}</div>
-        <div class="card"><h3 class="card__title">Tendencia por unidad</h3>
-          <p class="card__hint" style="margin:.1rem 0 .5rem">Comportamiento por unidad para priorizar dónde intervenir.</p>
-          <div style="overflow-x:auto"><table class="tbl nt-trend">
-            <thead><tr><th>Unidad</th><th>Tendencia</th><th style="text-align:right">Actual</th><th style="text-align:right">Δ</th><th>Semáforo</th></tr></thead>
-            <tbody>${filasUnidad}</tbody></table></div></div>
-      </div>`;
-    document.getElementById("editNT").onclick = editDatos234.bind(null, box);
+      ${cards.length ? `<div class="grid grid--3">${cards.map(c => `
+        <div class="nt-alert nt-alert--${c.e.k}">
+          <div class="nt-alert__status">${c.e.inter}</div>
+          <div class="nt-alert__unit">${u.esc(c.un)}</div>
+          <div class="nt-alert__pct">${c.g}%</div>
+          <div class="nt-alert__var">${c.vari}</div>
+          ${c.jef ? `<div class="nt-alert__jef">${u.esc(c.jef)}</div>` : ""}
+        </div>`).join("")}</div>` : u.empty("Sin evaluaciones registradas.", "Agrega mediciones en Seguimiento NT 234.", "🗺️")}`;
   }
-  function editDatos234(box) {
+
+  /* ---------- Tab 3: Planes de mejora (control de plazos) ---------- */
+  function plazoCol(label, arr, kind) {
     const u = ui();
-    u.modal({ title: "Datos institucionales NT 234",
+    return `<div class="nt-plazo nt-plazo--${kind}"><div class="nt-plazo__v">${arr.length}</div><div class="nt-plazo__l">${label}</div>
+      <div class="kpi__sub">${arr.length ? [...new Set(arr.map(p => p.unidad || "—"))].join(" · ") : "Sin unidades"}</div></div>`;
+  }
+  function planes234(box) {
+    const u = ui();
+    const planes = S().all("planesNT234");
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const entregado = p => /entreg|complet|cerr/i.test(p.estado || "");
+    const enPlazo = planes.filter(p => !entregado(p) && p.plazo && new Date(p.plazo) >= hoy);
+    const entregados = planes.filter(entregado);
+    const alerta = planes.filter(p => !entregado(p) && p.plazo && new Date(p.plazo) < hoy);
+    box.innerHTML = `<div class="card nt-plazos">
+        <div class="nt-plazos__eyebrow">Control de plazos · NT 234</div>
+        <h3 class="card__title" style="margin:.1rem 0 .8rem">Estado de los planes de mejora</h3>
+        <div class="grid grid--3">
+          ${plazoCol("En plazo", enPlazo, "info")}
+          ${plazoCol("Entregados", entregados, "ok")}
+          ${plazoCol("Alerta", alerta, "danger")}
+        </div></div>
+      <div id="nt-planes-body"></div>`;
+    R().mount(document.getElementById("nt-planes-body"), {
+      collection: "planesNT234", title: "Plan de mejora NT 234", icon: "🛠️",
+      hint: "Seguimiento de solicitudes, indicadores y observaciones.",
+      newLabel: "Nuevo plan",
+      emptyMsg: "Aún no hay planes de mejora.",
+      sort: (a, b) => new Date(b.fechaSolicitud || b.fechaCreacion) - new Date(a.fechaSolicitud || a.fechaCreacion),
+      columns: [
+        { key: "estado", label: "Estado", render: (r, u2) => `<span class="badge badge--${/entreg|complet|cerr/i.test(r.estado || "") ? "ok" : new Date(r.plazo) < new Date() ? "danger" : "warn"}">${u2.esc(r.estado || "—")}</span>${r.subestado ? `<div class="kpi__sub">${u2.esc(r.subestado)}</div>` : ""}` },
+        { key: "fechaSolicitud", label: "Fecha solicitud", date: true },
+        { key: "plazo", label: "Plazo", date: true },
+        { key: "unidad", label: "Unidad" },
+        { key: "indicadores", label: "Indicadores a trabajar", render: (r, u2) => (r.indicadores || "").split(/[,;]/).map(s => s.trim()).filter(Boolean).map(s => `<span class="tag nt-chip">${u2.esc(s)}</span>`).join(" ") || "—" },
+        { key: "observaciones", label: "Observaciones", render: (r, u2) => `<div class="nt-obs">${u2.esc(r.observaciones || "—")}</div>` }
+      ],
+      fields: [
+        { name: "estado", label: "Estado", type: "select", options: ["Pendiente", "En curso", "Entregado", "Completado", "Vencido"] },
+        { name: "subestado", label: "Subestado", hint: "Ej: Cerrado" },
+        { name: "fechaSolicitud", label: "Fecha de solicitud", type: "date", required: true },
+        { name: "plazo", label: "Plazo", type: "date" },
+        { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
+        { name: "indicadores", label: "Indicadores a trabajar", full: true, hint: "Separa con comas. Ej: Cambios de Posición 52%, Superficie de Apoyo 58%" },
+        { name: "responsable", label: "Responsable" },
+        { name: "requiereReferente", label: "Necesidad de intervención técnica", type: "select", options: ["No", "Sí"] },
+        { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
+      ],
+      defaults: () => ({ estado: "Pendiente", fechaSolicitud: ui().hoyISO(), requiereReferente: "No" }),
+      rowActions: [{ ico: "📨", title: "Solicitar intervención técnica", show: r => r.requiereReferente === "Sí",
+        fn: r => U.solicitudes.crearDesde("Norma Técnica 234", { titulo: "Plan de mejora NT 234 · " + (r.unidad || ""), unidad: r.unidad, prioridad: "alta", descripcion: r.observaciones || r.indicadores || "" }, () => {}) }]
+    });
+  }
+
+  /* ---------- Tab 4: Informe A4 ---------- */
+  function editDatos234(done) {
+    const u = ui();
+    u.modal({
+      title: "Datos institucionales NT 234",
       body: u.formHTML([
         { name: "responsable", label: "Responsable institucional", full: true, value: S().getConfig("nt234.responsable", "") },
         { name: "resolucion", label: "Resolución", value: S().getConfig("nt234.resolucion", "") },
@@ -164,95 +264,46 @@
         const d = u.readForm(m);
         S().setConfig("nt234.responsable", d.responsable); S().setConfig("nt234.resolucion", d.resolucion);
         S().setConfig("nt234.subdireccion", d.subdireccion); S().setConfig("nt234.meta", Number(d.meta) || 90);
-        u.closeModal(); panel234(box);
-      }; } });
-  }
-  function unidades234(box) {
-    R().mount(box, {
-      collection: "nt234", title: "Cumplimiento por unidad", icon: "📊",
-      hint: "Registra el cumplimiento por unidad y periodo. El semáforo se calcula automáticamente.",
-      newLabel: "Nueva medición",
-      emptyMsg: "Sin mediciones registradas.",
-      sort: (a, b) => (b.periodo || "").localeCompare(a.periodo || ""),
-      columns: [
-        { key: "periodo", label: "Periodo" },
-        { key: "unidad", label: "Unidad" },
-        { key: "porcentaje", label: "Cumplimiento", render: (r, u) => `<strong>${Number(r.porcentaje)}%</strong>` },
-        { key: "categoria", label: "Semáforo", render: (r, u) => { const c = categoria(Number(r.porcentaje)); return `<span class="badge badge--${SEM[c].badge}">${c} · ${SEM[c].label}</span>`; } },
-        { key: "indicadores", label: "Indicadores" }
-      ],
-      fields: [
-        { name: "periodo", label: "Periodo", required: true, hint: "Ej: 2026-S1" },
-        { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, required: true, placeholder: "Seleccionar…" },
-        { name: "porcentaje", label: "Cumplimiento (%)", type: "number", required: true },
-        { name: "indicadores", label: "Indicadores evaluados", full: true },
-        { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
-      ]
-    });
-  }
-  function planes234(box) {
-    R().mount(box, {
-      collection: "planesNT234", title: "Plan de mejora NT 234", icon: "🛠️",
-      hint: "Planes de mejora ordenados desde el más reciente.",
-      newLabel: "Nuevo plan",
-      emptyMsg: "Aún no hay planes de mejora.",
-      sort: (a, b) => new Date(b.fechaSolicitud || b.fechaCreacion) - new Date(a.fechaSolicitud || a.fechaCreacion),
-      columns: [
-        { key: "fechaSolicitud", label: "Solicitud", date: true },
-        { key: "unidad", label: "Unidad" },
-        { key: "indicadores", label: "Indicadores" },
-        { key: "porcentaje", label: "%", render: (r) => r.porcentaje != null && r.porcentaje !== "" ? Number(r.porcentaje) + "%" : "—" },
-        { key: "plazo", label: "Plazo", date: true },
-        { key: "estado", label: "Estado", badge: true },
-        { key: "requiereReferente", label: "Referente", render: (r) => r.requiereReferente === "Sí" ? `<span class="badge badge--warn">Requiere</span>` : "—" }
-      ],
-      fields: [
-        { name: "fechaSolicitud", label: "Fecha de solicitud", type: "date", required: true },
-        { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
-        { name: "indicadores", label: "Indicadores", full: true },
-        { name: "porcentaje", label: "Porcentaje (%)", type: "number" },
-        { name: "plazo", label: "Plazo", type: "date" },
-        { name: "estado", label: "Estado", type: "select", options: ["Pendiente", "En curso", "Completado", "Vencido"] },
-        { name: "responsable", label: "Responsable" },
-        { name: "requiereReferente", label: "Necesidad de intervención técnica", type: "select", options: ["No", "Sí"] },
-        { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
-      ],
-      defaults: () => ({ estado: "Pendiente", fechaSolicitud: ui().hoyISO(), requiereReferente: "No" }),
-      rowActions: [{ ico: "📨", title: "Solicitar intervención técnica", show: r => r.requiereReferente === "Sí",
-        fn: r => U.solicitudes.crearDesde("Norma Técnica 234", { titulo: "Plan de mejora NT 234 · " + (r.unidad || ""), unidad: r.unidad, prioridad: "alta", descripcion: r.observaciones || r.indicadores || "" }, () => {}) }]
+        u.closeModal(); done();
+      }; }
     });
   }
   function informe234(box) {
     const u = ui();
     const { per, list } = medsUltimoPeriodo();
     if (!list.length) { box.innerHTML = u.empty("Sin datos para el informe.", "Registra cumplimiento por unidad primero.", "🖨️"); return; }
-    const prom = Math.round(list.reduce((a, b) => a + (Number(b.porcentaje) || 0), 0) / list.length);
+    const gl = list.map(globalNT).filter(v => v != null);
+    const prom = gl.length ? Math.round(gl.reduce((a, b) => a + b, 0) / gl.length) : 0;
     const responsable = S().getConfig("nt234.responsable", "________________________");
-    box.innerHTML = `<div class="section__head no-print"><p class="section__hint">Informe institucional en formato A4. Se genera una sola vez y permite impresión y PDF.</p>
-        <button class="btn btn--primary btn--sm" onclick="window.print()">🖨️ Imprimir / PDF</button></div>
-      <div class="card informe-a4" id="informe">
+    const by = k => list.filter(m => estadoNT(globalNT(m)).k === k).length;
+    box.innerHTML = `<div class="section__head no-print"><p class="section__hint">Informe institucional en formato A4, listo para imprimir o exportar a PDF.</p>
+        <div class="btn-row"><button class="btn btn--ghost btn--sm" id="nt-datos">✏️ Datos institucionales</button>
+        <button class="btn btn--primary btn--sm" onclick="window.print()">🖨️ Imprimir / PDF</button></div></div>
+      <div class="card informe-a4 reporte" id="informe">
         <div class="franja" style="border-radius:4px"></div>
         <div class="flex" style="justify-content:space-between;margin:.8rem 0">
           <div class="flex"><div class="brand-mini__logo" style="width:52px;height:52px"><img src="assets/img/huap-logo.png" alt="HUAP"></div>
             <div><strong style="font-size:1.1rem">Informe de Cumplimiento · Norma Técnica 234</strong>
             <div class="muted">Unidad de Buenas Prácticas Clínicas – UBPC · HUAP</div></div></div>
-          <div class="right"><div class="kpi__sub">Periodo</div><strong>${u.esc(per || "—")}</strong>
+          <div class="right"><div class="kpi__sub">Periodo</div><strong>${u.esc(periodoNT(per))}</strong>
             <div class="kpi__sub" style="margin-top:.3rem">Emisión: ${u.fechaCL(new Date())}</div></div>
         </div>
         <div class="grid grid--kpi" style="margin:.6rem 0">
           <div class="card kpi ${prom >= meta234() ? "kpi--ok" : "kpi--danger"}"><div class="kpi__label">Cumplimiento global</div><div class="kpi__value">${prom}%</div><div class="kpi__sub">Meta ${meta234()}%</div></div>
-          <div class="card kpi kpi--danger"><div class="kpi__label">Intervención (rojo)</div><div class="kpi__value">${list.filter(m => categoria(Number(m.porcentaje)) === "Rojo").length}</div></div>
-          <div class="card kpi kpi--warn"><div class="kpi__label">Seguimiento (amarillo)</div><div class="kpi__value">${list.filter(m => categoria(Number(m.porcentaje)) === "Amarillo").length}</div></div>
-          <div class="card kpi kpi--ok"><div class="kpi__label">Dentro de meta (verde)</div><div class="kpi__value">${list.filter(m => categoria(Number(m.porcentaje)) === "Verde").length}</div></div>
+          <div class="card kpi kpi--danger"><div class="kpi__label">Con intervención</div><div class="kpi__value">${by("rojo")}</div></div>
+          <div class="card kpi kpi--warn"><div class="kpi__label">En seguimiento</div><div class="kpi__value">${by("amarillo")}</div></div>
+          <div class="card kpi kpi--ok"><div class="kpi__label">En cumplimiento</div><div class="kpi__value">${by("verde")}</div></div>
         </div>
-        <table class="tbl" style="margin:.5rem 0"><thead><tr><th>Unidad</th><th class="right">Cumplimiento</th><th>Semáforo</th></tr></thead><tbody>
-          ${list.sort((a, b) => Number(a.porcentaje) - Number(b.porcentaje)).map(m => { const c = categoria(Number(m.porcentaje)); return `<tr><td><strong>${u.esc(m.unidad)}</strong></td><td class="num"><strong>${Number(m.porcentaje)}%</strong></td><td><span style="font-weight:800;color:${SEM[c].color}">● ${c} · ${SEM[c].label}</span></td></tr>`; }).join("")}
+        <table class="tbl" style="margin:.5rem 0"><thead><tr><th>Unidad</th><th>Jefatura</th><th class="right">Cumplimiento</th><th>Estado</th></tr></thead><tbody>
+          ${list.slice().sort((a, b) => globalNT(a) - globalNT(b)).map(m => { const g = globalNT(m), e = estadoNT(g); return `<tr><td><strong>${u.esc(m.unidad)}</strong></td><td>${u.esc(m.jefatura || "—")}</td><td class="num"><strong>${g}%</strong></td><td><span style="font-weight:800;color:${e.color}">● ${e.inter}</span></td></tr>`; }).join("")}
         </tbody></table>
         <div style="margin-top:2.5rem;display:flex;justify-content:flex-end">
           <div class="center" style="min-width:280px"><div style="border-top:1px solid var(--text);padding-top:.3rem">${u.esc(responsable)}</div>
             <div class="kpi__sub">Responsable institucional NT 234</div></div>
         </div>
       </div>`;
+    const dbtn = document.getElementById("nt-datos");
+    if (dbtn) dbtn.onclick = () => editDatos234(() => informe234(box));
   }
 
   /* ===================== MÓDULO 7 — RED DE COLABORACIÓN ===================== */

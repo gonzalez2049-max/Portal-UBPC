@@ -1236,3 +1236,45 @@ body.night .doc-tb__sel{ background:rgba(255,255,255,.06); }
   margin:1rem -1.6rem; padding:.25rem 0; color:var(--text-muted); font-size:10.5px; font-weight:800;
   text-transform:uppercase; letter-spacing:1px; border-top:2px dashed #cdd8e2; border-bottom:2px dashed #cdd8e2;
   background:repeating-linear-gradient(45deg, #f3f6fa, #f3f6fa 8px, #eef2f7 8px, #eef2f7 16px); user-select:none; }
+
+/* ============================================================
+   NT 234 (rediseño) — historial, mapa de alertas, planes
+   ============================================================ */
+.nt-hist{ font-size:12.5px; } .nt-hist th.num, .nt-hist td.num{ text-align:center; white-space:nowrap; }
+.nt-hist td, .nt-hist th{ padding:.5rem .55rem; }
+.nt-hist .nt-h-group td{ background:var(--surface-2); font-weight:800; color:var(--text-2); font-size:12px; }
+.nt-h-plabel{ font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--text-muted); font-weight:800; }
+.nt-hist tbody tr:not(.nt-h-group):hover{ background:rgba(18,181,165,.05); }
+.nowrap{ white-space:nowrap; }
+
+/* Banner monitor */
+.nt-monitor{ border-radius:16px; padding:1.1rem 1.3rem; color:#eafff9;
+  background:linear-gradient(120deg,#0e3b46,#123f4d 45%,#1b2e4a); box-shadow:var(--shadow); }
+.nt-monitor__eyebrow{ font-size:11px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:#e0526f; }
+.nt-monitor__title{ font-family:var(--font-disp); font-size:1.4rem; margin:.1rem 0 .2rem; color:#fff; }
+.nt-monitor__sub{ font-size:12.5px; color:rgba(255,255,255,.72); margin:0; }
+.nt-kpichip{ display:inline-block; margin-top:.4rem; font-size:11.5px; font-weight:700; color:var(--text-2);
+  background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:.15rem .5rem; }
+
+/* Tarjetas de alerta por unidad */
+.nt-alert{ border-radius:16px; padding:1rem 1.1rem; text-align:center; border:1.5px solid transparent; box-shadow:var(--shadow); }
+.nt-alert--verde{ background:rgba(55,160,74,.10); border-color:rgba(55,160,74,.35); }
+.nt-alert--amarillo{ background:rgba(224,145,47,.12); border-color:rgba(224,145,47,.4); }
+.nt-alert--rojo{ background:rgba(224,82,111,.12); border-color:rgba(224,82,111,.45); }
+.nt-alert__status{ font-size:11px; font-weight:700; color:var(--text-muted); }
+.nt-alert__unit{ font-family:var(--font-disp); font-weight:700; font-size:1.15rem; margin:.1rem 0; }
+.nt-alert__pct{ font-family:var(--font-disp); font-weight:700; font-size:2.1rem; line-height:1.1; }
+.nt-var{ font-size:12.5px; font-weight:800; }
+.nt-var.up{ color:var(--verde); } .nt-var.down{ color:var(--danger); } .nt-var.eq{ color:var(--text-muted); }
+.nt-alert__jef{ font-size:12px; font-weight:700; color:var(--text-2); margin-top:.5rem; }
+body.night .nt-alert--verde{ background:rgba(55,160,74,.16); } body.night .nt-alert--amarillo{ background:rgba(224,145,47,.18); } body.night .nt-alert--rojo{ background:rgba(224,82,111,.18); }
+
+/* Control de plazos */
+.nt-plazos__eyebrow{ font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:var(--text-muted); }
+.nt-plazo{ border-left:4px solid var(--border-2); padding:.3rem 0 .3rem .8rem; }
+.nt-plazo--info{ border-left-color:var(--c-celeste); } .nt-plazo--ok{ border-left-color:var(--verde); } .nt-plazo--danger{ border-left-color:var(--danger); }
+.nt-plazo__v{ font-family:var(--font-disp); font-weight:700; font-size:1.8rem; line-height:1; }
+.nt-plazo__l{ font-weight:800; font-size:13px; margin:.1rem 0; }
+.nt-chip{ background:rgba(18,181,165,.12); color:#0d8175; font-size:11.5px; margin:.1rem; display:inline-block; }
+.nt-obs{ font-size:12px; color:var(--text-2); max-width:340px; }
+body.night .nt-chip{ background:rgba(18,181,165,.2); color:#7fe0d0; }

@@ -189,29 +189,48 @@
     s.setConfig("nt234.resolucion", "Res. Exenta N° 1234/2026");
     s.setConfig("nt234.subdireccion", "Subdirección de Gestión del Cuidado");
     s.setConfig("nt234.meta", 90);
-    add("nt234", [
-      /* 2025-S1 (línea base) */
-      { periodo: "2025-S1", unidad: "UTI", porcentaje: 78, indicadores: "6 indicadores LPP", observaciones: "" },
-      { periodo: "2025-S1", unidad: "UCI Valech", porcentaje: 72, indicadores: "Accesos vasculares", observaciones: "" },
-      { periodo: "2025-S1", unidad: "Emergencia Hospitalaria", porcentaje: 51, indicadores: "Dolor", observaciones: "Brecha inicial importante." },
-      { periodo: "2025-S1", unidad: "Pabellón y Anestesia", porcentaje: 60, indicadores: "LPP", observaciones: "" },
-      { periodo: "2025-S1", unidad: "UCM 3 piso", porcentaje: 80, indicadores: "LPP", observaciones: "" },
-      /* 2025-S2 (seguimiento) */
-      { periodo: "2025-S2", unidad: "UTI", porcentaje: 86, indicadores: "6 indicadores LPP", observaciones: "" },
-      { periodo: "2025-S2", unidad: "UCI Valech", porcentaje: 81, indicadores: "Accesos vasculares", observaciones: "" },
-      { periodo: "2025-S2", unidad: "Emergencia Hospitalaria", porcentaje: 58, indicadores: "Dolor", observaciones: "Avance leve." },
-      { periodo: "2025-S2", unidad: "Pabellón y Anestesia", porcentaje: 69, indicadores: "LPP", observaciones: "" },
-      { periodo: "2025-S2", unidad: "UCM 3 piso", porcentaje: 87, indicadores: "LPP", observaciones: "" },
-      /* 2026-S1 (actual) */
-      { periodo: "2026-S1", unidad: "UTI", porcentaje: 95, indicadores: "6 indicadores LPP", observaciones: "" },
-      { periodo: "2026-S1", unidad: "UCI Valech", porcentaje: 88, indicadores: "Accesos vasculares", observaciones: "" },
-      { periodo: "2026-S1", unidad: "Emergencia Hospitalaria", porcentaje: 63, indicadores: "Dolor", observaciones: "Requiere intervención." },
-      { periodo: "2026-S1", unidad: "Pabellón y Anestesia", porcentaje: 74, indicadores: "LPP", observaciones: "" },
-      { periodo: "2026-S1", unidad: "UCM 3 piso", porcentaje: 91, indicadores: "LPP", observaciones: "" }
-    ], { silent: true });
+    // NT 234: evaluaciones mensuales por unidad, con indicadores individuales (LPP)
+    const NT_JEF = {
+      "Emergencia Hospitalaria": "EU. Ethel Díaz Triviño", "UTI": "EU. Paulina González Arriagada",
+      "Quemados": "EU. Pamela Orellana Guerra", "UCI Valech": "EU. Neftalí Pavez Hernández",
+      "UCM 3 piso": "EU. Macarena Durán Vera", "UCM 4 piso": "EU. Evelyn Gutiérrez Peña",
+      "UCM 6 piso": "EU. Diego Hidalgo López", "Clínica Asistencial": "EU. Andrés Guajardo Parra"
+    };
+    const NT_G = {
+      "Emergencia Hospitalaria": [88, 94, 84], "UTI": [85, 90, 92], "Quemados": [42, 55, 76],
+      "UCI Valech": [95, 97, 97], "UCM 3 piso": [90, 91, 84], "UCM 4 piso": [68, 72, 86],
+      "UCM 6 piso": [74, 71, 65], "Clínica Asistencial": [96, 100, 94]
+    };
+    const NT_OFF = [8, 4, -18, -6, 10, -8, 6, 4];
+    const NT_KEYS = ["riesgo", "piel", "cambiosPosicion", "prominenciasOseas", "humedadHigiene", "superficiesApoyo", "nutricion", "registroResponsable"];
+    const NT_PER = ["2026-04", "2026-05", "2026-06"];
+    const clamp = v => Math.max(0, Math.min(100, v));
+    const ntRows = [];
+    Object.keys(NT_G).forEach(un => {
+      NT_PER.forEach((per, mi) => {
+        const g = NT_G[un][mi], row = { periodo: per, unidad: un, jefatura: NT_JEF[un], enviadoUnidad: "Sí", fechaEnvio: iso(20 - mi * 0), observaciones: "" };
+        NT_KEYS.forEach((k, ki) => { row[k] = clamp(g + NT_OFF[ki]); });
+        ntRows.push(row);
+      });
+    });
+    add("nt234", ntRows, { silent: true });
     add("planesNT234", [
-      { fechaSolicitud: iso(14), unidad: "Emergencia Hospitalaria", indicadores: "Valoración y reevaluación del dolor", porcentaje: 63, plazo: isoIn(30), estado: "En curso", responsable: "EU. Marcos Soto", requiereReferente: "Sí", observaciones: "Intervención focalizada." },
-      { fechaSolicitud: iso(8), unidad: "Pabellón y Anestesia", indicadores: "Prevención de LPP", porcentaje: 74, plazo: isoIn(45), estado: "Pendiente", responsable: "EU. Carolina Reyes", requiereReferente: "No", observaciones: "" }
+      { estado: "Entregado", subestado: "Cerrado", fechaSolicitud: iso(43), plazo: isoIn(-13), unidad: "UCM 4 piso",
+        indicadores: "Cambios de Posición 52%, Superficie de Apoyo 58%, Prominencia ósea 66%, Registro responsable 35%",
+        responsable: "EU. Evelyn Gutiérrez Peña", requiereReferente: "No",
+        observaciones: "Plan de mejora recepcionado por la UBPC. Durante el mes de julio se realizará el seguimiento y la verificación de las acciones implementadas para evaluar el cierre de las oportunidades de mejora identificadas." },
+      { estado: "Entregado", subestado: "Cerrado", fechaSolicitud: iso(43), plazo: isoIn(-32), unidad: "UCM 6 piso",
+        indicadores: "Cambios de Posición 17%, Prominencias óseas 47%, Evaluación Nutricional 66%, Uso Superficies de Apoyo 68%",
+        responsable: "EU. Diego Hidalgo López", requiereReferente: "Sí",
+        observaciones: "Sin EU. de continuidad. No se recepciona Plan de Mejora. Se realizarán intervenciones aisladas para favorecer la supervisión clínica y la adherencia a las medidas preventivas. Fecha inicio actividades 20 julio. PENDIENTE VERIFICABLES." },
+      { estado: "Entregado", subestado: "Cerrado", fechaSolicitud: iso(59), plazo: isoIn(-49), unidad: "UCM 3 piso",
+        indicadores: "Cambios de Posición 29%, Prominencias óseas 0%",
+        responsable: "EU. Macarena Durán Vera", requiereReferente: "No",
+        observaciones: "Cerrado y entregado sin mayor conflicto. Se fomentan los espacios educativos para favorecer la adherencia." },
+      { estado: "Entregado", subestado: "Cerrado", fechaSolicitud: iso(60), plazo: isoIn(-49), unidad: "UCM 6 piso",
+        indicadores: "Cambios de Posición 17%, Prominencias óseas 41%, Valoración de la Piel 70%, Superficie de Apoyo 78%",
+        responsable: "EU. Diego Hidalgo López", requiereReferente: "No",
+        observaciones: "Recepcionado sin conflictos. Se debe fomentar espacios educativos para reforzar los indicadores con menores cumplimientos." }
     ], { silent: true });
 
     /* ---------- Módulo 7 — Colaboración ---------- */
