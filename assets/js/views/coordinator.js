@@ -508,6 +508,15 @@
         <p class="card__hint" style="margin-top:.6rem">💡 Consejo: exporta un respaldo cada cierto tiempo (abajo). Es tu copia de seguridad si cambias de navegador o equipo, o si limpias el historial.</p>
       </div>
       ${cloudCardHTML()}
+      <div class="card" style="margin-bottom:1rem">
+        <h3 class="card__title">🔒 Ingreso al portal</h3>
+        <p class="card__hint">Si lo activas, al abrir el portal se pedirá tu <strong>correo y contraseña</strong> (los de la nube) antes de entrar. Si lo dejas apagado, entras rápido eligiendo tu perfil.</p>
+        <label class="switch-row">
+          <input type="checkbox" id="askPass" ${S().getConfig("pedirClaveIngreso", false) ? "checked" : ""}>
+          <span class="switch"></span>
+          <span>Pedir contraseña al abrir el portal</span>
+        </label>
+      </div>
       <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--c-turquesa)">
         <h3 class="card__title">Datos de demostración</h3>
         <p class="card__hint">Carga un conjunto de datos de ejemplo (evaluaciones RNAO, documentos, reuniones, colaboraciones, capacitaciones, solicitudes, tablero, hitos y más) para ver el portal con contenido. <strong>Tu nombre y foto de perfil se conservan.</strong></p>
@@ -556,6 +565,11 @@
     if (U.theme) U.theme.bindPicker(document);
     renderStorage();
     bindCloud();
+    const askPass = document.getElementById("askPass");
+    if (askPass) askPass.onchange = () => {
+      S().setConfig("pedirClaveIngreso", askPass.checked);
+      u.toast(askPass.checked ? "Se pedirá contraseña al entrar" : "Ingreso rápido activado (sin contraseña)", "ok");
+    };
     document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
     document.getElementById("expJson").onclick = () => {
       u.download("respaldo-ubpc-" + u.hoyISO() + ".json", S().exportJSON(), "application/json");

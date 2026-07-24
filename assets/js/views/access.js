@@ -49,7 +49,10 @@
   const AUTH_FLAG = "ubpc:portalAuthed";
   function portalAuthed() { try { return sessionStorage.getItem(AUTH_FLAG) === "1"; } catch (e) { return false; } }
   function setPortalAuthed(on) { try { on ? sessionStorage.setItem(AUTH_FLAG, "1") : sessionStorage.removeItem(AUTH_FLAG); } catch (e) {} }
-  function needsLogin() { return !!(U.cloud && U.cloud.configured() && !portalAuthed()); }
+  // Solo se pide contraseña al entrar si la usuaria lo activó (por defecto, no).
+  function needsLogin() {
+    return !!(U.cloud && U.cloud.configured() && U.store.getConfig("pedirClaveIngreso", false) && !portalAuthed());
+  }
 
   function profilesInner(coord, ref, otros) {
     return `<h3>Seleccione su perfil para ingresar</h3>
