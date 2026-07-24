@@ -94,6 +94,25 @@
     });
   }
 
+  /* Recorta al centro (cuadrado) y reduce a 256px para caber en el almacenamiento local */
+  function fileToAvatar(file, cb) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const SIZE = 256, min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
+        const cv = document.createElement("canvas"); cv.width = cv.height = SIZE;
+        cv.getContext("2d").drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE);
+        cb(cv.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = () => cb(null);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => cb(null);
+    reader.readAsDataURL(file);
+  }
+
   /* ---------- Editor de perfil (reflejado en acceso, header y perfil) ---------- */
   function editPerfil(id, onDone) {
     const ui = U.ui;
@@ -102,25 +121,57 @@
     const fields = [
       { name: "nombre", label: "Nombre completo", required: true, full: true },
       { name: "cargo", label: "Cargo", required: true, full: true },
-      { name: "unidad", label: "Unidad", full: true },
-      { name: "foto", label: "URL de fotografía (opcional)", full: true, hint: "Si se deja vacío, se muestran las iniciales." }
+      { name: "unidad", label: "Unidad", full: true }
     ];
     ui.modal({
       title: "Editar perfil",
       body: `<p class="card__hint">Los cambios se reflejan automáticamente en la pantalla de acceso, el encabezado y el perfil.</p>
-             ${ui.formHTML(fields, u)}
-             <div class="flex" style="margin-top:.4rem">
+             <div class="pf-photo">
                <div class="avatar avatar--lg" id="prevAvatar">${u.foto ? `<img src="${ui.esc(u.foto)}">` : ui.initials(u.nombre)}</div>
-               <div class="muted">Vista previa</div>
-             </div>`,
+               <div class="pf-photo__side">
+                 <span class="pf-photo__lbl">Foto de perfil</span>
+                 <div class="btn-row">
+                   <label class="btn btn--ghost btn--sm pf-photo__up">📷 Subir foto<input type="file" id="pfFile" accept="image/*" hidden></label>
+                   <button type="button" class="btn btn--ghost btn--sm" id="pfClear" ${u.foto ? "" : "hidden"}>🗑️ Quitar</button>
+                 </div>
+                 <span class="muted" style="font-size:.76rem">JPG o PNG. Se recorta a un cuadrado automáticamente.</span>
+               </div>
+             </div>
+             <input type="hidden" name="foto" value="${ui.esc(u.foto || "")}">
+             ${ui.formHTML(fields, u)}`,
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button>
                <button class="btn btn--primary" data-save>Guardar cambios</button>`,
       onMount(m) {
+        const prev = m.querySelector("#prevAvatar");
+        const hidden = m.querySelector("input[name=foto]");
+        const clearBtn = m.querySelector("#pfClear");
+        const nombreI = m.querySelector("input[name=nombre]");
+        function paint() {
+          const foto = (hidden.value || "").trim();
+          prev.innerHTML = foto ? `<img src="${foto}">` : ui.initials(nombreI.value || u.nombre);
+          clearBtn.hidden = !foto;
+        }
+        m.querySelector("#pfFile").onchange = ev => {
+          const f = ev.target.files && ev.target.files[0];
+          if (!f) return;
+          if (!/^image\//.test(f.type)) { ui.toast("Selecciona una imagen (JPG o PNG)", "danger"); return; }
+          fileToAvatar(f, dataURL => {
+            if (!dataURL) { ui.toast("No se pudo procesar la imagen", "danger"); return; }
+            hidden.value = dataURL; paint();
+          });
+        };
+        clearBtn.onclick = () => { hidden.value = ""; paint(); };
+        nombreI.addEventListener("input", paint);
         m.querySelector("[data-save]").onclick = () => {
           const data = ui.readForm(m);
           if (!data.nombre || !data.cargo) { ui.toast("Nombre y cargo son obligatorios", "danger"); return; }
           data.esPlaceholder = false;
-          U.auth.updatePerfil(id, data);
+          try {
+            U.auth.updatePerfil(id, data);
+          } catch (e) {
+            ui.toast("La imagen es muy pesada para guardarse localmente. Prueba con otra más liviana.", "danger");
+            return;
+          }
           ui.closeModal();
           ui.toast("Perfil actualizado", "ok");
           if (onDone) onDone(); else U.router.render();

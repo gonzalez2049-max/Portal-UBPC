@@ -364,22 +364,9 @@
   /* ---------- Vistas de administración ---------- */
   function perfil() {
     const u = ui(); const me = U.auth.current();
-    const mine = S().all("actividadReciente").filter(a => a.usuario === me.nombre);
-    const total = mine.length;
-    const modulos = new Set(mine.map(a => a.modulo)).size;
-    const ultima = mine.length ? u.fechaCL(mine[0].fecha) : "—";
     const rolLabel = { coordinador: "Coordinador/a", referente: "Referente Técnico", colaborador: "Colaborador/a" }[me.rol] || me.rol || "";
-    const recientes = mine.slice(0, 6);
-    const accesos = [
-      { ic: "🏠", t: "Inicio", s: "Resumen ejecutivo", r: "#/coord/home" },
-      { ic: "🗓️", t: "Agenda", s: "Actividades y plazos", r: "#/coord/agenda" },
-      { ic: "🧑‍🏫", t: "Guía", s: "Orientaciones y evidencia", r: "#/coord/guia" },
-      { ic: "📏", t: "Indicadores", s: "Metas y tendencias", r: "#/coord/indicadores" },
-      { ic: "📊", t: "Norma Técnica 234", s: "Seguimiento y alertas", r: "#/coord/m6" },
-      { ic: "📑", t: "Reportes", s: "Documentos oficiales", r: "#/coord/reportes" }
-    ];
     return `<div class="page-head"><h1>Mi perfil</h1><p>Datos visibles en la pantalla de acceso y el encabezado.</p></div>
-      <div class="prof-hero">
+      <div class="prof-hero prof-hero--solo">
         <div class="prof-hero__banner"><span class="prof-hero__glow"></span></div>
         <div class="prof-hero__row">
           <div class="avatar avatar--lg prof-hero__avatar">${me.foto ? `<img src="${u.esc(me.foto)}">` : u.initials(me.nombre)}</div>
@@ -389,30 +376,6 @@
             <div class="kpi__sub">🏥 ${u.esc(me.unidad || "Unidad de Buenas Prácticas Clínicas – UBPC")}</div>
           </div>
           <button class="btn btn--primary prof-hero__edit" id="editMe">✏️ Editar mi perfil</button>
-        </div>
-        <div class="prof-stats">
-          <div class="prof-stat"><span class="prof-stat__ic">📝</span><div><span class="prof-stat__n">${total}</span><span class="prof-stat__l">Movimientos registrados</span></div></div>
-          <div class="prof-stat"><span class="prof-stat__ic">🧩</span><div><span class="prof-stat__n">${modulos}</span><span class="prof-stat__l">Módulos trabajados</span></div></div>
-          <div class="prof-stat"><span class="prof-stat__ic">🕒</span><div><span class="prof-stat__n">${ultima}</span><span class="prof-stat__l">Última actividad</span></div></div>
-        </div>
-      </div>
-      <div class="grid grid--2" style="align-items:start;margin-top:1.1rem">
-        <div class="section">
-          <div class="section__head"><div><h2 class="section__title">Accesos rápidos</h2>
-            <p class="section__hint">Ve directo a lo que más usas.</p></div></div>
-          <div class="prof-quick">${accesos.map(a => `<a class="prof-quick__card" href="${a.r}">
-            <span class="prof-quick__ic">${a.ic}</span>
-            <span class="prof-quick__body"><span class="prof-quick__t">${a.t}</span><span class="prof-quick__s">${a.s}</span></span>
-            <span class="prof-quick__go">→</span></a>`).join("")}</div>
-        </div>
-        <div class="section">
-          <div class="section__head"><div><h2 class="section__title">Mi actividad reciente</h2>
-            <p class="section__hint">Tus últimos movimientos en el portal.</p></div></div>
-          <div class="card home-scroll">${recientes.length ? `<ul class="feed">${recientes.map(a => `<li>
-            <span class="feed__ico">📝</span>
-            <div><div><span class="tag">${u.esc(a.modulo)}</span> <strong>${u.esc(a.verbo)}</strong> ${u.esc(a.titulo)}</div>
-              <div class="feed__meta">${u.fechaHoraCL(a.fecha)}</div></div></li>`).join("")}</ul>`
-        : u.empty("Aún no registras movimientos.", "Tus acciones en el portal aparecerán aquí.", "📝")}</div>
         </div>
       </div>`;
   }
