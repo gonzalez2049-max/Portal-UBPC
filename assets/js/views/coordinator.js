@@ -421,6 +421,11 @@
           <button class="btn btn--primary prof-hero__edit" id="editMe">✏️ Editar perfil</button>
         </div>
       </div>
+      <div class="card" style="margin-bottom:1rem">
+        <h3 class="card__title">Apariencia · Tema del portal</h3>
+        <p class="card__hint">Elige la paleta de color y el modo claro u oscuro. Se aplica en todo el portal y se recuerda en este dispositivo.</p>
+        ${U.theme ? U.theme.pickerHTML() : ""}
+      </div>
       <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--c-turquesa)">
         <h3 class="card__title">Datos de demostración</h3>
         <p class="card__hint">Carga un conjunto de datos de ejemplo (evaluaciones RNAO, documentos, reuniones, colaboraciones, capacitaciones, solicitudes, tablero, hitos y más) para ver el portal con contenido. Reemplaza los datos actuales.</p>
@@ -443,6 +448,7 @@
   }
   function configBind() {
     const u = ui(); const me = U.auth.current();
+    if (U.theme) U.theme.bindPicker(document);
     document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
     document.getElementById("expJson").onclick = () =>
       u.download("respaldo-ubpc-" + u.hoyISO() + ".json", S().exportJSON(), "application/json");

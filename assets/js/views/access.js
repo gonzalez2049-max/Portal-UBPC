@@ -29,6 +29,20 @@
     </div>`;
   }
 
+  function themebarHTML() {
+    const T = U.theme; if (!T) return "";
+    const cur = T.getPalette();
+    const night = T.isNight();
+    return `<div class="access__theme" id="themeBar">
+      <span class="access__theme-lbl">🎨 Tema</span>
+      <div class="access__swatches">
+        ${T.palettes.map(p => `<button class="access__swatch ${p.key === cur ? "is-on" : ""}" data-palette="${p.key}"
+          style="background:${p.sw}" title="${p.label}" aria-label="Tema ${p.label}"></button>`).join("")}
+      </div>
+      <button class="access__mode" id="modeBtn" title="Modo claro / oscuro" aria-label="Modo claro u oscuro">${night ? "🌙" : "☀️"}<span>${night ? "Oscuro" : "Claro"}</span></button>
+    </div>`;
+  }
+
   function access() {
     const perfiles = U.auth.perfiles();
     const coord = perfiles.filter(p => p.rol === "coordinador");
@@ -40,13 +54,16 @@
       <div class="franja"></div>
       <div class="access__main">
         <div class="access__stage">
-          <div class="access__brand">
-            <div class="access__logo"><img src="assets/img/huap-logo.png" alt="Hospital de Urgencia Asistencia Pública"></div>
-            <div>
-              <div class="access__eyebrow">Centro de Operaciones · HUAP</div>
-              <h1 class="access__title">Unidad de Buenas Prácticas Clínicas</h1>
-              <div class="access__sub">Hospital de Urgencia Asistencia Pública</div>
+          <div class="access__topbar">
+            <div class="access__brand">
+              <div class="access__logo"><img src="assets/img/huap-logo.png" alt="Hospital de Urgencia Asistencia Pública"></div>
+              <div>
+                <div class="access__eyebrow">Centro de Operaciones · HUAP</div>
+                <h1 class="access__title">Unidad de Buenas Prácticas Clínicas</h1>
+                <div class="access__sub">Hospital de Urgencia Asistencia Pública</div>
+              </div>
             </div>
+            ${themebarHTML()}
           </div>
 
           <div class="access__panel">
@@ -96,6 +113,19 @@
     root.querySelectorAll("[data-edit]").forEach(btn => {
       btn.onclick = () => editPerfil(btn.dataset.edit);
     });
+    // Selector de tema (paleta + modo claro/oscuro)
+    const T = U.theme;
+    if (T) {
+      root.querySelectorAll("[data-palette]").forEach(sw => sw.onclick = () => {
+        T.setPalette(sw.dataset.palette);
+        root.querySelectorAll("[data-palette]").forEach(s => s.classList.toggle("is-on", s === sw));
+      });
+      const modeBtn = root.querySelector("#modeBtn");
+      if (modeBtn) modeBtn.onclick = () => {
+        const night = T.toggleNight();
+        modeBtn.innerHTML = (night ? "🌙" : "☀️") + `<span>${night ? "Oscuro" : "Claro"}</span>`;
+      };
+    }
   }
 
   /* Recorta al centro (cuadrado) y reduce a 256px para caber en el almacenamiento local */
