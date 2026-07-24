@@ -43,6 +43,39 @@
     </div>`;
   }
 
+  // Gate de contraseña: se exige iniciar sesión (nube) al abrir el portal,
+  // pero solo en equipos ya conectados a la nube (para no bloquear el acceso
+  // en un equipo nuevo antes de configurarlo).
+  const AUTH_FLAG = "ubpc:portalAuthed";
+  function portalAuthed() { try { return sessionStorage.getItem(AUTH_FLAG) === "1"; } catch (e) { return false; } }
+  function setPortalAuthed(on) { try { on ? sessionStorage.setItem(AUTH_FLAG, "1") : sessionStorage.removeItem(AUTH_FLAG); } catch (e) {} }
+  function needsLogin() { return !!(U.cloud && U.cloud.configured() && !portalAuthed()); }
+
+  function profilesInner(coord, ref, otros) {
+    return `<h3>Seleccione su perfil para ingresar</h3>
+      <div class="profiles">
+        ${coord.map(profileCard).join("")}
+        ${ref.map(profileCard).join("")}
+        ${otros.map(profileCard).join("")}
+      </div>`;
+  }
+  function loginInner() {
+    const email = (U.cloud && U.cloud.email && U.cloud.email()) || "";
+    return `<div class="access-login">
+        <div class="access-login__ico">🔒</div>
+        <h3>Ingresa para continuar</h3>
+        <p class="access-login__hint">Escribe tu correo y contraseña para entrar al portal.</p>
+        <form id="accLoginForm" class="access-login__form" autocomplete="on">
+          <div class="field"><label for="accEmail">Correo</label>
+            <input class="input" id="accEmail" type="email" autocomplete="username" value="${U.ui.esc(email)}" placeholder="correo@ejemplo.cl"></div>
+          <div class="field"><label for="accPass">Contraseña</label>
+            <input class="input" id="accPass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+          <button class="btn btn--primary btn--block" id="accLoginBtn" type="submit">Entrar al portal →</button>
+        </form>
+        <div id="accLoginMsg" class="access-login__msg"></div>
+      </div>`;
+  }
+
   function access() {
     const perfiles = U.auth.perfiles();
     const coord = perfiles.filter(p => p.rol === "coordinador");
@@ -82,12 +115,7 @@
               <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
             </div>
             <div class="access__profiles">
-              <h3>Seleccione su perfil para ingresar</h3>
-              <div class="profiles">
-                ${coord.map(profileCard).join("")}
-                ${ref.map(profileCard).join("")}
-                ${otros.map(profileCard).join("")}
-              </div>
+              ${needsLogin() ? loginInner() : profilesInner(coord, ref, otros)}
             </div>
           </div>
         </div>
@@ -101,6 +129,43 @@
 
   function accessBind(root) {
     const ui = U.ui;
+    // Gate de ingreso con correo y contraseña (nube)
+    const form = root.querySelector("#accLoginForm");
+    if (form) {
+      const msg = root.querySelector("#accLoginMsg");
+      const btn = root.querySelector("#accLoginBtn");
+      form.onsubmit = async e => {
+        e.preventDefault();
+        const email = (root.querySelector("#accEmail").value || "").trim();
+        const pass = root.querySelector("#accPass").value || "";
+        if (!email || !pass) { msg.className = "access-login__msg is-err"; msg.textContent = "Escribe tu correo y contraseña."; return; }
+        btn.disabled = true; btn.textContent = "Ingresando…"; msg.className = "access-login__msg"; msg.textContent = "";
+        try {
+          await U.cloud.signIn(email, pass);
+          setPortalAuthed(true);
+          U.cloud.initialSync();
+          U.router.render();
+        } catch (err) {
+          btn.disabled = false; btn.textContent = "Entrar al portal →";
+          const network = /fetch|network|failed|load|tunnel/i.test(err.message || "");
+          if (network) {
+            if (U.cloud.signedIn()) {
+              // Sin internet, pero este equipo ya inició sesión antes: permitir entrar con los datos locales.
+              msg.className = "access-login__msg is-warn";
+              msg.innerHTML = `Sin conexión a internet. <button type="button" class="linklike" id="accOffline">Entrar sin conexión</button> (con los datos de este equipo).`;
+              const off = root.querySelector("#accOffline");
+              if (off) off.onclick = () => { setPortalAuthed(true); U.router.render(); };
+            } else {
+              msg.className = "access-login__msg is-err";
+              msg.textContent = "Sin conexión a internet. Revisa tu conexión e intenta de nuevo.";
+            }
+          } else {
+            msg.className = "access-login__msg is-err";
+            msg.textContent = /invalid|credenciales|grant|password/i.test(err.message || "") ? "Correo o contraseña incorrectos." : (err.message || "No se pudo iniciar sesión.");
+          }
+        }
+      };
+    }
     root.querySelectorAll("[data-login]").forEach(btn => {
       btn.onclick = () => {
         const id = btn.dataset.login;

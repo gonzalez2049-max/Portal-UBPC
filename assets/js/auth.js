@@ -20,7 +20,7 @@
       return store().get("usuarios", id);
     },
     login(userId) { sessionStorage.setItem(SESSION_KEY, userId); },
-    logout() { sessionStorage.removeItem(SESSION_KEY); },
+    logout() { sessionStorage.removeItem(SESSION_KEY); try { sessionStorage.removeItem("ubpc:portalAuthed"); } catch (e) {} },
     isCoordinador() { const u = Auth.current(); return u && u.rol === "coordinador"; },
     isReferente() { const u = Auth.current(); return u && u.rol === "referente"; },
 

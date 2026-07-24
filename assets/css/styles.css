@@ -1080,6 +1080,22 @@ body.night .profile-card__chip{ color:#7fe0d0; background:rgba(18,181,165,.2); }
 body.night .access .profile-card--ref .profile-card__chip{ color:#c3aef2; background:rgba(122,92,208,.22); }
 body.night .access .profile-card .avatar--lg{ outline-color:rgba(20,34,30,.9); }
 
+/* Ingreso con contraseña en la pantalla de acceso */
+.access-login{ display:flex; flex-direction:column; gap:.15rem; max-width:340px; margin:0 auto; }
+.access-login__ico{ width:54px; height:54px; border-radius:16px; display:grid; place-items:center; font-size:1.6rem;
+  background:color-mix(in srgb, var(--c-turquesa) 14%, transparent); margin-bottom:.4rem; }
+.access-login h3{ font-family:var(--font-disp); font-weight:600; font-size:1.3rem; color:#153833; margin:0; }
+.access-login__hint{ color:#4c6f66; font-size:.95rem; margin:.25rem 0 1rem; }
+.access-login__form{ display:flex; flex-direction:column; gap:.2rem; }
+.access-login__form .field{ margin-bottom:.7rem; }
+.access-login__form .btn--block{ margin-top:.3rem; font-weight:800; }
+.access-login__msg{ min-height:1.2rem; margin-top:.7rem; font-size:.9rem; font-weight:600; }
+.access-login__msg.is-err{ color:var(--danger); }
+.access-login__msg.is-warn{ color:var(--warn); }
+.linklike{ background:none; border:none; padding:0; color:var(--azul-700); font-weight:800; cursor:pointer; text-decoration:underline; font-size:inherit; }
+body.night .access-login h3{ color:#eaf5ef; }
+body.night .access-login__hint{ color:#a9c4bb; }
+
 /* Selector de tema en el acceso (paleta + modo) */
 .access__topbar{ display:flex; align-items:flex-start; justify-content:space-between; gap:1rem 1.4rem;
   flex-wrap:wrap; margin-bottom:1.3rem; }
