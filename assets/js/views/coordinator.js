@@ -28,7 +28,6 @@
         badgeFn: () => S().all("solicitudes").filter(x => x.estado === "Completada por referente").length },
       { key: "reportes", label: "Reportes", ico: "📑" },
       { key: "usuarios", label: "Usuarios y perfiles", ico: "👥" },
-      { key: "perfil", label: "Mi perfil", ico: "🪪" },
       { key: "config", label: "Configuración", ico: "⚙️" }
     ]}
   ];
@@ -362,28 +361,6 @@
   }
 
   /* ---------- Vistas de administración ---------- */
-  function perfil() {
-    const u = ui(); const me = U.auth.current();
-    const rolLabel = { coordinador: "Coordinador/a", referente: "Referente Técnico", colaborador: "Colaborador/a" }[me.rol] || me.rol || "";
-    return `<div class="page-head"><h1>Mi perfil</h1><p>Datos visibles en la pantalla de acceso y el encabezado.</p></div>
-      <div class="prof-hero prof-hero--solo">
-        <div class="prof-hero__banner"><span class="prof-hero__glow"></span></div>
-        <div class="prof-hero__row">
-          <div class="avatar avatar--lg prof-hero__avatar">${me.foto ? `<img src="${u.esc(me.foto)}">` : u.initials(me.nombre)}</div>
-          <div class="prof-hero__id">
-            <h2>${u.esc(me.nombre)}</h2>
-            <div class="prof-hero__role">${rolLabel ? `<span class="tag tag--role">${u.esc(rolLabel)}</span>` : ""}<span class="muted">${u.esc(me.cargo || "")}</span></div>
-            <div class="kpi__sub">🏥 ${u.esc(me.unidad || "Unidad de Buenas Prácticas Clínicas – UBPC")}</div>
-          </div>
-          <button class="btn btn--primary prof-hero__edit" id="editMe">✏️ Editar mi perfil</button>
-        </div>
-      </div>`;
-  }
-  function perfilBind() {
-    const me = U.auth.current();
-    document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
-  }
-
   function usuarios() {
     const u = ui(); const list = U.auth.perfiles();
     return `<div class="page-head"><h1>Usuarios y perfiles</h1><p>Gestión de perfiles habilitados. Estructura preparada para agregar nuevos colaboradores.</p></div>
@@ -429,7 +406,21 @@
   }
 
   function config() {
-    return `<div class="page-head"><h1>Configuración</h1><p>Respaldo, trazabilidad y mantenimiento de datos.</p></div>
+    const u = ui(); const me = U.auth.current();
+    const rolLabel = { coordinador: "Coordinador/a", referente: "Referente Técnico", colaborador: "Colaborador/a" }[me.rol] || me.rol || "";
+    return `<div class="page-head"><h1>Configuración</h1><p>Tu perfil, respaldo, trazabilidad y mantenimiento de datos.</p></div>
+      <div class="prof-hero prof-hero--solo" style="margin-bottom:1.1rem">
+        <div class="prof-hero__banner"><span class="prof-hero__glow"></span></div>
+        <div class="prof-hero__row">
+          <div class="avatar avatar--lg prof-hero__avatar">${me.foto ? `<img src="${u.esc(me.foto)}">` : u.initials(me.nombre)}</div>
+          <div class="prof-hero__id">
+            <h2>${u.esc(me.nombre)}</h2>
+            <div class="prof-hero__role">${rolLabel ? `<span class="tag tag--role">${u.esc(rolLabel)}</span>` : ""}<span class="muted">${u.esc(me.cargo || "")}</span></div>
+            <div class="kpi__sub">🏥 ${u.esc(me.unidad || "Unidad de Buenas Prácticas Clínicas – UBPC")}</div>
+          </div>
+          <button class="btn btn--primary prof-hero__edit" id="editMe">✏️ Editar perfil</button>
+        </div>
+      </div>
       <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--c-turquesa)">
         <h3 class="card__title">Datos de demostración</h3>
         <p class="card__hint">Carga un conjunto de datos de ejemplo (evaluaciones RNAO, documentos, reuniones, colaboraciones, capacitaciones, solicitudes, tablero, hitos y más) para ver el portal con contenido. Reemplaza los datos actuales.</p>
@@ -451,7 +442,8 @@
       </div>`;
   }
   function configBind() {
-    const u = ui();
+    const u = ui(); const me = U.auth.current();
+    document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
     document.getElementById("expJson").onclick = () =>
       u.download("respaldo-ubpc-" + u.hoyISO() + ".json", S().exportJSON(), "application/json");
     document.getElementById("impJson").onclick = () => document.getElementById("impFile").click();
@@ -495,10 +487,10 @@
       m6: moduloEnConstruccion("Norma Técnica 234", "Cumplimiento por unidad, semáforo, planes de mejora e informe A4."),
       m7: moduloEnConstruccion("Red de Colaboración UBPC", "Asesorías, visitas técnicas, cursos y colaboraciones institucionales."),
       solicitudes: moduloEnConstruccion("Solicitudes de apoyo técnico", "Consolidación y flujo de cierre de solicitudes al Referente Técnico."),
-      perfil, usuarios, config
+      usuarios, config
     },
     binders: {
-      home: homeBind, perfil: perfilBind, usuarios: usuariosBind, config: configBind
+      home: homeBind, usuarios: usuariosBind, config: configBind
     }
   };
 })();
