@@ -144,11 +144,9 @@
           await U.cloud.signIn(email, pass);
           setPortalAuthed(true);
           try { await U.cloud.initialSync(); } catch (e) {}
-          // Entrar directo con el perfil coordinador (sin paso extra).
-          const perfiles = U.auth.perfiles();
-          const target = perfiles.find(p => p.rol === "coordinador") || perfiles[0];
-          if (target) { U.auth.login(target.id); U.router.go(target.rol === "referente" ? "#/ref/inicio" : "#/coord/home"); }
-          else U.router.render();
+          // Tras la clave, mostrar los perfiles para elegir con quién entrar
+          // (así el Referente Técnico también puede elegir su perfil).
+          U.router.render();
         } catch (err) {
           btn.disabled = false; btn.textContent = "Entrar al portal →";
           const m = err.message || "";
