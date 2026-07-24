@@ -1520,21 +1520,19 @@ body.night .nt-chip{ background:rgba(18,181,165,.2); color:#7fe0d0; }
 /* Colores de post-it */
 .kcard--alta{ background:linear-gradient(180deg,#ffe2e6,#ffd0d6); }
 .kcard--media{ background:linear-gradient(180deg,#fff4d1,#ffe9a6); }
-.kcard--baja{ background:linear-gradient(180deg,#3a434f,#252c35); color:#eaf0f6; }
-.kcard--baja .kcard__title{ color:#fff; }
-.kcard--baja .kcard__meta{ color:#b8c4d0; }
-.kcard--baja .btn-icon{ color:#dbe6f0; }
+.kcard--baja{ background:linear-gradient(180deg,#d8f5e3,#c1edcf); }
 /* Etiqueta de prioridad */
 .kprio{ display:inline-block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.6px;
   padding:.12rem .55rem; border-radius:999px; color:#fff; margin-bottom:.35rem; }
 .kprio--alta{ background:#e0526f; }
 .kprio--media{ background:#e8b21f; color:#3a2c00; }
-.kprio--baja{ background:#1c232d; color:#fff; box-shadow:0 0 0 1px rgba(255,255,255,.15) inset; }
+.kprio--baja{ background:#2f9d57; color:#fff; }
 /* En modo oscuro, los post-it claros conservan su color (son notas) */
 body.night .kcard--alta{ background:linear-gradient(180deg,#f7c9ce,#eeb2b9); color:#2a1418; }
 body.night .kcard--media{ background:linear-gradient(180deg,#f3e2ac,#e9d488); color:#33280a; }
 body.night .kcard--alta .kcard__meta,body.night .kcard--media .kcard__meta{ color:#5a5040; }
-body.night .kcard--baja{ background:linear-gradient(180deg,#3a434f,#252c35); }
+body.night .kcard--baja{ background:linear-gradient(180deg,#cdeeda,#b3e5c4); color:#153a28; }
+body.night .kcard--baja .kcard__meta{ color:#3f6b52; }
 
 /* Paneles del Inicio (actividad / línea de tiempo) con altura acotada */
 .home-scroll{ max-height:360px; overflow-y:auto; }
@@ -1542,10 +1540,10 @@ body.night .kcard--baja{ background:linear-gradient(180deg,#3a434f,#252c35); }
 /* Post-it más pastel */
 .kcard--alta{ background:linear-gradient(180deg,#ffeef0,#ffe1e5) !important; }
 .kcard--media{ background:linear-gradient(180deg,#fff8e2,#fff1c9) !important; }
-.kcard--baja{ background:linear-gradient(180deg,#525c6a,#3c4552) !important; }
+.kcard--baja{ background:linear-gradient(180deg,#e0f7ea,#cbf0d8) !important; }
 .kprio--alta{ background:#ec7d92; }
 .kprio--media{ background:#f0cf62; color:#4a3a05; }
-.kprio--baja{ background:#3c4552; color:#fff; }
+.kprio--baja{ background:#37a95f; color:#fff; }
 body.night .kcard--alta{ background:linear-gradient(180deg,#f2d3d7,#ecc2c8) !important; color:#3a2226; }
 body.night .kcard--media{ background:linear-gradient(180deg,#f2e6ba,#ecdca0) !important; color:#3a2f10; }
-body.night .kcard--baja{ background:linear-gradient(180deg,#525c6a,#3c4552) !important; }
+body.night .kcard--baja{ background:linear-gradient(180deg,#d3f0de,#bde9cb) !important; color:#153a28; }
