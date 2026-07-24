@@ -305,12 +305,13 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .kcard__meta { font-size:12px; color: var(--text-muted); display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.3rem; align-items:center; }
 
 /* Timeline */
-.timeline { position: relative; padding-left: 1.6rem; }
-.timeline::before { content:""; position:absolute; left: 8px; top: 4px; bottom: 4px; width: 3px;
+.timeline { position: relative; padding-left: 3rem; }
+.timeline::before { content:""; position:absolute; left: 16px; top: 6px; bottom: 6px; width: 3px;
   background: linear-gradient(var(--c-celeste), var(--c-morado)); border-radius: 3px; }
-.tl-item { position: relative; margin-bottom: 1rem; }
-.tl-item__dot { position:absolute; left: -1.6rem; top: 2px; width: 20px; height:20px; border-radius:50%;
-  background:#fff; border:3px solid var(--azul-700); display:grid; place-items:center; font-size:11px; }
+.tl-item { position: relative; margin-bottom: 1.05rem; }
+.tl-item__dot { position:absolute; left: -3rem; top: 0; width: 36px; height:36px; border-radius:50%;
+  background:#fff; border:2px solid var(--azul-700); display:grid; place-items:center; font-size:19px; line-height:1;
+  box-shadow:0 3px 8px -3px rgba(18,90,80,.35); }
 .tl-item__date { font-size:12px; color: var(--azul-700); font-weight:700; }
 .tl-item__title { font-weight:700; }
 .tl-item__desc { font-size:13.5px; color: var(--text-2); }
@@ -1308,3 +1309,17 @@ body.night .kcard--alta{ background:linear-gradient(180deg,#f7c9ce,#eeb2b9); col
 body.night .kcard--media{ background:linear-gradient(180deg,#f3e2ac,#e9d488); color:#33280a; }
 body.night .kcard--alta .kcard__meta,body.night .kcard--media .kcard__meta{ color:#5a5040; }
 body.night .kcard--baja{ background:linear-gradient(180deg,#3a434f,#252c35); }
+
+/* Paneles del Inicio (actividad / línea de tiempo) con altura acotada */
+.home-scroll{ max-height:360px; overflow-y:auto; }
+
+/* Post-it más pastel */
+.kcard--alta{ background:linear-gradient(180deg,#ffeef0,#ffe1e5) !important; }
+.kcard--media{ background:linear-gradient(180deg,#fff8e2,#fff1c9) !important; }
+.kcard--baja{ background:linear-gradient(180deg,#525c6a,#3c4552) !important; }
+.kprio--alta{ background:#ec7d92; }
+.kprio--media{ background:#f0cf62; color:#4a3a05; }
+.kprio--baja{ background:#3c4552; color:#fff; }
+body.night .kcard--alta{ background:linear-gradient(180deg,#f2d3d7,#ecc2c8) !important; color:#3a2226; }
+body.night .kcard--media{ background:linear-gradient(180deg,#f2e6ba,#ecdca0) !important; color:#3a2f10; }
+body.night .kcard--baja{ background:linear-gradient(180deg,#525c6a,#3c4552) !important; }

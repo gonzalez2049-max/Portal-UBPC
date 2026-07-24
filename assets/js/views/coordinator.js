@@ -220,19 +220,20 @@
       <div id="homeKanban"></div>
     </div>
 
-    <div class="section">
-      <div class="section__head"><div><h2 class="section__title">Actividad reciente</h2>
-        <p class="section__hint">Últimos movimientos registrados en el portal.</p></div></div>
-      <div class="card">${actividadHTML()}</div>
-    </div>
-
-    <div class="section">
-      <div class="section__head">
-        <div><h2 class="section__title">Línea de tiempo de hitos</h2>
-        <p class="section__hint">Principales avances institucionales de la UBPC.</p></div>
-        <button class="btn btn--primary btn--sm" id="addHito">+ Nuevo hito</button>
+    <div class="grid grid--2" style="align-items:start">
+      <div class="section" style="margin:0">
+        <div class="section__head"><div><h2 class="section__title">Actividad reciente</h2>
+          <p class="section__hint">Últimos movimientos registrados en el portal.</p></div></div>
+        <div class="card home-scroll">${actividadHTML()}</div>
       </div>
-      <div class="card" id="timelineBox">${timelineHTML()}</div>
+      <div class="section" style="margin:0">
+        <div class="section__head">
+          <div><h2 class="section__title">Línea de tiempo de hitos</h2>
+          <p class="section__hint">Principales avances de la UBPC.</p></div>
+          <button class="btn btn--primary btn--sm" id="addHito">+ Nuevo hito</button>
+        </div>
+        <div class="card home-scroll" id="timelineBox">${timelineHTML()}</div>
+      </div>
     </div>`;
   }
 
