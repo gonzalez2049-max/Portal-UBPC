@@ -47,10 +47,13 @@
   }
 
   let DB = load();
+  let _onPersist = null;
 
   function persist() {
+    DB.__updatedAt = new Date().toISOString();
     try { localStorage.setItem(ROOT, JSON.stringify(DB)); }
     catch (e) { console.error("No se pudo guardar:", e); }
+    try { if (typeof _onPersist === "function") _onPersist(); } catch (e) {}
   }
 
   function uid() {
@@ -175,7 +178,21 @@
       persist();
     },
     reset() { DB = emptyDB(); persist(); },
-    raw() { return DB; }
+    raw() { return DB; },
+
+    /* ---------- Sincronización en la nube ---------- */
+    updatedAt() { return DB.__updatedAt || null; },
+    // Registra un callback que se dispara tras cada guardado local (para subir a la nube).
+    onPersist(fn) { _onPersist = fn; },
+    // Carga datos traídos de la nube SIN volver a marcar cambios (evita re-subidas).
+    loadFromCloud(obj) {
+      if (!obj || typeof obj !== "object") return;
+      COLLECTIONS.forEach(c => { if (!Array.isArray(obj[c])) obj[c] = []; });
+      if (!obj.__seq) obj.__seq = {};
+      obj.__schema = SCHEMA_VERSION;
+      DB = obj;
+      try { localStorage.setItem(ROOT, JSON.stringify(DB)); } catch (e) {}
+    }
   };
 
   /* ---------- Registro de actividad reciente ---------- */

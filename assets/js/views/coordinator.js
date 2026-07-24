@@ -405,6 +405,79 @@
       }; } });
   }
 
+  function cloudStatusText(st) {
+    const map = {
+      pending: "Cambios pendientes de subir…",
+      syncing: "Sincronizando con la nube…",
+      ok: "✅ " + (st.msg || "Sincronizado"),
+      error: "⚠️ " + (st.msg || "Error al sincronizar")
+    };
+    return map[st.state] || "Tus datos se guardan automáticamente en la nube.";
+  }
+  function cloudCardHTML() {
+    const C = U.cloud, u = ui();
+    if (!C) return "";
+    let inner;
+    if (!C.configured()) {
+      inner = `<p class="card__hint">Conecta tu proyecto de Supabase para guardar todo en la nube. Copia los dos datos desde Supabase → <strong>Settings → API</strong>.</p>
+        <div class="form-grid">
+          <div class="field"><label>URL del proyecto</label><input class="input" id="cloudUrl" placeholder="https://xxxxx.supabase.co"></div>
+          <div class="field"><label>Clave pública (anon key)</label><input class="input" id="cloudKey" placeholder="eyJhbGciOi…"></div>
+        </div>
+        <button class="btn btn--primary" id="cloudSaveCfg">Guardar conexión</button>`;
+    } else if (!C.signedIn()) {
+      inner = `<p class="card__hint">Conexión lista ✅. Ahora inicia sesión con el usuario (correo y contraseña) que creaste en Supabase.</p>
+        <div class="form-grid">
+          <div class="field"><label>Correo</label><input class="input" id="cloudEmail" type="email" placeholder="correo@ejemplo.cl"></div>
+          <div class="field"><label>Contraseña</label><input class="input" id="cloudPass" type="password" placeholder="••••••••"></div>
+        </div>
+        <div class="btn-row"><button class="btn btn--primary" id="cloudSignIn">Iniciar sesión</button>
+          <button class="btn btn--ghost btn--sm" id="cloudReset">Cambiar conexión</button></div>`;
+    } else {
+      inner = `<div style="margin-bottom:.5rem"><span class="storage-badge storage-badge--ok">☁️ Conectado como <strong>${u.esc(C.email())}</strong></span></div>
+        <p class="card__hint" id="cloudStatus">${cloudStatusText(C.status())}</p>
+        <div class="btn-row">
+          <button class="btn btn--primary btn--sm" id="cloudSync">🔄 Sincronizar ahora</button>
+          <button class="btn btn--ghost btn--sm" id="cloudSignOut">Cerrar sesión en la nube</button>
+        </div>`;
+    }
+    return `<div class="card" style="margin-bottom:1rem;border-left:5px solid var(--c-morado)">
+      <h3 class="card__title">☁️ Sincronización en la nube (recomendado)</h3>${inner}</div>`;
+  }
+  function bindCloud() {
+    const C = U.cloud, u = ui();
+    if (!C) return;
+    C.onStatus(st => { const el = document.getElementById("cloudStatus"); if (el) el.textContent = cloudStatusText(st); });
+    const saveCfg = document.getElementById("cloudSaveCfg");
+    if (saveCfg) saveCfg.onclick = () => {
+      const url = (document.getElementById("cloudUrl").value || "").trim();
+      const key = (document.getElementById("cloudKey").value || "").trim();
+      if (!/^https:\/\/.+\.supabase\.co/.test(url)) { u.toast("Revisa la URL del proyecto (https://…supabase.co)", "danger"); return; }
+      if (key.length < 30) { u.toast("Revisa la clave pública (anon key)", "danger"); return; }
+      C.setConfig(url, key); u.toast("Conexión guardada", "ok"); U.router.render();
+    };
+    const signIn = document.getElementById("cloudSignIn");
+    if (signIn) signIn.onclick = async () => {
+      const mail = (document.getElementById("cloudEmail").value || "").trim();
+      const pass = document.getElementById("cloudPass").value || "";
+      if (!mail || !pass) { u.toast("Ingresa correo y contraseña", "danger"); return; }
+      signIn.disabled = true; signIn.textContent = "Ingresando…";
+      try {
+        await C.signIn(mail, pass);
+        u.toast("Sesión iniciada en la nube", "ok");
+        const r = await C.initialSync();
+        if (r && r.error) u.toast(r.error, "danger");
+        U.router.render();
+      } catch (e) { u.toast(e.message || "No se pudo iniciar sesión", "danger"); signIn.disabled = false; signIn.textContent = "Iniciar sesión"; }
+    };
+    const reset = document.getElementById("cloudReset");
+    if (reset) reset.onclick = () => { C.clearAll(); U.router.render(); };
+    const sync = document.getElementById("cloudSync");
+    if (sync) sync.onclick = async () => { const r = await C.syncNow(); u.toast(r && r.ok ? "Sincronizado" : (r && r.error) || "Sin cambios", r && r.ok ? "ok" : "warn"); };
+    const signOut = document.getElementById("cloudSignOut");
+    if (signOut) signOut.onclick = () => u.confirmDelete("¿Cerrar sesión en la nube en este equipo? Tus datos seguirán guardados en la nube y en este equipo.", () => { C.signOut(); U.router.render(); });
+  }
+
   function config() {
     const u = ui(); const me = U.auth.current();
     const rolLabel = { coordinador: "Coordinador/a", referente: "Referente Técnico", colaborador: "Colaborador/a" }[me.rol] || me.rol || "";
@@ -434,6 +507,7 @@
         <div id="cfg-storage" class="storage-row"><span class="muted">Comprobando estado del almacenamiento…</span></div>
         <p class="card__hint" style="margin-top:.6rem">💡 Consejo: exporta un respaldo cada cierto tiempo (abajo). Es tu copia de seguridad si cambias de navegador o equipo, o si limpias el historial.</p>
       </div>
+      ${cloudCardHTML()}
       <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--c-turquesa)">
         <h3 class="card__title">Datos de demostración</h3>
         <p class="card__hint">Carga un conjunto de datos de ejemplo (evaluaciones RNAO, documentos, reuniones, colaboraciones, capacitaciones, solicitudes, tablero, hitos y más) para ver el portal con contenido. <strong>Tu nombre y foto de perfil se conservan.</strong></p>
@@ -481,6 +555,7 @@
     const u = ui(); const me = U.auth.current();
     if (U.theme) U.theme.bindPicker(document);
     renderStorage();
+    bindCloud();
     document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
     document.getElementById("expJson").onclick = () => {
       u.download("respaldo-ubpc-" + u.hoyISO() + ".json", S().exportJSON(), "application/json");

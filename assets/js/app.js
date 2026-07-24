@@ -86,6 +86,10 @@
     U.data.seedIfEmpty();
     window.addEventListener("hashchange", U.router.render);
     U.router.render();
+    // Sincronización con la nube (si está configurada): adopta lo más reciente.
+    if (U.cloud && U.cloud.configured() && U.cloud.signedIn()) {
+      U.cloud.initialSync().then(r => { if (r && r.adopted) U.router.render(); });
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
