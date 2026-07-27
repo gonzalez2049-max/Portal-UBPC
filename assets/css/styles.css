@@ -1146,6 +1146,19 @@ body.night .pk__mode{ background:rgba(255,255,255,.05); border-color:rgba(255,25
 .switch-row input:checked + .switch::after{ transform:translateX(18px); }
 .switch-row input:focus-visible + .switch{ outline:2px solid #12b5a5; outline-offset:2px; }
 
+/* Aviso fijo cuando la nube no está guardando */
+.cloud-banner{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:2000;
+  max-width:min(660px,94vw); display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; justify-content:center;
+  background:#c62f3b; color:#fff; padding:.7rem 1rem; border-radius:14px;
+  box-shadow:0 14px 34px -12px rgba(0,0,0,.45); font-weight:700; font-size:.9rem; text-align:center;
+  animation:cloudBannerIn .25s ease; }
+.cloud-banner span{ line-height:1.35; }
+.cloud-banner button{ cursor:pointer; border:none; background:#fff; color:#c62f3b; font-weight:800;
+  padding:.35rem .8rem; border-radius:9px; font-size:.85rem; }
+.cloud-banner button:hover{ filter:brightness(.96); }
+@keyframes cloudBannerIn{ from{ opacity:0; transform:translate(-50%,10px); } to{ opacity:1; transform:translate(-50%,0); } }
+@media (prefers-reduced-motion:reduce){ .cloud-banner{ animation:none; } }
+
 /* Estado de almacenamiento (Configuración) */
 .storage-row{ display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
 .storage-badge{ display:inline-flex; align-items:center; gap:.4rem; font-weight:700; font-size:.88rem;

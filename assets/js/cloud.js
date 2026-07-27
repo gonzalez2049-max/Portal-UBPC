@@ -29,7 +29,38 @@
   function email() { return sess ? sess.email : ""; }
   function status() { return last; }
   function onStatus(cb) { statusCb = cb; }
-  function setStatus(state, msg) { last = { state, msg: msg || "", at: new Date().toISOString() }; if (statusCb) try { statusCb(last); } catch (e) {} }
+  function setStatus(state, msg) {
+    last = { state, msg: msg || "", at: new Date().toISOString() };
+    if (statusCb) try { statusCb(last); } catch (e) {}
+    updateBanner(state, msg);
+  }
+  // Aviso visible cuando la nube NO está guardando (para que no falle en silencio).
+  let _bannerTimer = null;
+  function updateBanner(state, msg) {
+    try {
+      if (!document.body) return;
+      let el = document.getElementById("cloud-banner");
+      if (state === "error") {
+        // Pequeño margen: solo avisa si el error persiste unos segundos.
+        clearTimeout(_bannerTimer);
+        _bannerTimer = setTimeout(function () {
+          if (last.state !== "error") return;
+          if (!el) {
+            el = document.createElement("div");
+            el.id = "cloud-banner"; el.className = "cloud-banner no-print";
+            document.body.appendChild(el);
+          }
+          el.innerHTML = '<span>⚠️ No se está guardando en la nube. Tus cambios están en este equipo, pero no en el respaldo.</span>' +
+            '<button type="button" id="cloud-banner-retry">Reintentar</button>';
+          const rb = document.getElementById("cloud-banner-retry");
+          if (rb) rb.onclick = function () { syncNow(); };
+        }, 4000);
+      } else {
+        clearTimeout(_bannerTimer);
+        if (el) el.remove();
+      }
+    } catch (e) {}
+  }
 
   function setConfig(url, anonKey) {
     cfg = { url: String(url || "").trim().replace(/\/+$/, ""), anonKey: String(anonKey || "").trim() };
