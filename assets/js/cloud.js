@@ -125,32 +125,30 @@
   }
 
   // ¿Lo local es solo la semilla por defecto (sin datos reales del usuario)?
+  // (No se cuenta "hitos" porque la semilla ya crea uno de inicio.)
   function localSeedOnly() {
     const s = U.store;
     const cols = ["evaluacionesRNAO", "accionesRNAO", "indicadores", "documentos",
       "planesNT234", "kanban", "actividades", "reuniones", "acuerdos", "colaboraciones",
-      "evidenciaSemana", "agendaEventos", "docsTrabajo", "recursosGuia", "hitos",
+      "evidenciaSemana", "agendaEventos", "docsTrabajo", "recursosGuia",
       "articulaciones", "reconocimientos", "nt234", "solicitudes"];
     const hasRecords = cols.some(c => (s.all(c) || []).length > 0);
     const editedProfile = (s.all("usuarios") || []).some(u => u.esPlaceholder === false);
     return !hasRecords && !editedProfile;
   }
 
-  /* Sincronización inicial. La nube es la fuente de verdad: si ya tiene
-     datos guardados, se adoptan en este equipo; si está vacía, se sube lo local. */
+  /* Sincronización inicial — REGLA SEGURA:
+     - Si en este equipo NO hay datos reales (equipo nuevo o vacío), se
+       adopta lo que haya en la nube (recuperación).
+     - Si en este equipo SÍ hay datos reales, NUNCA se sobrescriben: se
+       suben a la nube (así lo local nunca se pierde y respalda la nube). */
   async function initialSync() {
     if (!configured() || !signedIn()) return { skipped: true };
     setStatus("syncing");
     try {
-      const remote = await remoteGet();
-      if (remote && remoteHasData(remote.data)) {
-        const localTs = U.store.updatedAt();
-        const remoteTs = remote.updated_at || remote.data.__updatedAt;
-        const remoteNewer = !localTs || (remoteTs && new Date(remoteTs) >= new Date(localTs));
-        // Adoptar la nube si aquí no hay datos reales (equipo nuevo o datos
-        // perdidos) o si la nube es más reciente. Nunca pisar datos locales
-        // más nuevos con una copia vieja de la nube.
-        if (localSeedOnly() || remoteNewer) {
+      if (localSeedOnly()) {
+        const remote = await remoteGet();
+        if (remote && remoteHasData(remote.data)) {
           U.store.loadFromCloud(remote.data);
           setStatus("ok", "Datos cargados desde la nube.");
           return { adopted: true };
