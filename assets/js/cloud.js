@@ -11,10 +11,9 @@
   const U = window.UBPC;
   const CFG_KEY = "ubpc:cloud";        // { url, anonKey }
   const SESS_KEY = "ubpc:cloud:sess";  // { access_token, refresh_token, uid, email }
-  // Portal compartido: coordinador/a y referente entran con SUS propias
-  // credenciales pero trabajan sobre un único registro común.
-  const TABLE = "portal_shared";
-  const ROW_ID = "portal";
+  // Tabla que ya existe en el proyecto (una fila por usuario). Se usa la que
+  // la usuaria creó al inicio, para no depender de configuración adicional.
+  const TABLE = "portal_data";
 
   let cfg = load(CFG_KEY);
   let sess = load(SESS_KEY);
@@ -71,7 +70,7 @@
   }
 
   async function remoteGet() {
-    const q = "/rest/v1/" + TABLE + "?select=data,updated_at&id=eq." + ROW_ID + "&limit=1";
+    const q = "/rest/v1/" + TABLE + "?select=data,updated_at&limit=1";
     let res = await api(q, { method: "GET" }, true);
     if (res.status === 401 && await refresh()) res = await api(q, { method: "GET" }, true);
     if (!res.ok) throw new Error("No se pudo leer la nube (" + res.status + ").");
@@ -80,10 +79,10 @@
   }
 
   async function remoteUpsert(dbObj) {
-    const body = JSON.stringify({ id: ROW_ID, data: dbObj, updated_at: new Date().toISOString() });
+    const body = JSON.stringify({ user_id: sess.uid, data: dbObj, updated_at: new Date().toISOString() });
     const opts = { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body };
-    let res = await api("/rest/v1/" + TABLE + "?on_conflict=id", opts, true);
-    if (res.status === 401 && await refresh()) res = await api("/rest/v1/" + TABLE + "?on_conflict=id", opts, true);
+    let res = await api("/rest/v1/" + TABLE + "?on_conflict=user_id", opts, true);
+    if (res.status === 401 && await refresh()) res = await api("/rest/v1/" + TABLE + "?on_conflict=user_id", opts, true);
     if (!res.ok) throw new Error("No se pudo guardar en la nube (" + res.status + ").");
     return true;
   }
@@ -94,6 +93,18 @@
     return !!(d && Array.isArray(d.usuarios) && d.usuarios.length);
   }
 
+  // ¿Lo local es solo la semilla por defecto (sin datos reales del usuario)?
+  function localSeedOnly() {
+    const s = U.store;
+    const cols = ["evaluacionesRNAO", "accionesRNAO", "indicadores", "documentos",
+      "planesNT234", "kanban", "actividades", "reuniones", "acuerdos", "colaboraciones",
+      "evidenciaSemana", "agendaEventos", "docsTrabajo", "recursosGuia", "hitos",
+      "articulaciones", "reconocimientos", "nt234", "solicitudes"];
+    const hasRecords = cols.some(c => (s.all(c) || []).length > 0);
+    const editedProfile = (s.all("usuarios") || []).some(u => u.esPlaceholder === false);
+    return !hasRecords && !editedProfile;
+  }
+
   /* Sincronización inicial. La nube es la fuente de verdad: si ya tiene
      datos guardados, se adoptan en este equipo; si está vacía, se sube lo local. */
   async function initialSync() {
@@ -102,9 +113,17 @@
     try {
       const remote = await remoteGet();
       if (remote && remoteHasData(remote.data)) {
-        U.store.loadFromCloud(remote.data);
-        setStatus("ok", "Datos cargados desde la nube.");
-        return { adopted: true };
+        const localTs = U.store.updatedAt();
+        const remoteTs = remote.updated_at || remote.data.__updatedAt;
+        const remoteNewer = !localTs || (remoteTs && new Date(remoteTs) >= new Date(localTs));
+        // Adoptar la nube si aquí no hay datos reales (equipo nuevo o datos
+        // perdidos) o si la nube es más reciente. Nunca pisar datos locales
+        // más nuevos con una copia vieja de la nube.
+        if (localSeedOnly() || remoteNewer) {
+          U.store.loadFromCloud(remote.data);
+          setStatus("ok", "Datos cargados desde la nube.");
+          return { adopted: true };
+        }
       }
       await remoteUpsert(U.store.raw());
       setStatus("ok", "Datos respaldados en la nube.");
