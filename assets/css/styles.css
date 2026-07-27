@@ -1146,6 +1146,25 @@ body.night .pk__mode{ background:rgba(255,255,255,.05); border-color:rgba(255,25
 .switch-row input:checked + .switch::after{ transform:translateX(18px); }
 .switch-row input:focus-visible + .switch{ outline:2px solid #12b5a5; outline-offset:2px; }
 
+/* Estación Documentos: tablas, color, portada */
+.doc-page__body table{ border-collapse:collapse; width:100%; margin:.6em 0; font-size:13px; }
+.doc-page__body th{ background:#0f8f83; color:#fff; text-align:left; padding:6px 8px; border:1px solid #cdd8e2; }
+.doc-page__body td{ padding:6px 8px; border:1px solid #e2e9f0; }
+.doc-page__body td:focus,.doc-page__body th:focus{ outline:2px solid #9fd8ce; }
+.doc-tb__color{ display:inline-flex; align-items:center; cursor:pointer; position:relative; font-weight:800;
+  padding:.15rem .4rem; border-radius:8px; }
+.doc-tb__color span{ font-size:15px; line-height:1; border-bottom:3px solid #17263d; }
+.doc-tb__color input{ position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.doc-cover{ min-height:58vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; gap:6px; padding:2rem 1rem; border-bottom:2px dashed #d7e0ea; margin-bottom:1rem; }
+.doc-cover__logo{ width:90px; height:90px; object-fit:contain; }
+.doc-cover__unit{ font-family:var(--font-disp); font-weight:700; font-size:1.2rem; color:#0d5044; }
+.doc-cover__hosp{ color:#5a6b84; font-size:.82rem; }
+.doc-cover__rule{ width:80px; height:4px; border-radius:3px; background:linear-gradient(90deg,#12b5a5,#7a5cd0); margin:.6rem 0; }
+.doc-cover__title{ font-family:var(--font-disp); color:#17263d; font-size:1.7rem; margin:.2em .5em; }
+.doc-cover__sub{ color:#5b34b0; font-weight:700; }
+.doc-cover__box{ margin-top:1rem; font-size:.8rem; color:#40536f; border:1px solid #dbe6f2; border-radius:10px; padding:.6rem 1rem; }
+
 /* Aviso fijo cuando la nube no está guardando */
 .cloud-banner{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:2000;
   max-width:min(660px,94vw); display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; justify-content:center;
