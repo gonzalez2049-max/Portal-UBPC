@@ -313,7 +313,7 @@
   function m7() {
     return `<div class="page-head"><h1>Red de Colaboración UBPC</h1>
       <p>Asesorías, visitas técnicas, cursos y colaboraciones institucionales. Fechas en formato chileno.</p></div>
-      <div id="m7-chart"></div><div id="m7-body"></div>`;
+      <div id="m7-panel"></div>`;
   }
   function renderColabChart(el) {
     if (!el) return;
@@ -366,10 +366,16 @@
       <div class="kpi__value">${value}</div><div class="kpi__sub">${u.esc(sub || "")}</div></div>`;
   }
   function m7Bind() {
-    const box = document.getElementById("m7-body");
-    const draw = () => renderColabChart(document.getElementById("m7-chart"));
+    colabPanel(document.getElementById("m7-panel"));
+  }
+  // Panel reutilizable de colaboraciones (gráfico + tabla). Se usa en el
+  // módulo fusionado "Articulación y Respaldo Institucional".
+  function colabPanel(box) {
+    if (!box) return;
+    box.innerHTML = `<div id="colab-chart"></div><div id="colab-body"></div>`;
+    const draw = () => renderColabChart(document.getElementById("colab-chart"));
     draw();
-    R().mount(box, {
+    R().mount(document.getElementById("colab-body"), {
       afterChange: draw,
       collection: "colaboraciones", title: "Colaboración", icon: "🌐", withCode: true,
       hint: "Registro en tabla. Las observaciones se abren en un detalle desplegable. Código UBPC-COL-AAAA-000.",
@@ -441,4 +447,5 @@
 
   Object.assign(U.coord.views, { m6, m7 });
   Object.assign(U.coord.binders, { m6: m6Bind, m7: m7Bind });
+  U.coord.colabPanel = colabPanel;
 })();

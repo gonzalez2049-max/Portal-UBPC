@@ -62,7 +62,7 @@
       "Registra asesorías, visitas técnicas y cursos en el Módulo de Red de Colaboración.",
       "Alinea cada colaboración con un pilar estratégico de la Unidad." ],
       ej: "Coordina una visita técnica con otra UCI para conocer su bundle de prevención de LPP y registra el aprendizaje.",
-      link: { label: "Ir a Red de Colaboración", route: "#/coord/m7" } },
+      link: { label: "Ir a Red de Colaboración", route: "#/coord/m5?tab=colaboraciones" } },
     { ic: "🗂️", c: "#5f7d76", t: "Respaldar y dar trazabilidad a todo", p: [
       "Deja evidencia de cada decisión: actas, acuerdos, respaldos y códigos internos permanentes.",
       "Usa los códigos automáticos (UBPC-DOC, UBPC-REU, etc.) como referencia oficial.",

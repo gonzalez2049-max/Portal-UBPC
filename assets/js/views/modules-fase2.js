@@ -159,18 +159,22 @@
     ], histHTML);
   }
 
-  /* ===================== MÓDULO 5 — GESTIÓN, ARTICULACIÓN Y RESPALDO ===================== */
+  /* ===================== MÓDULO 5 — ARTICULACIÓN Y RESPALDO INSTITUCIONAL =====================
+     Fusiona el antiguo "Gestión y Respaldo" con "Red de Colaboración": reúne
+     reuniones, acuerdos, colaboraciones, articulación, solicitudes y documentos.
+     No elimina datos: solo agrupa colecciones ya existentes en un solo módulo. */
   const M5_TABS = [
     { key: "reuniones", label: "Participaciones y reuniones" },
-    { key: "respaldos", label: "Documentos y respaldos" },
     { key: "acuerdos", label: "Acuerdos y acciones" },
+    { key: "colaboraciones", label: "Colaboraciones y red" },
     { key: "articulacion", label: "Articulación y posicionamiento" },
-    { key: "solicitudes", label: "Solicitudes de apoyo técnico" }
+    { key: "solicitudes", label: "Solicitudes de apoyo técnico" },
+    { key: "respaldos", label: "Documentos y respaldos" }
   ];
   function m5(params) {
     const tab = (params && params.tab) || "reuniones";
-    return `<div class="page-head"><h1>Centro de Gestión, Articulación y Respaldo</h1>
-      <p>Reuniones, documentos, acuerdos, articulación institucional y solicitudes de apoyo técnico.</p></div>
+    return `<div class="page-head"><h1>Articulación y Respaldo Institucional</h1>
+      <p>Reuniones, acuerdos, colaboraciones, articulación institucional, solicitudes de apoyo técnico y documentos de respaldo, en un solo lugar.</p></div>
       ${R().tabsBar("coord", "m5", M5_TABS, tab)}
       <div id="m5-body"></div>`;
   }
@@ -182,6 +186,7 @@
     if (tab === "acuerdos") return m5Acuerdos(box);
     if (tab === "articulacion") return m5Articulacion(box);
     if (tab === "solicitudes") return U.solicitudes.coordPanel(box);
+    if (tab === "colaboraciones") return U.coord.colabPanel && U.coord.colabPanel(box);
   }
   function m5Reuniones(box) {
     R().mount(box, {
