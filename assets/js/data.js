@@ -10,7 +10,9 @@
     unidades: [
       "Emergencia Hospitalaria", "UCI Valech", "Quemados",
       "UCM 3 piso", "UCM 4 piso", "UCM 6 piso", "UTI",
-      "Clínica Asistencial", "Pabellón y Anestesia", "Todas las unidades"
+      "Clínica Asistencial", "Pabellón y Anestesia",
+      "Buenas Prácticas Clínicas", "Acceso Vascular", "Angiografía",
+      "Todas las unidades"
     ],
     estamentos: ["Enfermería", "TENS", "Médico", "Kinesiología", "Matrona", "Multiestamento", "Otro"],
     prioridades: ["alta", "media", "baja"],
