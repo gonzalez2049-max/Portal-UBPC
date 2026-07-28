@@ -77,10 +77,10 @@
   function agendaBind() {
     const container = document.getElementById("agenda-body");
     const u = ui();
-    let monthOffset = 0, selIso = null;
+    let monthOffset = 0, selIso = null, hiddenTypes = {};
 
     const draw = () => {
-      const events = buildEvents();
+      const events = buildEvents().filter(e => !hiddenTypes[e.tipo]);
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const in8 = new Date(today); in8.setDate(in8.getDate() + 8);
       const byIso = {}; events.forEach(e => { (byIso[e.iso] = byIso[e.iso] || []).push(e); });
@@ -141,11 +141,12 @@
                 <button class="btn btn--primary btn--sm" id="agc-addday2">+ Agregar evento este día</button></div>`
             : `<p class="muted" style="padding:.6rem">Sin eventos próximos.</p>`);
 
-      const vencHTML = vencidos.length ? `<div class="card" style="border-left:4px solid var(--danger);margin-bottom:1rem">
-          <h3 class="card__title" style="color:var(--danger)">⏰ Vencidos (${vencidos.length})</h3>
-          <div class="agc-list">${vencidos.slice(0, 6).map(itemHTML).join("")}</div></div>` : "";
+      const vencHTML = vencidos.length ? `<div class="card agc-venc" style="border-left:4px solid var(--danger)">
+          <h3 class="card__title" style="color:var(--danger);margin:0 0 .4rem">⏰ Vencidos (${vencidos.length})</h3>
+          <div class="agc-list" style="max-height:230px;overflow:auto">${vencidos.map(itemHTML).join("")}</div></div>` : "";
 
-      const legend = Object.keys(TIPO).map(k => `<span class="agc-leg"><i style="background:${TIPO[k].c}"></i>${TIPO[k].lab}</span>`).join("");
+      const legend = `<div class="agc-legend-t">Filtra por tipo (toca para mostrar/ocultar):</div>` +
+        `<div class="agc-legend">${Object.keys(TIPO).map(k => `<button class="agc-leg${hiddenTypes[k] ? " is-off" : ""}" data-legtype="${k}" style="--lc:${TIPO[k].c}" type="button" title="Mostrar u ocultar ${TIPO[k].lab}"><i></i>${TIPO[k].lab}</button>`).join("")}</div>`;
 
       container.innerHTML = `
         <div class="grid grid--kpi" style="margin-bottom:1rem">
@@ -154,7 +155,6 @@
           ${kpi("Vencidos", vencidos.length, "Plazos sin cerrar", vencidos.length ? "danger" : "ok", "⏰")}
           ${kpi("Este mes", mesEventos, MESES[mo] + " " + y, "info", "📆")}
         </div>
-        ${vencHTML}
         <div class="grid grid--2" style="align-items:start">
           <div class="card">
             <div class="agc-cal-head">
@@ -164,15 +164,18 @@
             </div>
             <div class="agc-grid agc-dow">${DOW.map(d => `<div class="agc-dow__c">${d}</div>`).join("")}</div>
             <div class="agc-grid">${cells}</div>
-            <div class="agc-legend">${legend}</div>
+            ${legend}
           </div>
-          <div class="card">
-            <div class="section__head" style="margin-bottom:.4rem"><h3 class="card__title" style="margin:0">${listTitle}</h3>
-              <div class="btn-row">
-                ${selIso ? `<button class="btn btn--ghost btn--sm" id="agc-clear">Ver próximos</button>
-                  <button class="btn btn--primary btn--sm" id="agc-addday">+ Agregar este día</button>`
-                  : `<button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`}</div></div>
-            <div class="agc-list">${lista}</div>
+          <div class="agc-right">
+            ${vencHTML}
+            <div class="card">
+              <div class="section__head" style="margin-bottom:.4rem"><h3 class="card__title" style="margin:0">${listTitle}</h3>
+                <div class="btn-row">
+                  ${selIso ? `<button class="btn btn--ghost btn--sm" id="agc-clear">Ver próximos</button>
+                    <button class="btn btn--primary btn--sm" id="agc-addday">+ Agregar este día</button>`
+                    : `<button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`}</div></div>
+              <div class="agc-list">${lista}</div>
+            </div>
           </div>
         </div>`;
 
@@ -184,6 +187,9 @@
       const addDay = () => eventoForm(null, () => draw(), selIso);
       const ad1 = document.getElementById("agc-addday"); if (ad1) ad1.onclick = addDay;
       const ad2 = document.getElementById("agc-addday2"); if (ad2) ad2.onclick = addDay;
+      container.querySelectorAll("[data-legtype]").forEach(b => b.onclick = () => {
+        const t = b.dataset.legtype; hiddenTypes[t] = !hiddenTypes[t]; draw();
+      });
       container.querySelectorAll("[data-evedit]").forEach(b => b.onclick = () => eventoForm(S().get("agendaEventos", b.dataset.evedit), draw));
       container.querySelectorAll("[data-evdel]").forEach(b => b.onclick = () =>
         u.confirmDelete("¿Eliminar este evento?", () => { S().remove("agendaEventos", b.dataset.evdel); draw(); }));
