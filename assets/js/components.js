@@ -105,23 +105,71 @@
       U.ui.confirmDelete("¿Eliminar esta tarjeta del tablero?", () => { U.store.remove("kanban", b.dataset.kdel); refresh(owner); });
     });
 
-    // Drag & drop
-    let dragId = null;
+    // Drag & drop: mover entre columnas Y reordenar dentro de la misma columna
+    let dragEl = null;
+
     root.querySelectorAll(".kcard").forEach(card => {
-      card.addEventListener("dragstart", e => { dragId = card.dataset.kid; e.dataTransfer.effectAllowed = "move"; });
-    });
-    root.querySelectorAll(".kanban__col").forEach(col => {
-      col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("drag-over"); });
-      col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
-      col.addEventListener("drop", e => {
-        e.preventDefault(); col.classList.remove("drag-over");
-        if (!dragId) return;
-        const newCol = col.dataset.col;
-        U.store.update("kanban", dragId, { columna: newCol });
-        dragId = null;
-        refresh(owner);
+      card.addEventListener("dragstart", e => {
+        dragEl = card;
+        card.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      card.addEventListener("dragend", () => {
+        if (dragEl) dragEl.classList.remove("dragging");
+        dragEl = null;
+        root.querySelectorAll(".kanban__col").forEach(c => c.classList.remove("drag-over"));
+        persistOrder(owner);
       });
     });
+
+    // Devuelve la tarjeta que debe quedar DESPUÉS del punto de soltado (según la Y del cursor)
+    function afterCard(drop, y) {
+      const els = [...drop.querySelectorAll(".kcard:not(.dragging)")];
+      let closest = { off: -Infinity, el: null };
+      els.forEach(el => {
+        const box = el.getBoundingClientRect();
+        const off = y - box.top - box.height / 2;
+        if (off < 0 && off > closest.off) closest = { off, el };
+      });
+      return closest.el;
+    }
+
+    root.querySelectorAll(".kanban__drop").forEach(drop => {
+      const col = drop.closest(".kanban__col");
+      drop.addEventListener("dragover", e => {
+        e.preventDefault();
+        if (!dragEl) return;
+        col.classList.add("drag-over");
+        const ref = afterCard(drop, e.clientY);
+        if (ref == null) drop.appendChild(dragEl);
+        else drop.insertBefore(dragEl, ref);
+      });
+      drop.addEventListener("dragleave", e => {
+        if (!drop.contains(e.relatedTarget)) col.classList.remove("drag-over");
+      });
+      drop.addEventListener("drop", e => {
+        e.preventDefault();
+        col.classList.remove("drag-over");
+      });
+    });
+  }
+
+  // Lee el orden visual del DOM y persiste columna + orden de cada tarjeta en una sola escritura
+  function persistOrder(owner) {
+    const root = _container;
+    if (!root) return;
+    const rest = U.store.all("kanban").filter(c => (c.owner || "coordinador") !== owner);
+    const mine = [];
+    let idx = 0;
+    root.querySelectorAll(".kanban__drop").forEach(drop => {
+      const columna = drop.dataset.colDrop;
+      drop.querySelectorAll(".kcard").forEach(el => {
+        const rec = U.store.get("kanban", el.dataset.kid);
+        if (rec) mine.push(Object.assign({}, rec, { columna, orden: idx++ }));
+      });
+    });
+    U.store.replaceAll("kanban", rest.concat(mine));
+    refresh(owner);
   }
 
   U.components = U.components || {};

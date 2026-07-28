@@ -1627,6 +1627,8 @@ body.night .nt-chip{ background:rgba(18,181,165,.2); color:#7fe0d0; }
   box-shadow:0 7px 18px -10px rgba(20,40,35,.45), 0 1px 2px rgba(20,40,35,.1);
   transition: transform .18s cubic-bezier(.22,.7,.3,1), box-shadow .18s; }
 .kcard:hover{ transform: translateY(-3px) rotate(-.7deg); box-shadow:0 16px 30px -12px rgba(20,40,35,.5); }
+.kcard[draggable="true"]{ cursor:grab; }
+.kcard.dragging{ opacity:.4; transform:rotate(-1.5deg) scale(.98); box-shadow:0 20px 34px -12px rgba(20,40,35,.6); cursor:grabbing; }
 .kcard::after{ content:""; position:absolute; right:0; bottom:0; width:0; height:0;
   border-style:solid; border-width:0 0 16px 16px; border-color:transparent transparent rgba(0,0,0,.10) rgba(0,0,0,.10);
   border-bottom-right-radius:11px; }
