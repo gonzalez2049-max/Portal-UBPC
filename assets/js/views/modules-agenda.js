@@ -46,13 +46,13 @@
     return ev.sort((a, b) => a.d - b.d);
   }
 
-  function eventoForm(rec, done) {
+  function eventoForm(rec, done, preset) {
     const u = ui();
     u.modal({
       title: rec ? "Editar evento" : "Nuevo evento",
       body: u.formHTML([
         { name: "titulo", label: "Título del evento", required: true, full: true, value: rec ? rec.titulo : "" },
-        { name: "fecha", label: "Fecha", type: "date", required: true, value: rec ? rec.fecha : u.hoyISO() },
+        { name: "fecha", label: "Fecha", type: "date", required: true, value: rec ? rec.fecha : (preset || u.hoyISO()) },
         { name: "hora", label: "Hora (opcional)", type: "time", value: rec ? rec.hora : "" },
         { name: "nota", label: "Nota (opcional)", type: "textarea", full: true, value: rec ? rec.nota : "" }
       ], {}),
@@ -104,9 +104,9 @@
         const overdue = evs.some(e => e.deadline && !e.done && dateFromIso(iso) < today);
         const dots = evs.slice(0, 4).map(e => `<i style="background:${TIPO[e.tipo].c}"></i>`).join("");
         cells += `<button class="agc-day${isToday ? " is-today" : ""}${evs.length ? " has-ev" : ""}${selIso === iso ? " is-sel" : ""}${overdue ? " is-over" : ""}"
-          ${evs.length ? `data-iso="${iso}"` : "disabled"}>
+          data-iso="${iso}" title="Ver / agregar evento el ${dnum}">
           <span class="agc-day__n">${dnum}</span>
-          ${evs.length ? `<span class="agc-day__dots">${dots}</span>` : ""}</button>`;
+          ${evs.length ? `<span class="agc-day__dots">${dots}</span>` : `<span class="agc-day__add">＋</span>`}</button>`;
       }
 
       // ---- Lista (día seleccionado o próximos) ----
@@ -136,7 +136,10 @@
           ${cuando}</a>`;
       };
       const lista = listEvents.length ? listEvents.map(itemHTML).join("")
-        : `<p class="muted" style="padding:.6rem">Sin eventos ${selIso ? "este día" : "próximos"}.</p>`;
+        : (selIso
+            ? `<div class="agc-empty"><span>📅</span><p>Sin eventos el ${u.fechaCL(dateFromIso(selIso))}.</p>
+                <button class="btn btn--primary btn--sm" id="agc-addday2">+ Agregar evento este día</button></div>`
+            : `<p class="muted" style="padding:.6rem">Sin eventos próximos.</p>`);
 
       const vencHTML = vencidos.length ? `<div class="card" style="border-left:4px solid var(--danger);margin-bottom:1rem">
           <h3 class="card__title" style="color:var(--danger)">⏰ Vencidos (${vencidos.length})</h3>
@@ -166,8 +169,9 @@
           <div class="card">
             <div class="section__head" style="margin-bottom:.4rem"><h3 class="card__title" style="margin:0">${listTitle}</h3>
               <div class="btn-row">
-                ${selIso ? `<button class="btn btn--ghost btn--sm" id="agc-clear">Ver próximos</button>` : ""}
-                <button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button></div></div>
+                ${selIso ? `<button class="btn btn--ghost btn--sm" id="agc-clear">Ver próximos</button>
+                  <button class="btn btn--primary btn--sm" id="agc-addday">+ Agregar este día</button>`
+                  : `<button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`}</div></div>
             <div class="agc-list">${lista}</div>
           </div>
         </div>`;
@@ -176,7 +180,10 @@
       document.getElementById("agc-next").onclick = () => { monthOffset++; selIso = null; draw(); };
       const clr = document.getElementById("agc-clear"); if (clr) clr.onclick = () => { selIso = null; draw(); };
       container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => { selIso = b.dataset.iso; draw(); });
-      document.getElementById("agc-newev").onclick = () => eventoForm(null, () => { selIso = null; draw(); });
+      const nev = document.getElementById("agc-newev"); if (nev) nev.onclick = () => eventoForm(null, () => { selIso = null; draw(); });
+      const addDay = () => eventoForm(null, () => draw(), selIso);
+      const ad1 = document.getElementById("agc-addday"); if (ad1) ad1.onclick = addDay;
+      const ad2 = document.getElementById("agc-addday2"); if (ad2) ad2.onclick = addDay;
       container.querySelectorAll("[data-evedit]").forEach(b => b.onclick = () => eventoForm(S().get("agendaEventos", b.dataset.evedit), draw));
       container.querySelectorAll("[data-evdel]").forEach(b => b.onclick = () =>
         u.confirmDelete("¿Eliminar este evento?", () => { S().remove("agendaEventos", b.dataset.evdel); draw(); }));

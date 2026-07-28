@@ -1182,6 +1182,15 @@ body.night .pk__mode{ background:rgba(255,255,255,.05); border-color:rgba(255,25
 .doc-anulado__motivo{ font-size:.85rem; margin-top:.2rem; }
 .doc-page__body[contenteditable="false"]{ opacity:.98; }
 
+/* Agenda: clic en cualquier día para agregar; pista "+" al pasar el cursor */
+.agc-day__add{ position:absolute; bottom:6px; left:50%; transform:translateX(-50%); opacity:0;
+  color:var(--c-turquesa); font-weight:800; font-size:1rem; transition:opacity .15s ease; pointer-events:none; }
+.agc-day:hover .agc-day__add{ opacity:.75; }
+.agc-day:hover{ box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--c-turquesa) 45%, transparent); }
+.agc-empty{ text-align:center; padding:1.5rem .6rem; color:var(--text-muted); }
+.agc-empty span{ font-size:1.9rem; display:block; margin-bottom:.3rem; }
+.agc-empty p{ margin:.2rem 0 .9rem; }
+
 /* Observaciones editables del informe NT 234 (placeholder solo en pantalla) */
 .nt-inf__obs-box{ outline:none; }
 .nt-inf__obs-box:empty::before{ content:attr(data-ph); color:#9aa7b6; }
