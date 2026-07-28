@@ -12,6 +12,12 @@
       "UCM 3 piso", "UCM 4 piso", "UCM 6 piso", "UTI",
       "Clínica Asistencial", "Pabellón y Anestesia",
       "Buenas Prácticas Clínicas", "Acceso Vascular", "Angiografía",
+      "Subdirección de Gestión del Cuidado", "Hospitalización Domiciliaria",
+      "Control Post Alta", "Epidemiología – Gestión RedCap",
+      "Programa Control Infecciones – IAAS", "Calidad y Seguridad del Paciente",
+      "Gestión de Casos · Oncología", "Gestión de Casos · Psiquiatría y Psicología de Enlace",
+      "Gestión de Casos · Medicina Paliativa", "Gestión de Casos · Nefrología",
+      "Gestión de Casos · Neurología",
       "Todas las unidades"
     ],
     estamentos: ["Enfermería", "TENS", "Médico", "Kinesiología", "Matrona", "Multiestamento", "Otro"],
