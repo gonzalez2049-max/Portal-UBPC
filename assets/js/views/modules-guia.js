@@ -71,6 +71,42 @@
       link: { label: "Ir a Gestión y Respaldo", route: "#/coord/m5" } }
   ];
 
+  // Caja de herramientas para implementar el Programa RNAO / BPSO
+  const RNAO_TOOLKIT = [
+    { ic: "🎯", t: "Seleccionar y priorizar la guía BPSO", c: "#12b5a5",
+      d: "Elige guías de buenas prácticas con impacto clínico y factibilidad en tu realidad; parte con pocas y prioriza según las brechas.",
+      b: ["Vincula la guía a un problema real (LPP, accesos, dolor).", "Evalúa factibilidad: recursos, equipo y datos disponibles.", "Formaliza el compromiso institucional."],
+      src: "RNAO · BPSO Designation" },
+    { ic: "📊", t: "Establecer la línea base", c: "#1e9fe0",
+      d: "Mide el cumplimiento inicial antes de intervenir; es tu punto de comparación para demostrar mejora.",
+      b: ["Define indicadores y método de medición.", "Audita una muestra representativa.", "Registra la línea base en el portal."],
+      src: "RNAO · evaluación diagnóstica" },
+    { ic: "🤝", t: "Conformar la Red Champion", c: "#7a5cd0",
+      d: "Los Champions acercan la guía al trabajo diario de cada unidad; elige referentes con liderazgo clínico.",
+      b: ["Un Champion por guía y por unidad.", "Roles claros y complementarios.", "Reconocimiento y red de intercambio."],
+      src: "RNAO · Best Practice Champions" },
+    { ic: "🗺️", t: "Plan de implementación", c: "#37a04a",
+      d: "Traduce la guía en acciones con responsables y plazos, abordando las barreras reales del contexto.",
+      b: ["Identifica barreras y facilitadores.", "Define actividades, responsables y fechas.", "Integra la práctica al flujo del turno."],
+      src: "RNAO · Knowledge-to-Action" },
+    { ic: "🎓", t: "Capacitación y difusión", c: "#0f8f83",
+      d: "Refuerza la práctica con cápsulas breves por turno, no solo con jornadas puntuales.",
+      b: ["Contenidos aplicados a la conducta clínica.", "Registra la cobertura por estamento.", "Combina difusión visual y práctica."],
+      src: "RNAO · transferencia del conocimiento" },
+    { ic: "📈", t: "Seguimiento con indicadores", c: "#1554b8",
+      d: "Monitorea el cumplimiento con auditorías periódicas y actúa ante cada semáforo amarillo o rojo.",
+      b: ["Usa metodología comparable en el tiempo.", "Retroalimenta rápido a la unidad.", "Documenta avances y estancamientos."],
+      src: "RNAO / NQuIRE · indicadores" },
+    { ic: "🔧", t: "Acciones de mejora ante brechas", c: "#e0912f",
+      d: "Cada brecha detectada se traduce en una acción concreta con responsable y plazo, no en un informe.",
+      b: ["Prioriza la unidad o indicador con mayor brecha.", "Acuerda 2-3 acciones alcanzables.", "Cierra el ciclo y verifica el resultado."],
+      src: "RNAO · mejora continua" },
+    { ic: "♾️", t: "Sostenibilidad e institucionalización", c: "#5f7d76",
+      d: "Asegura que la práctica se mantenga: protocolos vigentes, auditorías y respaldo institucional.",
+      b: ["Estandariza en protocolos y flujos.", "Define la periodicidad de auditoría.", "Institucionaliza con acuerdos y responsables."],
+      src: "RNAO · sustainability" }
+  ];
+
   function guia() {
     return `<div class="page-head"><h1>Guía para el Coordinador/a</h1>
       <p>Orientaciones prácticas para conducir la UBPC, con la evidencia y las brechas del portal como apoyo.</p></div>
@@ -96,6 +132,19 @@
           </span>
           <span class="orient-card__go">Ver orientación →</span>
         </button>`).join("")}</div>
+      </div>
+      <div class="section tk-box">
+        <div class="tk-box__eyebrow">Caja de herramientas del Coordinador</div>
+        <h2 class="tk-box__title">Cómo implementar, movilizar y sostener el Programa RNAO / BPSO</h2>
+        <p class="tk-box__sub">Ruta práctica del programa RNAO traducida al contexto operativo de un hospital público.</p>
+        <div class="tk-grid">${RNAO_TOOLKIT.map((g, i) => `<div class="tk-card" style="--tc:${g.c}">
+          <div class="tk-card__top"><span class="tk-card__ic">${g.ic}</span>
+            <div class="tk-card__head"><span class="tk-card__num">GUÍA ${String(i + 1).padStart(2, "0")}</span>
+              <h4 class="tk-card__t">${ui().esc(g.t)}</h4></div></div>
+          <p class="tk-card__d">${ui().esc(g.d)}</p>
+          <ul class="tk-card__b">${g.b.map(x => `<li>${ui().esc(x)}</li>`).join("")}</ul>
+          <div class="tk-card__src">${ui().esc(g.src)}</div>
+        </div>`).join("")}</div>
       </div>
       <div class="section">
         <div class="section__head"><div><h2 class="section__title">Recursos y enlaces de la Unidad</h2>
