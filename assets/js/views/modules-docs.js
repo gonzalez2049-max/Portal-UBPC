@@ -194,7 +194,13 @@
       <h2>Desafíos y proyecciones</h2><p><em>(Define las metas y focos para el próximo período.)</em></p>`;
   }
 
-  function mount(container) { renderList(container); }
+  function mount(container, params) {
+    if (params && params.doc) {
+      const d = S().get("docsTrabajo", params.doc);
+      if (d) { openEditor(container, d); return; }
+    }
+    renderList(container);
+  }
 
   /* ---------- Listado + galería de plantillas ---------- */
   function renderList(container) {
@@ -649,5 +655,5 @@
     _logo = "assets/img/huap-logo.png"; return _logo;
   }
 
-  U.docsEditor = { mount };
+  U.docsEditor = { mount, ESTADOS, estadoDe, plMeta };
 })();

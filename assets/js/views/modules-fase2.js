@@ -31,7 +31,7 @@
   function m1Bind(main, params) {
     const tab = (params && params.tab) || "procesos";
     const box = document.getElementById("m1-tab");
-    if (tab === "docs") { U.docsEditor.mount(box); return; }
+    if (tab === "docs") { U.docsEditor.mount(box, params); return; }
     box.innerHTML = `<div id="m1-kpi"></div><div id="m1-body"></div>`;
     procesosApoyo();
   }
@@ -215,8 +215,47 @@
       rowActions: [{ ico: "🤝", title: "Generar acuerdo desde la reunión", fn: (rec) => crearAcuerdoDesde(rec) }]
     });
   }
+  // Registro maestro: vincula automáticamente los Documentos UBPC (estación
+  // tipo Word) sin duplicarlos — muestra código, versión, responsable, estado
+  // y última acción, con acceso directo al documento.
+  function renderRegistroMaestro(cont) {
+    const u = ui();
+    const docs = S().all("docsTrabajo").sort((a, b) => new Date(b.fechaModificacion || 0) - new Date(a.fechaModificacion || 0));
+    const meta = U.docsEditor || {};
+    const estadoDe = meta.estadoDe || (() => ({ label: "—", color: "#8a94a6", ic: "" }));
+    const plMeta = meta.plMeta || (() => ({ label: "Documento" }));
+    const ultimaAccion = d => {
+      const h = d.historial && d.historial.length ? d.historial[d.historial.length - 1] : null;
+      if (h) return h.accion + " · " + u.fechaCL(h.fecha);
+      return "Modificado · " + u.fechaCL(d.fechaModificacion);
+    };
+    const responsable = d => d.finalizadoPor || d.aprobadoPor || d.modificadoPor || d.creadoPor || "—";
+    const filas = docs.map(d => {
+      const est = estadoDe(d), p = plMeta(d.plantilla);
+      return `<tr>
+        <td>${d.codigo ? `<span class="mono">${u.esc(d.codigo)}</span>` : `<span class="muted">— sin código —</span>`}</td>
+        <td><strong>${u.esc(d.titulo || "Documento")}</strong><div class="kpi__sub">${u.esc(p.label)}</div></td>
+        <td>v${d.version || 1}</td>
+        <td><span class="doc-estado doc-estado--sm" style="--ec:${est.color}">${est.ic} ${u.esc(est.label)}</span></td>
+        <td>${u.esc(responsable(d))}</td>
+        <td>${u.esc(ultimaAccion(d))}</td>
+        <td class="acciones"><a class="btn btn--ghost btn--sm" href="#/coord/m1?tab=docs&doc=${d.id}">Abrir ↗</a></td>
+      </tr>`;
+    }).join("");
+    const finalizados = docs.filter(d => d.estado === "finalizado").length;
+    cont.innerHTML = `
+      <div class="section__head"><div><h3 class="section__title">Registro maestro · Documentos UBPC</h3>
+        <p class="section__hint">Vinculado automáticamente a la estación de Documentos (Apoyo y Mejora). ${docs.length} documento(s), ${finalizados} finalizado(s).</p></div>
+        <a class="btn btn--primary btn--sm" href="#/coord/m1?tab=docs">+ Nuevo documento</a></div>
+      ${docs.length ? `<div class="table-wrap"><table class="tbl"><thead><tr>
+        <th>Código</th><th>Documento</th><th>Versión</th><th>Estado</th><th>Responsable</th><th>Última acción</th><th></th>
+        </tr></thead><tbody>${filas}</tbody></table></div>`
+        : u.empty("Aún no hay documentos UBPC.", "Créalos en Apoyo y Mejora → Documentos de trabajo; aquí aparecerán con su código y estado.", "🗂️")}`;
+  }
   function m5Respaldos(box) {
-    R().mount(box, {
+    box.innerHTML = `<div id="doc-registro"></div><div class="section__head" style="margin-top:1.4rem"><div><h3 class="section__title">Otros respaldos</h3><p class="section__hint">Documentos externos, escaneos, presentaciones y enlaces.</p></div></div><div id="respaldos-mount"></div>`;
+    renderRegistroMaestro(document.getElementById("doc-registro"));
+    R().mount(document.getElementById("respaldos-mount"), {
       collection: "respaldos", title: "Documento o respaldo", icon: "🗄️",
       hint: "Documentos, informes, actas, presentaciones, memorandos y resoluciones.",
       newLabel: "Nuevo respaldo",
