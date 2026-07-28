@@ -23,7 +23,7 @@
     solicitudes: "SOL", reuniones: "REU", acuerdos: "ACU",
     documentos: "DOC", edicionesEVI: "EVI", colaboraciones: "COL",
     actividades: "CAP", articulaciones: "ART", accionesRNAO: "ACC",
-    evidenciaSemana: "EVA"
+    evidenciaSemana: "EVA", docsTrabajo: "DOC"
   };
 
   function emptyDB() {

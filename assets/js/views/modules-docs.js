@@ -103,6 +103,29 @@
         <h2>Evidencia que la respalda</h2><p>Referencia a la evidencia científica o datos locales.</p>
         <h2>Lecciones aprendidas</h2><p>Aprendizajes y condiciones para replicarla.</p>`
     },
+    planRNAO: {
+      label: "Plan RNAO / BPSO", ic: "🧭", color: "#12b5a5",
+      titulo: "Plan de Implementación RNAO / BPSO · UBPC",
+      html: `<h2>1. Guía BPSO y unidad</h2><p>Guía de buenas prácticas y unidad(es) implementadoras.</p>
+        <h2>2. Línea base</h2><p>Cumplimiento inicial y brechas detectadas.</p>
+        <h2>3. Objetivos e indicadores</h2>
+        <table><thead><tr><th>Indicador</th><th>Línea base</th><th>Meta</th><th>Plazo</th></tr></thead>
+        <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+        <h2>4. Actividades de implementación</h2><ol><li>Actividad 1</li><li>Actividad 2</li></ol>
+        <h2>5. Red Champion y responsables</h2><p>Champions por unidad y responsables del seguimiento.</p>
+        <h2>6. Evaluación y sostenibilidad</h2><p>Auditorías, periodicidad y estrategia de sostenibilidad.</p>`
+    },
+    planFortalecimiento: {
+      label: "Plan de Fortalecimiento", ic: "💪", color: "#e0526f",
+      titulo: "Plan de Fortalecimiento de Buenas Prácticas · UBPC",
+      html: `<h2>1. Diagnóstico</h2><p>Situación actual y necesidades de fortalecimiento detectadas.</p>
+        <h2>2. Objetivos</h2><ul><li>Objetivo 1</li><li>Objetivo 2</li></ul>
+        <h2>3. Líneas de acción</h2>
+        <table><thead><tr><th>Línea de acción</th><th>Responsable</th><th>Plazo</th><th>Indicador</th></tr></thead>
+        <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+        <h2>4. Recursos y coordinación</h2><p>Recursos requeridos y articulación con otras unidades.</p>
+        <h2>5. Seguimiento</h2><p>Cómo y cuándo se evaluará el fortalecimiento.</p>`
+    },
     memo: {
       label: "Memorándum", ic: "✉️", color: "#5f7d76",
       titulo: "Memorándum · UBPC",
@@ -188,14 +211,16 @@
     const list = docs.length
       ? `<div class="grid grid--3">${docs.map(d => {
           const p = plMeta(d.plantilla);
+          const dst = estadoDe(d);
           return `<div class="doc-card" style="--tc:${p.color}">
             <div class="doc-card__top"><span class="doc-card__ic">${p.ic}</span>
-              <span class="doc-card__tag">${u.esc(p.label)}</span></div>
+              <span class="doc-card__tag">${u.esc(p.label)}</span>
+              <span class="doc-estado doc-estado--sm" style="--ec:${dst.color}">${dst.ic} ${u.esc(dst.label)}</span></div>
             <h4 class="doc-card__title">${u.esc(d.titulo || "Documento sin título")}</h4>
-            <div class="doc-card__meta">Modificado ${u.fechaCL(d.fechaModificacion)}${d.modificadoPor ? " · " + u.esc(d.modificadoPor) : ""}</div>
+            <div class="doc-card__meta">${d.codigo ? `<span class="mono">${u.esc(d.codigo)}</span> · ` : ""}v${d.version || 1} · Modificado ${u.fechaCL(d.fechaModificacion)}</div>
             <div class="doc-card__acts">
               <button class="btn btn--primary btn--sm" data-open="${d.id}">Abrir</button>
-              <button class="btn btn--ghost btn--sm" data-del="${d.id}">🗑️</button></div></div>`;
+              ${(d.estado && d.estado !== "borrador") ? "" : `<button class="btn btn--ghost btn--sm" data-del="${d.id}">🗑️</button>`}</div></div>`;
         }).join("")}</div>`
       : u.empty("Aún no hay documentos.", "Elige una plantilla arriba para crear tu primer documento institucional.", "🗂️");
 
@@ -212,6 +237,101 @@
       u.confirmDelete("¿Eliminar este documento?", () => { S().remove("docsTrabajo", b.dataset.del); renderList(container); }));
   }
 
+  /* ---------- Flujo documental (Etapa 4) ---------- */
+  const ESTADOS = {
+    borrador: { label: "Borrador", color: "#8a94a6", ic: "✏️" },
+    aprobado: { label: "Aprobado por Coordinador", color: "#e0912f", ic: "✔️" },
+    finalizado: { label: "Finalizado", color: "#1f9d57", ic: "🔒" },
+    anulado: { label: "Anulado", color: "#c62f3b", ic: "🚫" }
+  };
+  const estadoDe = d => ESTADOS[(d && d.estado) || "borrador"] || ESTADOS.borrador;
+  function logHist(d, accion, detalle) {
+    const me = U.auth.current();
+    const h = (d && d.historial ? d.historial : []).slice();
+    h.push({ accion, detalle: detalle || "", por: me ? me.nombre : "Sistema", fecha: new Date().toISOString() });
+    return h;
+  }
+  function firmaHTML(rec) {
+    const u = ui();
+    const nombre = rec.finalizadoPor || (U.auth.current() ? U.auth.current().nombre : "");
+    const fecha = rec.fechaFinalizado ? u.fechaCL(rec.fechaFinalizado) : u.fechaCL(new Date());
+    return `<div class="doc-firma">
+      <div class="doc-firma__line"></div>
+      <div class="doc-firma__name">${u.esc(nombre)}</div>
+      <div class="doc-firma__role">Coordinador/a · Unidad de Buenas Prácticas Clínicas – UBPC</div>
+      <div class="doc-firma__stamp">Espacio para firma y timbre</div>
+      <div class="doc-firma__meta">${rec.codigo ? u.esc(rec.codigo) + " · " : ""}Versión ${rec.version || 1} · ${fecha}</div>
+    </div>`;
+  }
+  const reopen = (container, id) => openEditor(container, S().get("docsTrabajo", id));
+
+  function aprobar(container, doc) {
+    const u = ui();
+    u.modal({ title: "Aprobar documento",
+      body: `<p>Al aprobar, el Coordinador/a autoriza este documento. Luego podrás asignarle un código oficial y finalizarlo.</p>
+        <p class="card__hint">Documento: <strong>${u.esc(doc.titulo)}</strong></p>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>✔️ Aprobar</button>`,
+      onMount(m) { m.querySelector("[data-ok]").onclick = () => {
+        S().update("docsTrabajo", doc.id, { estado: "aprobado", aprobadoPor: (U.auth.current() || {}).nombre, fechaAprobado: new Date().toISOString(), historial: logHist(doc, "Aprobado por Coordinador") });
+        u.closeModal(); u.toast("Documento aprobado", "ok"); reopen(container, doc.id);
+      }; } });
+  }
+  function finalizar(container, doc) {
+    const u = ui();
+    u.modal({ title: "Asignar código y finalizar",
+      body: `<p>Se asignará un <strong>código oficial</strong>, el documento quedará <strong>bloqueado</strong> y se agregará el espacio de <strong>firma y timbre</strong> del Coordinador/a.</p>
+        <p class="card__hint">Podrás crear una nueva versión más adelante si necesitas cambios.</p>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>🔒 Asignar código y finalizar</button>`,
+      onMount(m) { m.querySelector("[data-ok]").onclick = () => {
+        const codigo = doc.codigo || S().nextCode("docsTrabajo");
+        S().update("docsTrabajo", doc.id, { estado: "finalizado", codigo, finalizadoPor: (U.auth.current() || {}).nombre, fechaFinalizado: new Date().toISOString(), historial: logHist(doc, "Finalizado y codificado", codigo) });
+        u.closeModal(); u.toast("Documento finalizado · " + codigo, "ok"); reopen(container, doc.id);
+      }; } });
+  }
+  function volverBorrador(container, doc) {
+    const u = ui();
+    u.modal({ title: "Volver a borrador",
+      body: `<p>El documento volverá a estar <strong>editable</strong> como borrador. Se registra en el historial.</p>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>Volver a borrador</button>`,
+      onMount(m) { m.querySelector("[data-ok]").onclick = () => {
+        S().update("docsTrabajo", doc.id, { estado: "borrador", historial: logHist(doc, "Devuelto a borrador") });
+        u.closeModal(); reopen(container, doc.id);
+      }; } });
+  }
+  function nuevaVersion(container, doc) {
+    const u = ui();
+    const root = doc.origenId || doc.id;
+    const sameRoot = S().all("docsTrabajo").filter(x => (x.origenId || x.id) === root);
+    const maxV = Math.max.apply(0, sameRoot.map(x => x.version || 1));
+    const nueva = S().insert("docsTrabajo", {
+      titulo: doc.titulo, plantilla: doc.plantilla, contenido: doc.contenido, tamano: doc.tamano || "a4",
+      estado: "borrador", version: maxV + 1, origenId: root,
+      historial: logHist({}, "Nueva versión creada", "a partir de " + (doc.codigo || ("v" + (doc.version || 1))))
+    });
+    u.toast("Nueva versión creada (v" + nueva.version + ")", "ok");
+    openEditor(container, nueva);
+  }
+  function anular(container, doc) {
+    const u = ui();
+    u.modal({ title: "Anular documento",
+      body: `<p>La anulación requiere un <strong>motivo</strong>. El documento queda marcado como <strong>ANULADO</strong>; no se elimina y su historial se conserva.</p>`
+        + u.formHTML([{ name: "motivo", label: "Motivo de la anulación", type: "textarea", required: true, full: true }], {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--danger" data-ok>🚫 Anular</button>`,
+      onMount(m) { m.querySelector("[data-ok]").onclick = () => {
+        const d = u.readForm(m); if (!d.motivo) { u.toast("Indica el motivo", "danger"); return; }
+        S().update("docsTrabajo", doc.id, { estado: "anulado", anuladoPor: (U.auth.current() || {}).nombre, fechaAnulado: new Date().toISOString(), motivoAnulacion: d.motivo, historial: logHist(doc, "Anulado", d.motivo) });
+        u.closeModal(); u.toast("Documento anulado", "ok"); reopen(container, doc.id);
+      }; } });
+  }
+  function verHistorial(doc) {
+    const u = ui();
+    const h = (doc.historial || []).slice().reverse();
+    const rows = h.length ? h.map(x => `<li><span class="feed__ico">📌</span><div><strong>${u.esc(x.accion)}</strong>${x.detalle ? " · " + u.esc(x.detalle) : ""}
+      <div class="feed__meta">${u.esc(x.por)} · ${u.fechaHoraCL(x.fecha)}</div></div></li>`).join("") : "<li>Sin movimientos registrados.</li>";
+    u.modal({ title: "Historial del documento", body: `<ul class="feed">${rows}</ul>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>` });
+  }
+
   /* ---------- Editor ---------- */
   function openEditor(container, rec, tplKey) {
     const u = ui();
@@ -220,6 +340,12 @@
     const me = U.auth.current();
     const titulo = rec ? (rec.titulo || p.titulo) : p.titulo;
     const contenido = rec ? (rec.contenido || tplContenido(p)) : tplContenido(p);
+
+    const estado = (rec && rec.estado) || "borrador";
+    const est = ESTADOS[estado] || ESTADOS.borrador;
+    const locked = estado !== "borrador";
+    const version = (rec && rec.version) || 1;
+    const codigo = rec && rec.codigo;
 
     const tools = [
       { c: "bold", ic: "𝗕", t: "Negrita" }, { c: "italic", ic: "𝘐", t: "Cursiva" }, { c: "underline", ic: "U̲", t: "Subrayado" },
@@ -253,28 +379,42 @@
       + `<span class="doc-tb__sep"></span><button class="doc-tb__btn doc-tb__wide" id="doc-pagebreak" title="Insertar salto de página" type="button">⤓ Salto de hoja</button>`
       + `<button class="doc-tb__btn doc-tb__wide" id="doc-cover-btn" title="Insertar portada institucional" type="button">🏛️ Portada</button>`;
 
+    const estadoBadge = `<span class="doc-estado" style="--ec:${est.color}">${est.ic} ${u.esc(est.label)}${codigo ? " · " + u.esc(codigo) : ""}${(version > 1 || locked) ? " · v" + version : ""}</span>`;
+    let wf = "";
+    if (estado === "borrador") wf = `<button class="btn btn--primary btn--sm" id="wf-aprobar">✔️ Aprobar (Coordinador)</button>`;
+    else if (estado === "aprobado") wf = `<button class="btn btn--primary btn--sm" id="wf-finalizar">🔒 Asignar código y finalizar</button><button class="btn btn--ghost btn--sm" id="wf-borrador">↩️ Volver a borrador</button>`;
+    else if (estado === "finalizado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button><button class="btn btn--ghost btn--sm" id="wf-anular">🚫 Anular</button>`;
+    else if (estado === "anulado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button>`;
+    const histBtn = rec ? `<button class="btn btn--ghost btn--sm" id="wf-hist">🕘 Historial</button>` : "";
+    const firmaBlock = estado === "finalizado" ? firmaHTML(rec) : "";
+    const anuladoBlock = estado === "anulado"
+      ? `<div class="doc-anulado"><div class="doc-anulado__sello">ANULADO</div><div class="doc-anulado__motivo"><strong>Motivo:</strong> ${u.esc(rec.motivoAnulacion || "—")}</div></div>` : "";
+
     container.innerHTML = `
       <div class="doc-editor">
         <div class="doc-bar no-print">
           <button class="btn btn--ghost btn--sm" id="doc-back">← Volver</button>
-          <div class="doc-bar__title"><span class="tag" style="background:${p.color}22;color:${p.color}">${p.ic} ${u.esc(p.label)}</span></div>
+          <div class="doc-bar__title"><span class="tag" style="background:${p.color}22;color:${p.color}">${p.ic} ${u.esc(p.label)}</span> ${estadoBadge}</div>
           <div class="btn-row">
+            ${histBtn}
             <button class="btn btn--ghost btn--sm" id="doc-print">🖨️ Imprimir / PDF</button>
             <button class="btn btn--ghost btn--sm" id="doc-word">📄 Word</button>
-            <button class="btn btn--primary btn--sm" id="doc-save">💾 Guardar</button>
+            ${locked ? "" : `<button class="btn btn--primary btn--sm" id="doc-save">💾 Guardar</button>`}
           </div>
         </div>
-        <div class="doc-tb no-print">${toolbar}</div>
+        <div class="doc-wf no-print">${wf}${locked ? `<span class="doc-wf__lock">🔒 Documento bloqueado (solo lectura)</span>` : ""}</div>
+        ${locked ? "" : `<div class="doc-tb no-print">${toolbar}</div>`}
         <div class="doc-page" id="doc-page">
           <div class="doc-page__franja"></div>
           <div class="doc-page__hd">
             <div class="doc-page__brand"><img src="assets/img/huap-logo.png" alt="HUAP">
               <div><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong>
               <div class="muted">Hospital de Urgencia Asistencia Pública</div></div></div>
-            <div class="doc-page__meta">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}</div>
+            <div class="doc-page__meta">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}${codigo ? `<br><span class="mono">${u.esc(codigo)}</span>` : ""}</div>
           </div>
-          <input class="doc-page__title" id="doc-title" value="${u.esc(titulo)}" placeholder="Título del documento">
-          <div class="doc-page__body" id="doc-body" contenteditable="true">${contenido}</div>
+          <input class="doc-page__title" id="doc-title" value="${u.esc(titulo)}" placeholder="Título del documento" ${locked ? "readonly" : ""}>
+          <div class="doc-page__body" id="doc-body" contenteditable="${locked ? "false" : "true"}">${contenido}</div>
+          ${anuladoBlock}${firmaBlock}
         </div>
       </div>`;
 
@@ -288,6 +428,7 @@
     function applySheet(v) { sheet = SHEET_W[v] ? v : "a4"; page.style.maxWidth = SHEET_W[sheet]; page.dataset.sheet = sheet; }
     applySheet(sheet);
 
+    if (!locked) {
     // El formato se aplica como CSS (para que negrita/fuente/tamaño se impriman igual)
     try { document.execCommand("styleWithCSS", false, true); } catch (e) {}
 
@@ -394,16 +535,28 @@
         + `</div><div class="doc-pagebreak" contenteditable="false">Salto de hoja</div><p><br></p>`;
       bodyEl.insertAdjacentHTML("afterbegin", cover);
     });
+    } // fin handlers de edición (documento no bloqueado)
 
     let current = rec;
     document.getElementById("doc-back").onclick = () => renderList(container);
-    document.getElementById("doc-save").onclick = () => {
+    function doSave(silent) {
       const data = { titulo: titleEl.value.trim() || p.titulo, plantilla, contenido: bodyEl.innerHTML, tamano: sheet };
       if (current) S().update("docsTrabajo", current.id, data);
-      else current = S().insert("docsTrabajo", data);
-      u.toast("Documento guardado", "ok");
-    };
-    document.getElementById("doc-print").onclick = () => printDoc(titleEl.value, bodyEl.innerHTML, me, sheet);
+      else current = S().insert("docsTrabajo", Object.assign({ estado: "borrador", version: 1 }, data));
+      if (!silent) u.toast("Documento guardado", "ok");
+      return current;
+    }
+    const saveBtn = document.getElementById("doc-save");
+    if (saveBtn) saveBtn.onclick = () => doSave();
+    // Flujo documental: aprobar → código/finalizar → versiones / anular
+    const wfBtn = (id, fn) => { const b = document.getElementById(id); if (b) b.onclick = fn; };
+    wfBtn("wf-aprobar", () => aprobar(container, doSave(true)));
+    wfBtn("wf-finalizar", () => finalizar(container, current));
+    wfBtn("wf-borrador", () => volverBorrador(container, current));
+    wfBtn("wf-version", () => nuevaVersion(container, current));
+    wfBtn("wf-anular", () => anular(container, current));
+    wfBtn("wf-hist", () => verHistorial(current));
+    document.getElementById("doc-print").onclick = () => printDoc(titleEl.value, bodyEl.innerHTML, me, sheet, current);
     document.getElementById("doc-word").onclick = () => {
       const title = titleEl.value || p.titulo;
       const franja = `<div style="border-top:6px solid #12b5a5;height:0;margin:0 0 10px"></div>`;
@@ -419,10 +572,11 @@
     };
   }
 
-  function printDoc(titulo, html, me, sheet) {
+  function printDoc(titulo, html, me, sheet, rec) {
     const u = ui();
     const w = window.open("", "_blank");
     if (!w) { u.toast("Permite las ventanas emergentes para imprimir", "danger"); return; }
+    rec = rec || {};
     const fr = new URL("assets/fonts/fraunces.woff2", document.baseURI).href;
     const ns = new URL("assets/fonts/nunitosans.woff2", document.baseURI).href;
     const PAGE = { a4: "A4", carta: "216mm 279mm", oficio: "216mm 330mm" };
@@ -459,12 +613,23 @@
         th{background:#0f8f83;color:#fff;text-align:left;padding:6px 8px;border:1px solid #cdd8e2}
         td{padding:6px 8px;border:1px solid #e2e9f0}
         .doc-pagebreak{break-before:page;page-break-before:always;height:0;color:transparent;font-size:0}
+        .doc-firma{margin-top:60px;text-align:center;break-inside:avoid}
+        .doc-firma__line{width:270px;border-top:1px solid #17263d;margin:0 auto 6px}
+        .doc-firma__name{font-weight:700;color:#17263d}
+        .doc-firma__role{color:#5a6b84;font-size:12px}
+        .doc-firma__stamp{margin-top:12px;color:#9aa7b6;font-size:11px;border:1px dashed #c4d0dc;border-radius:8px;width:210px;padding:22px 8px;margin-left:auto;margin-right:auto}
+        .doc-firma__meta{margin-top:8px;color:#5a6b84;font-size:11px}
+        .doc-anulado{margin:10px 0;border:2px solid #c62f3b;color:#c62f3b;border-radius:10px;padding:10px 14px;text-align:center}
+        .doc-anulado__sello{font-weight:800;letter-spacing:.2em;font-size:1.3rem}
+        .doc-code{color:#0d8175;font-weight:700}
       </style></head><body>
       <div class="franja"></div>
       <div class="sheet">
         <div class="hd"><div class="b"><img src="${logoData()}" alt="HUAP"><div><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong><div class="muted">Hospital de Urgencia Asistencia Pública</div></div></div>
-          <div class="meta">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}</div></div>
+          <div class="meta">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}${rec.codigo ? `<br><span class="doc-code">${u.esc(rec.codigo)}</span> · v${rec.version || 1}` : ""}</div></div>
+        ${rec.estado === "anulado" ? `<div class="doc-anulado"><div class="doc-anulado__sello">ANULADO</div><div><strong>Motivo:</strong> ${u.esc(rec.motivoAnulacion || "—")}</div></div>` : ""}
         <h1>${u.esc(titulo || "Documento")}</h1>${html}
+        ${rec.estado === "finalizado" ? firmaHTML(rec) : ""}
       </div></body></html>`);
     w.document.close();
     const go = () => { try { w.focus(); w.print(); } catch (e) {} };

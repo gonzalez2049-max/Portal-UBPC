@@ -1164,6 +1164,23 @@ body.night .pk__mode{ background:rgba(255,255,255,.05); border-color:rgba(255,25
 .doc-cover__title{ font-family:var(--font-disp); color:#17263d; font-size:1.7rem; margin:.2em .5em; }
 .doc-cover__sub{ color:#5b34b0; font-weight:700; }
 .doc-cover__box{ margin-top:1rem; font-size:.8rem; color:#40536f; border:1px solid #dbe6f2; border-radius:10px; padding:.6rem 1rem; }
+/* Flujo documental: estado, barra de acciones, firma, anulado */
+.doc-estado{ display:inline-flex; align-items:center; gap:.3rem; font-weight:800; font-size:.78rem;
+  color:var(--ec); background:color-mix(in srgb, var(--ec) 14%, transparent); border:1px solid color-mix(in srgb, var(--ec) 35%, transparent);
+  padding:.12rem .5rem; border-radius:999px; }
+.doc-estado--sm{ font-size:.68rem; margin-left:auto; }
+.doc-wf{ display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin:.1rem 0 .6rem; }
+.doc-wf__lock{ font-weight:700; font-size:.85rem; color:var(--warn); }
+.doc-firma{ margin:3rem auto .5rem; text-align:center; max-width:340px; }
+.doc-firma__line{ width:260px; border-top:1px solid var(--text); margin:0 auto .4rem; }
+.doc-firma__name{ font-weight:700; color:var(--text); }
+.doc-firma__role{ color:var(--text-muted); font-size:.82rem; }
+.doc-firma__stamp{ margin:.7rem auto 0; color:#9aa7b6; font-size:.72rem; border:1px dashed #c4d0dc; border-radius:8px; width:200px; padding:1.4rem .5rem; }
+.doc-firma__meta{ margin-top:.5rem; color:var(--text-muted); font-size:.72rem; }
+.doc-anulado{ margin:.6rem 0; border:2px solid var(--danger); color:var(--danger); border-radius:10px; padding:.7rem 1rem; text-align:center; }
+.doc-anulado__sello{ font-weight:800; letter-spacing:.2em; font-size:1.3rem; }
+.doc-anulado__motivo{ font-size:.85rem; margin-top:.2rem; }
+.doc-page__body[contenteditable="false"]{ opacity:.98; }
 
 /* Aviso fijo cuando la nube no está guardando */
 .cloud-banner{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:2000;
