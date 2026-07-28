@@ -346,8 +346,8 @@
       <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th>Cumplimiento</th><th>Estado</th></tr></thead>
         <tbody>${filas}</tbody></table>
       <div class="nt-inf__obs">
-        <div class="nt-inf__obs-t">Observaciones</div>
-        <div class="nt-inf__obs-box">${obs ? u.esc(obs).replace(/\n/g, "<br>") : ""}</div>
+        <div class="nt-inf__obs-t">Observaciones <span class="no-print" style="font-weight:400;color:#8a94a6;font-size:.78rem">(escribe directamente aquí)</span></div>
+        <div class="nt-inf__obs-box" id="nt-obs" contenteditable="true" data-ph="Escribe aquí las observaciones del periodo…">${obs ? u.esc(obs).replace(/\n/g, "<br>") : ""}</div>
       </div>
       <div class="nt-inf__firmas">
         <div class="nt-inf__firma">
@@ -379,6 +379,9 @@
     if (dbtn) dbtn.onclick = () => editDatos234(() => informe234(box));
     const pbtn = document.getElementById("nt-print");
     if (pbtn) pbtn.onclick = () => printInforme234();
+    // Observaciones editables directamente en el informe (se guardan solas)
+    const ob = document.getElementById("nt-obs");
+    if (ob) ob.addEventListener("blur", () => S().setConfig("nt234.observaciones", ob.innerText.trim()));
   }
 
   // Logo embebido (data URL) para que se vea en la ventana de impresión

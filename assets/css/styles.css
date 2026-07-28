@@ -1182,6 +1182,11 @@ body.night .pk__mode{ background:rgba(255,255,255,.05); border-color:rgba(255,25
 .doc-anulado__motivo{ font-size:.85rem; margin-top:.2rem; }
 .doc-page__body[contenteditable="false"]{ opacity:.98; }
 
+/* Observaciones editables del informe NT 234 (placeholder solo en pantalla) */
+.nt-inf__obs-box{ outline:none; }
+.nt-inf__obs-box:empty::before{ content:attr(data-ph); color:#9aa7b6; }
+.nt-inf__obs-box:focus{ box-shadow:0 0 0 2px rgba(15,143,131,.25); }
+
 /* Aviso fijo cuando la nube no está guardando */
 .cloud-banner{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:2000;
   max-width:min(660px,94vw); display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; justify-content:center;

@@ -151,8 +151,25 @@
       + `<div class="doc-cover__rule"></div>`
       + `<h1 class="doc-cover__title">${u.esc(titulo || "Documento institucional")}</h1>`
       + `<div class="doc-cover__sub">Documento institucional${label ? " · " + u.esc(label) : ""}</div>`
-      + `<div class="doc-cover__box">Código: __________ · Versión: ____ · Fecha: ${u.fechaCL(new Date())}<br>Elaborado por: ${u.esc(me ? me.nombre : "")} · Coordinación UBPC</div>`
+      + `<div class="doc-cover__box">Código: <span class="doc-cover__cod">__________</span> · Versión: <span class="doc-cover__ver">v1</span> · Fecha: <span class="doc-cover__fec">${u.fechaCL(new Date())}</span><br>Elaborado por: ${u.esc(me ? me.nombre : "")} · Coordinación UBPC</div>`
       + `</div><div class="doc-pagebreak" contenteditable="false">Salto de hoja</div><p><br></p>`;
+  }
+  // Estampa el código/versión reales en la portada (al finalizar)
+  function stampCover(html, codigo, version) {
+    try {
+      const tmp = document.createElement("div"); tmp.innerHTML = html || "";
+      const cod = tmp.querySelector(".doc-cover__cod"); if (cod) cod.textContent = codigo || "__________";
+      const ver = tmp.querySelector(".doc-cover__ver"); if (ver) ver.textContent = "v" + (version || 1);
+      return tmp.querySelector(".doc-cover") ? tmp.innerHTML : html;
+    } catch (e) { return html; }
+  }
+  function resetCover(html, version) {
+    try {
+      const tmp = document.createElement("div"); tmp.innerHTML = html || "";
+      const cod = tmp.querySelector(".doc-cover__cod"); if (cod) cod.textContent = "__________";
+      const ver = tmp.querySelector(".doc-cover__ver"); if (ver) ver.textContent = "v" + (version || 1);
+      return tmp.querySelector(".doc-cover") ? tmp.innerHTML : html;
+    } catch (e) { return html; }
   }
 
   /* Informe Anual pre-rellenado con los datos reales del portal */
@@ -304,7 +321,8 @@
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>🔒 Asignar código y finalizar</button>`,
       onMount(m) { m.querySelector("[data-ok]").onclick = () => {
         const codigo = doc.codigo || S().nextCode("docsTrabajo");
-        S().update("docsTrabajo", doc.id, { estado: "finalizado", codigo, finalizadoPor: (U.auth.current() || {}).nombre, fechaFinalizado: new Date().toISOString(), historial: logHist(doc, "Finalizado y codificado", codigo) });
+        const contenido = stampCover(doc.contenido, codigo, doc.version || 1);
+        S().update("docsTrabajo", doc.id, { estado: "finalizado", codigo, contenido, finalizadoPor: (U.auth.current() || {}).nombre, fechaFinalizado: new Date().toISOString(), historial: logHist(doc, "Finalizado y codificado", codigo) });
         u.closeModal(); u.toast("Documento finalizado · " + codigo, "ok"); reopen(container, doc.id);
       }; } });
   }
@@ -324,7 +342,7 @@
     const sameRoot = S().all("docsTrabajo").filter(x => (x.origenId || x.id) === root);
     const maxV = Math.max.apply(0, sameRoot.map(x => x.version || 1));
     const nueva = S().insert("docsTrabajo", {
-      titulo: doc.titulo, plantilla: doc.plantilla, contenido: doc.contenido, tamano: doc.tamano || "a4",
+      titulo: doc.titulo, plantilla: doc.plantilla, contenido: resetCover(doc.contenido, maxV + 1), tamano: doc.tamano || "a4",
       estado: "borrador", version: maxV + 1, origenId: root,
       historial: logHist({}, "Nueva versión creada", "a partir de " + (doc.codigo || ("v" + (doc.version || 1))))
     });
