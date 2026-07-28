@@ -391,7 +391,7 @@
         { key: "pilar", label: "Pilar" },
         { key: "objetivo", label: "Objetivo" },
         { key: "estado", label: "Estado", badge: true },
-        { key: "participantes", label: "Participantes", render: (r) => FORMATIVAS.includes(r.tipo) ? (r.nParticipantes || "—") : "—" },
+        { key: "participantes", label: "Participantes", render: (r) => (r.nParticipantes != null && r.nParticipantes !== "") ? r.nParticipantes : "—" },
         { key: "resultado", label: "Resultado" }
       ],
       fields: (rec) => {
