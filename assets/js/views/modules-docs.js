@@ -141,6 +141,20 @@
   const plMeta = k => PLANTILLAS[k] || PLANTILLAS.informeTecnico;
   const tplContenido = p => (typeof p.build === "function" ? p.build() : p.html);
 
+  // Portada institucional (se agrega automáticamente a cada documento nuevo)
+  function coverHTML(titulo, label) {
+    const u = ui(), me = U.auth.current();
+    return `<div class="doc-cover">`
+      + `<img class="doc-cover__logo" src="assets/img/huap-logo.png" alt="HUAP">`
+      + `<div class="doc-cover__unit">Unidad de Buenas Prácticas Clínicas · UBPC</div>`
+      + `<div class="doc-cover__hosp">Hospital de Urgencia Asistencia Pública</div>`
+      + `<div class="doc-cover__rule"></div>`
+      + `<h1 class="doc-cover__title">${u.esc(titulo || "Documento institucional")}</h1>`
+      + `<div class="doc-cover__sub">Documento institucional${label ? " · " + u.esc(label) : ""}</div>`
+      + `<div class="doc-cover__box">Código: __________ · Versión: ____ · Fecha: ${u.fechaCL(new Date())}<br>Elaborado por: ${u.esc(me ? me.nombre : "")} · Coordinación UBPC</div>`
+      + `</div><div class="doc-pagebreak" contenteditable="false">Salto de hoja</div><p><br></p>`;
+  }
+
   /* Informe Anual pre-rellenado con los datos reales del portal */
   function buildInformeAnual() {
     const s = S(), CS = U.coordStats || {};
@@ -345,7 +359,8 @@
     const p = plMeta(plantilla);
     const me = U.auth.current();
     const titulo = rec ? (rec.titulo || p.titulo) : p.titulo;
-    const contenido = rec ? (rec.contenido || tplContenido(p)) : tplContenido(p);
+    // Documento nuevo: incluye portada institucional automáticamente.
+    const contenido = rec ? (rec.contenido || tplContenido(p)) : (coverHTML(p.titulo, p.label) + tplContenido(p));
 
     const estado = (rec && rec.estado) || "borrador";
     const est = ESTADOS[estado] || ESTADOS.borrador;
@@ -527,19 +542,10 @@
       table.querySelectorAll("tr").forEach(tr => { if (tr.children[idx]) tr.children[idx].remove(); });
     });
 
-    // Portada institucional
+    // Portada institucional (por si se quitó o para reinsertarla)
     tblBtn("doc-cover-btn", () => {
-      const meNow = U.auth.current();
-      const cover = `<div class="doc-cover">`
-        + `<img class="doc-cover__logo" src="assets/img/huap-logo.png" alt="HUAP">`
-        + `<div class="doc-cover__unit">Unidad de Buenas Prácticas Clínicas · UBPC</div>`
-        + `<div class="doc-cover__hosp">Hospital de Urgencia Asistencia Pública</div>`
-        + `<div class="doc-cover__rule"></div>`
-        + `<h1 class="doc-cover__title">${ui().esc(titleEl.value || p.titulo)}</h1>`
-        + `<div class="doc-cover__sub">Documento institucional · ${ui().esc(p.label)}</div>`
-        + `<div class="doc-cover__box">Código: __________ · Versión: ____ · Fecha: ${ui().fechaCL(new Date())}<br>Elaborado por: ${ui().esc(meNow ? meNow.nombre : "")} · Coordinación UBPC</div>`
-        + `</div><div class="doc-pagebreak" contenteditable="false">Salto de hoja</div><p><br></p>`;
-      bodyEl.insertAdjacentHTML("afterbegin", cover);
+      if (bodyEl.querySelector(".doc-cover")) { ui().toast("El documento ya tiene portada", "warn"); return; }
+      bodyEl.insertAdjacentHTML("afterbegin", coverHTML(titleEl.value || p.titulo, p.label));
     });
     } // fin handlers de edición (documento no bloqueado)
 
