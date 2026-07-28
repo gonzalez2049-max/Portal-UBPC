@@ -254,56 +254,169 @@
     u.modal({
       title: "Datos institucionales NT 234",
       body: u.formHTML([
-        { name: "responsable", label: "Responsable institucional", full: true, value: S().getConfig("nt234.responsable", "") },
-        { name: "resolucion", label: "Resolución", value: S().getConfig("nt234.resolucion", "") },
-        { name: "subdireccion", label: "Subdirección", value: S().getConfig("nt234.subdireccion", "") },
-        { name: "meta", label: "Meta de cumplimiento (%)", type: "number", value: meta234() }
+        { name: "responsable", label: "Coordinador/a UBPC (responsable de la estrategia NT 234)", full: true, value: S().getConfig("nt234.responsable", "") || (U.auth.current() ? U.auth.current().nombre : ""), hint: "Aparece en la primera firma del informe." },
+        { name: "resolucion", label: "Resolución (opcional)", value: S().getConfig("nt234.resolucion", "") },
+        { name: "meta", label: "Meta de cumplimiento (%)", type: "number", value: meta234() },
+        { name: "observaciones", label: "Observaciones del informe", type: "textarea", full: true, value: S().getConfig("nt234.observaciones", ""), hint: "Se muestran en el recuadro de Observaciones. Déjalo vacío para escribir a mano." }
       ], {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
       onMount(m) { m.querySelector("[data-save]").onclick = () => {
         const d = u.readForm(m);
         S().setConfig("nt234.responsable", d.responsable); S().setConfig("nt234.resolucion", d.resolucion);
-        S().setConfig("nt234.subdireccion", d.subdireccion); S().setConfig("nt234.meta", Number(d.meta) || 90);
+        S().setConfig("nt234.meta", Number(d.meta) || 90); S().setConfig("nt234.observaciones", d.observaciones || "");
         u.closeModal(); done();
       }; }
     });
   }
-  function informe234(box) {
+  // Estilos del informe NT 234 (compartidos por pantalla e impresión)
+  const NT_INF_CSS = `
+    .nt-inf{ text-align:center; max-width:720px; margin:0 auto; }
+    .nt-inf__franja{ height:7px;border-radius:4px;margin-bottom:14px;
+      background:linear-gradient(90deg,#1554b8,#1e9fe0,#0fb5ad,#37a04a,#f2c53d,#f07f2e,#7d4bcf,#e0538a); }
+    .nt-inf__logo{ width:58px;height:58px;object-fit:contain;margin-bottom:6px; }
+    .nt-inf__ttl{ font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:1.35rem;color:#0d5044;line-height:1.15; }
+    .nt-inf__sub{ color:#5a6b84;font-size:.82rem;margin-top:2px; }
+    .nt-inf__meta{ color:#40536f;font-size:.82rem;margin-top:8px; }
+    .nt-inf__kpis{ display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px auto 6px;max-width:640px; }
+    .nt-inf__kpi{ border:1px solid #e2e9f0;border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px; }
+    .nt-inf__kpi.is-ok{ background:#e4f6ec;border-color:#bfe6cd } .nt-inf__kpi.is-warn{ background:#fbf1de;border-color:#f0dcb4 } .nt-inf__kpi.is-danger{ background:#fbe6ea;border-color:#f2c9d1 }
+    .nt-inf__k-lab{ font-size:.72rem;font-weight:700;color:#40536f;text-transform:uppercase;letter-spacing:.03em }
+    .nt-inf__k-val{ font-family:'Fraunces',Georgia,serif;font-weight:800;font-size:1.55rem;color:#17263d;line-height:1 }
+    .nt-inf__k-sub{ font-size:.72rem;color:#5a6b84 }
+    .nt-inf__varline{ margin:6px auto 14px;font-size:.9rem;color:#40536f }
+    .nt-inf__var{ font-weight:800 } .nt-inf__var--up{ color:#1f9d57 } .nt-inf__var--down{ color:#c62f3b } .nt-inf__var--eq{ color:#8a94a6 }
+    .nt-inf__tbl{ border-collapse:collapse;width:100%;max-width:640px;margin:6px auto;font-size:.86rem }
+    .nt-inf__tbl th{ background:#0f8f83;color:#fff;padding:7px 9px;border:1px solid #cdd8e2;text-align:center }
+    .nt-inf__tbl td{ padding:6px 9px;border:1px solid #e2e9f0;text-align:center }
+    .nt-inf__tbl .l{ text-align:left }
+    .nt-inf__obs{ max-width:640px;margin:18px auto 0;text-align:left }
+    .nt-inf__obs-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0f8f83;font-size:1rem;margin-bottom:4px }
+    .nt-inf__obs-box{ border:1px solid #dbe6f2;border-radius:8px;min-height:70px;padding:10px 12px;color:#22303a;font-size:.88rem;line-height:1.5 }
+    .nt-inf__firmas{ display:flex;justify-content:center;gap:60px;margin-top:46px;flex-wrap:wrap }
+    .nt-inf__firma{ text-align:center;min-width:240px }
+    .nt-inf__line{ width:230px;border-top:1px solid #17263d;margin:26px auto 6px }
+    .nt-inf__name{ font-weight:700;color:#17263d }
+    .nt-inf__role{ color:#5a6b84;font-size:.8rem;margin-top:2px }`;
+
+  // Variación del cumplimiento global respecto al mes anterior
+  function variacionNT() {
+    const meds = S().all("nt234"); const ps = periodosNT(meds);
+    if (ps.length < 2) return null;
+    const avg = per => { const l = meds.filter(m => m.periodo === per).map(globalNT).filter(v => v != null); return l.length ? Math.round(l.reduce((a, b) => a + b, 0) / l.length) : null; };
+    const a = avg(ps[ps.length - 1]), b = avg(ps[ps.length - 2]);
+    if (a == null || b == null) return null;
+    return { delta: a - b, prevPer: ps[ps.length - 2] };
+  }
+
+  function informeInner() {
     const u = ui();
     const { per, list } = medsUltimoPeriodo();
-    if (!list.length) { box.innerHTML = u.empty("Sin datos para el informe.", "Registra cumplimiento por unidad primero.", "🖨️"); return; }
+    if (!list.length) return null;
     const gl = list.map(globalNT).filter(v => v != null);
     const prom = gl.length ? Math.round(gl.reduce((a, b) => a + b, 0) / gl.length) : 0;
-    const responsable = S().getConfig("nt234.responsable", "________________________");
     const by = k => list.filter(m => estadoNT(globalNT(m)).k === k).length;
-    box.innerHTML = `<div class="section__head no-print"><p class="section__hint">Informe institucional en formato A4, listo para imprimir o exportar a PDF.</p>
-        <div class="btn-row"><button class="btn btn--ghost btn--sm" id="nt-datos">✏️ Datos institucionales</button>
-        <button class="btn btn--primary btn--sm" onclick="window.print()">🖨️ Imprimir / PDF</button></div></div>
-      <div class="card informe-a4 reporte" id="informe">
-        <div class="franja" style="border-radius:4px"></div>
-        <div class="flex" style="justify-content:space-between;margin:.8rem 0">
-          <div class="flex"><div class="brand-mini__logo" style="width:52px;height:52px"><img src="assets/img/huap-logo.png" alt="HUAP"></div>
-            <div><strong style="font-size:1.1rem">Informe de Cumplimiento · Norma Técnica 234</strong>
-            <div class="muted">Unidad de Buenas Prácticas Clínicas – UBPC · HUAP</div></div></div>
-          <div class="right"><div class="kpi__sub">Periodo</div><strong>${u.esc(periodoNT(per))}</strong>
-            <div class="kpi__sub" style="margin-top:.3rem">Emisión: ${u.fechaCL(new Date())}</div></div>
+    const meta = meta234();
+    const v = variacionNT();
+    const varTxt = v ? `<span class="nt-inf__var nt-inf__var--${v.delta > 0 ? "up" : v.delta < 0 ? "down" : "eq"}">${v.delta > 0 ? "▲ +" + v.delta : v.delta < 0 ? "▼ " + v.delta : "= 0"} pts vs ${u.esc(periodoNTshort(v.prevPer))}</span>` : `<span class="nt-inf__var">Sin mes previo para comparar</span>`;
+    const responsable = S().getConfig("nt234.responsable", "") || (U.auth.current() ? U.auth.current().nombre : "________________________");
+    const resolucion = S().getConfig("nt234.resolucion", "");
+    const obs = S().getConfig("nt234.observaciones", "");
+
+    const filas = list.slice().sort((a, b) => globalNT(a) - globalNT(b)).map(m => {
+      const g = globalNT(m), e = estadoNT(g);
+      return `<tr><td class="l"><strong>${u.esc(m.unidad)}</strong></td><td>${u.esc(m.jefatura || "—")}</td>
+        <td><strong>${g}%</strong></td><td><span style="font-weight:800;color:${e.color}">● ${u.esc(e.inter)}</span></td></tr>`;
+    }).join("");
+
+    return `<div class="nt-inf">
+      <div class="nt-inf__franja"></div>
+      <div class="nt-inf__head">
+        <img class="nt-inf__logo" src="${ntLogo()}" alt="HUAP">
+        <div class="nt-inf__ttl">Informe de Cumplimiento · Norma Técnica 234</div>
+        <div class="nt-inf__sub">Unidad de Buenas Prácticas Clínicas – UBPC · Hospital de Urgencia Asistencia Pública</div>
+        <div class="nt-inf__meta">Periodo <strong>${u.esc(periodoNT(per))}</strong> · Emisión ${u.fechaCL(new Date())}${resolucion ? " · Resolución " + u.esc(resolucion) : ""}</div>
+      </div>
+      <div class="nt-inf__kpis">
+        <div class="nt-inf__kpi ${prom >= meta ? "is-ok" : "is-danger"}"><span class="nt-inf__k-lab">Cumplimiento global</span><span class="nt-inf__k-val">${prom}%</span><span class="nt-inf__k-sub">Meta ${meta}%</span></div>
+        <div class="nt-inf__kpi is-danger"><span class="nt-inf__k-lab">Con intervención</span><span class="nt-inf__k-val">${by("rojo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
+        <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">En seguimiento</span><span class="nt-inf__k-val">${by("amarillo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
+        <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">En cumplimiento</span><span class="nt-inf__k-val">${by("verde")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
+      </div>
+      <div class="nt-inf__varline">Variación del cumplimiento global: ${varTxt}</div>
+      <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th>Cumplimiento</th><th>Estado</th></tr></thead>
+        <tbody>${filas}</tbody></table>
+      <div class="nt-inf__obs">
+        <div class="nt-inf__obs-t">Observaciones</div>
+        <div class="nt-inf__obs-box">${obs ? u.esc(obs).replace(/\n/g, "<br>") : ""}</div>
+      </div>
+      <div class="nt-inf__firmas">
+        <div class="nt-inf__firma">
+          <div class="nt-inf__line"></div>
+          <div class="nt-inf__name">${u.esc(responsable)}</div>
+          <div class="nt-inf__role">Coordinador/a UBPC · Responsable de la estrategia NT 234</div>
         </div>
-        <div class="grid grid--kpi" style="margin:.6rem 0">
-          <div class="card kpi ${prom >= meta234() ? "kpi--ok" : "kpi--danger"}"><div class="kpi__label">Cumplimiento global</div><div class="kpi__value">${prom}%</div><div class="kpi__sub">Meta ${meta234()}%</div></div>
-          <div class="card kpi kpi--danger"><div class="kpi__label">Con intervención</div><div class="kpi__value">${by("rojo")}</div></div>
-          <div class="card kpi kpi--warn"><div class="kpi__label">En seguimiento</div><div class="kpi__value">${by("amarillo")}</div></div>
-          <div class="card kpi kpi--ok"><div class="kpi__label">En cumplimiento</div><div class="kpi__value">${by("verde")}</div></div>
+        <div class="nt-inf__firma">
+          <div class="nt-inf__line"></div>
+          <div class="nt-inf__name">Subdirección de Gestión del Cuidado</div>
+          <div class="nt-inf__role">Firma y timbre</div>
         </div>
-        <table class="tbl" style="margin:.5rem 0"><thead><tr><th>Unidad</th><th>Jefatura</th><th class="right">Cumplimiento</th><th>Estado</th></tr></thead><tbody>
-          ${list.slice().sort((a, b) => globalNT(a) - globalNT(b)).map(m => { const g = globalNT(m), e = estadoNT(g); return `<tr><td><strong>${u.esc(m.unidad)}</strong></td><td>${u.esc(m.jefatura || "—")}</td><td class="num"><strong>${g}%</strong></td><td><span style="font-weight:800;color:${e.color}">● ${e.inter}</span></td></tr>`; }).join("")}
-        </tbody></table>
-        <div style="margin-top:2.5rem;display:flex;justify-content:flex-end">
-          <div class="center" style="min-width:280px"><div style="border-top:1px solid var(--text);padding-top:.3rem">${u.esc(responsable)}</div>
-            <div class="kpi__sub">Responsable institucional NT 234</div></div>
-        </div>
-      </div>`;
+      </div>
+    </div>`;
+  }
+
+  function informe234(box) {
+    const u = ui();
+    if (!document.getElementById("nt-inf-style")) {
+      const st = document.createElement("style"); st.id = "nt-inf-style"; st.textContent = NT_INF_CSS; document.head.appendChild(st);
+    }
+    const inner = informeInner();
+    if (!inner) { box.innerHTML = u.empty("Sin datos para el informe.", "Registra cumplimiento por unidad primero.", "🖨️"); return; }
+    box.innerHTML = `<div class="section__head no-print"><p class="section__hint">Informe institucional centrado, listo para imprimir o exportar a PDF (impresión limpia, sin bordes del navegador).</p>
+        <div class="btn-row"><button class="btn btn--ghost btn--sm" id="nt-datos">✏️ Datos y observaciones</button>
+        <button class="btn btn--primary btn--sm" id="nt-print">🖨️ Imprimir / PDF</button></div></div>
+      <div class="card informe-a4" id="informe">${inner}</div>`;
     const dbtn = document.getElementById("nt-datos");
     if (dbtn) dbtn.onclick = () => editDatos234(() => informe234(box));
+    const pbtn = document.getElementById("nt-print");
+    if (pbtn) pbtn.onclick = () => printInforme234();
+  }
+
+  // Logo embebido (data URL) para que se vea en la ventana de impresión
+  let _ntLogo = null;
+  function ntLogo() {
+    if (_ntLogo) return _ntLogo;
+    try {
+      const img = document.querySelector(".nt-inf__logo") || document.querySelector(".brand-mini__logo img") || document.querySelector('img[src*="huap-logo"]');
+      if (img && img.complete && img.naturalWidth) {
+        const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext("2d").drawImage(img, 0, 0); _ntLogo = c.toDataURL("image/png"); return _ntLogo;
+      }
+    } catch (e) {}
+    return new URL("assets/img/huap-logo.png", document.baseURI).href;
+  }
+
+  function printInforme234() {
+    const u = ui();
+    const inner = (document.getElementById("informe") ? document.getElementById("informe").innerHTML : informeInner());
+    if (!inner) return;
+    const w = window.open("", "_blank");
+    if (!w) { u.toast("Permite las ventanas emergentes para imprimir", "danger"); return; }
+    const fr = new URL("assets/fonts/fraunces.woff2", document.baseURI).href;
+    const ns = new URL("assets/fonts/nunitosans.woff2", document.baseURI).href;
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe NT 234</title><style>
+      @font-face{font-family:'Fraunces';src:url('${fr}') format('woff2');font-weight:100 900;font-display:swap}
+      @font-face{font-family:'Nunito Sans';src:url('${ns}') format('woff2');font-weight:200 900;font-display:swap}
+      @page{size:A4;margin:0}
+      *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      html,body{margin:0}
+      body{font-family:'Nunito Sans',system-ui,Arial,sans-serif;color:#22303a}
+      .sheet{padding:16mm 16mm 18mm;text-align:center}
+      ${NT_INF_CSS}
+    </style></head><body><div class="sheet">${inner}</div></body></html>`);
+    w.document.close();
+    const go = () => { try { w.focus(); w.print(); } catch (e) {} };
+    if (w.document.fonts && w.document.fonts.ready) { w.document.fonts.ready.then(() => setTimeout(go, 150)); setTimeout(go, 1400); }
+    else setTimeout(go, 500);
   }
 
   /* ===================== MÓDULO 7 — RED DE COLABORACIÓN ===================== */
