@@ -829,7 +829,9 @@ body.night .rec-card{ background:rgba(18,28,34,.82); border-color:rgba(255,255,2
 .tk-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
 .tk-card{ display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border);
   border-radius:16px; box-shadow:var(--shadow); padding:1.1rem 1.1rem 0; overflow:hidden;
+  text-align:left; width:100%; cursor:pointer; font:inherit; color:inherit;
   transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.tk-card:focus-visible{ outline:2px solid var(--tc); outline-offset:2px; }
 .tk-card:hover{ transform:translateY(-3px); box-shadow:0 12px 26px rgba(20,40,60,.13); border-color:color-mix(in srgb, var(--tc) 45%, var(--border)); }
 .tk-card__top{ display:flex; align-items:flex-start; gap:.7rem; }
 .tk-card__ic{ width:42px; height:42px; flex:none; display:grid; place-items:center; font-size:1.35rem; border-radius:12px;
@@ -840,7 +842,13 @@ body.night .rec-card{ background:rgba(18,28,34,.82); border-color:rgba(255,255,2
 .tk-card__d{ font-size:.88rem; line-height:1.5; color:var(--text-2); margin:.7rem 0 .3rem; }
 .tk-card__b{ margin:.2rem 0 .8rem; padding-left:1.1rem; }
 .tk-card__b li{ font-size:.85rem; line-height:1.5; color:var(--text-2); margin-bottom:.22rem; }
-.tk-card__src{ margin-top:auto; border-top:1px solid var(--border); padding:.6rem 0; font-size:.76rem; color:var(--text-muted); font-weight:600; }
+.tk-card__foot{ margin-top:auto; border-top:1px solid var(--border); padding:.6rem 0; display:flex;
+  align-items:center; justify-content:space-between; gap:.5rem; }
+.tk-card__src{ font-size:.74rem; color:var(--text-muted); font-weight:600; }
+.tk-card__go{ font-size:.78rem; font-weight:800; color:var(--tc); white-space:nowrap; transition:transform .15s ease; }
+.tk-card:hover .tk-card__go{ transform:translateX(3px); }
+.tk-modal__src{ margin-top:.9rem; font-size:.8rem; color:var(--text-muted); font-weight:600; }
+.tk-box--nt{ background:linear-gradient(180deg, color-mix(in srgb, var(--c-celeste) 5%, var(--surface)), var(--surface)); }
 body.night .tk-box{ background:linear-gradient(180deg,rgba(18,28,34,.7),rgba(18,28,34,.9)); border-color:rgba(255,255,255,.08); }
 body.night .tk-card{ background:rgba(18,28,34,.82); border-color:rgba(255,255,255,.08); }
 

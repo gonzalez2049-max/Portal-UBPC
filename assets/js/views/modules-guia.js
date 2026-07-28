@@ -76,36 +76,113 @@
     { ic: "🎯", t: "Seleccionar y priorizar la guía BPSO", c: "#12b5a5",
       d: "Elige guías de buenas prácticas con impacto clínico y factibilidad en tu realidad; parte con pocas y prioriza según las brechas.",
       b: ["Vincula la guía a un problema real (LPP, accesos, dolor).", "Evalúa factibilidad: recursos, equipo y datos disponibles.", "Formaliza el compromiso institucional."],
+      ej: "Ante alta incidencia de LPP en UTI, prioriza la guía de prevención de LPP y formaliza el compromiso con la jefatura de la unidad.",
       src: "RNAO · BPSO Designation" },
     { ic: "📊", t: "Establecer la línea base", c: "#1e9fe0",
       d: "Mide el cumplimiento inicial antes de intervenir; es tu punto de comparación para demostrar mejora.",
       b: ["Define indicadores y método de medición.", "Audita una muestra representativa.", "Registra la línea base en el portal."],
+      ej: "Antes de intervenir, audita 20 fichas de UTI y registra que solo el 55% aplicó la escala de riesgo en las primeras 6 horas.",
       src: "RNAO · evaluación diagnóstica" },
     { ic: "🤝", t: "Conformar la Red Champion", c: "#7a5cd0",
       d: "Los Champions acercan la guía al trabajo diario de cada unidad; elige referentes con liderazgo clínico.",
       b: ["Un Champion por guía y por unidad.", "Roles claros y complementarios.", "Reconocimiento y red de intercambio."],
+      ej: "Nombra un Champion de LPP por unidad y agenda una reunión mensual de 30 min para revisar avances y barreras.",
       src: "RNAO · Best Practice Champions" },
     { ic: "🗺️", t: "Plan de implementación", c: "#37a04a",
       d: "Traduce la guía en acciones con responsables y plazos, abordando las barreras reales del contexto.",
       b: ["Identifica barreras y facilitadores.", "Define actividades, responsables y fechas.", "Integra la práctica al flujo del turno."],
+      ej: "Detecta que la barrera es el registro; crea un flujo simple en la ficha, capacita al turno y fija una auditoría a 30 días.",
       src: "RNAO · Knowledge-to-Action" },
     { ic: "🎓", t: "Capacitación y difusión", c: "#0f8f83",
       d: "Refuerza la práctica con cápsulas breves por turno, no solo con jornadas puntuales.",
       b: ["Contenidos aplicados a la conducta clínica.", "Registra la cobertura por estamento.", "Combina difusión visual y práctica."],
+      ej: "Ante baja adherencia a la escala de Braden, difunde una cápsula de 5 min por turno y registra la cobertura por estamento.",
       src: "RNAO · transferencia del conocimiento" },
     { ic: "📈", t: "Seguimiento con indicadores", c: "#1554b8",
       d: "Monitorea el cumplimiento con auditorías periódicas y actúa ante cada semáforo amarillo o rojo.",
       b: ["Usa metodología comparable en el tiempo.", "Retroalimenta rápido a la unidad.", "Documenta avances y estancamientos."],
+      ej: "Cada mes mide el cumplimiento por unidad y, ante un semáforo rojo, retroalimenta a la unidad esa misma semana.",
       src: "RNAO / NQuIRE · indicadores" },
     { ic: "🔧", t: "Acciones de mejora ante brechas", c: "#e0912f",
       d: "Cada brecha detectada se traduce en una acción concreta con responsable y plazo, no en un informe.",
       b: ["Prioriza la unidad o indicador con mayor brecha.", "Acuerda 2-3 acciones alcanzables.", "Cierra el ciclo y verifica el resultado."],
+      ej: "Toma la unidad con menor cumplimiento y acuerda 3 acciones con responsable y plazo a 45 días, y verifica el cierre.",
       src: "RNAO · mejora continua" },
     { ic: "♾️", t: "Sostenibilidad e institucionalización", c: "#5f7d76",
       d: "Asegura que la práctica se mantenga: protocolos vigentes, auditorías y respaldo institucional.",
       b: ["Estandariza en protocolos y flujos.", "Define la periodicidad de auditoría.", "Institucionaliza con acuerdos y responsables."],
+      ej: "Define una revisión semestral del protocolo y una auditoría trimestral, y deja un acuerdo firmado con la jefatura.",
       src: "RNAO · sustainability" }
   ];
+
+  // Caja de herramientas para implementar y monitorear la Norma Técnica 234
+  const NT_TOOLKIT = [
+    { ic: "📋", t: "Conocer la norma y sus indicadores", c: "#12b5a5",
+      d: "Familiarízate con los indicadores de la NT 234 y sus metas; son la base de la medición y del informe.",
+      b: ["Identifica los indicadores obligatorios.", "Define la meta institucional (ej. 90%).", "Ubica dónde se registra cada dato."],
+      ej: "Arma una ficha con los indicadores de la NT 234 y su meta, y compártela con las jefaturas de cada unidad.",
+      src: "MINSAL · Norma Técnica 234" },
+    { ic: "📏", t: "Valoración del riesgo (escala)", c: "#1e9fe0",
+      d: "Aplica la escala de valoración de riesgo de LPP de forma temprana y sistemática en cada paciente.",
+      b: ["Escala aplicada en las primeras horas.", "Reevaluación según condición clínica.", "Registro claro en la ficha."],
+      ej: "Verifica que en UTI la escala de Braden se aplique antes de 6 horas del ingreso y se reevalúe cada 24 horas.",
+      src: "NT 234 · valoración de riesgo" },
+    { ic: "🛡️", t: "Plan preventivo según riesgo", c: "#7a5cd0",
+      d: "Cada nivel de riesgo debe traducirse en medidas preventivas concretas y registradas.",
+      b: ["Medidas acordes al nivel de riesgo.", "Superficies de apoyo cuando corresponde.", "Educación al paciente y su familia."],
+      ej: "Para un paciente de alto riesgo, indica colchón de redistribución de presión y cambios de posición cada 2 horas.",
+      src: "NT 234 · plan preventivo" },
+    { ic: "🔄", t: "Cambios de posición y cuidado de la piel", c: "#37a04a",
+      d: "El reposicionamiento y el cuidado de la piel son el corazón de la prevención; deben ser sistemáticos.",
+      b: ["Frecuencia según riesgo (ej. cada 2 h).", "Protección de prominencias óseas.", "Higiene y manejo de la humedad."],
+      ej: "Instala un reloj de cambios de posición visible en la unidad y registra cada cambio en la ficha del paciente.",
+      src: "NT 234 · reposicionamiento" },
+    { ic: "🗂️", t: "Registro y trazabilidad", c: "#0f8f83",
+      d: "Lo que no se registra, no se puede auditar; asegura un registro claro y con responsable.",
+      b: ["Registro por responsable y turno.", "Datos completos y oportunos.", "Trazabilidad para la auditoría."],
+      ej: "Define un responsable por turno del registro de prevención de LPP y revisa su completitud cada semana.",
+      src: "NT 234 · registro clínico" },
+    { ic: "🔍", t: "Auditoría mensual del cumplimiento", c: "#1554b8",
+      d: "Mide el cumplimiento por unidad cada mes con una metodología comparable.",
+      b: ["Muestra representativa por unidad.", "Mismos criterios cada mes.", "Resultados al módulo NT 234."],
+      ej: "Cada mes audita 15 fichas por unidad y carga el cumplimiento por indicador en Seguimiento NT 234.",
+      src: "NT 234 · auditoría" },
+    { ic: "🔧", t: "Planes de mejora por unidad", c: "#e0912f",
+      d: "Ante brechas, cada unidad debe tener un plan de mejora con acciones, responsable y plazo.",
+      b: ["Prioriza la unidad con mayor brecha.", "Acciones concretas y medibles.", "Control de plazos y cierre."],
+      ej: "Para la unidad con 65% de cumplimiento, crea un plan con 3 acciones y plazo a 45 días en el módulo NT 234.",
+      src: "NT 234 · mejora continua" },
+    { ic: "🖨️", t: "Reporte y firma institucional", c: "#5f7d76",
+      d: "Consolida el cumplimiento en el informe mensual, con observaciones y firmas institucionales.",
+      b: ["Informe centrado y comparable.", "Observaciones del periodo.", "Firma del Coordinador/a y la Subdirección."],
+      ej: "Al cierre del mes genera el Informe de Cumplimiento NT 234, agrega observaciones y fírmalo para el comité.",
+      src: "NT 234 · informe institucional" }
+  ];
+
+  function tkGrid(data, set) {
+    const u = ui();
+    return `<div class="tk-grid">${data.map((g, i) => `<button class="tk-card" data-tkset="${set}" data-tki="${i}" style="--tc:${g.c}">
+      <div class="tk-card__top"><span class="tk-card__ic">${g.ic}</span>
+        <div class="tk-card__head"><span class="tk-card__num">GUÍA ${String(i + 1).padStart(2, "0")}</span>
+          <h4 class="tk-card__t">${u.esc(g.t)}</h4></div></div>
+      <p class="tk-card__d">${u.esc(g.d)}</p>
+      <ul class="tk-card__b">${g.b.map(x => `<li>${u.esc(x)}</li>`).join("")}</ul>
+      <div class="tk-card__foot"><span class="tk-card__src">${u.esc(g.src)}</span><span class="tk-card__go">Ver ejemplo →</span></div>
+    </button>`).join("")}</div>`;
+  }
+  function openToolkit(g) {
+    const u = ui();
+    u.modal({
+      title: `${g.ic}  ${g.t}`,
+      body: `<div class="orient-detail" style="--tc:${g.c}">
+          <p style="margin:.1rem 0 .7rem;color:var(--text-2);line-height:1.55">${u.esc(g.d)}</p>
+          <ul class="orient-list">${g.b.map(x => `<li>${u.esc(x)}</li>`).join("")}</ul>
+          <div class="orient-ej"><span class="orient-ej__lbl">💡 Ejemplo práctico</span><p>${u.esc(g.ej)}</p></div>
+          <div class="tk-modal__src">Fuente: ${u.esc(g.src)}</div>
+        </div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
+    });
+  }
 
   function guia() {
     return `<div class="page-head"><h1>Guía para el Coordinador/a</h1>
@@ -136,15 +213,14 @@
       <div class="section tk-box">
         <div class="tk-box__eyebrow">Caja de herramientas del Coordinador</div>
         <h2 class="tk-box__title">Cómo implementar, movilizar y sostener el Programa RNAO / BPSO</h2>
-        <p class="tk-box__sub">Ruta práctica del programa RNAO traducida al contexto operativo de un hospital público.</p>
-        <div class="tk-grid">${RNAO_TOOLKIT.map((g, i) => `<div class="tk-card" style="--tc:${g.c}">
-          <div class="tk-card__top"><span class="tk-card__ic">${g.ic}</span>
-            <div class="tk-card__head"><span class="tk-card__num">GUÍA ${String(i + 1).padStart(2, "0")}</span>
-              <h4 class="tk-card__t">${ui().esc(g.t)}</h4></div></div>
-          <p class="tk-card__d">${ui().esc(g.d)}</p>
-          <ul class="tk-card__b">${g.b.map(x => `<li>${ui().esc(x)}</li>`).join("")}</ul>
-          <div class="tk-card__src">${ui().esc(g.src)}</div>
-        </div>`).join("")}</div>
+        <p class="tk-box__sub">Ruta práctica del programa RNAO traducida al contexto operativo de un hospital público. Toca cada guía para ver un ejemplo.</p>
+        ${tkGrid(RNAO_TOOLKIT, "rnao")}
+      </div>
+      <div class="section tk-box tk-box--nt">
+        <div class="tk-box__eyebrow">Caja de herramientas del Coordinador</div>
+        <h2 class="tk-box__title">Cómo implementar y monitorear la Norma Técnica 234</h2>
+        <p class="tk-box__sub">Ruta práctica para la prevención de lesiones por presión y el cumplimiento de la NT 234. Toca cada guía para ver un ejemplo.</p>
+        ${tkGrid(NT_TOOLKIT, "nt")}
       </div>
       <div class="section">
         <div class="section__head"><div><h2 class="section__title">Recursos y enlaces de la Unidad</h2>
@@ -308,6 +384,11 @@
     if (add) add.onclick = () => eviForm();
     // Orientaciones -> modal
     document.querySelectorAll("[data-orient]").forEach(b => b.onclick = () => openOrientacion(ORIENTACIONES[+b.dataset.orient]));
+    // Cajas de herramientas (RNAO y NT 234) -> modal con ejemplo
+    document.querySelectorAll("[data-tkset]").forEach(b => b.onclick = () => {
+      const data = b.dataset.tkset === "nt" ? NT_TOOLKIT : RNAO_TOOLKIT;
+      openToolkit(data[+b.dataset.tki]);
+    });
     // Recursos y enlaces
     const rec = document.getElementById("guia-recursos");
     if (rec) rec.innerHTML = recursosHTML();
