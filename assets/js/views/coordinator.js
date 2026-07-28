@@ -17,10 +17,10 @@
       { key: "m1", label: "Apoyo y Mejora Continua", ico: "🤝" },
       { key: "m2", label: "Gestión Documental", ico: "📄" },
       { key: "m3", label: "Programa RNAO", ico: "🧭" },
-      { key: "indicadores", label: "Indicadores UBPC", ico: "📏" },
       { key: "m4", label: "Fortalecimiento", ico: "💪" },
       { key: "m5", label: "Articulación y Respaldo Institucional", ico: "🤝" },
-      { key: "m6", label: "Norma Técnica 234", ico: "📊" }
+      { key: "m6", label: "Norma Técnica 234", ico: "📊" },
+      { key: "indicadores", label: "Indicadores UBPC", ico: "📏" }
     ]},
     { label: "Administración", items: [
       { key: "solicitudes", label: "Solicitudes técnicas", ico: "📨",
