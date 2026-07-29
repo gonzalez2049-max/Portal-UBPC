@@ -84,10 +84,10 @@
   function icoHorasBase() { return Number(S().getConfig("ico.horasBase", 160)) || 160; }
   function icoPesos() {
     return {
-      solicitudes: Number(S().getConfig("ico.pesoSolicitudes", 3)),
-      reuniones: Number(S().getConfig("ico.pesoReuniones", 1.5)),
-      capacitaciones: Number(S().getConfig("ico.pesoCapacitaciones", 2)),
-      monitoreo: Number(S().getConfig("ico.pesoMonitoreo", 4))
+      solicitudes: Number(S().getConfig("ico.pesoSolicitudes", 4)),
+      reuniones: Number(S().getConfig("ico.pesoReuniones", 2)),
+      capacitaciones: Number(S().getConfig("ico.pesoCapacitaciones", 3)),
+      monitoreo: Number(S().getConfig("ico.pesoMonitoreo", 5))
     };
   }
   function enMes(fecha, periodo) {
