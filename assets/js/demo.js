@@ -276,10 +276,10 @@
 
     /* ---------- Índice de Capacidad Operativa UBPC (mensual) ---------- */
     add("capacidadOperativa", [
-      { periodo: "2026-04", demanda: 118, horas: 160, nota: "Carga habitual del mes." },
-      { periodo: "2026-05", demanda: 132, horas: 160, nota: "Aumento por auditorías LPP." },
-      { periodo: "2026-06", demanda: 152, horas: 160, nota: "Solicitudes técnicas al alza." },
-      { periodo: "2026-07", demanda: 176, horas: 160, nota: "Demanda supera las horas disponibles: fundamenta la necesidad de un/a enfermero/a referente." }
+      { periodo: "2026-04", demanda: 120, horas: 160, nota: "Carga habitual del mes." },
+      { periodo: "2026-05", demanda: 150, horas: 160, nota: "Aumento por auditorías LPP." },
+      { periodo: "2026-06", demanda: 178, horas: 160, nota: "Solicitudes técnicas al alza." },
+      { periodo: "2026-07", demanda: 205, horas: 160, nota: "Demanda supera con creces la jornada: fundamenta la necesidad de un/a enfermero/a referente." }
     ], { silent: true });
 
     /* ---------- Referente: submódulos ---------- */

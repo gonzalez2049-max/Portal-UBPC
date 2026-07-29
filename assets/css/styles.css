@@ -1800,6 +1800,25 @@ body.night .ico-cl, body.night .ico-block{ background:#132621; border-color:rgba
 .ico-brk__total b{ font-family:var(--font-disp); font-size:1.2rem; color:var(--c-morado,#7a5cd0); }
 body.night .ico-brk__row b{ color:#eaf6f1; }
 body.night .ico-data__head h4, body.night .ico-now__val{ color:#eaf6f1; }
+
+/* Lectura en jornadas (FTE) */
+.ico-fte{ margin:.7rem 0; border:1px solid var(--border,#e6ecea); border-left:5px solid var(--c-morado,#7a5cd0);
+  border-radius:13px; padding:.85rem 1rem; background:var(--surface-2,#f7fbfa); }
+.ico-fte.is-gap{ border-left-color:var(--danger,#c62f3b); background:#fdf3f5; }
+.ico-fte__title{ font-weight:800; font-size:.95rem; color:#153833; margin-bottom:.6rem; }
+.ico-fte__row{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; }
+.ico-fte__box{ text-align:center; background:#fff; border:1px solid var(--border,#e6ecea); border-radius:11px; padding:.6rem .4rem; }
+.ico-fte__box b{ display:block; font-family:var(--font-disp); font-size:1.7rem; line-height:1; color:#153833; }
+.ico-fte__box span{ font-size:.74rem; font-weight:700; color:var(--text-2,#5a6b66); }
+.ico-fte__box--gap{ border-color:#f2c9d1; background:#fdeef1; }
+.ico-fte__box--gap b{ color:#c62f3b; }
+.ico-fte__concl{ margin:.7rem 0 0; font-size:.92rem; line-height:1.45; color:var(--text,#28413c); }
+.ico-fte.is-gap .ico-fte__concl strong{ color:#c62f3b; }
+.ico-evi{ margin-top:1.1rem; padding-top:1rem; border-top:1px dashed var(--border,#e0e7e4); }
+body.night .ico-fte, body.night .ico-fte.is-gap{ background:#132621; }
+body.night .ico-fte__title, body.night .ico-fte__box b{ color:#eaf6f1; }
+body.night .ico-fte__box{ background:#0f201b; border-color:rgba(255,255,255,.08); }
+@media (max-width:560px){ .ico-fte__row{ grid-template-columns:1fr; } }
 @media (max-width:720px){ .ico-grid{ grid-template-columns:1fr; } .ico-sem{ grid-template-columns:1fr; } }
 .kcard::after{ content:""; position:absolute; right:0; bottom:0; width:0; height:0;
   border-style:solid; border-width:0 0 16px 16px; border-color:transparent transparent rgba(0,0,0,.10) rgba(0,0,0,.10);

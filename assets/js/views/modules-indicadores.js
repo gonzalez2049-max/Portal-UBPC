@@ -82,6 +82,7 @@
 
   /* ---- Estimación de la demanda técnica desde datos del portal ---- */
   function icoHorasBase() { return Number(S().getConfig("ico.horasBase", 160)) || 160; }
+  function icoJornada() { return Number(S().getConfig("ico.jornadaMes", 176)) || 176; }
   function icoPesos() {
     return {
       solicitudes: Number(S().getConfig("ico.pesoSolicitudes", 4)),
@@ -135,6 +136,7 @@
       body: `<p class="card__hint">Horas disponibles del Coordinador y tiempo estimado por cada actividad. El portal cuenta la <strong>cantidad</strong> de actividades del mes y la multiplica por estas horas.</p>
         ${u.formHTML([
           { name: "horasBase", label: "Horas profesionales disponibles / mes", type: "number", value: icoHorasBase(), hint: "Jornada del Coordinador dedicada a la UBPC." },
+          { name: "jornadaMes", label: "Jornada completa de referencia (h/mes)", type: "number", value: icoJornada(), hint: "1 EU a jornada completa. Se usa para expresar la demanda en jornadas (FTE)." },
           { name: "pesoSolicitudes", label: "Horas por solicitud técnica", type: "number", value: icoPesos().solicitudes },
           { name: "pesoReuniones", label: "Horas por reunión", type: "number", value: icoPesos().reuniones },
           { name: "pesoCapacitaciones", label: "Horas por capacitación", type: "number", value: icoPesos().capacitaciones },
@@ -145,6 +147,7 @@
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           S().setConfig("ico.horasBase", Number(d.horasBase) || 160);
+          S().setConfig("ico.jornadaMes", Number(d.jornadaMes) || 176);
           S().setConfig("ico.pesoSolicitudes", Number(d.pesoSolicitudes) || 0);
           S().setConfig("ico.pesoReuniones", Number(d.pesoReuniones) || 0);
           S().setConfig("ico.pesoCapacitaciones", Number(d.pesoCapacitaciones) || 0);
@@ -210,6 +213,87 @@
     });
   }
 
+  /* ---- Lectura en jornadas (FTE) para justificar dotación ---- */
+  const fteFmt = n => (Math.round(n * 10) / 10).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  function icoFTEcardHTML(rec) {
+    const u = ui(), j = icoJornada();
+    const req = Number(rec.demanda) / j;        // jornadas que exige la demanda
+    const disp = Number(rec.horas) / j;         // jornada disponible (coordinador)
+    const deficit = req - disp;                 // jornadas que faltan
+    const justifica = deficit >= 0.2;
+    const concl = justifica
+      ? `La demanda equivale a <strong>${fteFmt(req)} jornadas</strong> y hay <strong>${fteFmt(disp)}</strong> disponible: se justifica reforzar con <strong>~${fteFmt(deficit)} jornada de EU referente</strong>.`
+      : `La demanda equivale a <strong>${fteFmt(req)} jornadas</strong> y la capacidad disponible (${fteFmt(disp)}) alcanza a cubrirla este mes.`;
+    return `<div class="ico-fte ${justifica ? "is-gap" : ""}">
+      <div class="ico-fte__title">🧮 Lectura en jornadas (EU) · ${u.esc(icoPeriodoLabel(rec.periodo))}</div>
+      <div class="ico-fte__row">
+        <div class="ico-fte__box"><b>${fteFmt(req)}</b><span>jornadas requeridas</span></div>
+        <div class="ico-fte__box"><b>${fteFmt(disp)}</b><span>jornada disponible</span></div>
+        <div class="ico-fte__box ico-fte__box--gap"><b>${deficit > 0 ? "+" : ""}${fteFmt(deficit)}</b><span>${deficit > 0 ? "déficit de EU" : "holgura"}</span></div>
+      </div>
+      <p class="ico-fte__concl">${concl} <span class="kpi__sub">Jornada de referencia: ${j} h/mes.</span></p>
+    </div>`;
+  }
+
+  /* ---- Evidencia de saturación con datos reales del portal (sin horas) ---- */
+  function icoActividadMes(ym) {
+    const s = S();
+    return s.all("solicitudes").filter(x => enMes(x.fechaEnvio, ym)).length
+      + s.all("reuniones").filter(x => enMes(x.fecha, ym)).length
+      + s.all("actividades").filter(x => enMes(x.fecha, ym)).length
+      + s.all("capacitacionRef").filter(x => enMes(x.fecha, ym)).length
+      + s.all("monitoreoRef").filter(x => enMes(x.fecha, ym)).length;
+  }
+  function icoEvidenciaHTML() {
+    const u = ui(), s = S();
+    const now = new Date();
+    const ym = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+    const prevD = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const ymPrev = prevD.getFullYear() + "-" + String(prevD.getMonth() + 1).padStart(2, "0");
+
+    // Solicitudes pendientes + tiempo de respuesta promedio
+    const sols = s.all("solicitudes");
+    const pend = sols.filter(x => !/cerrad/i.test(x.estado || "")).length;
+    const cerr = sols.filter(x => x.fechaCierre && x.fechaEnvio);
+    const avgResp = cerr.length
+      ? Math.round(cerr.reduce((a, x) => a + (new Date(x.fechaCierre) - new Date(x.fechaEnvio)) / 86400000, 0) / cerr.length)
+      : null;
+
+    // Tareas / acciones vencidas
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const venc = s.all("kanban").filter(k => k.columna !== "Completado" && k.fechaLimite && new Date(k.fechaLimite) < hoy).length
+      + s.all("accionesRNAO").filter(a => (a.estado || "") !== "Completado" && a.fechaComprometida && new Date(a.fechaComprometida) < hoy).length;
+
+    // Cobertura de unidades (mes actual)
+    const cob = new Set();
+    const addU = (coll, cf, cu) => s.all(coll).forEach(r => { if (enMes(r[cf], ym) && r[cu]) cob.add(r[cu]); });
+    addU("solicitudes", "fechaEnvio", "unidad"); addU("reuniones", "fecha", "unidad");
+    addU("actividades", "fecha", "unidadResp"); addU("monitoreoRef", "fecha", "unidad");
+    addU("capacitacionRef", "fecha", "unidad");
+    const totalUn = ((U.data.CAT && U.data.CAT.unidades) || []).filter(x => x && !/todas/i.test(x)).length || 23;
+
+    // Tendencia de actividad (mes actual vs anterior)
+    const actNow = icoActividadMes(ym), actPrev = icoActividadMes(ymPrev);
+    const dAct = actNow - actPrev;
+    const tendTxt = actPrev === 0 ? (actNow ? "Primer mes con actividad" : "Sin actividad")
+      : (dAct > 0 ? `▲ +${dAct} vs mes anterior` : dAct < 0 ? `▼ ${dAct} vs mes anterior` : "→ igual que el mes anterior");
+
+    const card = (ico, val, lab, sub, kind) => `<div class="card kpi ${kind ? "kpi--" + kind : ""}">
+      <div class="kpi__top"><div class="kpi__label">${lab}</div><span class="kpi__ico kpi__ico--${kind || "info"}">${ico}</span></div>
+      <div class="kpi__value">${val}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
+
+    return `<div class="ico-evi">
+      <div class="section__head"><div><h4 style="margin:0">Evidencia de saturación operativa</h4>
+        <p class="kpi__sub" style="margin:.15rem 0 0">Datos en vivo del portal — no requieren registrar horas.</p></div></div>
+      <div class="grid grid--kpi">
+        ${card("📨", pend, "Solicitudes pendientes", avgResp != null ? "Respuesta prom.: " + avgResp + " días" : "Sin cierres registrados aún", pend ? "warn" : "ok")}
+        ${card("⏱️", venc, "Tareas / acciones vencidas", venc ? "Compromisos fuera de plazo" : "Todo dentro de plazo", venc ? "danger" : "ok")}
+        ${card("🏥", cob.size + " / " + totalUn, "Cobertura de unidades", "Con actividad este mes", cob.size >= totalUn * 0.6 ? "ok" : "warn")}
+        ${card("📈", actNow, "Actividad del mes", tendTxt, "info")}
+      </div>
+    </div>`;
+  }
+
   function renderICO() {
     const u = ui();
     const box = document.getElementById("ico-data");
@@ -218,7 +302,8 @@
     const addBtn = `<div class="btn-row"><button class="btn btn--ghost btn--sm" id="ico-params" title="Parámetros de estimación">⚙️ Parámetros</button><button class="btn btn--primary btn--sm" id="ico-add">+ Registrar mes</button></div>`;
     if (!recs.length) {
       box.innerHTML = `<div class="ico-data__head"><h4>Seguimiento mensual</h4>${addBtn}</div>
-        ${u.empty("Aún sin registros mensuales.", "Ingresa el primer mes o estímalo desde el portal para calcular el índice.", "🗓️")}`;
+        ${u.empty("Aún sin registros mensuales.", "Ingresa el primer mes o estímalo desde el portal para calcular el índice.", "🗓️")}
+        ${icoEvidenciaHTML()}`;
       const b = document.getElementById("ico-add"); if (b) b.onclick = () => icoForm(null);
       const pb = document.getElementById("ico-params"); if (pb) pb.onclick = () => icoParams();
       return;
@@ -261,10 +346,12 @@
           ${vari}
         </div>
       </div>
+      ${icoFTEcardHTML(last)}
       <div style="margin:.6rem 0">${chart}</div>
       <div class="table-wrap"><table class="tbl"><thead><tr>
         <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
-      </tr></thead><tbody>${rows}</tbody></table></div>`;
+      </tr></thead><tbody>${rows}</tbody></table></div>
+      ${icoEvidenciaHTML()}`;
 
     document.getElementById("ico-add").onclick = () => icoForm(null);
     document.getElementById("ico-params").onclick = () => icoParams();
