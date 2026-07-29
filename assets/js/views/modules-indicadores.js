@@ -583,19 +583,37 @@
   }
 
   /* ---------- Vista ---------- */
-  function indicadores() {
+  const TABS_IND = [
+    { key: "registrados", label: "Indicadores registrados" },
+    { key: "matriz", label: "Ficha técnica (matriz)" }
+  ];
+  let _box = null, _tab = "registrados";
+  function indicadores(params) {
+    const tab = (params && params.tab) || "registrados";
     return `<div class="page-head"><h1>Indicadores UBPC</h1>
       <p>Gestión de indicadores de estructura, proceso, resultado e impacto, con semáforo, cumplimiento, tendencias y alertas.</p></div>
+      ${U.components.resource.tabsBar("coord", "indicadores", TABS_IND, tab)}
+      <div id="ind-body"></div>`;
+  }
+  function indBind(main, params) {
+    _tab = (params && params.tab) || "registrados";
+    _box = document.getElementById("ind-body");
+    renderTab();
+  }
+  function renderTab() {
+    if (!_box) return;
+    if (_tab === "matriz") renderMatriz(_box); else renderRegistrados(_box);
+  }
+
+  function renderRegistrados(box) {
+    const u = ui();
+    box.innerHTML = `
       <div id="ind-kpi"></div>
       <div id="ind-evi"></div>
       ${fichaCapacidadOperativa()}
       <div class="section__head"><h2 class="section__title">Indicadores registrados</h2>
         <button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button></div>
       <div id="ind-list"></div>`;
-  }
-
-  function refresh() {
-    const u = ui();
     const list = S().all("indicadores");
     const by = k => list.filter(i => semaforo(i) === k).length;
     document.getElementById("ind-kpi").innerHTML = `<div class="grid grid--kpi" style="margin-bottom:1.1rem">
@@ -607,16 +625,75 @@
     renderEvi();
     renderICO();
 
-    const box = document.getElementById("ind-list");
-    if (!list.length) { box.innerHTML = u.empty("Aún no hay indicadores registrados.", "Crea uno o usa las recomendaciones de EVI.", "📏"); }
+    const lb = document.getElementById("ind-list");
+    if (!list.length) { lb.innerHTML = u.empty("Aún no hay indicadores registrados.", "Crea uno o usa las recomendaciones de EVI.", "📏"); }
     else {
-      box.innerHTML = `<div class="grid grid--3">${list.map(card).join("")}</div>`;
-      box.querySelectorAll("[data-idet]").forEach(b => b.onclick = () => detalle(S().get("indicadores", b.dataset.idet)));
-      box.querySelectorAll("[data-ied]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.ied)));
-      box.querySelectorAll("[data-iseg]").forEach(b => b.onclick = () => addSeguimiento(S().get("indicadores", b.dataset.iseg)));
-      box.querySelectorAll("[data-idel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este indicador?", () => { S().remove("indicadores", b.dataset.idel); refresh(); }));
+      lb.innerHTML = `<div class="grid grid--3">${list.map(card).join("")}</div>`;
+      lb.querySelectorAll("[data-idet]").forEach(b => b.onclick = () => detalle(S().get("indicadores", b.dataset.idet)));
+      lb.querySelectorAll("[data-ied]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.ied)));
+      lb.querySelectorAll("[data-iseg]").forEach(b => b.onclick = () => addSeguimiento(S().get("indicadores", b.dataset.iseg)));
+      lb.querySelectorAll("[data-idel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este indicador?", () => { S().remove("indicadores", b.dataset.idel); renderTab(); }));
     }
     document.getElementById("ind-new").onclick = () => ficha(null);
+  }
+
+  /* ---------- Estándar de cumplimiento legible ---------- */
+  function estandarTxt(ind) {
+    if (ind.meta == null || ind.meta === "") return "—";
+    return (menorMejor(ind) ? "≤ " : "≥ ") + ind.meta + "%";
+  }
+
+  /* ---------- Submódulo: Ficha técnica (matriz) ---------- */
+  function fichaSheet(ind) {
+    const u = ui();
+    const crit = (ind.metodologia || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const rows = [
+      ["Indicador", u.esc(ind.nombre || "—")],
+      ["Fórmula", u.esc(ind.formula || (ind.tipo === "Estructura" ? "Indicador de estructura (verificación)" : "—"))],
+      ["Estándar de cumplimiento", estandarTxt(ind)],
+      ["Fuente de información", u.esc(ind.fuenteDatos || "—")],
+      ["Periodicidad", u.esc(ind.periodicidad || "—")],
+      ["Responsable", u.esc(ind.responsable || "Enf. Coordinador/a UBPC")]
+    ];
+    return `<div class="mtx-card" style="--tc:${TIPO_COLOR[ind.tipo] || "#12b5a5"}">
+      <div class="mtx-card__head"><span class="tag" style="background:${TIPO_COLOR[ind.tipo]}22;color:${TIPO_COLOR[ind.tipo]}">${u.esc(ind.tipo || "—")}</span>
+        <span class="mtx-ver">Versión ${ind.fichaVersion || 1}</span></div>
+      <table class="mtx-tbl"><tbody>
+        ${rows.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join("")}
+        <tr><th>Metodología de evaluación</th><td>${crit.length ? `<ol class="mtx-crit">${crit.map(c => `<li>${u.esc(c)}</li>`).join("")}</ol>` : "—"}</td></tr>
+      </tbody></table>
+      <div class="btn-row" style="margin-top:.6rem">
+        <button class="btn btn--ghost btn--sm" data-mtxedit="${ind.id}">✏️ Editar ficha</button>
+        <button class="btn btn--ghost btn--sm" data-mtxver="${ind.id}">🕘 Versiones (${(ind.fichaHist || []).length || 1})</button>
+        <button class="btn-icon" data-mtxdel="${ind.id}" title="Eliminar">🗑️</button>
+      </div></div>`;
+  }
+  function verVersiones(ind) {
+    const u = ui();
+    const h = (ind.fichaHist && ind.fichaHist.length ? ind.fichaHist : [{ version: ind.fichaVersion || 1, fecha: ind.fechaCreacion, por: "—", cambio: "Versión inicial" }]).slice().reverse();
+    u.modal({
+      title: "Versiones de la ficha · " + (ind.nombre || ""),
+      body: `<ul class="feed">${h.map(x => `<li><span class="feed__ico">🏷️</span><div><strong>Versión ${x.version}</strong>${x.cambio ? " · " + u.esc(x.cambio) : ""}
+        <div class="feed__meta">${u.esc(x.por || "—")} · ${x.fecha ? u.fechaHoraCL(x.fecha) : "—"}</div></div></li>`).join("")}</ul>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
+    });
+  }
+  function renderMatriz(box) {
+    const u = ui();
+    const list = S().all("indicadores");
+    const head = `<div class="section__head"><div><h2 class="section__title">Ficha técnica de indicadores (matriz)</h2>
+        <p class="section__hint">Diccionario técnico de cada indicador: fórmula, estándar, fuente, periodicidad, responsable, metodología y versión.</p></div>
+        <button class="btn btn--primary btn--sm" id="mtx-new">+ Nuevo indicador</button></div>`;
+    if (!list.length) {
+      box.innerHTML = head + u.empty("Aún no hay fichas técnicas.", "Crea un indicador para generar su ficha.", "🗂️");
+      document.getElementById("mtx-new").onclick = () => ficha(null);
+      return;
+    }
+    box.innerHTML = head + `<div class="mtx-grid">${list.map(fichaSheet).join("")}</div>`;
+    document.getElementById("mtx-new").onclick = () => ficha(null);
+    box.querySelectorAll("[data-mtxedit]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.mtxedit)));
+    box.querySelectorAll("[data-mtxver]").forEach(b => b.onclick = () => verVersiones(S().get("indicadores", b.dataset.mtxver)));
+    box.querySelectorAll("[data-mtxdel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este indicador y su ficha?", () => { S().remove("indicadores", b.dataset.mtxdel); renderTab(); }));
   }
 
   function kpi(label, value, sub, kind, icon) {
@@ -634,7 +711,8 @@
     return `<div class="card" style="border-top:4px solid ${TIPO_COLOR[ind.tipo] || "#12b5a5"}">
       <div class="card__head"><span class="tag" style="background:${TIPO_COLOR[ind.tipo]}22;color:${TIPO_COLOR[ind.tipo]}">${u.esc(ind.tipo || "—")}</span>
         <span class="badge badge--${sem.k}">${sem.l}</span></div>
-      <h3 class="card__title" style="font-size:1rem">${u.esc(ind.nombre || "Indicador")}</h3>
+      <h3 class="card__title" style="font-size:1rem;margin-bottom:.1rem">${u.esc(ind.nombre || "Indicador")}</h3>
+      ${ind.formula ? `<div class="kpi__sub" style="margin-bottom:.2rem">ƒ ${u.esc(ind.formula)}</div>` : ""}
       <div class="flex" style="justify-content:space-between;align-items:flex-end;margin:.3rem 0">
         <div><div style="font-size:1.9rem;font-weight:800;font-family:var(--font-disp);color:${sem.c};line-height:1">${cur == null ? "—" : cur + "%"}</div>
           <div class="kpi__sub">Meta ${ind.meta || "—"}% · ${cumpl != null ? cumpl + "% cumpl." : "—"}</div></div>
@@ -659,33 +737,50 @@
     const commonTop = u.formHTML([
       { name: "nombre", label: "Nombre del indicador", required: true, full: true, value: rec.nombre || "" },
       { name: "tipo", label: "Tipo de indicador", type: "select", options: TIPOS, value: tipo },
-      { name: "responsable", label: "Responsable", value: rec.responsable || "" },
+      { name: "responsable", label: "Responsable", value: rec.responsable || "Enf. Coordinador/a UBPC" },
       { name: "objetivo", label: "Objetivo", type: "textarea", full: true, value: rec.objetivo || "" }
     ], {});
+    const cambioField = rec.id ? u.formHTML([{ name: "cambioFicha", label: "Motivo del cambio (crea una nueva versión de la ficha)", full: true, value: "", hint: "Opcional. Si lo completas, la ficha sube de versión y queda registrado en el historial." }], {}) : "";
 
     u.modal({
-      title: (rec.id ? "Editar" : "Nuevo") + " indicador", wide: true,
+      title: (rec.id ? "Editar" : "Nuevo") + " indicador" + (rec.id ? " · ficha v" + (rec.fichaVersion || 1) : ""), wide: true,
       body: `${commonTop}<div id="ind-dyn"></div>
         <h4 style="margin:.6rem 0 .3rem">Seguimiento (resultados por período)</h4>
         <div id="ind-segs"></div>
-        <button type="button" class="btn btn--ghost btn--sm" id="ind-addseg">+ Agregar período</button>`,
+        <button type="button" class="btn btn--ghost btn--sm" id="ind-addseg">+ Agregar período</button>
+        ${cambioField}`,
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar indicador</button>`,
       onMount(m) {
         const dyn = m.querySelector("#ind-dyn");
         const tipoSel = m.querySelector('select[name="tipo"]');
+        function paintFormula() {
+          const box = m.querySelector("#ind-formula"); if (!box) return;
+          const nd = (m.querySelector('[name="numeradorDesc"]') || {}).value || "Numerador";
+          const dd = (m.querySelector('[name="denominadorDesc"]') || {}).value || "Denominador";
+          const nv = (m.querySelector('[name="numerador"]') || {}).value;
+          const dv = (m.querySelector('[name="denominador"]') || {}).value;
+          const pctTxt = (dv && Number(dv) > 0 && nv !== "") ? " = <b>" + Math.round(Number(nv) / Number(dv) * 100) + "%</b>" : "";
+          box.innerHTML = `<span class="ind-formula__lbl">Fórmula</span>
+            <div class="ind-formula__eq"><span class="ind-frac"><span class="num">${u.esc(nd)}</span><span class="bar"></span><span class="den">${u.esc(dd)}</span></span>
+            <span class="x">× 100</span>${pctTxt}</div>`;
+        }
         function renderDyn() {
           tipo = tipoSel.value;
           const estructura = tipo === "Estructura";
-          dyn.innerHTML = u.formHTML([
-            estructura ? null : { name: "formula", label: "Fórmula", full: true, value: rec.formula || "" },
-            estructura ? null : { name: "numerador", label: "Numerador", type: "number", value: rec.numerador != null ? rec.numerador : "" },
-            estructura ? null : { name: "denominador", label: "Denominador", type: "number", value: rec.denominador != null ? rec.denominador : "" },
-            { name: "fuenteDatos", label: "Fuente de datos", full: true, value: rec.fuenteDatos || "" },
+          dyn.innerHTML = (estructura ? "" : `<div class="ind-formula" id="ind-formula"></div>`) + u.formHTML([
+            estructura ? null : { name: "numeradorDesc", label: "Numerador — ¿qué se cuenta?", full: true, value: rec.numeradorDesc || "", hint: "Ej: N° de pacientes con valoración de riesgo realizada." },
+            estructura ? null : { name: "numerador", label: "Numerador (cantidad)", type: "number", value: rec.numerador != null ? rec.numerador : "" },
+            estructura ? null : { name: "denominadorDesc", label: "Denominador — ¿sobre qué total?", full: true, value: rec.denominadorDesc || "", hint: "Ej: Total de pacientes evaluados en el período." },
+            estructura ? null : { name: "denominador", label: "Denominador (cantidad)", type: "number", value: rec.denominador != null ? rec.denominador : "" },
+            { name: "fuenteDatos", label: "Fuente de información", full: true, value: rec.fuenteDatos || "" },
             { name: "periodicidad", label: "Periodicidad", type: "select", options: PERIODICIDAD, value: rec.periodicidad || "Trimestral" },
             { name: "sentido", label: "Sentido de la meta", type: "select", options: SENTIDOS, value: rec.sentido || "Mayor es mejor" },
-            { name: "meta", label: "Meta (%)", type: "number", value: rec.meta != null ? rec.meta : "" },
-            { name: "lineaBase", label: "Línea base (%)", type: "number", value: rec.lineaBase != null ? rec.lineaBase : "" }
+            { name: "meta", label: "Estándar de cumplimiento / Meta (%)", type: "number", value: rec.meta != null ? rec.meta : "" },
+            { name: "lineaBase", label: "Línea base (%)", type: "number", value: rec.lineaBase != null ? rec.lineaBase : "" },
+            { name: "metodologia", label: "Metodología de evaluación (un criterio por línea)", type: "textarea", full: true, rows: 3, value: rec.metodologia || "", hint: "Enumera los criterios de evaluación; cada línea será un ítem numerado en la ficha." }
           ].filter(Boolean), {});
+          paintFormula();
+          ["numeradorDesc", "denominadorDesc", "numerador", "denominador"].forEach(n => { const el = m.querySelector(`[name="${n}"]`); if (el) el.addEventListener("input", paintFormula); });
         }
         tipoSel.onchange = renderDyn; renderDyn();
 
@@ -709,8 +804,28 @@
           const d = u.readForm(m);
           if (!d.nombre) { u.toast("El nombre es obligatorio", "danger"); return; }
           d.seguimientos = segs.filter(s => (s.periodo || "") !== "" || (s.valor || "") !== "");
-          if (rec.id) S().update("indicadores", rec.id, d); else S().insert("indicadores", d);
-          u.closeModal(); u.toast("Indicador guardado", "ok"); refresh();
+          if (!d.responsable) d.responsable = "Enf. Coordinador/a UBPC";
+          // Fórmula automática (indicadores no estructurales)
+          if (d.tipo !== "Estructura") d.formula = "(" + (d.numeradorDesc || "Numerador") + " ÷ " + (d.denominadorDesc || "Denominador") + ") × 100";
+          else d.formula = "";
+          // Versión de la ficha
+          const me = U.auth.current();
+          if (rec.id) {
+            if ((d.cambioFicha || "").trim()) {
+              d.fichaVersion = (rec.fichaVersion || 1) + 1;
+              d.fichaHist = (rec.fichaHist || []).concat([{ version: d.fichaVersion, fecha: new Date().toISOString(), por: me ? me.nombre : "—", cambio: d.cambioFicha.trim() }]);
+            } else {
+              d.fichaVersion = rec.fichaVersion || 1;
+              d.fichaHist = rec.fichaHist || [];
+            }
+            delete d.cambioFicha;
+            S().update("indicadores", rec.id, d);
+          } else {
+            d.fichaVersion = 1;
+            d.fichaHist = [{ version: 1, fecha: new Date().toISOString(), por: me ? me.nombre : "—", cambio: "Creación de la ficha" }];
+            S().insert("indicadores", d);
+          }
+          u.closeModal(); u.toast("Indicador guardado", "ok"); renderTab();
         };
       }
     });
@@ -731,7 +846,7 @@
           if (d.valor === "") { u.toast("Indica el valor", "danger"); return; }
           const segs = (ind.seguimientos || []).concat([{ periodo: d.periodo, valor: Number(d.valor) }]);
           S().update("indicadores", ind.id, { seguimientos: segs });
-          u.closeModal(); refresh();
+          u.closeModal(); renderTab();
         };
       }
     });
@@ -754,13 +869,15 @@
           <span style="margin-left:auto;font-weight:800;color:${t.fav == null ? "var(--text-2)" : (t.fav ? "var(--verde)" : "var(--danger)")}">${t.arrow} ${u.esc(t.txt)}</span></div>
         ${alerta}
         <div class="dl">
-          ${fila("Valor actual", cur == null ? "—" : cur + "%")}${fila("Meta", (ind.meta || "—") + "%")}
+          ${fila("Valor actual", cur == null ? "—" : cur + "%")}${fila("Estándar de cumplimiento", estandarTxt(ind))}
           ${fila("Cumplimiento", cumplimiento(ind) != null ? cumplimiento(ind) + "%" : "—")}${fila("Sentido", ind.sentido)}
           ${fila("Línea base", ind.lineaBase !== "" && ind.lineaBase != null ? ind.lineaBase + "%" : "—")}${fila("Periodicidad", ind.periodicidad)}
           ${ind.tipo !== "Estructura" ? fila("Fórmula", ind.formula) + fila("Numerador / Denominador", (ind.numerador || "—") + " / " + (ind.denominador || "—")) : ""}
-          ${fila("Fuente de datos", ind.fuenteDatos)}${fila("Responsable", ind.responsable)}
+          ${fila("Fuente de información", ind.fuenteDatos)}${fila("Responsable", ind.responsable)}
+          ${fila("Ficha", "Versión " + (ind.fichaVersion || 1))}
         </div>
         <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Objetivo</span><p class="narrativo">${u.esc(ind.objetivo || "—")}</p></div>
+        ${(ind.metodologia || "").trim() ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Metodología de evaluación</span><ol class="mtx-crit">${ind.metodologia.split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(x => `<li>${u.esc(x)}</li>`).join("")}</ol></div>` : ""}
         <h4 style="margin:.6rem 0 .2rem">Tendencia</h4>${chart}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
         <button class="btn btn--primary" data-seg>+ Seguimiento</button>`,
@@ -821,7 +938,7 @@
   }
 
   U.coord.views.indicadores = indicadores;
-  U.coord.binders.indicadores = refresh;
+  U.coord.binders.indicadores = indBind;
 
   /* Cálculos expuestos para reportes u otros módulos */
   U.indicadoresCalc = { currentValue, semaforo, cumplimiento, serie, tendencia, SEM, TIPO_COLOR };

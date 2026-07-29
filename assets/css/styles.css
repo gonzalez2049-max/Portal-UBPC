@@ -1785,6 +1785,33 @@ body.night .celebra__card{ background:#132621; }
 body.night .celebra__title{ color:#eaf6f1; }
 body.night .celebra__msg{ color:#c9d8d2; }
 
+/* ===== Indicadores · fórmula en el formulario ===== */
+.ind-formula{ background:var(--surface-2,#f7fbfa); border:1px solid var(--border,#e6ecea); border-left:4px solid var(--c-turquesa,#12b5a5);
+  border-radius:10px; padding:.6rem .8rem; margin-bottom:.7rem; }
+.ind-formula__lbl{ font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--c-turquesa,#0d8175); }
+.ind-formula__eq{ display:flex; align-items:center; gap:.7rem; margin-top:.3rem; flex-wrap:wrap; }
+.ind-frac{ display:inline-flex; flex-direction:column; text-align:center; }
+.ind-frac .num, .ind-frac .den{ font-weight:700; color:#153833; font-size:.9rem; padding:.1rem .3rem; }
+.ind-frac .bar{ height:2px; background:var(--c-turquesa,#12b5a5); margin:.12rem 0; border-radius:2px; }
+.ind-formula__eq .x{ font-family:var(--font-disp); font-weight:800; color:var(--c-turquesa,#0d8175); }
+.ind-formula__eq b{ font-family:var(--font-disp); font-size:1.1rem; color:#153833; }
+body.night .ind-formula{ background:#132621; } body.night .ind-frac .num, body.night .ind-frac .den, body.night .ind-formula__eq b{ color:#eaf6f1; }
+
+/* ===== Ficha técnica (matriz) ===== */
+.mtx-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:1rem; }
+.mtx-card{ background:var(--surface,#fff); border:1px solid var(--border,#e6ecea); border-top:4px solid var(--tc,#12b5a5);
+  border-radius:14px; padding:.9rem 1rem; }
+.mtx-card__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
+.mtx-ver{ font-size:.74rem; font-weight:800; color:var(--text-2,#5a6b66); background:var(--surface-2,#f4f7f6);
+  border:1px solid var(--border,#e0e7e4); border-radius:999px; padding:.2rem .6rem; }
+.mtx-tbl{ width:100%; border-collapse:collapse; }
+.mtx-tbl th{ text-align:left; vertical-align:top; width:42%; font-size:.78rem; font-weight:800; color:var(--text-2,#5a6b66);
+  padding:.35rem .5rem .35rem 0; border-bottom:1px solid var(--border,#eef2f1); }
+.mtx-tbl td{ vertical-align:top; font-size:.86rem; color:var(--text,#28413c); padding:.35rem 0; border-bottom:1px solid var(--border,#eef2f1); }
+.mtx-crit{ margin:.1rem 0 0 1.1rem; padding:0; } .mtx-crit li{ margin:.1rem 0; }
+body.night .mtx-card{ background:#132621; border-color:rgba(255,255,255,.08); }
+body.night .mtx-tbl td{ color:#d7e8e1; }
+
 /* ===== Ficha técnica destacada · Índice de Capacidad Operativa ===== */
 .ico-ficha{ border-top:5px solid var(--acc,#7a5cd0); }
 .ico-ficha__head{ display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; }
