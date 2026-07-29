@@ -343,6 +343,7 @@
     const maxV = Math.max.apply(0, sameRoot.map(x => x.version || 1));
     const nueva = S().insert("docsTrabajo", {
       titulo: doc.titulo, plantilla: doc.plantilla, contenido: resetCover(doc.contenido, maxV + 1), tamano: doc.tamano || "a4",
+      planData: doc.planData || undefined, // conserva el formulario del Plan RNAO al versionar
       estado: "borrador", version: maxV + 1, origenId: root,
       historial: logHist({}, "Nueva versión creada", "a partir de " + (doc.codigo || ("v" + (doc.version || 1))))
     });
@@ -374,6 +375,8 @@
   function openEditor(container, rec, tplKey) {
     const u = ui();
     const plantilla = rec ? rec.plantilla : tplKey;
+    // El Plan RNAO/BPSO usa un formulario guiado en lugar del editor libre.
+    if (plantilla === "planRNAO") return openPlanRNAO(container, rec, tplKey);
     const p = plMeta(plantilla);
     const me = U.auth.current();
     const titulo = rec ? (rec.titulo || p.titulo) : p.titulo;
@@ -599,6 +602,327 @@
         .replace(/<h3>/g, '<h3 style="font-family:Georgia,serif;color:#5b34b0">')
         .replace(/<div class="doc-pagebreak"[^>]*>.*?<\/div>/g, '<br clear="all" style="page-break-before:always">');
       u.exportWord("documento-ubpc-" + u.hoyISO(), title, franja + header + h1 + body);
+    };
+  }
+
+  /* ============================================================
+     PLAN RNAO / BPSO — Formulario guiado (8 secciones)
+     ============================================================ */
+  const KTA = ["Identificar el problema", "Adaptar el conocimiento al contexto local",
+    "Evaluar barreras y facilitadores", "Seleccionar e implementar intervenciones",
+    "Monitorear el uso del conocimiento", "Evaluar resultados", "Sostener el uso del conocimiento"];
+  const EST_SEG = ["Pendiente", "En curso", "Completado", "Retrasado"];
+  const EST_CIERRE = ["En ejecución", "Cerrado", "Suspendido"];
+  const ACT_COLS = [
+    { f: "actividad", label: "Actividad" }, { f: "responsable", label: "Responsable" },
+    { f: "recursos", label: "Recursos" }, { f: "verificador", label: "Verificador" },
+    { f: "kta", label: "Etapa KTA", type: "select", options: KTA }];
+  const SEG_COLS = [
+    { f: "fecha", label: "Fecha", type: "date" }, { f: "descripcion", label: "Descripción / avance" },
+    { f: "avance", label: "% avance", type: "number" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }];
+  const ACC_COLS = [
+    { f: "accion", label: "Acción de mejora" }, { f: "responsable", label: "Responsable" },
+    { f: "plazo", label: "Plazo", type: "date" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG },
+    { f: "resultado", label: "Resultado / observación" }];
+  const REP_COLS = { actividades: ACT_COLS, seguimientos: SEG_COLS, acciones: ACC_COLS };
+  const REP_ADD = { actividades: "Agregar actividad", seguimientos: "Agregar seguimiento", acciones: "Agregar acción" };
+  const pnum = v => (v === "" || v == null || isNaN(v)) ? null : Number(v);
+
+  function pfld(name, label, help, opt) {
+    opt = opt || {}; const u = ui(); const id = "pf-" + name;
+    const req = opt.req ? ' <span class="pf-req">*</span>' : "";
+    const val = opt.value == null ? "" : opt.value;
+    let ctrl;
+    if (opt.type === "textarea") ctrl = `<textarea class="input" id="${id}" data-pf="${name}" rows="${opt.rows || 2}" ${opt.req ? "data-req" : ""} ${opt.ro ? "readonly" : ""}>${u.esc(val)}</textarea>`;
+    else if (opt.type === "select") ctrl = `<select class="input" id="${id}" data-pf="${name}">${(opt.options || []).map(o => `<option ${String(o) === String(val) ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select>`;
+    else ctrl = `<input class="input" id="${id}" data-pf="${name}" type="${opt.type || "text"}" value="${u.esc(val)}" ${opt.req ? "data-req" : ""} ${opt.ro ? "readonly" : ""}>`;
+    return `<div class="pf-field ${opt.full ? "pf-field--full" : ""}"><label for="${id}">${u.esc(label)}${req}</label>${ctrl}${help ? `<span class="pf-help">${u.esc(help)}</span>` : ""}</div>`;
+  }
+  function repRow(rep, values) {
+    const u = ui(); const cols = REP_COLS[rep]; values = values || {};
+    return `<tr data-reprow>${cols.map(c => {
+      const v = values[c.f] == null ? "" : values[c.f];
+      let ctrl;
+      if (c.type === "select") ctrl = `<select class="input input--sm" data-f="${c.f}">${c.options.map(o => `<option ${String(o) === String(v) ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select>`;
+      else ctrl = `<input class="input input--sm" data-f="${c.f}" type="${c.type || "text"}" value="${u.esc(v)}">`;
+      return `<td data-col="${c.f}">${ctrl}</td>`;
+    }).join("")}<td class="pf-rep__x"><button type="button" class="btn-icon" data-reprm title="Quitar fila">🗑️</button></td></tr>`;
+  }
+  function repTable(rep, rows) {
+    const u = ui(); const cols = REP_COLS[rep]; rows = (rows && rows.length) ? rows : [];
+    return `<div class="pf-rep" data-rep="${rep}">
+      <div class="table-wrap"><table class="tbl pf-rep__t"><thead><tr>${cols.map(c => `<th>${u.esc(c.label)}</th>`).join("")}<th></th></tr></thead>
+      <tbody>${rows.map(r => repRow(rep, r)).join("")}</tbody></table></div>
+      <button type="button" class="btn btn--ghost btn--sm" data-repadd="${rep}">+ ${u.esc(REP_ADD[rep])}</button></div>`;
+  }
+  function secH(n, t) { return `<div class="pf-sec-h"><span class="pf-sec-n">${n}</span><h3>${t}</h3></div>`; }
+
+  function planFormHTML(data) {
+    const me = U.auth.current();
+    const variTxt = (pnum(data.evalPost) != null && pnum(data.evalBase) != null) ? (pnum(data.evalPost) - pnum(data.evalBase)) : "";
+    const cumplTxt = (pnum(data.evalPost) != null && pnum(data.evalMeta) > 0) ? Math.round(pnum(data.evalPost) / pnum(data.evalMeta) * 100) : "";
+    return `<div class="plan-form">
+      <section class="pf-section">${secH(1, "Identificación del plan")}
+        <div class="pf-grid">
+          ${pfld("nombre", "Nombre del plan", "Título claro y específico. Ej: “Plan LPP · UTI 2026”.", { value: data.nombre, req: true, full: true })}
+          ${pfld("unidades", "Unidad(es) implementadora(s)", "Unidades clínicas donde se aplica el plan.", { value: data.unidades })}
+          ${pfld("coordinador", "Coordinador/a responsable", "Quién lidera y responde por el plan.", { value: data.coordinador != null ? data.coordinador : (me ? me.nombre : "") })}
+          ${pfld("fechaInicio", "Fecha de inicio", "Cuándo comienza la implementación.", { value: data.fechaInicio, type: "date" })}
+          ${pfld("periodo", "Período / año", "Ej: 2026 o 2026–2027.", { value: data.periodo })}
+        </div></section>
+
+      <section class="pf-section">${secH(2, "Guía, recomendación y brecha")}
+        <div class="pf-grid">
+          ${pfld("guia", "Guía BPSO / RNAO", "Guía de buenas prácticas de referencia.", { value: data.guia, req: true })}
+          ${pfld("lineaBaseCumpl", "Cumplimiento línea base (%)", "Nivel de cumplimiento medido al inicio.", { value: data.lineaBaseCumpl, type: "number" })}
+          ${pfld("recomendacion", "Recomendación abordada", "Recomendación específica de la guía que se trabaja.", { value: data.recomendacion, type: "textarea", full: true })}
+          ${pfld("brecha", "Brecha detectada", "Diferencia entre la práctica actual y la recomendada.", { value: data.brecha, type: "textarea", full: true })}
+        </div></section>
+
+      <section class="pf-section">${secH(3, "Objetivos, actividades, responsables, recursos, verificadores y etapa KTA")}
+        ${pfld("objetivoGeneral", "Objetivo general", "Propósito central del plan.", { value: data.objetivoGeneral, type: "textarea", req: true, full: true })}
+        ${pfld("objetivosEspecificos", "Objetivos específicos", "Escribe uno por línea.", { value: data.objetivosEspecificos, type: "textarea", full: true })}
+        <div class="pf-rep-lbl">Actividades <span class="pf-help">Agrega todas las que necesites. La etapa KTA ubica cada actividad en el ciclo Conocimiento→Acción.</span></div>
+        ${repTable("actividades", data.actividades)}</section>
+
+      <section class="pf-section">${secH(4, "Plazos, seguimientos, avance, cierre y lecciones aprendidas")}
+        <div class="pf-grid">
+          ${pfld("plazoInicio", "Plazo · inicio", "", { value: data.plazoInicio, type: "date" })}
+          ${pfld("plazoFin", "Plazo · término", "Fecha comprometida de término.", { value: data.plazoFin, type: "date" })}
+          ${pfld("avanceGlobal", "Avance global (%)", "Estimación del avance total del plan.", { value: data.avanceGlobal, type: "number" })}
+          ${pfld("fechaCierre", "Fecha de cierre", "Cuándo se cerró (si aplica).", { value: data.fechaCierre, type: "date" })}
+          ${pfld("estadoCierre", "Estado del plan", "", { value: data.estadoCierre || "En ejecución", type: "select", options: EST_CIERRE })}
+        </div>
+        <div class="pf-rep-lbl">Seguimientos cronológicos <span class="pf-help">Registra cada revisión con su fecha, avance y estado.</span></div>
+        ${repTable("seguimientos", data.seguimientos)}
+        ${pfld("lecciones", "Lecciones aprendidas", "Aprendizajes, qué funcionó y qué mejorar a futuro.", { value: data.lecciones, type: "textarea", full: true, rows: 3 })}</section>
+
+      <section class="pf-section">${secH(5, "Acciones de mejora")}
+        <div class="pf-rep-lbl">Tabla de acciones <span class="pf-help">Acciones concretas para cerrar la brecha, con responsable, plazo y estado.</span></div>
+        ${repTable("acciones", data.acciones)}</section>
+
+      <section class="pf-section">${secH(6, "Comunicación y participación")}
+        <div class="pf-grid">
+          ${pfld("comunicacion", "Estrategia de comunicación", "Cómo se comunica el plan al equipo.", { value: data.comunicacion, type: "textarea", full: true })}
+          ${pfld("participantes", "Equipo y participantes", "Personas y roles que participan (Red Champion, referentes).", { value: data.participantes, type: "textarea", full: true })}
+          ${pfld("participacion", "Instancias de participación", "Reuniones, comités o espacios de trabajo conjunto.", { value: data.participacion, type: "textarea", full: true })}
+          ${pfld("difusion", "Difusión y sensibilización", "Acciones de difusión realizadas o planificadas.", { value: data.difusion, type: "textarea", full: true })}
+        </div></section>
+
+      <section class="pf-section">${secH(7, "Barreras, facilitadores, riesgos y recursos")}
+        <div class="pf-grid">
+          ${pfld("barreras", "Barreras", "Obstáculos que dificultan la implementación.", { value: data.barreras, type: "textarea", full: true })}
+          ${pfld("facilitadores", "Facilitadores", "Factores que favorecen la implementación.", { value: data.facilitadores, type: "textarea", full: true })}
+          ${pfld("riesgos", "Riesgos", "Riesgos identificados y su mitigación.", { value: data.riesgos, type: "textarea", full: true })}
+          ${pfld("recursos", "Recursos", "Recursos humanos, materiales y de coordinación.", { value: data.recursos, type: "textarea", full: true })}
+        </div></section>
+
+      <section class="pf-section">${secH(8, "Evaluación de resultados")}
+        <div class="pf-grid">
+          ${pfld("evalBase", "Línea base (%)", "Medición inicial.", { value: data.evalBase, type: "number" })}
+          ${pfld("evalPost", "Resultado posterior (%)", "Medición tras la intervención.", { value: data.evalPost, type: "number" })}
+          ${pfld("variacion", "Variación (pts)", "Se calcula solo: posterior − base.", { value: variTxt, ro: true })}
+          ${pfld("evalMeta", "Meta (%)", "Meta comprometida.", { value: data.evalMeta, type: "number" })}
+          ${pfld("cumplimiento", "Cumplimiento (%)", "Se calcula solo: posterior ÷ meta × 100.", { value: cumplTxt, ro: true })}
+        </div>
+        <div class="pf-grid">
+          ${pfld("evalA1", "Resultado Año 1", "", { value: data.evalA1 })}
+          ${pfld("evalA2", "Resultado Año 2", "", { value: data.evalA2 })}
+          ${pfld("evalA3", "Resultado Año 3", "", { value: data.evalA3 })}
+        </div>
+        ${pfld("conclusion", "Conclusión", "Síntesis del resultado y decisión (sostener, ajustar, escalar).", { value: data.conclusion, type: "textarea", full: true, rows: 3 })}</section>
+    </div>`;
+  }
+
+  function readPlanForm(root) {
+    const d = {};
+    root.querySelectorAll("[data-pf]").forEach(el => { d[el.dataset.pf] = (el.value || "").trim(); });
+    Object.keys(REP_COLS).forEach(rep => {
+      const cols = REP_COLS[rep];
+      d[rep] = [...root.querySelectorAll(`[data-rep="${rep}"] [data-reprow]`)].map(tr => {
+        const o = {}; cols.forEach(c => { const el = tr.querySelector(`[data-f="${c.f}"]`); o[c.f] = el ? (el.value || "").trim() : ""; }); return o;
+      }).filter(o => Object.keys(o).some(k => o[k] !== ""));
+    });
+    d.variacion = (pnum(d.evalPost) != null && pnum(d.evalBase) != null) ? (pnum(d.evalPost) - pnum(d.evalBase)) : "";
+    d.cumplimiento = (pnum(d.evalPost) != null && pnum(d.evalMeta) > 0) ? Math.round(pnum(d.evalPost) / pnum(d.evalMeta) * 100) : "";
+    return d;
+  }
+
+  // Genera el documento HTML del plan (para portada, impresión, PDF, Word e historial)
+  function planToHTML(data) {
+    const u = ui();
+    const e = v => u.esc(v != null && String(v).trim() !== "" ? v : "—");
+    const pct = v => (v != null && String(v).trim() !== "" && !isNaN(v)) ? v + "%" : "—";
+    const par = t => (t && t.trim()) ? `<p>${u.esc(t).replace(/\r?\n/g, "<br>")}</p>` : "<p>—</p>";
+    const list = t => { const it = (t || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean); return it.length ? `<ul>${it.map(i => `<li>${u.esc(i)}</li>`).join("")}</ul>` : "<p>—</p>"; };
+    const tbl = (rep, rows) => {
+      const cols = REP_COLS[rep];
+      if (!rows || !rows.length) return "<p>—</p>";
+      return `<table><thead><tr>${cols.map(c => `<th>${u.esc(c.label)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${cols.map(c => `<td>${e(r[c.f])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    };
+    const vari = (pnum(data.evalPost) != null && pnum(data.evalBase) != null) ? ((pnum(data.evalPost) - pnum(data.evalBase) > 0 ? "+" : "") + (pnum(data.evalPost) - pnum(data.evalBase)) + " pts") : "—";
+    const cumpl = (pnum(data.evalPost) != null && pnum(data.evalMeta) > 0) ? Math.round(pnum(data.evalPost) / pnum(data.evalMeta) * 100) + "%" : "—";
+    return `<h2>1. Identificación del plan</h2>
+      <p><strong>Nombre:</strong> ${e(data.nombre)} · <strong>Unidad(es):</strong> ${e(data.unidades)}<br>
+      <strong>Coordinador/a:</strong> ${e(data.coordinador)} · <strong>Inicio:</strong> ${e(data.fechaInicio)} · <strong>Período:</strong> ${e(data.periodo)}</p>
+      <h2>2. Guía, recomendación y brecha</h2>
+      <p><strong>Guía BPSO / RNAO:</strong> ${e(data.guia)} · <strong>Línea base:</strong> ${pct(data.lineaBaseCumpl)}</p>
+      <p><strong>Recomendación:</strong></p>${par(data.recomendacion)}
+      <p><strong>Brecha detectada:</strong></p>${par(data.brecha)}
+      <h2>3. Objetivos, actividades y etapa KTA</h2>
+      <p><strong>Objetivo general:</strong></p>${par(data.objetivoGeneral)}
+      <p><strong>Objetivos específicos:</strong></p>${list(data.objetivosEspecificos)}
+      <p><strong>Actividades:</strong></p>${tbl("actividades", data.actividades)}
+      <h2>4. Plazos, seguimientos, avance y cierre</h2>
+      <p><strong>Plazo:</strong> ${e(data.plazoInicio)} → ${e(data.plazoFin)} · <strong>Avance global:</strong> ${pct(data.avanceGlobal)} · <strong>Estado:</strong> ${e(data.estadoCierre)} · <strong>Cierre:</strong> ${e(data.fechaCierre)}</p>
+      <p><strong>Seguimientos:</strong></p>${tbl("seguimientos", data.seguimientos)}
+      <p><strong>Lecciones aprendidas:</strong></p>${par(data.lecciones)}
+      <h2>5. Acciones de mejora</h2>${tbl("acciones", data.acciones)}
+      <h2>6. Comunicación y participación</h2>
+      <p><strong>Estrategia de comunicación:</strong></p>${par(data.comunicacion)}
+      <p><strong>Equipo y participantes:</strong></p>${par(data.participantes)}
+      <p><strong>Instancias de participación:</strong></p>${par(data.participacion)}
+      <p><strong>Difusión:</strong></p>${par(data.difusion)}
+      <h2>7. Barreras, facilitadores, riesgos y recursos</h2>
+      <p><strong>Barreras:</strong></p>${par(data.barreras)}
+      <p><strong>Facilitadores:</strong></p>${par(data.facilitadores)}
+      <p><strong>Riesgos:</strong></p>${par(data.riesgos)}
+      <p><strong>Recursos:</strong></p>${par(data.recursos)}
+      <h2>8. Evaluación de resultados</h2>
+      <table><thead><tr><th>Línea base</th><th>Resultado posterior</th><th>Variación</th><th>Meta</th><th>Cumplimiento</th></tr></thead>
+      <tbody><tr><td>${pct(data.evalBase)}</td><td>${pct(data.evalPost)}</td><td>${vari}</td><td>${pct(data.evalMeta)}</td><td>${cumpl}</td></tr></tbody></table>
+      <table><thead><tr><th>Resultado Año 1</th><th>Resultado Año 2</th><th>Resultado Año 3</th></tr></thead>
+      <tbody><tr><td>${e(data.evalA1)}</td><td>${e(data.evalA2)}</td><td>${e(data.evalA3)}</td></tr></tbody></table>
+      <p><strong>Conclusión:</strong></p>${par(data.conclusion)}`;
+  }
+
+  function openPlanRNAO(container, rec, tplKey) {
+    const u = ui();
+    const me = U.auth.current();
+    const p = PLANTILLAS.planRNAO;
+    const estado = (rec && rec.estado) || "borrador";
+    const est = ESTADOS[estado] || ESTADOS.borrador;
+    const locked = estado !== "borrador";
+    const version = (rec && rec.version) || 1;
+    const codigo = rec && rec.codigo;
+    const data = (rec && rec.planData) ? rec.planData : { actividades: [], seguimientos: [], acciones: [] };
+    let current = rec;
+    let sheet = (rec && rec.tamano) || "a4";
+
+    const estadoBadge = `<span class="doc-estado" style="--ec:${est.color}">${est.ic} ${u.esc(est.label)}${codigo ? " · " + u.esc(codigo) : ""}${(version > 1 || locked) ? " · v" + version : ""}</span>`;
+    let wf = "";
+    if (estado === "borrador") wf = `<button class="btn btn--primary btn--sm" id="wf-aprobar">✔️ Aprobar (Coordinador)</button>`;
+    else if (estado === "aprobado") wf = `<button class="btn btn--primary btn--sm" id="wf-finalizar">🔒 Asignar código y finalizar</button><button class="btn btn--ghost btn--sm" id="wf-borrador">↩️ Volver a borrador</button>`;
+    else if (estado === "finalizado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button><button class="btn btn--ghost btn--sm" id="wf-anular">🚫 Anular</button>`;
+    else if (estado === "anulado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button>`;
+    const histBtn = rec ? `<button class="btn btn--ghost btn--sm" id="wf-hist">🕘 Historial</button>` : "";
+
+    let surface;
+    if (locked) {
+      const firmaBlock = estado === "finalizado" ? firmaHTML(rec) : "";
+      const anuladoBlock = estado === "anulado"
+        ? `<div class="doc-anulado"><div class="doc-anulado__sello">ANULADO</div><div class="doc-anulado__motivo"><strong>Motivo:</strong> ${u.esc(rec.motivoAnulacion || "—")}</div></div>` : "";
+      surface = `<div class="doc-page" id="doc-page" data-sheet="${sheet}">
+        <div class="doc-page__franja"></div>
+        <div class="doc-page__hd">
+          <div class="doc-page__brand"><img src="assets/img/huap-logo.png" alt="HUAP">
+            <div><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong>
+            <div class="muted">Hospital de Urgencia Asistencia Pública</div></div></div>
+          <div class="doc-page__meta">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}${codigo ? `<br><span class="mono">${u.esc(codigo)}</span>` : ""}</div>
+        </div>
+        <div class="doc-page__title" style="font-weight:800">${u.esc(data.nombre || p.titulo)}</div>
+        <div class="doc-page__body">${planToHTML(data)}</div>
+        ${anuladoBlock}${firmaBlock}
+      </div>`;
+    } else {
+      surface = `<div class="pf-intro">📋 Completa las secciones del plan. Los campos con <span class="pf-req">*</span> son obligatorios. Puedes agregar todas las actividades, acciones y seguimientos que necesites.</div>${planFormHTML(data)}`;
+    }
+
+    container.innerHTML = `
+      <div class="doc-editor">
+        <div class="doc-bar no-print">
+          <button class="btn btn--ghost btn--sm" id="doc-back">← Volver</button>
+          <div class="doc-bar__title"><span class="tag" style="background:${p.color}22;color:${p.color}">${p.ic} ${u.esc(p.label)}</span> ${estadoBadge}</div>
+          <div class="btn-row">
+            ${histBtn}
+            <button class="btn btn--ghost btn--sm" id="doc-print">🖨️ Imprimir / PDF</button>
+            <button class="btn btn--ghost btn--sm" id="doc-word">📄 Word</button>
+            ${locked ? "" : `<button class="btn btn--primary btn--sm" id="doc-save">💾 Guardar</button>`}
+          </div>
+        </div>
+        <div class="doc-wf no-print">${wf}${locked ? `<span class="doc-wf__lock">🔒 Documento bloqueado (solo lectura)</span>` : ""}</div>
+        ${surface}
+      </div>`;
+
+    document.getElementById("doc-back").onclick = () => renderList(container);
+
+    function contenidoNow() {
+      const d = locked ? data : readPlanForm(container);
+      const titulo = (d.nombre || p.titulo);
+      return { titulo, html: (locked && current) ? current.contenido : (coverHTML(titulo, p.label) + planToHTML(d)), data: d };
+    }
+    function validar(d) {
+      const faltan = [];
+      if (!d.nombre) faltan.push("nombre");
+      if (!d.guia) faltan.push("guia");
+      if (!d.objetivoGeneral) faltan.push("objetivoGeneral");
+      container.querySelectorAll(".pf-field--err").forEach(x => x.classList.remove("pf-field--err"));
+      faltan.forEach(n => { const el = container.querySelector(`[data-pf="${n}"]`); if (el) el.closest(".pf-field").classList.add("pf-field--err"); });
+      return faltan;
+    }
+    function doSavePlan(silent) {
+      const d = readPlanForm(container);
+      const faltan = validar(d);
+      if (faltan.length) { u.toast("Completa los campos obligatorios (Nombre, Guía y Objetivo general)", "danger"); return null; }
+      const titulo = d.nombre;
+      const payload = { titulo, plantilla: "planRNAO", contenido: coverHTML(titulo, p.label) + planToHTML(d), planData: d, tamano: sheet };
+      if (current) S().update("docsTrabajo", current.id, payload);
+      else current = S().insert("docsTrabajo", Object.assign({ estado: "borrador", version: 1 }, payload));
+      if (!silent) u.toast("Plan guardado", "ok");
+      return current;
+    }
+
+    if (!locked) {
+      const saveBtn = document.getElementById("doc-save");
+      if (saveBtn) saveBtn.onclick = () => doSavePlan();
+      // Repetibles: agregar / quitar filas
+      const bindRm = () => container.querySelectorAll("[data-reprm]").forEach(b => b.onclick = () => b.closest("tr").remove());
+      container.querySelectorAll("[data-repadd]").forEach(b => b.onclick = () => {
+        const rep = b.dataset.repadd;
+        container.querySelector(`[data-rep="${rep}"] tbody`).insertAdjacentHTML("beforeend", repRow(rep, {}));
+        bindRm();
+      });
+      bindRm();
+      // Cálculo en vivo de variación y cumplimiento
+      const g = n => container.querySelector(`[data-pf="${n}"]`);
+      const recompute = () => {
+        const base = pnum(g("evalBase").value), post = pnum(g("evalPost").value), meta = pnum(g("evalMeta").value);
+        g("variacion").value = (base != null && post != null) ? ((post - base > 0 ? "+" : "") + (post - base)) : "";
+        g("cumplimiento").value = (post != null && meta > 0) ? Math.round(post / meta * 100) : "";
+      };
+      ["evalBase", "evalPost", "evalMeta"].forEach(n => { const el = g(n); if (el) el.addEventListener("input", recompute); });
+    }
+
+    const wfBtn = (id, fn) => { const b = document.getElementById(id); if (b) b.onclick = fn; };
+    wfBtn("wf-aprobar", () => { const c = doSavePlan(true); if (c) aprobar(container, c); });
+    wfBtn("wf-finalizar", () => finalizar(container, current));
+    wfBtn("wf-borrador", () => volverBorrador(container, current));
+    wfBtn("wf-version", () => nuevaVersion(container, current));
+    wfBtn("wf-anular", () => anular(container, current));
+    wfBtn("wf-hist", () => verHistorial(current));
+
+    document.getElementById("doc-print").onclick = () => { const c = contenidoNow(); printDoc(c.titulo, c.html, me, sheet, current || {}); };
+    document.getElementById("doc-word").onclick = () => {
+      const c = contenidoNow();
+      const franja = `<div style="border-top:6px solid #12b5a5;height:0;margin:0 0 10px"></div>`;
+      const header = `<table style="width:100%;border:none;margin-bottom:12px"><tr>
+        <td style="border:none;padding:0;font-size:11pt"><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong><br><span style="color:#5a6b84;font-size:9pt">Hospital de Urgencia Asistencia Pública</span></td>
+        <td style="border:none;padding:0;text-align:right;color:#5a6b84;font-size:9pt">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}</td></tr></table>`;
+      const h1 = `<h1 style="font-family:Georgia,serif;color:#0d5044">${u.esc(c.titulo)}</h1>`;
+      const body = c.html
+        .replace(/<h2>/g, '<h2 style="font-family:Georgia,serif;color:#0f8f83;border-bottom:1px solid #dbe6f2;padding-bottom:3px">')
+        .replace(/<div class="doc-pagebreak"[^>]*>.*?<\/div>/g, '<br clear="all" style="page-break-before:always">');
+      u.exportWord("plan-rnao-ubpc-" + u.hoyISO(), c.titulo, franja + header + h1 + body);
     };
   }
 
