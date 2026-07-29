@@ -294,28 +294,30 @@
   }
 
   /* ---- Observación y recomendación (lectura automática + nota editable) ---- */
-  function icoRecomendacionHTML() {
+  function icoAutoRecom() {
     const u = ui();
     const recs = icoOrdenados();
     const d = icoEvidenciaData();
     const j = icoJornada();
-    let auto;
     if (!recs.length) {
-      auto = `Aún no hay registros mensuales del índice. Registra al menos un mes (o estímalo desde el portal) para generar la lectura automática. ` +
+      return `Aún no hay registros mensuales del índice. Registra al menos un mes (o estímalo desde el portal) para generar la lectura automática. ` +
         (d.pend || d.venc ? `De todas formas, ya se observan señales de carga: ${d.pend} solicitud(es) pendiente(s) y ${d.venc} compromiso(s) vencido(s).` : "");
-    } else {
-      const last = recs[recs.length - 1];
-      const pct = icoIndex(last), est = icoEstado(pct);
-      const req = Number(last.demanda) / j, disp = Number(last.horas) / j, deficit = req - disp;
-      const tend = d.actPrev === 0 ? "" : (d.dAct > 0 ? " La actividad va en aumento respecto al mes anterior, lo que proyecta una brecha creciente." : d.dAct < 0 ? " La actividad disminuyó respecto al mes anterior." : "");
-      const parte1 = `En <strong>${u.esc(icoPeriodoLabel(last.periodo))}</strong> el Índice de Capacidad Operativa fue <strong>${pct}%</strong> (${est.l.toLowerCase()}). ` +
-        `La demanda técnica equivale a <strong>${fteFmt(req)} jornadas</strong> frente a <strong>${fteFmt(disp)}</strong> disponible(s).`;
-      const evid = ` Como respaldo operativo se registran <strong>${d.pend}</strong> solicitud(es) pendiente(s)${d.avgResp != null ? ` (respuesta promedio ${d.avgResp} días)` : ""}, <strong>${d.venc}</strong> compromiso(s) vencido(s) y una cobertura de <strong>${d.cob}/${d.totalUn}</strong> unidades en el mes.`;
-      const reco = deficit >= 0.2
-        ? ` <strong>Recomendación:</strong> la demanda supera la capacidad de un/a solo profesional (déficit de ${fteFmt(deficit)} jornada). Se recomienda gestionar ante la Subdirección de Gestión del Cuidado la incorporación de un/a <strong>enfermero/a referente</strong> para asegurar la continuidad técnica y la cobertura de las unidades.`
-        : ` <strong>Recomendación:</strong> la capacidad disponible alcanza a cubrir la demanda del mes. Se recomienda mantener el monitoreo mensual y reevaluar si la tendencia continúa al alza.`;
-      auto = parte1 + evid + tend + reco;
     }
+    const last = recs[recs.length - 1];
+    const pct = icoIndex(last), est = icoEstado(pct);
+    const req = Number(last.demanda) / j, disp = Number(last.horas) / j, deficit = req - disp;
+    const tend = d.actPrev === 0 ? "" : (d.dAct > 0 ? " La actividad va en aumento respecto al mes anterior, lo que proyecta una brecha creciente." : d.dAct < 0 ? " La actividad disminuyó respecto al mes anterior." : "");
+    const parte1 = `En <strong>${u.esc(icoPeriodoLabel(last.periodo))}</strong> el Índice de Capacidad Operativa fue <strong>${pct}%</strong> (${est.l.toLowerCase()}). ` +
+      `La demanda técnica equivale a <strong>${fteFmt(req)} jornadas</strong> frente a <strong>${fteFmt(disp)}</strong> disponible(s).`;
+    const evid = ` Como respaldo operativo se registran <strong>${d.pend}</strong> solicitud(es) pendiente(s)${d.avgResp != null ? ` (respuesta promedio ${d.avgResp} días)` : ""}, <strong>${d.venc}</strong> compromiso(s) vencido(s) y una cobertura de <strong>${d.cob}/${d.totalUn}</strong> unidades en el mes.`;
+    const reco = deficit >= 0.2
+      ? ` <strong>Recomendación:</strong> la demanda supera la capacidad de un/a solo profesional (déficit de ${fteFmt(deficit)} jornada). Se recomienda gestionar ante la Subdirección de Gestión del Cuidado la incorporación de un/a <strong>enfermero/a referente</strong> para asegurar la continuidad técnica y la cobertura de las unidades.`
+      : ` <strong>Recomendación:</strong> la capacidad disponible alcanza a cubrir la demanda del mes. Se recomienda mantener el monitoreo mensual y reevaluar si la tendencia continúa al alza.`;
+    return parte1 + evid + tend + reco;
+  }
+  function icoRecomendacionHTML() {
+    const u = ui();
+    const auto = icoAutoRecom();
     const nota = S().getConfig("ico.observacion", "");
     return `<div class="ico-recom">
       <div class="section__head"><div><h4 style="margin:0">Observación y recomendación</h4>
@@ -330,12 +332,127 @@
     if (t) t.onblur = () => { S().setConfig("ico.observacion", t.value); ui().toast("Observación guardada", "ok"); };
   }
 
+  /* ---- Informe imprimible A4 (una página) para Subdirección ---- */
+  const ICR_CSS = `
+    .icr{ max-width:180mm; margin:0 auto; text-align:left; color:#22303a; }
+    .icr__head{ display:flex; align-items:center; gap:12px; border-bottom:3px solid #7a5cd0; padding-bottom:10px; margin-bottom:14px; }
+    .icr__logo{ width:54px; height:54px; object-fit:contain; flex:none; }
+    .icr__eb{ font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#7a5cd0; font-weight:800; }
+    .icr__title{ font-family:'Fraunces',serif; font-size:19px; margin:2px 0 0; }
+    .icr__meta{ font-size:10.5px; color:#5a6b66; margin-top:2px; }
+    .icr__lbl{ font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#7a5cd0; }
+    .icr__grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0; }
+    .icr__box{ border:1px solid #e2e9f0; border-radius:10px; padding:10px 12px; }
+    .icr__big{ font-family:'Fraunces',serif; font-size:34px; line-height:1; margin:3px 0; }
+    .icr__badge{ display:inline-block; padding:3px 11px; border-radius:999px; font-size:11px; font-weight:800; }
+    .icr__fte{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:6px 0 4px; }
+    .icr__fteb{ text-align:center; border:1px solid #e2e9f0; border-radius:8px; padding:6px 4px; }
+    .icr__fteb b{ font-family:'Fraunces',serif; font-size:22px; display:block; }
+    .icr__fteb span{ font-size:9.5px; color:#5a6b66; }
+    .icr__evi{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:5px 0 0; }
+    .icr__evib{ border:1px solid #e2e9f0; border-radius:8px; padding:8px 6px; text-align:center; }
+    .icr__evib b{ font-size:19px; display:block; font-family:'Fraunces',serif; }
+    .icr__evib span{ font-size:9.5px; color:#5a6b66; }
+    .icr__reco{ border:1px solid #e2e9f0; border-left:4px solid #7a5cd0; border-radius:8px; padding:10px 12px; font-size:11.5px; line-height:1.55; margin-top:5px; }
+    .icr__firmas{ display:grid; grid-template-columns:1fr 1fr; gap:34px; margin-top:40px; }
+    .icr__firma{ text-align:center; font-size:10.5px; color:#40536f; }
+    .icr__firma .line{ border-top:1px solid #22303a; margin:0 6px 5px; padding-top:5px; font-weight:700; color:#22303a; }
+    .icr__foot{ margin-top:16px; font-size:9.5px; color:#98a4ac; text-align:center; border-top:1px solid #e6ecf0; padding-top:6px; }
+    .b-ok{ background:#e4f6ec; color:#1c7a4c; } .b-warn{ background:#fbf1de; color:#b06f14; }
+    .b-danger{ background:#fbe6ea; color:#c62f3b; } .b-neutral{ background:#eef2f1; color:#5a6b66; }`;
+
+  function informeICOInner() {
+    const u = ui();
+    const recs = icoOrdenados();
+    const last = recs.length ? recs[recs.length - 1] : null;
+    const pct = last ? icoIndex(last) : null;
+    const est = icoEstado(pct);
+    const j = icoJornada();
+    const req = last ? Number(last.demanda) / j : null;
+    const disp = last ? Number(last.horas) / j : null;
+    const deficit = (req != null && disp != null) ? req - disp : null;
+    const d = icoEvidenciaData();
+    const nota = S().getConfig("ico.observacion", "");
+    const me = U.auth.current();
+    const logo = new URL("assets/img/huap-logo.png", document.baseURI).href;
+    const hoy = u.fechaCL(new Date().toISOString());
+    const tendTxt = d.actPrev === 0 ? "" : (d.dAct > 0 ? " (▲ +" + d.dAct + ")" : d.dAct < 0 ? " (▼ " + d.dAct + ")" : "");
+
+    return `<div class="icr">
+      <div class="icr__head">
+        <img class="icr__logo" src="${logo}" alt="">
+        <div>
+          <div class="icr__eb">Unidad de Buenas Prácticas Clínicas · HUAP</div>
+          <h1 class="icr__title">Informe · Índice de Capacidad Operativa UBPC</h1>
+          <div class="icr__meta">Indicador de estructura · Dimensión: Capacidad operativa · Subdimensión: Disponibilidad de recurso humano</div>
+          <div class="icr__meta">Período: <strong>${last ? u.esc(icoPeriodoLabel(last.periodo)) : "—"}</strong> · Emitido: ${hoy} · Dirigido a: <strong>Subdirección de Gestión del Cuidado</strong></div>
+        </div>
+      </div>
+
+      <div class="icr__grid2">
+        <div class="icr__box">
+          <div class="icr__lbl">Resultado del mes</div>
+          <div class="icr__big" style="color:${est.c}">${pct == null ? "—" : pct + "%"}</div>
+          <span class="icr__badge b-${est.k}">${est.l}</span>
+          <div class="icr__meta">Demanda ${last ? u.esc(last.demanda) : "—"} h ÷ disponibles ${last ? u.esc(last.horas) : "—"} h × 100</div>
+        </div>
+        <div class="icr__box">
+          <div class="icr__lbl">Lectura en jornadas (EU)</div>
+          <div class="icr__fte">
+            <div class="icr__fteb"><b>${req != null ? fteFmt(req) : "—"}</b><span>requeridas</span></div>
+            <div class="icr__fteb"><b>${disp != null ? fteFmt(disp) : "—"}</b><span>disponible</span></div>
+            <div class="icr__fteb"><b style="color:${deficit != null && deficit > 0 ? "#c62f3b" : "#1c7a4c"}">${deficit != null ? (deficit > 0 ? "+" : "") + fteFmt(deficit) : "—"}</b><span>${deficit != null && deficit > 0 ? "déficit EU" : "holgura"}</span></div>
+          </div>
+          <div class="icr__meta">Jornada de referencia: ${j} h/mes</div>
+        </div>
+      </div>
+
+      <div class="icr__lbl">Evidencia de saturación operativa</div>
+      <div class="icr__evi">
+        <div class="icr__evib"><b>${d.pend}</b><span>Solicitudes pendientes${d.avgResp != null ? " · " + d.avgResp + "d resp." : ""}</span></div>
+        <div class="icr__evib"><b>${d.venc}</b><span>Tareas/acciones vencidas</span></div>
+        <div class="icr__evib"><b>${d.cob}/${d.totalUn}</b><span>Cobertura de unidades</span></div>
+        <div class="icr__evib"><b>${d.actNow}${tendTxt}</b><span>Actividad del mes</span></div>
+      </div>
+
+      <div class="icr__lbl" style="margin-top:12px">Observación y recomendación</div>
+      <div class="icr__reco">${icoAutoRecom()}${nota ? `<br><br><strong>Observación del Coordinador/a:</strong> ${u.esc(nota)}` : ""}</div>
+
+      <div class="icr__firmas">
+        <div class="icr__firma"><div class="line">${me ? u.esc(me.nombre) : "____________________"}</div>Coordinador/a UBPC · Responsable del indicador</div>
+        <div class="icr__firma"><div class="line">&nbsp;</div>Subdirección de Gestión del Cuidado</div>
+      </div>
+      <div class="icr__foot">Portal de Gestión Operativa · UBPC · Hospital de Urgencia Asistencia Pública (HUAP) · Documento generado el ${hoy}</div>
+    </div>`;
+  }
+
+  function printInformeICO() {
+    const u = ui();
+    const w = window.open("", "_blank");
+    if (!w) { u.toast("Permite las ventanas emergentes para imprimir", "danger"); return; }
+    const fr = new URL("assets/fonts/fraunces.woff2", document.baseURI).href;
+    const ns = new URL("assets/fonts/nunitosans.woff2", document.baseURI).href;
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe · Índice de Capacidad Operativa UBPC</title><style>
+      @font-face{font-family:'Fraunces';src:url('${fr}') format('woff2');font-weight:100 900;font-display:swap}
+      @font-face{font-family:'Nunito Sans';src:url('${ns}') format('woff2');font-weight:200 900;font-display:swap}
+      @page{size:A4;margin:14mm}
+      *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      html,body{margin:0}
+      body{font-family:'Nunito Sans',system-ui,Arial,sans-serif;color:#22303a}
+      ${ICR_CSS}
+    </style></head><body>${informeICOInner()}</body></html>`);
+    w.document.close();
+    const go = () => { try { w.focus(); w.print(); } catch (e) {} };
+    if (w.document.fonts && w.document.fonts.ready) { w.document.fonts.ready.then(() => setTimeout(go, 150)); setTimeout(go, 1400); }
+    else setTimeout(go, 500);
+  }
+
   function renderICO() {
     const u = ui();
     const box = document.getElementById("ico-data");
     if (!box) return;
     const recs = icoOrdenados();
-    const addBtn = `<div class="btn-row"><button class="btn btn--ghost btn--sm" id="ico-params" title="Parámetros de estimación">⚙️ Parámetros</button><button class="btn btn--primary btn--sm" id="ico-add">+ Registrar mes</button></div>`;
+    const addBtn = `<div class="btn-row"><button class="btn btn--ghost btn--sm" id="ico-print" title="Informe imprimible para Subdirección">🖨️ Informe</button><button class="btn btn--ghost btn--sm" id="ico-params" title="Parámetros de estimación">⚙️ Parámetros</button><button class="btn btn--primary btn--sm" id="ico-add">+ Registrar mes</button></div>`;
     if (!recs.length) {
       box.innerHTML = `<div class="ico-data__head"><h4>Seguimiento mensual</h4>${addBtn}</div>
         ${u.empty("Aún sin registros mensuales.", "Ingresa el primer mes o estímalo desde el portal para calcular el índice.", "🗓️")}
@@ -343,6 +460,7 @@
         ${icoRecomendacionHTML()}`;
       const b = document.getElementById("ico-add"); if (b) b.onclick = () => icoForm(null);
       const pb = document.getElementById("ico-params"); if (pb) pb.onclick = () => icoParams();
+      const prb = document.getElementById("ico-print"); if (prb) prb.onclick = () => printInformeICO();
       bindObs();
       return;
     }
@@ -394,6 +512,7 @@
 
     document.getElementById("ico-add").onclick = () => icoForm(null);
     document.getElementById("ico-params").onclick = () => icoParams();
+    document.getElementById("ico-print").onclick = () => printInformeICO();
     bindObs();
     box.querySelectorAll("[data-icoedit]").forEach(b => b.onclick = () => icoForm(S().get("capacidadOperativa", b.dataset.icoedit)));
     box.querySelectorAll("[data-icodel]").forEach(b => b.onclick = () =>
