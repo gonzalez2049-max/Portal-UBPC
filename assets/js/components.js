@@ -56,6 +56,46 @@
     </div>`;
   }
 
+  /* ---------- Celebración al completar una tarea ---------- */
+  const FRASES = [
+    "¡Excelente! 🌟 Cada tarea cerrada mejora el cuidado de los pacientes.",
+    "¡Lo lograste! 💪 Un paso más por las buenas prácticas.",
+    "¡Bien ahí! 👏 Tu trabajo hace la diferencia en la unidad.",
+    "¡Tremendo! 🚀 Sigues fortaleciendo la seguridad del paciente.",
+    "¡Misión cumplida! ✅ La evidencia se transforma en mejor cuidado.",
+    "¡Grande! 🙌 Otra tarea menos, otro avance para la UBPC.",
+    "¡Increíble constancia! ✨ Se nota en la práctica clínica.",
+    "¡Vamos con todo! 🔥 Tu compromiso mueve la mejora continua."
+  ];
+  const CONFETTI_COLORS = ["#12b5a5", "#e0912f", "#7a5cd0", "#37c6a0", "#e0526f", "#1e9fe0", "#ffd166"];
+  let _celebraTimer = null;
+  function celebrar(titulo) {
+    const u = U.ui;
+    const frase = FRASES[Math.floor(Math.random() * FRASES.length)];
+    let confetti = "";
+    for (let i = 0; i < 30; i++) {
+      const c = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+      confetti += `<i style="left:${Math.round(Math.random() * 100)}%;background:${c};animation-delay:${(Math.random() * 0.5).toFixed(2)}s;animation-duration:${(1.6 + Math.random() * 1.3).toFixed(2)}s"></i>`;
+    }
+    const prev = document.querySelector(".celebra");
+    if (prev) prev.remove();
+    const ov = document.createElement("div");
+    ov.className = "celebra no-print";
+    ov.innerHTML = `<div class="celebra__confetti">${confetti}</div>
+      <div class="celebra__card" role="status" aria-live="polite">
+        <div class="celebra__emoji">🎉</div>
+        <div class="celebra__title">¡Tarea completada!</div>
+        ${titulo ? `<div class="celebra__task">${u.esc(titulo)}</div>` : ""}
+        <div class="celebra__msg">${frase}</div>
+      </div>`;
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add("show"));
+    const close = () => { ov.classList.remove("show"); setTimeout(() => ov.remove(), 400); };
+    ov.addEventListener("click", close);
+    clearTimeout(_celebraTimer);
+    _celebraTimer = setTimeout(close, 2800);
+  }
+
   function cardForm(owner, card, columna) {
     const ui = U.ui;
     const fields = [
@@ -74,7 +114,9 @@
         m.querySelector("[data-save]").onclick = () => {
           const d = ui.readForm(m);
           if (!d.titulo) { ui.toast("El título es obligatorio", "danger"); return; }
+          let completada = false;
           if (card) {
+            completada = d.columna === "Completado" && card.columna !== "Completado";
             U.store.update("kanban", card.id, d);
           } else {
             const max = Math.max(0, ...cards(owner).map(c => c.orden || 0));
@@ -82,6 +124,7 @@
           }
           ui.closeModal();
           refresh(owner);
+          if (completada) celebrar(d.titulo);
         };
       }
     });
@@ -112,14 +155,21 @@
     root.querySelectorAll(".kcard").forEach(card => {
       card.addEventListener("dragstart", e => {
         dragEl = card;
+        const rec = U.store.get("kanban", card.dataset.kid);
+        card._fromCol = rec ? rec.columna : null;
         card.classList.add("dragging");
         e.dataTransfer.effectAllowed = "move";
       });
       card.addEventListener("dragend", () => {
+        const moved = dragEl, fromCol = moved ? moved._fromCol : null;
         if (dragEl) dragEl.classList.remove("dragging");
         dragEl = null;
         root.querySelectorAll(".kanban__col").forEach(c => c.classList.remove("drag-over"));
         persistOrder(owner);
+        if (moved) {
+          const rec = U.store.get("kanban", moved.dataset.kid);
+          if (rec && rec.columna === "Completado" && fromCol !== "Completado") celebrar(rec.titulo);
+        }
       });
     });
 

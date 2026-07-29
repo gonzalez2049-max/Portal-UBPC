@@ -1709,6 +1709,32 @@ body.night .nt-chip{ background:rgba(18,181,165,.2); color:#7fe0d0; }
 .kcard:hover{ transform: translateY(-3px) rotate(-.7deg); box-shadow:0 16px 30px -12px rgba(20,40,35,.5); }
 .kcard[draggable="true"]{ cursor:grab; }
 .kcard.dragging{ opacity:.4; transform:rotate(-1.5deg) scale(.98); box-shadow:0 20px 34px -12px rgba(20,40,35,.6); cursor:grabbing; }
+
+/* ===== Celebración al completar una tarea ===== */
+.celebra{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; opacity:0; transition:opacity .3s ease; }
+.celebra.show{ opacity:1; pointer-events:auto; }
+.celebra__card{ position:relative; background:#fff; border-radius:20px; padding:1.7rem 2rem 1.8rem; text-align:center;
+  box-shadow:0 30px 80px -20px rgba(20,40,35,.55); max-width:360px; margin:1rem;
+  transform:scale(.82) translateY(12px); transition:transform .42s cubic-bezier(.2,.9,.3,1.3); }
+.celebra.show .celebra__card{ transform:scale(1) translateY(0); }
+.celebra__emoji{ font-size:3.2rem; line-height:1; animation:celebraPop .6s ease both; }
+.celebra__title{ font-family:var(--font-disp); font-size:1.5rem; color:#153833; margin:.35rem 0 .15rem; }
+.celebra__task{ font-weight:800; color:var(--c-turquesa,#0d8175); margin-bottom:.45rem; font-size:.98rem; }
+.celebra__msg{ color:#40536f; font-size:.96rem; line-height:1.45; }
+.celebra__confetti{ position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.celebra__confetti i{ position:absolute; top:-24px; width:10px; height:15px; border-radius:2px; opacity:.92;
+  animation-name:celebraFall; animation-timing-function:linear; animation-fill-mode:forwards; }
+@keyframes celebraFall{ 0%{ transform:translateY(0) rotate(0); opacity:1; } 100%{ transform:translateY(108vh) rotate(680deg); opacity:.9; } }
+@keyframes celebraPop{ 0%{ transform:scale(0); } 60%{ transform:scale(1.28); } 100%{ transform:scale(1); } }
+@media (prefers-reduced-motion:reduce){
+  .celebra__confetti{ display:none; }
+  .celebra__emoji{ animation:none; }
+  .celebra.show .celebra__card{ transition:none; }
+}
+body.night .celebra__card{ background:#132621; }
+body.night .celebra__title{ color:#eaf6f1; }
+body.night .celebra__msg{ color:#c9d8d2; }
 .kcard::after{ content:""; position:absolute; right:0; bottom:0; width:0; height:0;
   border-style:solid; border-width:0 0 16px 16px; border-color:transparent transparent rgba(0,0,0,.10) rgba(0,0,0,.10);
   border-bottom-right-radius:11px; }
