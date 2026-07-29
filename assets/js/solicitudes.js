@@ -302,7 +302,7 @@
   function coordPanel(container) {
     U.components.resource.mount(container, {
       collection: "solicitudes", title: "Solicitud de apoyo técnico",
-      hint: "Todas las solicitudes enviadas al Referente Técnico se consolidan aquí. No se eliminan las solicitudes cerradas.",
+      hint: "Solicitudes en ambos sentidos con el Referente Técnico. No se eliminan las solicitudes cerradas.",
       newLabel: "Nueva solicitud", icon: "📨",
       filters: [{ key: "estado", label: "Estado" }, { key: "prioridad", label: "Prioridad" }, { key: "unidad", label: "Unidad" }],
       emptyMsg: "Aún no hay solicitudes registradas.", emptySub: "Envía una intervención técnica desde cualquier módulo o crea una aquí.",

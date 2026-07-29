@@ -23,7 +23,7 @@
     { col: "nt234", ic: "📊", mod: "Norma Técnica 234", route: "#/coord/m6" },
     { col: "planesNT234", ic: "🛠️", mod: "Planes de mejora NT 234", route: "#/coord/m6?tab=planes" },
     { col: "colaboraciones", ic: "🌐", mod: "Articulación y Respaldo", route: "#/coord/m5?tab=colaboraciones" },
-    { col: "solicitudes", ic: "📨", mod: "Solicitudes técnicas", route: "#/coord/solicitudes" },
+    { col: "solicitudes", ic: "📨", mod: "Enlace con el Referente", route: "#/coord/enlace" },
     { col: "hitos", ic: "⭐", mod: "Línea de tiempo", route: "#/coord/home" }
   ];
   const norm = s => (s == null ? "" : String(s)).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");

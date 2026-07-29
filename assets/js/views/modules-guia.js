@@ -347,7 +347,7 @@
     });
     // Solicitudes en gestión
     const sol = S().all("solicitudes").filter(x => (x.direccion || "coord-a-ref") === "coord-a-ref" && x.estado && x.estado !== "Cerrada por coordinación");
-    if (sol.length) items.push({ p: 1, tag: "Solicitudes", titulo: sol.length + " solicitud(es) técnica(s) en gestión", detalle: "Revisa el flujo con el Referente Técnico", ref: "#/coord/solicitudes" });
+    if (sol.length) items.push({ p: 1, tag: "Solicitudes", titulo: sol.length + " solicitud(es) técnica(s) en gestión", detalle: "Revisa el flujo con el Referente Técnico", ref: "#/coord/enlace" });
     // Documentos pendientes
     const docp = S().all("documentos").filter(d => /revisi|borrador|enviado/i.test(d.estado || ""));
     if (docp.length) items.push({ p: 2, tag: "Documentos", titulo: docp.length + " documento(s) por validar", detalle: "Gestión Documental", ref: "#/coord/m2" });

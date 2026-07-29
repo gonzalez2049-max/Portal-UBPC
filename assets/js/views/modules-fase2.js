@@ -360,10 +360,8 @@
   Object.assign(U.coord.views, { m1, m2, m5, solicitudes: solicitudesCoord });
   Object.assign(U.coord.binders, { m1: m1Bind, m2: m2Bind, m5: m5Bind, solicitudes: solicitudesCoordBind });
 
-  function solicitudesCoord() {
-    return `<div class="page-head"><h1>Solicitudes de apoyo técnico</h1>
-      <p>Consolidación automática y flujo de cierre de las solicitudes enviadas al Referente Técnico.</p></div>
-      <div id="sol-body"></div>`;
-  }
-  function solicitudesCoordBind() { U.solicitudes.coordPanel(document.getElementById("sol-body")); }
+  // El módulo "Solicitudes técnicas" se integró en "Enlace con el Referente".
+  // Se conserva la ruta como redirección para no romper enlaces o marcadores previos.
+  function solicitudesCoord() { return ""; }
+  function solicitudesCoordBind() { U.router.go("#/coord/enlace"); }
 })();

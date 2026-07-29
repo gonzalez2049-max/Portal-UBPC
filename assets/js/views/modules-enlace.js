@@ -82,10 +82,6 @@
     ];
 
     const rolLabel = "Referente Técnico";
-    const solRow = s => `<a class="enl-sol" href="#/coord/solicitudes">
-        <span class="enl-sol__code mono">${u.esc(s.codigo || "—")}</span>
-        <span class="enl-sol__t">${u.esc(s.titulo || "Solicitud")}</span>
-        <span class="enl-sol__st">${u.estadoBadge(s.estado)}</span></a>`;
 
     return `<div class="page-head"><h1>Enlace con el Referente Técnico</h1>
       <p>Tu espacio de trabajo conjunto con el Referente: solicitudes, tareas asignadas y su actividad operativa, en tiempo real.</p></div>
@@ -118,30 +114,23 @@
       </div>
     </div>
 
-    <div class="grid grid--2" style="align-items:start;margin-top:.2rem">
-      <div class="section" style="margin:0">
-        <div class="section__head"><div><h2 class="section__title">Solicitudes en gestión</h2>
-          <p class="section__hint">Enviadas al Referente y recibidas desde él.</p></div>
-          <a class="btn btn--ghost btn--sm" href="#/coord/solicitudes">Ver todas →</a></div>
-        <div class="card">
-          ${esperanCoord.length ? `<div class="enl-sub">↩️ Del Referente · esperan tu respuesta</div>${esperanCoord.slice(0, 4).map(solRow).join("")}` : ""}
-          ${abiertasRef.length ? `<div class="enl-sub">📨 Enviadas al Referente</div>${abiertasRef.slice(0, 4).map(solRow).join("")}` : ""}
-          ${!esperanCoord.length && !abiertasRef.length ? u.empty("Sin solicitudes activas.", "Envía una solicitud técnica para comenzar.", "📨") : ""}
-        </div>
+    <div class="section">
+      <div class="section__head"><div><h2 class="section__title">Tareas asignadas</h2>
+        <p class="section__hint">Tablero del Referente. Sigue el avance de lo que le encargas.</p></div>
+        <button class="btn btn--primary btn--sm" id="enlTarea2">+ Asignar tarea</button></div>
+      <div class="card">
+        ${tareas.length ? `<ul class="feed">${tareas.slice(0, 6).map(t => `<li>
+            <span class="feed__ico">${t.columna === "Completado" ? "✅" : t.prioridad === "alta" ? "🔴" : "📌"}</span>
+            <div><strong>${u.esc(t.titulo)}</strong>
+            <div class="feed__meta">${u.esc(t.columna)}${t.fechaLimite ? " · vence " + u.fechaCL(t.fechaLimite) : ""}${t.asignadoPor ? " · por " + u.esc(t.asignadoPor) : ""}</div></div></li>`).join("")}</ul>`
+          : u.empty("Sin tareas asignadas.", "Asigna la primera tarea al Referente.", "✅")}
       </div>
+    </div>
 
-      <div class="section" style="margin:0">
-        <div class="section__head"><div><h2 class="section__title">Tareas asignadas</h2>
-          <p class="section__hint">Tablero del Referente. Sigue el avance aquí.</p></div>
-          <button class="btn btn--primary btn--sm" id="enlTarea2">+ Asignar</button></div>
-        <div class="card">
-          ${tareas.length ? `<ul class="feed">${tareas.slice(0, 6).map(t => `<li>
-              <span class="feed__ico">${t.columna === "Completado" ? "✅" : t.prioridad === "alta" ? "🔴" : "📌"}</span>
-              <div><strong>${u.esc(t.titulo)}</strong>
-              <div class="feed__meta">${u.esc(t.columna)}${t.fechaLimite ? " · vence " + u.fechaCL(t.fechaLimite) : ""}${t.asignadoPor ? " · por " + u.esc(t.asignadoPor) : ""}</div></div></li>`).join("")}</ul>`
-            : u.empty("Sin tareas asignadas.", "Asigna la primera tarea al Referente.", "✅")}
-        </div>
-      </div>
+    <div class="section">
+      <div class="section__head"><div><h2 class="section__title">Solicitudes con el Referente</h2>
+        <p class="section__hint">Flujo de solicitudes en ambos sentidos, con código, estado y cierre.</p></div></div>
+      <div id="enl-sol-body"></div>
     </div>
 
     <div class="section">
@@ -164,6 +153,9 @@
     [document.getElementById("enlTarea"), document.getElementById("enlTarea2")].forEach(b => {
       if (b) b.onclick = () => asignarTarea(rerender);
     });
+    // Panel completo de solicitudes (antes era el módulo "Solicitudes técnicas")
+    const box = document.getElementById("enl-sol-body");
+    if (box && U.solicitudes) U.solicitudes.coordPanel(box);
   }
 
   // Registrar en el portal del Coordinador
