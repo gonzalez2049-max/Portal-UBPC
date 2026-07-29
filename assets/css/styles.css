@@ -1335,8 +1335,7 @@ body.night .pin-prog{ background:rgba(255,255,255,.1); }
 /* Agenda: clic en cualquier día para agregar; pista "+" al pasar el cursor */
 .agc-day__add{ position:absolute; bottom:6px; left:50%; transform:translateX(-50%); opacity:0;
   color:var(--c-turquesa); font-weight:800; font-size:1rem; transition:opacity .15s ease; pointer-events:none; }
-.agc-day:hover .agc-day__add{ opacity:.75; }
-.agc-day:hover{ box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--c-turquesa) 45%, transparent); }
+.agc-day:not(.agc-day--blank):hover .agc-day__add{ opacity:.75; }
 .agc-empty{ text-align:center; padding:1.5rem .6rem; color:var(--text-muted); }
 .agc-empty span{ font-size:1.9rem; display:block; margin-bottom:.3rem; }
 .agc-empty p{ margin:.2rem 0 .9rem; }
@@ -1590,19 +1589,30 @@ body.night .doc-page{ background:#fff; }
 .agc-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
 .agc-dow{ margin-bottom:4px; }
 .agc-dow__c{ text-align:center; font-size:11px; font-weight:800; color:var(--text-muted); padding:.2rem 0; }
-.agc-day{ position:relative; aspect-ratio:1/1; border:1px solid transparent; border-radius:10px; background:var(--surface-2);
-  cursor:default; padding:.25rem; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-  font: inherit; color:var(--text-2); transition:background .15s, transform .15s, box-shadow .15s; }
-.agc-day--blank{ background:transparent; border:none; }
-.agc-day__n{ font-size:12.5px; font-weight:700; }
-.agc-day.has-ev{ cursor:pointer; background:var(--surface); border-color:var(--border); }
-.agc-day.has-ev:hover{ transform:translateY(-2px); box-shadow:var(--shadow); }
+.agc-day{ position:relative; min-height:96px; border:1px solid transparent; border-radius:10px; background:var(--surface-2);
+  cursor:pointer; padding:.28rem .28rem .3rem; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+  font: inherit; color:var(--text-2); transition:background .15s, transform .15s, box-shadow .15s; overflow:hidden; }
+.agc-day--blank{ background:transparent; border:none; cursor:default; }
+.agc-day__n{ font-size:12.5px; font-weight:700; align-self:flex-start; padding:0 .1rem; }
+.agc-day.has-ev{ background:var(--surface); border-color:var(--border); }
+.agc-day:not(.agc-day--blank):hover{ box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--c-turquesa) 40%, transparent); }
 .agc-day.is-today{ background:var(--azul-50); border-color:var(--c-celeste); }
 .agc-day.is-today .agc-day__n{ color:var(--c-azul); }
 .agc-day.is-sel{ outline:2px solid var(--c-celeste); outline-offset:1px; }
 .agc-day.is-over .agc-day__n{ color:var(--danger); }
-.agc-day__dots{ display:flex; gap:2px; margin-top:auto; flex-wrap:wrap; justify-content:center; }
-.agc-day__dots i{ width:6px; height:6px; border-radius:50%; }
+/* Bloques de evento estilo Outlook */
+.agc-day__evs{ display:flex; flex-direction:column; gap:2px; margin-top:2px; min-width:0; }
+.agc-chip{ display:block; font-size:10.5px; line-height:1.25; text-align:left; padding:1px 5px; border-radius:4px;
+  border-left:3px solid var(--cc); background:color-mix(in srgb, var(--cc) 16%, transparent); color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; transition:filter .12s; }
+.agc-chip:hover{ filter:brightness(.96) saturate(1.1); }
+.agc-chip b{ font-weight:800; color:var(--cc); }
+.agc-chip.is-over{ background:color-mix(in srgb, var(--danger) 16%, transparent); border-left-color:var(--danger); }
+.agc-chip.is-done{ opacity:.55; text-decoration:line-through; }
+.agc-more{ font-size:9.5px; font-weight:800; color:var(--text-muted); padding:0 5px; cursor:pointer; }
+body.night .agc-chip{ background:color-mix(in srgb, var(--cc) 30%, transparent); color:#eaf6f1; }
+body.night .agc-chip b{ color:#fff; }
+@media (max-width:860px){ .agc-day{ min-height:74px; } .agc-chip{ font-size:9.5px; padding:1px 3px; } }
 .agc-legend-t{ margin-top:.9rem; font-size:.74rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
 .agc-legend{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.4rem; }
 .agc-leg{ display:inline-flex; align-items:center; gap:.4rem; font-size:.76rem; font-weight:700; cursor:pointer;

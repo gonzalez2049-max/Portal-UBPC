@@ -95,6 +95,7 @@
       const days = new Date(y, mo + 1, 0).getDate();
       const lead = (new Date(y, mo, 1).getDay() + 6) % 7;
       const mesEventos = events.filter(e => e.d.getFullYear() === y && e.d.getMonth() === mo).length;
+      const MAXCHIP = 3;
       let cells = "";
       for (let i = 0; i < lead; i++) cells += `<div class="agc-day agc-day--blank"></div>`;
       for (let dnum = 1; dnum <= days; dnum++) {
@@ -102,11 +103,21 @@
         const evs = byIso[iso] || [];
         const isToday = iso === (today.getFullYear() + "-" + pad(today.getMonth() + 1) + "-" + pad(today.getDate()));
         const overdue = evs.some(e => e.deadline && !e.done && dateFromIso(iso) < today);
-        const dots = evs.slice(0, 4).map(e => `<i style="background:${TIPO[e.tipo].c}"></i>`).join("");
-        cells += `<button class="agc-day${isToday ? " is-today" : ""}${evs.length ? " has-ev" : ""}${selIso === iso ? " is-sel" : ""}${overdue ? " is-over" : ""}"
+        // Bloques de evento estilo Outlook, con el color del proceso
+        const chips = evs.slice(0, MAXCHIP).map(e => {
+          const m = TIPO[e.tipo];
+          const over = e.deadline && !e.done && e.d < today;
+          const label = (e.hora ? `<b>${u.esc(e.hora)}</b> ` : "") + u.esc(e.titulo);
+          return `<span class="agc-chip${over ? " is-over" : ""}${e.done ? " is-done" : ""}" style="--cc:${m.c}"
+            ${e.propio ? `data-cev="${e.id}"` : `data-cruta="${u.esc(e.ruta || "")}"`}
+            title="${u.esc(e.titulo)} · ${m.lab}">${label}</span>`;
+        }).join("");
+        const more = evs.length > MAXCHIP ? `<span class="agc-more">+${evs.length - MAXCHIP} más</span>` : "";
+        cells += `<div class="agc-day${isToday ? " is-today" : ""}${evs.length ? " has-ev" : ""}${selIso === iso ? " is-sel" : ""}${overdue ? " is-over" : ""}"
           data-iso="${iso}" title="Ver / agregar evento el ${dnum}">
           <span class="agc-day__n">${dnum}</span>
-          ${evs.length ? `<span class="agc-day__dots">${dots}</span>` : `<span class="agc-day__add">＋</span>`}</button>`;
+          <div class="agc-day__evs">${chips}${more}</div>
+          ${evs.length ? "" : `<span class="agc-day__add">＋</span>`}</div>`;
       }
 
       // ---- Lista (día seleccionado o próximos) ----
@@ -183,6 +194,12 @@
       document.getElementById("agc-next").onclick = () => { monthOffset++; selIso = null; draw(); };
       const clr = document.getElementById("agc-clear"); if (clr) clr.onclick = () => { selIso = null; draw(); };
       container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => { selIso = b.dataset.iso; draw(); });
+      // Clic en un bloque de evento: abre el registro (o edita el evento propio)
+      container.querySelectorAll(".agc-chip").forEach(c => c.onclick = ev => {
+        ev.stopPropagation();
+        if (c.dataset.cev) eventoForm(S().get("agendaEventos", c.dataset.cev), draw);
+        else if (c.dataset.cruta) U.router.go(c.dataset.cruta);
+      });
       const nev = document.getElementById("agc-newev"); if (nev) nev.onclick = () => eventoForm(null, () => { selIso = null; draw(); });
       const addDay = () => eventoForm(null, () => draw(), selIso);
       const ad1 = document.getElementById("agc-addday"); if (ad1) ad1.onclick = addDay;
