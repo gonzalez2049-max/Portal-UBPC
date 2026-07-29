@@ -514,9 +514,50 @@
   }
 
   /* ===================== GUÍAS BPSO ===================== */
+  // Unidades implementadoras (múltiples) con jefatura y líder de Buenas Prácticas
+  function guiaUnidades(rec) {
+    if (rec && Array.isArray(rec.unidades) && rec.unidades.length) return rec.unidades;
+    if (rec && rec.unidadesImplementadoras) return rec.unidadesImplementadoras.split(",").map(s => ({ unidad: s.trim() })).filter(x => x.unidad);
+    return [];
+  }
+  function guiaUnitRow(r) {
+    const u = ui(); r = r || {};
+    const opts = CAT().unidades.filter(x => !/todas las unidades/i.test(x));
+    return `<tr data-urow>
+      <td><select class="input input--sm" data-f="unidad"><option value="">Seleccionar…</option>${opts.map(o => `<option ${String(o) === String(r.unidad || "") ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select></td>
+      <td><input class="input input--sm" data-f="jefatura" value="${u.esc(r.jefatura || "")}" placeholder="Jefatura de la unidad"></td>
+      <td><input class="input input--sm" data-f="lider" value="${u.esc(r.lider || "")}" placeholder="Líder de Buenas Prácticas"></td>
+      <td class="pf-rep__x"><button type="button" class="btn-icon" data-urm title="Quitar unidad">🗑️</button></td></tr>`;
+  }
+  function guiaUnidadesHTML(rows) {
+    rows = (rows && rows.length) ? rows : [{}];
+    return `<div class="field" style="grid-column:1/-1">
+      <label>Unidades implementadoras</label>
+      <div class="kpi__sub" style="margin-bottom:.35rem">Agrega una o más unidades, cada una con su jefatura y su líder de Buenas Prácticas.</div>
+      <div class="pf-rep" id="guia-units"><div class="table-wrap"><table class="tbl pf-rep__t"><thead><tr>
+        <th>Unidad</th><th>Jefatura</th><th>Líder de Buenas Prácticas</th><th></th></tr></thead>
+        <tbody>${rows.map(guiaUnitRow).join("")}</tbody></table></div>
+        <button type="button" class="btn btn--ghost btn--sm" id="guia-addunit">+ Agregar unidad</button></div></div>`;
+  }
+  function guiaDetalle(rec) {
+    const u = ui();
+    const arr = guiaUnidades(rec);
+    const rows = arr.length
+      ? arr.map(x => `<tr><td>${u.esc(x.unidad || "—")}</td><td>${u.esc(x.jefatura || "—")}</td><td>${u.esc(x.lider || "—")}</td></tr>`).join("")
+      : `<tr><td colspan="3" class="muted">Sin unidades registradas.</td></tr>`;
+    u.modal({
+      title: "Guía · " + (rec.nombre || ""), wide: true,
+      body: `<div class="dl"><div><span>Área</span><strong>${u.esc(rec.area || "—")}</strong></div>
+          <div><span>Estado</span><strong>${u.esc(rec.estado || "—")}</strong></div>
+          <div><span>Unidades</span><strong>${arr.length}</strong></div></div>
+        <h4 style="margin:.7rem 0 .3rem">Unidades implementadoras</h4>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Unidad</th><th>Jefatura</th><th>Líder de Buenas Prácticas</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
+    });
+  }
   function guiasTab(box) {
     U.components.resource.mount(box, {
-      collection: "guiasBPSO", title: "Guía BPSO", icon: "🧭",
+      collection: "guiasBPSO", title: "Guía BPSO", icon: "🧭", wideForm: true,
       hint: "Gestión de las Guías de Buenas Prácticas (BPSO) en implementación.",
       newLabel: "Nueva guía",
       emptyMsg: "Aún no hay guías registradas.",
@@ -524,15 +565,37 @@
         { key: "nombre", label: "Guía" },
         { key: "area", label: "Área", render: (r, u) => `<span class="tag">${u.esc(r.area || "—")}</span>` },
         { key: "estado", label: "Estado", badge: true },
-        { key: "unidadesImplementadoras", label: "Unidades implementadoras" }
+        { key: "unidades", label: "Unidades", exportVal: r => guiaUnidades(r).map(x => x.unidad + (x.lider ? " (líder: " + x.lider + ")" : "")).join(" · "),
+          render: (r, u) => { const a = guiaUnidades(r); return a.length ? `<span class="tag">${a.length}</span> ${u.esc(a.slice(0, 2).map(x => x.unidad).join(", "))}${a.length > 2 ? "…" : ""}` : `<span class="muted">—</span>`; } }
       ],
       fields: [
         { name: "nombre", label: "Nombre de la guía", required: true, full: true },
         { name: "area", label: "Área", type: "select", options: CAT().guiasArea },
-        { name: "estado", label: "Estado", type: "select", options: ["Activa", "En preparación", "Inactiva"] },
-        { name: "unidadesImplementadoras", label: "Unidades implementadoras", full: true, hint: "Separadas por coma." }
+        { name: "estado", label: "Estado", type: "select", options: ["Activa", "En preparación", "Inactiva"] }
       ],
-      defaults: () => ({ estado: "Activa" })
+      defaults: () => ({ estado: "Activa" }),
+      detail: guiaDetalle,
+      onFormMount(m, rec) {
+        const grid = m.querySelector(".form-grid");
+        grid.insertAdjacentHTML("afterend", guiaUnidadesHTML(guiaUnidades(rec)));
+        const wrap = m.querySelector("#guia-units");
+        const bindRm = () => wrap.querySelectorAll("[data-urm]").forEach(b => b.onclick = () => {
+          if (wrap.querySelectorAll("[data-urow]").length > 1) b.closest("tr").remove();
+          else ui().toast("Debe quedar al menos una unidad", "warn");
+        });
+        m.querySelector("#guia-addunit").onclick = () => { wrap.querySelector("tbody").insertAdjacentHTML("beforeend", guiaUnitRow({})); bindRm(); };
+        bindRm();
+      },
+      onBeforeSave(data, rec, m) {
+        const rows = [...m.querySelectorAll("#guia-units [data-urow]")].map(tr => ({
+          unidad: (tr.querySelector('[data-f="unidad"]').value || "").trim(),
+          jefatura: (tr.querySelector('[data-f="jefatura"]').value || "").trim(),
+          lider: (tr.querySelector('[data-f="lider"]').value || "").trim()
+        })).filter(r => r.unidad || r.jefatura || r.lider);
+        data.unidades = rows;
+        data.unidadesImplementadoras = rows.map(r => r.unidad).filter(Boolean).join(", ");
+        return data;
+      }
     });
   }
 
