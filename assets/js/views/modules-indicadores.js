@@ -244,14 +244,13 @@
       + s.all("capacitacionRef").filter(x => enMes(x.fecha, ym)).length
       + s.all("monitoreoRef").filter(x => enMes(x.fecha, ym)).length;
   }
-  function icoEvidenciaHTML() {
-    const u = ui(), s = S();
+  function icoEvidenciaData() {
+    const s = S();
     const now = new Date();
     const ym = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
     const prevD = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const ymPrev = prevD.getFullYear() + "-" + String(prevD.getMonth() + 1).padStart(2, "0");
 
-    // Solicitudes pendientes + tiempo de respuesta promedio
     const sols = s.all("solicitudes");
     const pend = sols.filter(x => !/cerrad/i.test(x.estado || "")).length;
     const cerr = sols.filter(x => x.fechaCierre && x.fechaEnvio);
@@ -259,12 +258,10 @@
       ? Math.round(cerr.reduce((a, x) => a + (new Date(x.fechaCierre) - new Date(x.fechaEnvio)) / 86400000, 0) / cerr.length)
       : null;
 
-    // Tareas / acciones vencidas
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const venc = s.all("kanban").filter(k => k.columna !== "Completado" && k.fechaLimite && new Date(k.fechaLimite) < hoy).length
       + s.all("accionesRNAO").filter(a => (a.estado || "") !== "Completado" && a.fechaComprometida && new Date(a.fechaComprometida) < hoy).length;
 
-    // Cobertura de unidades (mes actual)
     const cob = new Set();
     const addU = (coll, cf, cu) => s.all(coll).forEach(r => { if (enMes(r[cf], ym) && r[cu]) cob.add(r[cu]); });
     addU("solicitudes", "fechaEnvio", "unidad"); addU("reuniones", "fecha", "unidad");
@@ -272,12 +269,14 @@
     addU("capacitacionRef", "fecha", "unidad");
     const totalUn = ((U.data.CAT && U.data.CAT.unidades) || []).filter(x => x && !/todas/i.test(x)).length || 23;
 
-    // Tendencia de actividad (mes actual vs anterior)
     const actNow = icoActividadMes(ym), actPrev = icoActividadMes(ymPrev);
-    const dAct = actNow - actPrev;
-    const tendTxt = actPrev === 0 ? (actNow ? "Primer mes con actividad" : "Sin actividad")
-      : (dAct > 0 ? `▲ +${dAct} vs mes anterior` : dAct < 0 ? `▼ ${dAct} vs mes anterior` : "→ igual que el mes anterior");
-
+    return { pend, avgResp, venc, cob: cob.size, totalUn, actNow, actPrev, dAct: actNow - actPrev };
+  }
+  function icoEvidenciaHTML() {
+    const u = ui();
+    const d = icoEvidenciaData();
+    const tendTxt = d.actPrev === 0 ? (d.actNow ? "Primer mes con actividad" : "Sin actividad")
+      : (d.dAct > 0 ? `▲ +${d.dAct} vs mes anterior` : d.dAct < 0 ? `▼ ${d.dAct} vs mes anterior` : "→ igual que el mes anterior");
     const card = (ico, val, lab, sub, kind) => `<div class="card kpi ${kind ? "kpi--" + kind : ""}">
       <div class="kpi__top"><div class="kpi__label">${lab}</div><span class="kpi__ico kpi__ico--${kind || "info"}">${ico}</span></div>
       <div class="kpi__value">${val}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
@@ -286,12 +285,49 @@
       <div class="section__head"><div><h4 style="margin:0">Evidencia de saturación operativa</h4>
         <p class="kpi__sub" style="margin:.15rem 0 0">Datos en vivo del portal — no requieren registrar horas.</p></div></div>
       <div class="grid grid--kpi">
-        ${card("📨", pend, "Solicitudes pendientes", avgResp != null ? "Respuesta prom.: " + avgResp + " días" : "Sin cierres registrados aún", pend ? "warn" : "ok")}
-        ${card("⏱️", venc, "Tareas / acciones vencidas", venc ? "Compromisos fuera de plazo" : "Todo dentro de plazo", venc ? "danger" : "ok")}
-        ${card("🏥", cob.size + " / " + totalUn, "Cobertura de unidades", "Con actividad este mes", cob.size >= totalUn * 0.6 ? "ok" : "warn")}
-        ${card("📈", actNow, "Actividad del mes", tendTxt, "info")}
+        ${card("📨", d.pend, "Solicitudes pendientes", d.avgResp != null ? "Respuesta prom.: " + d.avgResp + " días" : "Sin cierres registrados aún", d.pend ? "warn" : "ok")}
+        ${card("⏱️", d.venc, "Tareas / acciones vencidas", d.venc ? "Compromisos fuera de plazo" : "Todo dentro de plazo", d.venc ? "danger" : "ok")}
+        ${card("🏥", d.cob + " / " + d.totalUn, "Cobertura de unidades", "Con actividad este mes", d.cob >= d.totalUn * 0.6 ? "ok" : "warn")}
+        ${card("📈", d.actNow, "Actividad del mes", tendTxt, "info")}
       </div>
     </div>`;
+  }
+
+  /* ---- Observación y recomendación (lectura automática + nota editable) ---- */
+  function icoRecomendacionHTML() {
+    const u = ui();
+    const recs = icoOrdenados();
+    const d = icoEvidenciaData();
+    const j = icoJornada();
+    let auto;
+    if (!recs.length) {
+      auto = `Aún no hay registros mensuales del índice. Registra al menos un mes (o estímalo desde el portal) para generar la lectura automática. ` +
+        (d.pend || d.venc ? `De todas formas, ya se observan señales de carga: ${d.pend} solicitud(es) pendiente(s) y ${d.venc} compromiso(s) vencido(s).` : "");
+    } else {
+      const last = recs[recs.length - 1];
+      const pct = icoIndex(last), est = icoEstado(pct);
+      const req = Number(last.demanda) / j, disp = Number(last.horas) / j, deficit = req - disp;
+      const tend = d.actPrev === 0 ? "" : (d.dAct > 0 ? " La actividad va en aumento respecto al mes anterior, lo que proyecta una brecha creciente." : d.dAct < 0 ? " La actividad disminuyó respecto al mes anterior." : "");
+      const parte1 = `En <strong>${u.esc(icoPeriodoLabel(last.periodo))}</strong> el Índice de Capacidad Operativa fue <strong>${pct}%</strong> (${est.l.toLowerCase()}). ` +
+        `La demanda técnica equivale a <strong>${fteFmt(req)} jornadas</strong> frente a <strong>${fteFmt(disp)}</strong> disponible(s).`;
+      const evid = ` Como respaldo operativo se registran <strong>${d.pend}</strong> solicitud(es) pendiente(s)${d.avgResp != null ? ` (respuesta promedio ${d.avgResp} días)` : ""}, <strong>${d.venc}</strong> compromiso(s) vencido(s) y una cobertura de <strong>${d.cob}/${d.totalUn}</strong> unidades en el mes.`;
+      const reco = deficit >= 0.2
+        ? ` <strong>Recomendación:</strong> la demanda supera la capacidad de un/a solo profesional (déficit de ${fteFmt(deficit)} jornada). Se recomienda gestionar ante la Subdirección de Gestión del Cuidado la incorporación de un/a <strong>enfermero/a referente</strong> para asegurar la continuidad técnica y la cobertura de las unidades.`
+        : ` <strong>Recomendación:</strong> la capacidad disponible alcanza a cubrir la demanda del mes. Se recomienda mantener el monitoreo mensual y reevaluar si la tendencia continúa al alza.`;
+      auto = parte1 + evid + tend + reco;
+    }
+    const nota = S().getConfig("ico.observacion", "");
+    return `<div class="ico-recom">
+      <div class="section__head"><div><h4 style="margin:0">Observación y recomendación</h4>
+        <p class="kpi__sub" style="margin:.15rem 0 0">Lectura automática de los datos + tu observación.</p></div></div>
+      <div class="ico-recom__auto">${auto}</div>
+      <label class="ico-recom__lbl" for="ico-obs">✍️ Observación del Coordinador/a (opcional)</label>
+      <textarea class="input" id="ico-obs" rows="3" placeholder="Agrega tu análisis, contexto o gestión realizada. Se guarda automáticamente.">${u.esc(nota)}</textarea>
+    </div>`;
+  }
+  function bindObs() {
+    const t = document.getElementById("ico-obs");
+    if (t) t.onblur = () => { S().setConfig("ico.observacion", t.value); ui().toast("Observación guardada", "ok"); };
   }
 
   function renderICO() {
@@ -303,9 +339,11 @@
     if (!recs.length) {
       box.innerHTML = `<div class="ico-data__head"><h4>Seguimiento mensual</h4>${addBtn}</div>
         ${u.empty("Aún sin registros mensuales.", "Ingresa el primer mes o estímalo desde el portal para calcular el índice.", "🗓️")}
-        ${icoEvidenciaHTML()}`;
+        ${icoEvidenciaHTML()}
+        ${icoRecomendacionHTML()}`;
       const b = document.getElementById("ico-add"); if (b) b.onclick = () => icoForm(null);
       const pb = document.getElementById("ico-params"); if (pb) pb.onclick = () => icoParams();
+      bindObs();
       return;
     }
     const last = recs[recs.length - 1], prev = recs[recs.length - 2];
@@ -351,10 +389,12 @@
       <div class="table-wrap"><table class="tbl"><thead><tr>
         <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
       </tr></thead><tbody>${rows}</tbody></table></div>
-      ${icoEvidenciaHTML()}`;
+      ${icoEvidenciaHTML()}
+      ${icoRecomendacionHTML()}`;
 
     document.getElementById("ico-add").onclick = () => icoForm(null);
     document.getElementById("ico-params").onclick = () => icoParams();
+    bindObs();
     box.querySelectorAll("[data-icoedit]").forEach(b => b.onclick = () => icoForm(S().get("capacidadOperativa", b.dataset.icoedit)));
     box.querySelectorAll("[data-icodel]").forEach(b => b.onclick = () =>
       u.confirmDelete("¿Eliminar este registro mensual?", () => { S().remove("capacidadOperativa", b.dataset.icodel); renderICO(); }));
