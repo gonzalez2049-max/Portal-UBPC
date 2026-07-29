@@ -54,12 +54,75 @@
     return { arrow: up ? "▲" : "▼", txt: (up ? "+" : "") + d + " pts", fav };
   }
 
+  /* ---------- Ficha técnica destacada: Índice de Capacidad Operativa UBPC ----------
+     Solo ficha + visualización. El ingreso de datos se implementará más adelante. */
+  function fichaCapacidadOperativa() {
+    const acc = TIPO_COLOR.Estructura; // morado (indicador de estructura)
+    const clase = [
+      ["Tipo", "Estructura"],
+      ["Dimensión", "Capacidad operativa"],
+      ["Subdimensión", "Disponibilidad de recurso humano"],
+      ["Periodicidad", "Mensual"],
+      ["Responsable", "Coordinador UBPC"]
+    ];
+    const bandas = [
+      ["ok", "≤ 85%", "Capacidad suficiente"],
+      ["warn", "86 – 100%", "Capacidad tensionada"],
+      ["danger", "> 100%", "Capacidad superada"]
+    ];
+    return `<section class="section">
+      <div class="section__head"><h2 class="section__title">Ficha técnica destacada</h2></div>
+      <div class="card ico-ficha" style="--acc:${acc}">
+        <div class="ico-ficha__head">
+          <span class="ico-ficha__badge">Estructura</span>
+          <div class="ico-ficha__id">
+            <span class="ico-ficha__eb">Indicador UBPC</span>
+            <h3 class="ico-ficha__title">Índice de Capacidad Operativa UBPC</h3>
+          </div>
+          <span class="ico-ficha__soon">🔒 Ingreso de datos · próximamente</span>
+        </div>
+
+        <div class="ico-class">
+          ${clase.map(c => `<div class="ico-cl"><span>${c[0]}</span><b>${c[1]}</b></div>`).join("")}
+        </div>
+
+        <div class="ico-grid">
+          <div class="ico-block">
+            <span class="ico-lbl">Objetivo</span>
+            <p class="narrativo" style="margin:.2rem 0 0">Determinar si las horas profesionales disponibles del Coordinador UBPC son suficientes para responder a la demanda técnica y fundamentar la necesidad de un/a enfermero/a referente.</p>
+          </div>
+          <div class="ico-block">
+            <span class="ico-lbl">Fórmula</span>
+            <div class="ico-formula">
+              <div class="ico-frac">
+                <span class="ico-frac__num">Demanda técnica mensual</span>
+                <span class="ico-frac__bar"></span>
+                <span class="ico-frac__den">Horas profesionales disponibles</span>
+              </div>
+              <span class="ico-frac__x">× 100</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ico-block">
+          <span class="ico-lbl">Semáforo</span>
+          <div class="ico-sem">
+            ${bandas.map(b => `<div class="ico-sem__band ico-sem__band--${b[0]}">
+              <b>${b[1]}</b><span>${b[2]}</span></div>`).join("")}
+          </div>
+          <p class="kpi__sub" style="margin:.5rem 0 0">A menor índice, mayor holgura: un valor sobre 100% indica que la demanda técnica supera las horas profesionales disponibles.</p>
+        </div>
+      </div>
+    </section>`;
+  }
+
   /* ---------- Vista ---------- */
   function indicadores() {
     return `<div class="page-head"><h1>Indicadores UBPC</h1>
       <p>Gestión de indicadores de estructura, proceso, resultado e impacto, con semáforo, cumplimiento, tendencias y alertas.</p></div>
       <div id="ind-kpi"></div>
       <div id="ind-evi"></div>
+      ${fichaCapacidadOperativa()}
       <div class="section__head"><h2 class="section__title">Indicadores registrados</h2>
         <button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button></div>
       <div id="ind-list"></div>`;

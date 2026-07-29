@@ -1735,6 +1735,38 @@ body.night .nt-chip{ background:rgba(18,181,165,.2); color:#7fe0d0; }
 body.night .celebra__card{ background:#132621; }
 body.night .celebra__title{ color:#eaf6f1; }
 body.night .celebra__msg{ color:#c9d8d2; }
+
+/* ===== Ficha técnica destacada · Índice de Capacidad Operativa ===== */
+.ico-ficha{ border-top:5px solid var(--acc,#7a5cd0); }
+.ico-ficha__head{ display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; }
+.ico-ficha__badge{ background:color-mix(in srgb, var(--acc,#7a5cd0) 15%, transparent); color:var(--acc,#7a5cd0);
+  font-weight:800; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; padding:.3rem .7rem; border-radius:999px; }
+.ico-ficha__eb{ font-size:.7rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--acc,#7a5cd0); }
+.ico-ficha__title{ font-family:var(--font-disp); font-size:1.3rem; margin:.05rem 0 0; color:#153833; }
+.ico-ficha__soon{ margin-left:auto; font-size:.76rem; font-weight:700; color:var(--text-2,#5a6b66);
+  background:var(--surface-2,#f4f7f6); border:1px dashed var(--border,#d9e2df); padding:.32rem .7rem; border-radius:999px; white-space:nowrap; }
+.ico-class{ display:flex; flex-wrap:wrap; gap:.55rem; margin:1rem 0; }
+.ico-cl{ flex:1 1 150px; background:var(--surface-2,#f7fbfa); border:1px solid var(--border,#e6ecea); border-radius:11px; padding:.55rem .75rem; }
+.ico-cl span{ display:block; font-size:.7rem; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:var(--text-2,#5a6b66); }
+.ico-cl b{ font-size:.95rem; color:#153833; }
+.ico-grid{ display:grid; grid-template-columns:1.3fr 1fr; gap:1rem; margin-bottom:1rem; align-items:stretch; }
+.ico-block{ background:var(--surface-2,#f7fbfa); border:1px solid var(--border,#e6ecea); border-radius:12px; padding:.8rem .9rem; }
+.ico-lbl{ font-size:.72rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--acc,#7a5cd0); }
+.ico-formula{ display:flex; align-items:center; gap:.8rem; margin-top:.5rem; flex-wrap:wrap; }
+.ico-frac{ display:inline-flex; flex-direction:column; text-align:center; }
+.ico-frac__num, .ico-frac__den{ font-weight:700; color:#153833; font-size:.95rem; padding:.15rem .3rem; }
+.ico-frac__bar{ height:2px; background:var(--acc,#7a5cd0); margin:.15rem 0; border-radius:2px; }
+.ico-frac__x{ font-family:var(--font-disp); font-size:1.25rem; font-weight:800; color:var(--acc,#7a5cd0); }
+.ico-sem{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin-top:.5rem; }
+.ico-sem__band{ border-radius:12px; padding:.7rem .6rem; text-align:center; border:1px solid; }
+.ico-sem__band b{ display:block; font-family:var(--font-disp); font-size:1.15rem; line-height:1.1; }
+.ico-sem__band span{ font-size:.78rem; font-weight:700; }
+.ico-sem__band--ok{ background:#e4f6ec; border-color:#bfe6cd; color:#1c7a4c; }
+.ico-sem__band--warn{ background:#fbf1de; border-color:#f0dcb4; color:#b06f14; }
+.ico-sem__band--danger{ background:#fbe6ea; border-color:#f2c9d1; color:#c62f3b; }
+body.night .ico-ficha__title, body.night .ico-cl b, body.night .ico-frac__num, body.night .ico-frac__den{ color:#eaf6f1; }
+body.night .ico-cl, body.night .ico-block{ background:#132621; border-color:rgba(255,255,255,.08); }
+@media (max-width:720px){ .ico-grid{ grid-template-columns:1fr; } .ico-sem{ grid-template-columns:1fr; } }
 .kcard::after{ content:""; position:absolute; right:0; bottom:0; width:0; height:0;
   border-style:solid; border-width:0 0 16px 16px; border-color:transparent transparent rgba(0,0,0,.10) rgba(0,0,0,.10);
   border-bottom-right-radius:11px; }
