@@ -643,6 +643,32 @@
     return (menorMejor(ind) ? "≤ " : "≥ ") + ind.meta + "%";
   }
 
+  /* ---------- Próxima medición según periodicidad ---------- */
+  const PERIOD_MESES = { "Mensual": 1, "Bimensual": 2, "Trimestral": 3, "Semestral": 6, "Anual": 12 };
+  function anclaMedicion(ind) {
+    const raw = ind.fechaMedicion || ind.fechaCreacion;
+    if (!raw) return null;
+    const d = new Date(raw); return isNaN(d) ? null : d;
+  }
+  function proximaMedicion(ind) {
+    const off = PERIOD_MESES[ind.periodicidad]; if (!off) return null;
+    const base = anclaMedicion(ind); if (!base) return null;
+    const d = new Date(base); d.setMonth(d.getMonth() + off); d.setHours(0, 0, 0, 0); return d;
+  }
+  function proxLabel(d) { return d ? MESES_ICO[d.getMonth()] + " " + d.getFullYear() : "—"; }
+  function proximaInfo(ind) {
+    const d = proximaMedicion(ind); if (!d) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dias = Math.round((d - today) / 86400000);
+    return { d, label: proxLabel(d), dias, overdue: dias < 0, soon: dias >= 0 && dias <= 15 };
+  }
+  function proximaChip(ind) {
+    const pi = proximaInfo(ind); if (!pi) return "";
+    const color = pi.overdue ? "var(--danger)" : pi.soon ? "var(--naranjo)" : "inherit";
+    const txt = pi.overdue ? "Medición pendiente (" + pi.label + ")" : "Próx. medición: " + pi.label;
+    return `<div class="kpi__sub" style="color:${color}">📏 ${txt}</div>`;
+  }
+
   /* ---------- Submódulo: Ficha técnica (matriz) ---------- */
   function fichaSheet(ind) {
     const u = ui();
@@ -653,6 +679,7 @@
       ["Estándar de cumplimiento", estandarTxt(ind)],
       ["Fuente de información", u.esc(ind.fuenteDatos || "—")],
       ["Periodicidad", u.esc(ind.periodicidad || "—")],
+      ["Próxima medición", (() => { const pi = proximaInfo(ind); return pi ? (pi.overdue ? `<span style="color:var(--danger);font-weight:700">Pendiente · ${u.esc(pi.label)}</span>` : u.esc(pi.label)) : "—"; })()],
       ["Responsable", u.esc(ind.responsable || "Enf. Coordinador/a UBPC")]
     ];
     return `<div class="mtx-card" style="--tc:${TIPO_COLOR[ind.tipo] || "#12b5a5"}">
@@ -717,7 +744,8 @@
         <div><div style="font-size:1.9rem;font-weight:800;font-family:var(--font-disp);color:${sem.c};line-height:1">${cur == null ? "—" : cur + "%"}</div>
           <div class="kpi__sub">Meta ${ind.meta || "—"}% · ${cumpl != null ? cumpl + "% cumpl." : "—"}</div></div>
         <div class="right"><div style="font-weight:800;color:${t.fav == null ? "var(--text-2)" : (t.fav ? "var(--verde)" : "var(--danger)")}">${t.arrow} ${u.esc(t.txt)}</div>
-          <div class="kpi__sub">${u.esc(ind.periodicidad || "")}</div></div>
+          <div class="kpi__sub">${u.esc(ind.periodicidad || "")}</div>
+          ${proximaChip(ind)}</div>
       </div>
       ${spark ? `<div style="margin:.2rem 0 -.3rem">${spark}</div>` : ""}
       <div class="btn-row" style="margin-top:.6rem">
@@ -774,6 +802,7 @@
             estructura ? null : { name: "denominador", label: "Denominador (cantidad)", type: "number", value: rec.denominador != null ? rec.denominador : "" },
             { name: "fuenteDatos", label: "Fuente de información", full: true, value: rec.fuenteDatos || "" },
             { name: "periodicidad", label: "Periodicidad", type: "select", options: PERIODICIDAD, value: rec.periodicidad || "Trimestral" },
+            { name: "fechaMedicion", label: "Fecha de la última medición", type: "date", value: rec.fechaMedicion ? ui().isoDay(rec.fechaMedicion) : "", hint: "Se usa para calcular y avisar la próxima medición según la periodicidad." },
             { name: "sentido", label: "Sentido de la meta", type: "select", options: SENTIDOS, value: rec.sentido || "Mayor es mejor" },
             { name: "meta", label: "Estándar de cumplimiento / Meta (%)", type: "number", value: rec.meta != null ? rec.meta : "" },
             { name: "lineaBase", label: "Línea base (%)", type: "number", value: rec.lineaBase != null ? rec.lineaBase : "" },
@@ -836,6 +865,7 @@
     u.modal({
       title: "Agregar seguimiento · " + (ind.nombre || ""),
       body: u.formHTML([
+        { name: "fecha", label: "Fecha de la medición", type: "date", value: u.hoyISO(), hint: "Avanza automáticamente la próxima medición según la periodicidad." },
         { name: "periodo", label: "Período", value: "", hint: "Ej: 2026-S1" },
         { name: "valor", label: "Valor (%)", type: "number" }
       ], {}),
@@ -844,8 +874,10 @@
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           if (d.valor === "") { u.toast("Indica el valor", "danger"); return; }
-          const segs = (ind.seguimientos || []).concat([{ periodo: d.periodo, valor: Number(d.valor) }]);
-          S().update("indicadores", ind.id, { seguimientos: segs });
+          const segs = (ind.seguimientos || []).concat([{ periodo: d.periodo, valor: Number(d.valor), fecha: d.fecha || "" }]);
+          const patch = { seguimientos: segs };
+          if (d.fecha) patch.fechaMedicion = d.fecha; // ancla la próxima medición
+          S().update("indicadores", ind.id, patch);
           u.closeModal(); renderTab();
         };
       }
@@ -872,6 +904,7 @@
           ${fila("Valor actual", cur == null ? "—" : cur + "%")}${fila("Estándar de cumplimiento", estandarTxt(ind))}
           ${fila("Cumplimiento", cumplimiento(ind) != null ? cumplimiento(ind) + "%" : "—")}${fila("Sentido", ind.sentido)}
           ${fila("Línea base", ind.lineaBase !== "" && ind.lineaBase != null ? ind.lineaBase + "%" : "—")}${fila("Periodicidad", ind.periodicidad)}
+          ${(() => { const pi = proximaInfo(ind); return pi ? fila("Próxima medición", pi.overdue ? "Pendiente · " + pi.label : pi.label) : ""; })()}
           ${ind.tipo !== "Estructura" ? fila("Fórmula", ind.formula) + fila("Numerador / Denominador", (ind.numerador || "—") + " / " + (ind.denominador || "—")) : ""}
           ${fila("Fuente de información", ind.fuenteDatos)}${fila("Responsable", ind.responsable)}
           ${fila("Ficha", "Versión " + (ind.fichaVersion || 1))}
@@ -939,6 +972,8 @@
 
   U.coord.views.indicadores = indicadores;
   U.coord.binders.indicadores = indBind;
+  // Utilidad reutilizable (Agenda): próxima medición según periodicidad
+  U.indicadoresUtil = { proximaMedicion, proximaInfo };
 
   /* Cálculos expuestos para reportes u otros módulos */
   U.indicadoresCalc = { currentValue, semaforo, cumplimiento, serie, tendencia, SEM, TIPO_COLOR };

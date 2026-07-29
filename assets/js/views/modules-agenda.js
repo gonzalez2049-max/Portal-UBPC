@@ -16,6 +16,7 @@
     tarea: { ic: "✅", c: "#37c6a0", lab: "Tarea del tablero" },
     capacitacion: { ic: "🎓", c: "#37a04a", lab: "Capacitación" },
     colaboracion: { ic: "🌐", c: "#1554b8", lab: "Colaboración" },
+    medicion: { ic: "📏", c: "#0891b2", lab: "Medición de indicador" },
     propio: { ic: "📌", c: "#e0526f", lab: "Evento propio" }
   };
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -43,6 +44,13 @@
     s.all("actividades").forEach(r => push(r.fecha, "Capacitación · " + (r.actividad || ""), "capacitacion", "#/coord/m4"));
     s.all("colaboraciones").forEach(r => push(r.fecha, "Colaboración · " + (r.institucion || ""), "colaboracion", "#/coord/m5?tab=colaboraciones"));
     s.all("agendaEventos").forEach(r => push(r.fecha, r.titulo || "Evento", "propio", null, { propio: true, id: r.id, hora: r.hora, nota: r.nota }));
+    // Próxima medición de cada indicador según su periodicidad
+    if (U.indicadoresUtil && U.indicadoresUtil.proximaMedicion) {
+      s.all("indicadores").forEach(r => {
+        const pm = U.indicadoresUtil.proximaMedicion(r);
+        if (pm) push(pm.toISOString(), "Medición · " + (r.nombre || "Indicador"), "medicion", "#/coord/indicadores", { deadline: true });
+      });
+    }
     return ev.sort((a, b) => a.d - b.d);
   }
 
