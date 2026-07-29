@@ -54,8 +54,135 @@
     return { arrow: up ? "▲" : "▼", txt: (up ? "+" : "") + d + " pts", fav };
   }
 
-  /* ---------- Ficha técnica destacada: Índice de Capacidad Operativa UBPC ----------
-     Solo ficha + visualización. El ingreso de datos se implementará más adelante. */
+  /* ============================================================
+     ÍNDICE DE CAPACIDAD OPERATIVA UBPC — cálculo mensual y semáforo
+     Fórmula: demanda técnica mensual ÷ horas profesionales disponibles × 100
+     Semáforo: ≤85 suficiente · 86–100 tensionada · >100 superada
+     ============================================================ */
+  const MESES_ICO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  function icoPeriodoLabel(p) {
+    const m = String(p || "").match(/^(\d{4})-(\d{2})/);
+    return m ? MESES_ICO[Number(m[2]) - 1] + " " + m[1] : (p || "—");
+  }
+  function icoIndex(rec) {
+    const h = Number(rec && rec.horas);
+    const d = Number(rec && rec.demanda);
+    if (!h || isNaN(d)) return null;
+    return Math.round(d / h * 100);
+  }
+  function icoEstado(pct) {
+    if (pct == null) return { k: "neutral", l: "Sin datos", c: "var(--neutral)" };
+    if (pct <= 85) return { k: "ok", l: "Capacidad suficiente", c: "var(--verde)" };
+    if (pct <= 100) return { k: "warn", l: "Capacidad tensionada", c: "var(--naranjo)" };
+    return { k: "danger", l: "Capacidad superada", c: "var(--danger)" };
+  }
+  function icoOrdenados() {
+    return S().all("capacidadOperativa").slice().sort((a, b) => String(a.periodo || "").localeCompare(String(b.periodo || "")));
+  }
+
+  function icoForm(rec) {
+    const u = ui(); rec = rec || {};
+    const hoy = new Date();
+    const mesActual = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0");
+    u.modal({
+      title: (rec.id ? "Editar" : "Registrar") + " mes · Capacidad Operativa",
+      body: `<p class="card__hint">Índice = demanda técnica mensual ÷ horas profesionales disponibles × 100. Se calcula y clasifica automáticamente.</p>
+        ${u.formHTML([
+          { name: "periodo", label: "Mes", type: "month", required: true, value: rec.periodo || mesActual },
+          { name: "demanda", label: "Demanda técnica mensual (horas)", type: "number", required: true, value: rec.demanda != null ? rec.demanda : "", hint: "Horas requeridas por la demanda técnica del período." },
+          { name: "horas", label: "Horas profesionales disponibles (horas)", type: "number", required: true, value: rec.horas != null ? rec.horas : "", hint: "Horas del Coordinador UBPC disponibles en el mes." },
+          { name: "nota", label: "Observación (opcional)", type: "textarea", full: true, value: rec.nota || "" }
+        ], {})}
+        <div id="ico-preview" class="ico-preview"></div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar mes</button>`,
+      onMount(m) {
+        const prev = m.querySelector("#ico-preview");
+        const dI = m.querySelector('input[name="demanda"]'), hI = m.querySelector('input[name="horas"]');
+        function paint() {
+          const pct = icoIndex({ demanda: dI.value, horas: hI.value });
+          if (pct == null) { prev.innerHTML = `<span class="kpi__sub">Ingresa demanda y horas para ver el índice.</span>`; return; }
+          const e = icoEstado(pct);
+          prev.innerHTML = `<div class="ico-preview__row"><span>Índice calculado</span>
+            <b style="color:${e.c}">${pct}%</b><span class="badge badge--${e.k}">${e.l}</span></div>`;
+        }
+        dI.addEventListener("input", paint); hI.addEventListener("input", paint); paint();
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.periodo) { u.toast("Indica el mes", "danger"); return; }
+          if (d.demanda === "" || d.horas === "") { u.toast("Ingresa demanda y horas", "danger"); return; }
+          if (Number(d.horas) <= 0) { u.toast("Las horas disponibles deben ser mayores a 0", "danger"); return; }
+          const dup = S().all("capacidadOperativa").find(x => x.periodo === d.periodo && x.id !== rec.id);
+          if (dup) { u.toast("Ya existe un registro para ese mes. Edítalo en su lugar.", "danger"); return; }
+          d.demanda = Number(d.demanda); d.horas = Number(d.horas);
+          if (rec.id) S().update("capacidadOperativa", rec.id, d); else S().insert("capacidadOperativa", d);
+          u.closeModal(); u.toast("Registro guardado", "ok"); renderICO();
+        };
+      }
+    });
+  }
+
+  function renderICO() {
+    const u = ui();
+    const box = document.getElementById("ico-data");
+    if (!box) return;
+    const recs = icoOrdenados();
+    const addBtn = `<button class="btn btn--primary btn--sm" id="ico-add">+ Registrar mes</button>`;
+    if (!recs.length) {
+      box.innerHTML = `<div class="ico-data__head"><h4>Seguimiento mensual</h4>${addBtn}</div>
+        ${u.empty("Aún sin registros mensuales.", "Ingresa el primer mes (demanda técnica y horas disponibles) para calcular el índice.", "🗓️")}`;
+      const b = document.getElementById("ico-add"); if (b) b.onclick = () => icoForm(null);
+      return;
+    }
+    const last = recs[recs.length - 1], prev = recs[recs.length - 2];
+    const lp = icoIndex(last), pp = prev ? icoIndex(prev) : null;
+    const est = icoEstado(lp);
+    let vari = "";
+    if (lp != null && pp != null) {
+      const dd = lp - pp; // menor es mejor
+      vari = dd < 0 ? `<span class="ico-var ico-var--good">↘ ${dd} pts · mejora la holgura</span>`
+        : dd > 0 ? `<span class="ico-var ico-var--bad">↗ +${dd} pts · más tensión</span>`
+        : `<span class="ico-var">→ se mantiene</span>`;
+    }
+    const labels = recs.map(r => icoPeriodoLabel(r.periodo));
+    const values = recs.map(r => icoIndex(r));
+    const chart = recs.length > 1
+      ? U.charts.lineChart({ labels, series: [{ name: "Índice de Capacidad Operativa", color: est.c, values }], meta: 100 })
+      : `<p class="kpi__sub">Registra al menos dos meses para ver la tendencia.</p>`;
+
+    const rows = recs.slice().reverse().map(r => {
+      const pct = icoIndex(r), e = icoEstado(pct);
+      return `<tr>
+        <td><strong>${u.esc(icoPeriodoLabel(r.periodo))}</strong></td>
+        <td class="right">${r.demanda != null ? u.esc(r.demanda) : "—"}</td>
+        <td class="right">${r.horas != null ? u.esc(r.horas) : "—"}</td>
+        <td class="right" style="font-weight:800;color:${e.c}">${pct == null ? "—" : pct + "%"}</td>
+        <td><span class="badge badge--${e.k}">${e.l}</span></td>
+        <td class="acciones"><div class="btn-row">
+          <button class="btn-icon" data-icoedit="${r.id}" title="Editar">✏️</button>
+          <button class="btn-icon" data-icodel="${r.id}" title="Eliminar">🗑️</button></div></td></tr>`;
+    }).join("");
+
+    box.innerHTML = `<div class="ico-data__head"><h4>Seguimiento mensual</h4>${addBtn}</div>
+      <div class="ico-now ico-now--${est.k}">
+        <div class="ico-now__val">${lp == null ? "—" : lp + "%"}</div>
+        <div class="ico-now__meta">
+          <span class="badge badge--${est.k}">${est.l}</span>
+          <div class="kpi__sub">${u.esc(icoPeriodoLabel(last.periodo))} · demanda ${u.esc(last.demanda)} h ÷ disponibles ${u.esc(last.horas)} h</div>
+          ${vari}
+        </div>
+      </div>
+      <div style="margin:.6rem 0">${chart}</div>
+      <div class="table-wrap"><table class="tbl"><thead><tr>
+        <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+
+    document.getElementById("ico-add").onclick = () => icoForm(null);
+    box.querySelectorAll("[data-icoedit]").forEach(b => b.onclick = () => icoForm(S().get("capacidadOperativa", b.dataset.icoedit)));
+    box.querySelectorAll("[data-icodel]").forEach(b => b.onclick = () =>
+      u.confirmDelete("¿Eliminar este registro mensual?", () => { S().remove("capacidadOperativa", b.dataset.icodel); renderICO(); }));
+  }
+
+  /* ---------- Ficha técnica destacada: Índice de Capacidad Operativa UBPC ---------- */
   function fichaCapacidadOperativa() {
     const acc = TIPO_COLOR.Estructura; // morado (indicador de estructura)
     const clase = [
@@ -79,7 +206,7 @@
             <span class="ico-ficha__eb">Indicador UBPC</span>
             <h3 class="ico-ficha__title">Índice de Capacidad Operativa UBPC</h3>
           </div>
-          <span class="ico-ficha__soon">🔒 Ingreso de datos · próximamente</span>
+          <span class="ico-ficha__soon ico-ficha__soon--live">🗓️ Actualización mensual</span>
         </div>
 
         <div class="ico-class">
@@ -112,6 +239,8 @@
           </div>
           <p class="kpi__sub" style="margin:.5rem 0 0">A menor índice, mayor holgura: un valor sobre 100% indica que la demanda técnica supera las horas profesionales disponibles.</p>
         </div>
+
+        <div id="ico-data" class="ico-data"></div>
       </div>
     </section>`;
   }
@@ -139,6 +268,7 @@
       ${kpi("En intervención", by("rojo"), "Semáforo rojo", "danger", "🔴")}</div>`;
 
     renderEvi();
+    renderICO();
 
     const box = document.getElementById("ind-list");
     if (!list.length) { box.innerHTML = u.empty("Aún no hay indicadores registrados.", "Crea uno o usa las recomendaciones de EVI.", "📏"); }

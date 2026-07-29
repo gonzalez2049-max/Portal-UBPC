@@ -274,6 +274,14 @@
       kb("referente", "Capacitación turno noche", "Completado", "baja", "Enfermería", null, 5)
     ], { silent: true });
 
+    /* ---------- Índice de Capacidad Operativa UBPC (mensual) ---------- */
+    add("capacidadOperativa", [
+      { periodo: "2026-04", demanda: 118, horas: 160, nota: "Carga habitual del mes." },
+      { periodo: "2026-05", demanda: 132, horas: 160, nota: "Aumento por auditorías LPP." },
+      { periodo: "2026-06", demanda: 152, horas: 160, nota: "Solicitudes técnicas al alza." },
+      { periodo: "2026-07", demanda: 176, horas: 160, nota: "Demanda supera las horas disponibles: fundamenta la necesidad de un/a enfermero/a referente." }
+    ], { silent: true });
+
     /* ---------- Referente: submódulos ---------- */
     add("bibliotecaBitacora", [
       { tipoAccion: "Recurso incorporado", nombreRecurso: "Escala de Braden actualizada", tipo: "Instrumento", version: "2", fuente: "RNAO", cambioRealizado: "Se incorpora versión revisada.", motivo: "Actualización de evidencia.", enlace: "", ubicacionRespaldo: "Carpeta UBPC/Escalas", fecha: iso(18), unidadGuia: "Lesiones por presión" },

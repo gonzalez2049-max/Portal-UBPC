@@ -1766,6 +1766,27 @@ body.night .celebra__msg{ color:#c9d8d2; }
 .ico-sem__band--danger{ background:#fbe6ea; border-color:#f2c9d1; color:#c62f3b; }
 body.night .ico-ficha__title, body.night .ico-cl b, body.night .ico-frac__num, body.night .ico-frac__den{ color:#eaf6f1; }
 body.night .ico-cl, body.night .ico-block{ background:#132621; border-color:rgba(255,255,255,.08); }
+.ico-ficha__soon--live{ border-style:solid; border-color:color-mix(in srgb, var(--acc,#7a5cd0) 30%, transparent);
+  color:var(--acc,#7a5cd0); background:color-mix(in srgb, var(--acc,#7a5cd0) 10%, transparent); }
+.ico-data{ margin-top:1rem; border-top:1px dashed var(--border,#e0e7e4); padding-top:1rem; }
+.ico-data__head{ display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.7rem; }
+.ico-data__head h4{ margin:0; font-size:1.02rem; color:#153833; }
+.ico-now{ display:flex; align-items:center; gap:1rem; border-radius:14px; padding:.85rem 1rem; border:1px solid; }
+.ico-now--ok{ background:#e4f6ec; border-color:#bfe6cd; }
+.ico-now--warn{ background:#fbf1de; border-color:#f0dcb4; }
+.ico-now--danger{ background:#fbe6ea; border-color:#f2c9d1; }
+.ico-now--neutral{ background:var(--surface-2,#f7fbfa); border-color:var(--border,#e6ecea); }
+.ico-now__val{ font-family:var(--font-disp); font-size:2.4rem; line-height:1; font-weight:800; color:#153833; min-width:5rem; text-align:center; }
+.ico-now__meta{ display:flex; flex-direction:column; gap:.25rem; }
+.ico-var{ font-size:.82rem; font-weight:800; color:var(--text-2,#5a6b66); }
+.ico-var--good{ color:#1c7a4c; } .ico-var--bad{ color:#c62f3b; }
+.ico-preview{ margin-top:.6rem; }
+.ico-preview__row{ display:flex; align-items:center; gap:.7rem; background:var(--surface-2,#f7fbfa); border:1px solid var(--border,#e6ecea);
+  border-radius:10px; padding:.55rem .8rem; }
+.ico-preview__row span:first-child{ font-weight:700; color:var(--text-2,#5a6b66); font-size:.86rem; }
+.ico-preview__row b{ font-family:var(--font-disp); font-size:1.35rem; margin-left:auto; }
+.ico-preview__row .badge{ margin-left:0; }
+body.night .ico-data__head h4, body.night .ico-now__val{ color:#eaf6f1; }
 @media (max-width:720px){ .ico-grid{ grid-template-columns:1fr; } .ico-sem{ grid-template-columns:1fr; } }
 .kcard::after{ content:""; position:absolute; right:0; bottom:0; width:0; height:0;
   border-style:solid; border-width:0 0 16px 16px; border-color:transparent transparent rgba(0,0,0,.10) rgba(0,0,0,.10);
