@@ -12,7 +12,7 @@
   const TABS = [
     { key: "dashboard", label: "Dashboard" },
     { key: "evaluaciones", label: "Línea base y seguimiento" },
-    { key: "acciones", label: "Acciones de mejora" },
+    { key: "planes", label: "Plan de Intervención RNAO/BPSO" },
     { key: "guias", label: "Guías BPSO" },
     { key: "champion", label: "Red Champion" },
     { key: "indice", label: "Índice de implementación" }
@@ -28,7 +28,8 @@
   function m3Bind(main, params) {
     const tab = (params && params.tab) || "dashboard";
     const box = document.getElementById("m3-body");
-    ({ dashboard, evaluaciones, acciones: accionesTab, guias: guiasTab, champion: championTab, indice: indiceTab }[tab] || dashboard)(box);
+    const fns = { dashboard, evaluaciones, planes: b => planesTab(b, params), guias: guiasTab, champion: championTab, indice: indiceTab };
+    (fns[tab] || dashboard)(box);
   }
 
   /* ---------- Utilidades de cálculo ---------- */
@@ -97,7 +98,7 @@
     const rows = inds.map(i => `<tr>
       <td>${u.esc(i.nombre)}</td>
       <td class="num"><strong style="color:${i.pct < meta ? "var(--danger)" : "var(--verde)"}">${i.pct}%</strong></td>
-      <td>${i.pct < meta ? `<button class="btn btn--ghost btn--sm" data-genacc="${u.esc(i.nombre)}">Generar acción de mejora</button>` : `<span class="badge badge--ok">En meta</span>`}</td>
+      <td>${i.pct < meta ? `<button class="btn btn--ghost btn--sm" data-genacc="${u.esc(i.nombre)}">Generar plan de intervención</button>` : `<span class="badge badge--ok">En meta</span>`}</td>
     </tr>`).join("");
     u.modal({
       title: "Indicadores · " + (e.guia || "") + " · " + (e.unidad || ""), wide: true,
@@ -111,7 +112,7 @@
       onMount(m) {
         m.querySelectorAll("[data-genacc]").forEach(b => b.onclick = () => {
           const ind = inds.find(x => x.nombre === b.dataset.genacc);
-          crearAccionDesde(e, ind, meta); u.closeModal(); if (onChange) onChange();
+          u.closeModal(); crearPlanDesde(e, ind, meta);
         });
       }
     });
@@ -301,53 +302,215 @@
       </div>`;
   }
 
-  /* ===================== ACCIONES DE MEJORA ===================== */
-  function crearAccionDesde(e, ind, meta) {
-    const brecha = meta - ind.pct;
-    S().insert("accionesRNAO", {
-      guia: e.guia, unidad: e.unidad, indicadorOrigen: ind.nombre,
-      resultado: ind.pct, meta, brecha: brecha > 0 ? brecha + " pts" : "0",
-      accion: "", responsable: e.referente || "", estado: "Pendiente",
-      medioVerificacion: "", requiereReferente: "No", observaciones: ""
-    });
-    ui().toast("Acción de mejora generada", "ok");
+  /* ===================== PLAN DE INTERVENCIÓN RNAO/BPSO ===================== */
+  const EST_SEG = ["Pendiente", "En curso", "Completado", "Retrasado"];
+  const PIN_COLS = {
+    actividades: [{ f: "actividad", label: "Actividad" }, { f: "responsable", label: "Responsable" }, { f: "verificador", label: "Verificador" }],
+    seguimientos: [{ f: "fecha", label: "Fecha", type: "date" }, { f: "descripcion", label: "Descripción / avance" }, { f: "avance", label: "% avance", type: "number" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }],
+    acciones: [{ f: "accion", label: "Acción de mejora" }, { f: "responsable", label: "Responsable" }, { f: "plazo", label: "Plazo", type: "date" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }, { f: "verificador", label: "Verificador" }]
+  };
+  const PIN_ADD = { actividades: "Agregar actividad", seguimientos: "Agregar seguimiento", acciones: "Agregar acción" };
+  const pinNum = v => (v === "" || v == null || isNaN(v)) ? null : Number(v);
+  const pinPct = v => (v != null && String(v).trim() !== "" && !isNaN(v)) ? v + "%" : "—";
+
+  function pinFld(name, label, help, opt) {
+    opt = opt || {}; const u = ui(); const id = "pin-" + name;
+    const req = opt.req ? ' <span class="pf-req">*</span>' : "";
+    const val = opt.value == null ? "" : opt.value;
+    let ctrl;
+    if (opt.type === "textarea") ctrl = `<textarea class="input" id="${id}" data-pf="${name}" rows="${opt.rows || 2}" ${opt.req ? "data-req" : ""}>${u.esc(val)}</textarea>`;
+    else if (opt.type === "select") ctrl = `<select class="input" id="${id}" data-pf="${name}">${(opt.options || []).map(o => `<option ${String(o) === String(val) ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select>`;
+    else ctrl = `<input class="input" id="${id}" data-pf="${name}" type="${opt.type || "text"}" value="${u.esc(val)}" ${opt.req ? "data-req" : ""}>`;
+    return `<div class="pf-field ${opt.full ? "pf-field--full" : ""}"><label for="${id}">${u.esc(label)}${req}</label>${ctrl}${help ? `<span class="pf-help">${u.esc(help)}</span>` : ""}</div>`;
   }
-  function accionesTab(box) {
-    U.components.resource.mount(box, {
-      collection: "accionesRNAO", title: "Acción de mejora RNAO", icon: "🛠️",
-      hint: "Una acción de mejora se genera cuando un indicador queda bajo la meta.",
-      newLabel: "Nueva acción",
-      filters: [{ key: "estado", label: "Estado" }, { key: "guia", label: "Guía" }, { key: "unidad", label: "Unidad" }],
-      emptyMsg: "Aún no hay acciones de mejora.", emptySub: "Genera acciones desde los indicadores bajo meta o crea una aquí.",
-      columns: [
-        { key: "guia", label: "Guía", render: (r, u) => `<span class="tag">${u.esc(r.guia || "—")}</span>` },
-        { key: "unidad", label: "Unidad" },
-        { key: "indicadorOrigen", label: "Indicador (brecha)" },
-        { key: "resultado", label: "Resultado", render: (r, u) => r.resultado != null && r.resultado !== "" ? r.resultado + "%" : "—" },
-        { key: "responsable", label: "Responsable" },
-        { key: "fechaComprometida", label: "Comprometida", date: true },
-        { key: "estado", label: "Estado", badge: true },
-        { key: "requiereReferente", label: "Referente", render: (r, u) => r.requiereReferente === "Sí" ? `<span class="badge badge--warn">Requiere</span>` : "—" }
-      ],
-      fields: [
-        { name: "guia", label: "Guía", type: "select", options: CAT().guiasArea },
-        { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
-        { name: "indicadorOrigen", label: "Indicador que origina la brecha", full: true },
-        { name: "resultado", label: "Resultado (%)", type: "number" },
-        { name: "meta", label: "Meta (%)", type: "number", value: 90 },
-        { name: "brecha", label: "Brecha" },
-        { name: "accion", label: "Acción propuesta", type: "textarea", full: true },
-        { name: "responsable", label: "Responsable" },
-        { name: "fechaComprometida", label: "Fecha comprometida", type: "date" },
-        { name: "estado", label: "Estado", type: "select", options: ["Pendiente", "En curso", "Completado"] },
-        { name: "medioVerificacion", label: "Medio de verificación", full: true },
-        { name: "requiereReferente", label: "Requiere intervención del Referente", type: "select", options: ["No", "Sí"] },
-        { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
-      ],
-      defaults: () => ({ estado: "Pendiente", meta: 90, requiereReferente: "No" }),
-      rowActions: [{ ico: "📨", title: "Solicitar intervención técnica", show: r => r.requiereReferente === "Sí",
-        fn: (r) => U.solicitudes.crearDesde("Acción de mejora RNAO", { titulo: "Intervención: " + (r.indicadorOrigen || ""), unidad: r.unidad, prioridad: "alta", descripcion: r.accion || "" }, () => {}) }]
+  function pinSecH(n, t) { return `<div class="pf-sec-h"><span class="pf-sec-n">${n}</span><h3>${ui().esc(t)}</h3></div>`; }
+  function pinRepRow(rep, values) {
+    const u = ui(); const cols = PIN_COLS[rep]; values = values || {};
+    return `<tr data-reprow>${cols.map(c => {
+      const v = values[c.f] == null ? "" : values[c.f];
+      let ctrl;
+      if (c.type === "select") ctrl = `<select class="input input--sm" data-f="${c.f}">${c.options.map(o => `<option ${String(o) === String(v) ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select>`;
+      else ctrl = `<input class="input input--sm" data-f="${c.f}" type="${c.type || "text"}" value="${u.esc(v)}">`;
+      return `<td>${ctrl}</td>`;
+    }).join("")}<td class="pf-rep__x"><button type="button" class="btn-icon" data-reprm title="Quitar fila">🗑️</button></td></tr>`;
+  }
+  function pinRepTable(rep, rows) {
+    const u = ui(); const cols = PIN_COLS[rep]; rows = (rows && rows.length) ? rows : [];
+    return `<div class="pf-rep" data-rep="${rep}"><div class="table-wrap"><table class="tbl pf-rep__t"><thead><tr>${cols.map(c => `<th>${u.esc(c.label)}</th>`).join("")}<th></th></tr></thead>
+      <tbody>${rows.map(r => pinRepRow(rep, r)).join("")}</tbody></table></div>
+      <button type="button" class="btn btn--ghost btn--sm" data-repadd="${rep}">+ ${u.esc(PIN_ADD[rep])}</button></div>`;
+  }
+
+  function planFormHTML(data) {
+    return `<div class="plan-form">
+      <section class="pf-section">${pinSecH(1, "Guía, recomendación o brecha")}
+        <div class="pf-grid">
+          ${pinFld("unidad", "Unidad", "Unidad con baja adherencia, brecha o incumplimiento.", { value: data.unidad, type: "select", options: ["—"].concat(CAT().unidades), req: true })}
+          ${pinFld("guia", "Guía BPSO", "Guía de buenas prácticas de referencia.", { value: data.guia, type: "select", options: CAT().guiasArea, req: true })}
+          ${pinFld("indicador", "Indicador / recomendación", "Indicador o recomendación que origina la brecha.", { value: data.indicador, full: true })}
+          ${pinFld("recomendacion", "Recomendación abordada", "Recomendación específica de la guía que se trabaja.", { value: data.recomendacion, type: "textarea", full: true })}
+          ${pinFld("lineaBase", "Línea base (%)", "Cumplimiento inicial medido.", { value: data.lineaBase, type: "number" })}
+          ${pinFld("meta", "Meta (%)", "Meta de cumplimiento comprometida.", { value: data.meta, type: "number" })}
+          ${pinFld("brecha", "Brecha", "Diferencia respecto a la meta.", { value: data.brecha, full: true })}
+        </div></section>
+      <section class="pf-section">${pinSecH(2, "Objetivo, actividades y responsables")}
+        ${pinFld("objetivo", "Objetivo de la intervención", "Qué se busca lograr con el plan.", { value: data.objetivo, type: "textarea", req: true, full: true })}
+        <div class="pf-rep-lbl">Actividades y responsables <span class="pf-help">Agrega todas las actividades necesarias, con responsable y verificador.</span></div>
+        ${pinRepTable("actividades", data.actividades)}</section>
+      <section class="pf-section">${pinSecH(3, "Plazos, seguimiento y cierre")}
+        <div class="pf-grid">
+          ${pinFld("plazoInicio", "Plazo · inicio", "", { value: data.plazoInicio, type: "date" })}
+          ${pinFld("plazoFin", "Plazo · término", "Fecha comprometida de término.", { value: data.plazoFin, type: "date" })}
+          ${pinFld("avance", "Avance global (%)", "Estimación del avance total del plan.", { value: data.avance, type: "number" })}
+          ${pinFld("motivoCierre", "Motivo de cierre / reapertura", "Se conserva al cerrar o reabrir el plan.", { value: data.motivoCierre, full: true })}
+        </div>
+        <div class="pf-rep-lbl">Seguimientos cronológicos <span class="pf-help">Registra cada revisión con fecha, avance y estado.</span></div>
+        ${pinRepTable("seguimientos", data.seguimientos)}</section>
+      <section class="pf-section">${pinSecH(4, "Acciones de mejora a implementar")}
+        <div class="pf-rep-lbl">Acciones <span class="pf-help">Acciones concretas para cerrar la brecha, con responsable, plazo, estado y verificador.</span></div>
+        ${pinRepTable("acciones", data.acciones)}</section>
+    </div>`;
+  }
+
+  function readPlanForm(box) {
+    const d = {};
+    box.querySelectorAll("[data-pf]").forEach(el => { d[el.dataset.pf] = (el.value || "").trim(); });
+    Object.keys(PIN_COLS).forEach(rep => {
+      const cols = PIN_COLS[rep];
+      d[rep] = [...box.querySelectorAll(`[data-rep="${rep}"] [data-reprow]`)].map(tr => {
+        const o = {}; cols.forEach(c => { const el = tr.querySelector(`[data-f="${c.f}"]`); o[c.f] = el ? (el.value || "").trim() : ""; }); return o;
+      }).filter(o => Object.keys(o).some(k => o[k] !== ""));
     });
+    return d;
+  }
+  function savePlan(box, current, opts) {
+    opts = opts || {}; const u = ui();
+    const d = readPlanForm(box);
+    box.querySelectorAll(".pf-field--err").forEach(x => x.classList.remove("pf-field--err"));
+    const faltan = [];
+    if (!d.unidad || d.unidad === "—") faltan.push("unidad");
+    if (!d.guia) faltan.push("guia");
+    if (!d.objetivo) faltan.push("objetivo");
+    faltan.forEach(n => { const el = box.querySelector(`[data-pf="${n}"]`); if (el) el.closest(".pf-field").classList.add("pf-field--err"); });
+    if (faltan.length) { u.toast("Completa los campos obligatorios: Unidad, Guía y Objetivo", "danger"); return null; }
+    const base = current || {};
+    const rec = Object.assign({}, base, d, { estadoCierre: base.estadoCierre || "Abierto", fechaModificacion: new Date().toISOString() });
+    let saved;
+    if (current) { S().update("planesIntervencion", current.id, rec); saved = S().get("planesIntervencion", current.id); }
+    else { saved = S().insert("planesIntervencion", Object.assign({ estadoCierre: "Abierto", fechaCreacion: new Date().toISOString() }, rec)); }
+    const docId = U.docsEditor.syncLinkedPlanDoc(saved);
+    if (saved.docId !== docId) { S().update("planesIntervencion", saved.id, { docId }); saved.docId = docId; }
+    if (!opts.silent) u.toast("Plan guardado y documento sincronizado", "ok");
+    return saved;
+  }
+
+  function openPlanEditor(box, plan) {
+    const u = ui();
+    const data = plan || { actividades: [], seguimientos: [], acciones: [], estadoCierre: "Abierto", coordinador: (U.auth.current() || {}).nombre };
+    let current = plan;
+    const cerrado = data.estadoCierre === "Cerrado";
+    box.innerHTML = `
+      <div class="doc-bar no-print" style="margin-bottom:.8rem">
+        <button class="btn btn--ghost btn--sm" id="pin-back">← Volver a planes</button>
+        <div class="doc-bar__title"><span class="tag" style="background:#12b5a522;color:#0f8f83">🧭 Plan de Intervención RNAO/BPSO</span> <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span></div>
+        <div class="btn-row">
+          <button class="btn btn--ghost btn--sm" id="pin-doc">📄 Documento vinculado</button>
+          <button class="btn btn--ghost btn--sm" id="pin-pdf">⬇️ PDF</button>
+          <button class="btn btn--ghost btn--sm" id="pin-cierre">${cerrado ? "🔓 Reabrir plan" : "🔒 Cerrar plan"}</button>
+          <button class="btn btn--primary btn--sm" id="pin-save">💾 Guardar</button>
+        </div>
+      </div>
+      <div class="doc-linked no-print" style="margin-bottom:1rem">📎 Al guardar, este plan genera y sincroniza su documento <strong>“Plan de Mejora (breve)”</strong> en Gestión Documental. La información se registra una sola vez y no se duplica.${cerrado && data.fechaCierre ? ` · <strong>Cerrado</strong> el ${u.fechaCL(data.fechaCierre)}.` : ""}</div>
+      ${planFormHTML(data)}`;
+
+    document.getElementById("pin-back").onclick = () => planList(box);
+    const bindRm = () => box.querySelectorAll("[data-reprm]").forEach(b => b.onclick = () => b.closest("tr").remove());
+    box.querySelectorAll("[data-repadd]").forEach(b => b.onclick = () => {
+      const rep = b.dataset.repadd;
+      box.querySelector(`[data-rep="${rep}"] tbody`).insertAdjacentHTML("beforeend", pinRepRow(rep, {}));
+      bindRm();
+    });
+    bindRm();
+
+    document.getElementById("pin-save").onclick = () => { const s = savePlan(box, current); if (s) { current = s; openPlanEditor(box, s); } };
+    document.getElementById("pin-doc").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.router.go("#/coord/m1?tab=docs&doc=" + s.docId); };
+    document.getElementById("pin-pdf").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.docsEditor.printDocById(s.docId); };
+    document.getElementById("pin-cierre").onclick = () => {
+      const s = savePlan(box, current, { silent: true }); if (!s) return;
+      const cerrar = s.estadoCierre !== "Cerrado";
+      S().update("planesIntervencion", s.id, cerrar
+        ? { estadoCierre: "Cerrado", fechaCierre: new Date().toISOString() }
+        : { estadoCierre: "Abierto", fechaReapertura: new Date().toISOString() });
+      u.toast(cerrar ? "Plan cerrado" : "Plan reabierto", "ok");
+      openPlanEditor(box, S().get("planesIntervencion", s.id));
+    };
+  }
+
+  function planCard(pl) {
+    const u = ui();
+    const cerrado = pl.estadoCierre === "Cerrado";
+    const av = pinNum(pl.avance);
+    const color = cerrado ? "var(--verde)" : (av != null && av >= 70 ? "var(--verde)" : av != null && av >= 40 ? "var(--naranjo)" : "var(--danger)");
+    return `<div class="card" style="border-top:4px solid ${color}">
+      <div class="card__head"><div><span class="tag">${u.esc(pl.guia || "Guía")}</span> <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(pl.unidad || "—")}</span></div>
+        <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span></div>
+      <h4 class="doc-card__title" style="margin:.4rem 0 .2rem">${u.esc(pl.indicador || pl.objetivo || "Plan de intervención")}</h4>
+      <div class="kpi__sub">Línea base ${pinPct(pl.lineaBase)} · Meta ${pinPct(pl.meta)}${pl.brecha ? " · Brecha " + u.esc(pl.brecha) : ""}</div>
+      <div class="pin-prog"><div class="pin-prog__bar" style="width:${av != null ? Math.min(100, Math.max(0, av)) : 0}%;background:${color}"></div></div>
+      <div class="kpi__sub">Avance ${av != null ? av + "%" : "—"} · ${(pl.acciones || []).length} acción(es) · ${(pl.seguimientos || []).length} seguimiento(s)</div>
+      <div class="btn-row" style="margin-top:.6rem;flex-wrap:wrap">
+        <button class="btn btn--primary btn--sm" data-plopen="${pl.id}">Abrir</button>
+        <button class="btn btn--ghost btn--sm" data-pldoc="${pl.id}" title="Documento Plan de Mejora vinculado">📄 Documento</button>
+        <button class="btn btn--ghost btn--sm" data-plpdf="${pl.id}">⬇️ PDF</button>
+        <button class="btn-icon" data-pldel="${pl.id}" title="Eliminar">🗑️</button>
+      </div></div>`;
+  }
+
+  function planList(box) {
+    const u = ui();
+    const planes = S().all("planesIntervencion").sort((a, b) => new Date(b.fechaModificacion || b.fechaCreacion || 0) - new Date(a.fechaModificacion || a.fechaCreacion || 0));
+    box.innerHTML = `<div class="section__head">
+        <p class="section__hint">Planes de intervención para unidades con baja adherencia, brechas o incumplimiento de indicadores. Cada plan genera su documento “Plan de Mejora (breve)” asociado.</p>
+        <button class="btn btn--primary btn--sm" id="newPlan">+ Nuevo plan</button>
+      </div>
+      ${planes.length ? `<div class="grid grid--3">${planes.map(planCard).join("")}</div>`
+        : u.empty("Aún no hay planes de intervención.", "Crea uno aquí, o genéralo desde un indicador bajo la meta en “Línea base y seguimiento”.", "🧭")}`;
+    document.getElementById("newPlan").onclick = () => openPlanEditor(box, null);
+    box.querySelectorAll("[data-plopen]").forEach(b => b.onclick = () => openPlanEditor(box, S().get("planesIntervencion", b.dataset.plopen)));
+    box.querySelectorAll("[data-pldoc]").forEach(b => b.onclick = () => {
+      const pl = S().get("planesIntervencion", b.dataset.pldoc); const docId = U.docsEditor.syncLinkedPlanDoc(pl);
+      S().update("planesIntervencion", pl.id, { docId }); U.router.go("#/coord/m1?tab=docs&doc=" + docId);
+    });
+    box.querySelectorAll("[data-plpdf]").forEach(b => b.onclick = () => {
+      const pl = S().get("planesIntervencion", b.dataset.plpdf); const docId = U.docsEditor.syncLinkedPlanDoc(pl);
+      S().update("planesIntervencion", pl.id, { docId }); U.docsEditor.printDocById(docId);
+    });
+    box.querySelectorAll("[data-pldel]").forEach(b => b.onclick = () =>
+      u.confirmDelete("¿Eliminar este plan de intervención? El documento vinculado se conserva.", () => { S().remove("planesIntervencion", b.dataset.pldel); planList(box); }));
+  }
+
+  function planesTab(box, params) {
+    if (params && params.plan) {
+      const pl = S().get("planesIntervencion", params.plan);
+      if (pl) { openPlanEditor(box, pl); return; }
+    }
+    planList(box);
+  }
+
+  // Generar un plan desde un indicador bajo meta (deja la brecha precargada)
+  function crearPlanDesde(e, ind, meta) {
+    const brecha = meta - ind.pct;
+    const plan = S().insert("planesIntervencion", {
+      unidad: e.unidad || "—", guia: e.guia || "", indicador: ind.nombre, recomendacion: "",
+      lineaBase: ind.pct, meta: meta, brecha: brecha > 0 ? brecha + " pts" : "0",
+      objetivo: "", actividades: [], seguimientos: [], acciones: [],
+      plazoInicio: "", plazoFin: "", avance: "", estadoCierre: "Abierto",
+      coordinador: (U.auth.current() || {}).nombre, fechaCreacion: new Date().toISOString()
+    });
+    const docId = U.docsEditor.syncLinkedPlanDoc(plan);
+    S().update("planesIntervencion", plan.id, { docId });
+    ui().toast("Plan de intervención creado", "ok");
+    U.router.go("#/coord/m3?tab=planes&plan=" + plan.id);
   }
 
   /* ===================== GUÍAS BPSO ===================== */

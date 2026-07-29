@@ -445,6 +445,7 @@
           </div>
         </div>
         <div class="doc-wf no-print">${wf}${locked ? `<span class="doc-wf__lock">🔒 Documento bloqueado (solo lectura)</span>` : ""}</div>
+        ${rec && rec.planRef ? `<div class="doc-linked no-print">📎 Documento vinculado al <strong>Plan de Intervención RNAO/BPSO</strong>. Se genera y sincroniza desde el plan; edita el plan para cambiar el contenido, y valídalo aquí (Aprobar → Finalizar). <a href="#/coord/m3?tab=planes&plan=${u.esc(rec.planRef)}">Abrir el plan →</a></div>` : ""}
         ${locked ? "" : `<div class="doc-tb no-print">${toolbar}</div>`}
         <div class="doc-page" id="doc-page">
           <div class="doc-page__franja"></div>
@@ -1003,5 +1004,57 @@
     _logo = "assets/img/huap-logo.png"; return _logo;
   }
 
-  U.docsEditor = { mount, ESTADOS, estadoDe, plMeta };
+  /* ============================================================
+     Vínculo con "Plan de Intervención RNAO" (Programa RNAO)
+     Genera y sincroniza el documento "Plan de Mejora (breve)" a partir
+     del plan. El plan es la única fuente; el documento se regenera
+     mientras está en borrador (no se duplica la información).
+     ============================================================ */
+  function planMejoraContentFromPlan(plan) {
+    const u = ui();
+    const e = v => u.esc(v != null && String(v).trim() !== "" ? v : "—");
+    const pct = v => (v != null && String(v).trim() !== "" && !isNaN(v)) ? v + "%" : "—";
+    const par = t => (t && String(t).trim()) ? `<p>${u.esc(t).replace(/\r?\n/g, "<br>")}</p>` : "<p>—</p>";
+    const acc = (plan.acciones || []).filter(a => (a.accion || "").trim());
+    const acts = (plan.actividades || []).filter(a => (a.actividad || "").trim());
+    const segs = (plan.seguimientos || []).filter(s => (s.descripcion || s.fecha || "").trim());
+    const respActs = [...new Set(acts.map(a => a.responsable).filter(Boolean))].join(", ");
+    const verif = [...new Set(acc.map(a => a.verificador).filter(Boolean).concat(acts.map(a => a.verificador).filter(Boolean)))].join(", ");
+    const plazo = (plan.plazoInicio || plan.plazoFin) ? (e(plan.plazoInicio) + " → " + e(plan.plazoFin)) : "—";
+    return `<h2>Problema o brecha detectada</h2>
+      <p><strong>Guía BPSO:</strong> ${e(plan.guia)} · <strong>Unidad:</strong> ${e(plan.unidad)} · <strong>Indicador:</strong> ${e(plan.indicador)}<br>
+      <strong>Línea base:</strong> ${pct(plan.lineaBase)} · <strong>Meta:</strong> ${pct(plan.meta)} · <strong>Brecha:</strong> ${e(plan.brecha)}</p>
+      <p><strong>Recomendación:</strong></p>${par(plan.recomendacion)}
+      <h2>Objetivo de mejora</h2>${par(plan.objetivo)}
+      <h2>Acciones</h2>${acc.length ? `<ol>${acc.map(a => `<li>${u.esc(a.accion)}${a.responsable ? " — " + u.esc(a.responsable) : ""}${a.plazo ? " (" + u.esc(a.plazo) + ")" : ""}</li>`).join("")}</ol>` : "<p>—</p>"}
+      ${acts.length ? `<h2>Actividades</h2><table><thead><tr><th>Actividad</th><th>Responsable</th><th>Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
+      <h2>Responsable y plazo</h2><p><strong>Responsables:</strong> ${respActs || "—"} · <strong>Plazo:</strong> ${plazo} · <strong>Avance:</strong> ${pct(plan.avance)}</p>
+      ${segs.length ? `<h2>Seguimientos</h2><table><thead><tr><th>Fecha</th><th>Descripción</th><th>% avance</th><th>Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${e(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : ""}
+      <h2>Indicador de éxito</h2><p><strong>Meta:</strong> ${pct(plan.meta)} · <strong>Medios de verificación:</strong> ${verif || "—"}</p>`;
+  }
+
+  // Crea o actualiza el documento vinculado y devuelve su id.
+  function syncLinkedPlanDoc(plan) {
+    const titulo = "Plan de Mejora · " + (plan.guia || "RNAO") + (plan.unidad ? " · " + plan.unidad : "");
+    const contenido = coverHTML(titulo, PLANTILLAS.planMejora.label) + planMejoraContentFromPlan(plan);
+    let doc = S().all("docsTrabajo").find(d => d.planRef === plan.id);
+    if (doc) {
+      if ((doc.estado || "borrador") === "borrador") S().update("docsTrabajo", doc.id, { titulo, contenido });
+      return doc.id;
+    }
+    const me = U.auth.current();
+    doc = S().insert("docsTrabajo", {
+      titulo, plantilla: "planMejora", contenido, tamano: "a4",
+      estado: "borrador", version: 1, planRef: plan.id,
+      historial: [{ accion: "Generado desde Plan de Intervención RNAO", detalle: "", por: me ? me.nombre : "Sistema", fecha: new Date().toISOString() }]
+    });
+    return doc.id;
+  }
+  function printDocById(id) {
+    const d = S().get("docsTrabajo", id); if (!d) return;
+    const me = U.auth.current();
+    printDoc(d.titulo, d.contenido, me, d.tamano || "a4", d);
+  }
+
+  U.docsEditor = { mount, ESTADOS, estadoDe, plMeta, syncLinkedPlanDoc, printDocById };
 })();

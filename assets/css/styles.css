@@ -1293,6 +1293,13 @@ body.night .pf-section{ background:#132621; border-color:rgba(255,255,255,.08); 
 body.night .pf-sec-h h3, body.night .pf-rep-lbl{ color:#eaf6f1; }
 body.night .pf-intro{ background:#0f2e28; border-color:rgba(255,255,255,.1); color:#bfe8df; }
 @media (max-width:640px){ .pf-grid{ grid-template-columns:1fr; } }
+.doc-linked{ background:#eef4fc; border:1px solid #cfe0f5; border-radius:10px; padding:.6rem .85rem;
+  font-size:.86rem; color:#1c4a7a; }
+.doc-linked a{ font-weight:700; white-space:nowrap; }
+body.night .doc-linked{ background:#122436; border-color:rgba(255,255,255,.1); color:#bcd6f2; }
+.pin-prog{ height:8px; border-radius:999px; background:var(--surface-2,#eef2f1); overflow:hidden; margin:.5rem 0 .3rem; }
+.pin-prog__bar{ height:100%; border-radius:999px; transition:width .3s ease; }
+body.night .pin-prog{ background:rgba(255,255,255,.1); }
 
 .doc-tb__color{ display:inline-flex; align-items:center; cursor:pointer; position:relative; font-weight:800;
   padding:.15rem .4rem; border-radius:8px; }
