@@ -80,6 +80,81 @@
     return S().all("capacidadOperativa").slice().sort((a, b) => String(a.periodo || "").localeCompare(String(b.periodo || "")));
   }
 
+  /* ---- Estimación de la demanda técnica desde datos del portal ---- */
+  function icoHorasBase() { return Number(S().getConfig("ico.horasBase", 160)) || 160; }
+  function icoPesos() {
+    return {
+      solicitudes: Number(S().getConfig("ico.pesoSolicitudes", 3)),
+      reuniones: Number(S().getConfig("ico.pesoReuniones", 1.5)),
+      capacitaciones: Number(S().getConfig("ico.pesoCapacitaciones", 2)),
+      monitoreo: Number(S().getConfig("ico.pesoMonitoreo", 4))
+    };
+  }
+  function enMes(fecha, periodo) {
+    const m = String(fecha || "").match(/^(\d{4})-(\d{2})/);
+    return !!m && (m[1] + "-" + m[2]) === periodo;
+  }
+  function icoConteo(periodo) {
+    return {
+      solicitudes: S().all("solicitudes").filter(x => enMes(x.fechaEnvio, periodo)).length,
+      reuniones: S().all("reuniones").filter(x => enMes(x.fecha, periodo)).length,
+      capacitaciones: S().all("actividades").filter(x => enMes(x.fecha, periodo)).length
+        + S().all("capacitacionRef").filter(x => enMes(x.fecha, periodo)).length,
+      monitoreo: S().all("monitoreoRef").filter(x => enMes(x.fecha, periodo)).length
+    };
+  }
+  const icoFmt = n => (Number.isInteger(n) ? n : Math.round(n * 10) / 10);
+  function icoEstimar(periodo) {
+    const c = icoConteo(periodo), w = icoPesos();
+    const items = [
+      { ico: "📨", lab: "Solicitudes técnicas", n: c.solicitudes, w: w.solicitudes },
+      { ico: "📅", lab: "Reuniones", n: c.reuniones, w: w.reuniones },
+      { ico: "🎓", lab: "Capacitaciones", n: c.capacitaciones, w: w.capacitaciones },
+      { ico: "📈", lab: "Monitoreo / auditorías", n: c.monitoreo, w: w.monitoreo }
+    ];
+    const total = items.reduce((a, i) => a + i.n * i.w, 0);
+    return { items, total: icoFmt(total) };
+  }
+  function icoBreakdownHTML(periodo) {
+    const u = ui();
+    const est = icoEstimar(periodo);
+    if (!est.items.some(i => i.n > 0)) {
+      return `<p class="kpi__sub">No hay actividad registrada en ${u.esc(icoPeriodoLabel(periodo))} para estimar. Ajusta el mes o ingresa la demanda a mano.</p>`;
+    }
+    return `<div class="ico-brk">
+      ${est.items.map(i => `<div class="ico-brk__row ${i.n ? "" : "is-zero"}">
+        <span>${i.ico} ${i.lab}</span><em>${i.n} × ${i.w} h</em><b>${icoFmt(i.n * i.w)} h</b></div>`).join("")}
+      <div class="ico-brk__total"><span>Demanda estimada · ${u.esc(icoPeriodoLabel(periodo))}</span><b>${est.total} h</b></div>
+    </div>`;
+  }
+
+  function icoParams() {
+    const u = ui();
+    u.modal({
+      title: "Parámetros de estimación",
+      body: `<p class="card__hint">Horas disponibles del Coordinador y tiempo estimado por cada actividad. El portal cuenta la <strong>cantidad</strong> de actividades del mes y la multiplica por estas horas.</p>
+        ${u.formHTML([
+          { name: "horasBase", label: "Horas profesionales disponibles / mes", type: "number", value: icoHorasBase(), hint: "Jornada del Coordinador dedicada a la UBPC." },
+          { name: "pesoSolicitudes", label: "Horas por solicitud técnica", type: "number", value: icoPesos().solicitudes },
+          { name: "pesoReuniones", label: "Horas por reunión", type: "number", value: icoPesos().reuniones },
+          { name: "pesoCapacitaciones", label: "Horas por capacitación", type: "number", value: icoPesos().capacitaciones },
+          { name: "pesoMonitoreo", label: "Horas por monitoreo / auditoría", type: "number", value: icoPesos().monitoreo }
+        ], {})}`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar parámetros</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          S().setConfig("ico.horasBase", Number(d.horasBase) || 160);
+          S().setConfig("ico.pesoSolicitudes", Number(d.pesoSolicitudes) || 0);
+          S().setConfig("ico.pesoReuniones", Number(d.pesoReuniones) || 0);
+          S().setConfig("ico.pesoCapacitaciones", Number(d.pesoCapacitaciones) || 0);
+          S().setConfig("ico.pesoMonitoreo", Number(d.pesoMonitoreo) || 0);
+          u.closeModal(); u.toast("Parámetros guardados", "ok"); renderICO();
+        };
+      }
+    });
+  }
+
   function icoForm(rec) {
     const u = ui(); rec = rec || {};
     const hoy = new Date();
@@ -88,9 +163,15 @@
       title: (rec.id ? "Editar" : "Registrar") + " mes · Capacidad Operativa",
       body: `<p class="card__hint">Índice = demanda técnica mensual ÷ horas profesionales disponibles × 100. Se calcula y clasifica automáticamente.</p>
         ${u.formHTML([
-          { name: "periodo", label: "Mes", type: "month", required: true, value: rec.periodo || mesActual },
-          { name: "demanda", label: "Demanda técnica mensual (horas)", type: "number", required: true, value: rec.demanda != null ? rec.demanda : "", hint: "Horas requeridas por la demanda técnica del período." },
-          { name: "horas", label: "Horas profesionales disponibles (horas)", type: "number", required: true, value: rec.horas != null ? rec.horas : "", hint: "Horas del Coordinador UBPC disponibles en el mes." },
+          { name: "periodo", label: "Mes", type: "month", required: true, value: rec.periodo || mesActual }
+        ], {})}
+        <div class="ico-estim">
+          <button type="button" class="btn btn--ghost btn--sm" id="ico-estimar">🔗 Estimar demanda desde el portal</button>
+          <div id="ico-breakdown" class="ico-breakdown"></div>
+        </div>
+        ${u.formHTML([
+          { name: "demanda", label: "Demanda técnica mensual (horas)", type: "number", required: true, value: rec.demanda != null ? rec.demanda : "", hint: "Estímala desde el portal o escríbela a mano." },
+          { name: "horas", label: "Horas profesionales disponibles (horas)", type: "number", required: true, value: rec.horas != null ? rec.horas : icoHorasBase(), hint: "Jornada del Coordinador UBPC (valor base editable en Parámetros)." },
           { name: "nota", label: "Observación (opcional)", type: "textarea", full: true, value: rec.nota || "" }
         ], {})}
         <div id="ico-preview" class="ico-preview"></div>`,
@@ -98,6 +179,14 @@
       onMount(m) {
         const prev = m.querySelector("#ico-preview");
         const dI = m.querySelector('input[name="demanda"]'), hI = m.querySelector('input[name="horas"]');
+        const perI = m.querySelector('input[name="periodo"]');
+        const brk = m.querySelector("#ico-breakdown");
+        m.querySelector("#ico-estimar").onclick = () => {
+          const per = perI.value || mesActual;
+          const est = icoEstimar(per);
+          brk.innerHTML = icoBreakdownHTML(per);
+          if (est.total > 0) { dI.value = est.total; paint(); }
+        };
         function paint() {
           const pct = icoIndex({ demanda: dI.value, horas: hI.value });
           if (pct == null) { prev.innerHTML = `<span class="kpi__sub">Ingresa demanda y horas para ver el índice.</span>`; return; }
@@ -126,11 +215,12 @@
     const box = document.getElementById("ico-data");
     if (!box) return;
     const recs = icoOrdenados();
-    const addBtn = `<button class="btn btn--primary btn--sm" id="ico-add">+ Registrar mes</button>`;
+    const addBtn = `<div class="btn-row"><button class="btn btn--ghost btn--sm" id="ico-params" title="Parámetros de estimación">⚙️ Parámetros</button><button class="btn btn--primary btn--sm" id="ico-add">+ Registrar mes</button></div>`;
     if (!recs.length) {
       box.innerHTML = `<div class="ico-data__head"><h4>Seguimiento mensual</h4>${addBtn}</div>
-        ${u.empty("Aún sin registros mensuales.", "Ingresa el primer mes (demanda técnica y horas disponibles) para calcular el índice.", "🗓️")}`;
+        ${u.empty("Aún sin registros mensuales.", "Ingresa el primer mes o estímalo desde el portal para calcular el índice.", "🗓️")}`;
       const b = document.getElementById("ico-add"); if (b) b.onclick = () => icoForm(null);
+      const pb = document.getElementById("ico-params"); if (pb) pb.onclick = () => icoParams();
       return;
     }
     const last = recs[recs.length - 1], prev = recs[recs.length - 2];
@@ -177,6 +267,7 @@
       </tr></thead><tbody>${rows}</tbody></table></div>`;
 
     document.getElementById("ico-add").onclick = () => icoForm(null);
+    document.getElementById("ico-params").onclick = () => icoParams();
     box.querySelectorAll("[data-icoedit]").forEach(b => b.onclick = () => icoForm(S().get("capacidadOperativa", b.dataset.icoedit)));
     box.querySelectorAll("[data-icodel]").forEach(b => b.onclick = () =>
       u.confirmDelete("¿Eliminar este registro mensual?", () => { S().remove("capacidadOperativa", b.dataset.icodel); renderICO(); }));

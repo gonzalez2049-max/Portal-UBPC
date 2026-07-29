@@ -1786,6 +1786,18 @@ body.night .ico-cl, body.night .ico-block{ background:#132621; border-color:rgba
 .ico-preview__row span:first-child{ font-weight:700; color:var(--text-2,#5a6b66); font-size:.86rem; }
 .ico-preview__row b{ font-family:var(--font-disp); font-size:1.35rem; margin-left:auto; }
 .ico-preview__row .badge{ margin-left:0; }
+.ico-estim{ margin:.3rem 0 .2rem; }
+.ico-breakdown{ margin-top:.5rem; }
+.ico-brk{ border:1px solid var(--border,#e6ecea); border-radius:11px; overflow:hidden; }
+.ico-brk__row{ display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:.8rem; padding:.45rem .7rem;
+  border-bottom:1px solid var(--border,#eef2f1); font-size:.88rem; }
+.ico-brk__row.is-zero{ opacity:.5; }
+.ico-brk__row em{ font-style:normal; color:var(--text-2,#5a6b66); font-size:.8rem; }
+.ico-brk__row b{ font-weight:800; min-width:3rem; text-align:right; }
+.ico-brk__total{ display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.55rem .7rem;
+  background:color-mix(in srgb, var(--c-morado,#7a5cd0) 8%, transparent); font-weight:800; }
+.ico-brk__total b{ font-family:var(--font-disp); font-size:1.2rem; color:var(--c-morado,#7a5cd0); }
+body.night .ico-brk__row b{ color:#eaf6f1; }
 body.night .ico-data__head h4, body.night .ico-now__val{ color:#eaf6f1; }
 @media (max-width:720px){ .ico-grid{ grid-template-columns:1fr; } .ico-sem{ grid-template-columns:1fr; } }
 .kcard::after{ content:""; position:absolute; right:0; bottom:0; width:0; height:0;
