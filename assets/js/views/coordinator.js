@@ -123,6 +123,63 @@
     </div>`;
   }
 
+  /* ---------- Panel "Requiere tu atención" (acciones pendientes) ---------- */
+  function focusPanel() {
+    const u = ui(), s = S();
+    const docs = s.all("docsTrabajo");
+    const borradores = docs.filter(d => !d.estado || d.estado === "borrador").length;
+    const aprobados = docs.filter(d => d.estado === "aprobado").length;
+    const st2 = stats();
+
+    // Próximos eventos (7 días), excluyendo plazos ya cumplidos
+    let prox7 = 0;
+    if (U.agenda && U.agenda.buildEvents) {
+      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+      const lim = new Date(hoy); lim.setDate(lim.getDate() + 7);
+      prox7 = U.agenda.buildEvents().filter(e => !e.done && e.d >= hoy && e.d <= lim).length;
+    }
+
+    const items = [];
+    if (borradores) items.push({ ico: "✏️", n: borradores, txt: `documento(s) en borrador por revisar y aprobar`, href: "#/coord/m1?tab=docs", cta: "Revisar", kind: "info" });
+    if (aprobados) items.push({ ico: "✔️", n: aprobados, txt: `documento(s) aprobado(s) por finalizar y codificar`, href: "#/coord/m1?tab=docs", cta: "Finalizar", kind: "info" });
+    if (st2.vencidas) items.push({ ico: "⏱️", n: st2.vencidas, txt: `tarea(s) o acción(es) vencida(s)`, href: "#/coord/agenda", cta: "Revisar", kind: "danger" });
+    if (st2.solPend) items.push({ ico: "📨", n: st2.solPend, txt: `solicitud(es) técnica(s) en gestión`, href: "#/coord/solicitudes", cta: "Ver", kind: "warn" });
+    if (prox7) items.push({ ico: "🗓️", n: prox7, txt: `evento(s) programado(s) en los próximos 7 días`, href: "#/coord/agenda", cta: "Ver agenda", kind: "info" });
+
+    // Chip NT 234 (informativo, siempre visible si hay datos)
+    let ntChip = "";
+    if (U.ntUtil && U.ntUtil.institNT) {
+      const nt = U.ntUtil.institNT();
+      if (nt.pct != null) {
+        ntChip = `<a class="focus-nt focus-nt--${nt.estado.badge}" href="#/coord/m6">
+          <span class="focus-nt__lbl">NT 234 institucional</span>
+          <span class="focus-nt__pct">${nt.pct}%</span>
+          <span class="focus-nt__st">${u.esc(nt.estado.label)}</span></a>`;
+      }
+    }
+
+    const total = items.reduce((a, i) => a + i.n, 0);
+    const head = `<div class="focus-panel__head">
+        <div><span class="focus-panel__eb">Requiere tu atención</span>
+          <h2 class="focus-panel__title">Próximos pasos</h2></div>
+        <span class="focus-panel__count ${total ? "" : "is-ok"}">${total ? total + " pendiente" + (total > 1 ? "s" : "") : "Todo al día ✨"}</span>
+      </div>`;
+
+    const body = items.length
+      ? `<div class="focus-list">${items.map(i => `
+          <a class="focus-item focus-item--${i.kind}" href="${i.href}">
+            <span class="focus-item__ico">${i.ico}</span>
+            <span class="focus-item__n">${i.n}</span>
+            <span class="focus-item__txt">${u.esc(i.txt)}</span>
+            <span class="focus-item__cta">${i.cta} →</span>
+          </a>`).join("")}</div>`
+      : `<div class="focus-empty"><span class="focus-empty__ic">🎉</span>
+          <div><strong>No hay acciones pendientes.</strong>
+          <div class="kpi__sub">Documentos, tareas, solicitudes y eventos están al día.</div></div></div>`;
+
+    return `<section class="focus-panel card">${head}${body}${ntChip}</section>`;
+  }
+
   /* ---------- HOME ---------- */
   function home() {
     const u = ui();
@@ -196,6 +253,8 @@
 
     return `
     ${hero}
+
+    ${focusPanel()}
 
     <div class="section">
       <div class="section__head"><h2 class="section__title">Indicadores de actividad</h2></div>

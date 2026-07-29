@@ -564,4 +564,18 @@
   Object.assign(U.coord.views, { m6, m7 });
   Object.assign(U.coord.binders, { m6: m6Bind, m7: m7Bind });
   U.coord.colabPanel = colabPanel;
+
+  // Utilidad reutilizable por el Home: cumplimiento institucional NT 234 (último período por unidad)
+  function institNT() {
+    const meds = S().all("nt234");
+    const unidades = [...new Set(meds.map(m => m.unidad).filter(Boolean))];
+    const gs = unidades.map(un => {
+      const recs = meds.filter(m => m.unidad === un).sort((a, b) => (a.periodo || "").localeCompare(b.periodo || ""));
+      return globalNT(recs[recs.length - 1]);
+    }).filter(v => v != null);
+    if (!gs.length) return { pct: null, estado: estadoNT(null) };
+    const pct = Math.round(gs.reduce((a, b) => a + b, 0) / gs.length);
+    return { pct, estado: estadoNT(pct), unidades: gs.length };
+  }
+  U.ntUtil = { globalNT, estadoNT, periodosNT, institNT };
 })();

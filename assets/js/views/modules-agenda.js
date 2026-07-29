@@ -206,4 +206,6 @@
 
   U.coord.views.agenda = agenda;
   U.coord.binders.agenda = agendaBind;
+  U.agenda = U.agenda || {};
+  U.agenda.buildEvents = buildEvents;   // reutilizable por el Home (próximos eventos)
 })();
