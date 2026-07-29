@@ -46,6 +46,7 @@
       <div class="kcard__title">${ui.esc(c.titulo)}</div>
       <div class="kcard__meta">
         ${c.responsable ? `<span>👤 ${ui.esc(c.responsable)}</span>` : ""}
+        ${c.asignadoPor ? `<span title="Asignada por Coordinación">📌 ${ui.esc(c.asignadoPor)}</span>` : ""}
         ${c.fechaLimite ? `<span style="${venc ? "color:var(--danger);font-weight:700" : ""}">📅 ${ui.fechaCL(c.fechaLimite)}${venc ? " · vencida" : ""}</span>` : ""}
         <span style="margin-left:auto" class="btn-row">
           <button class="btn-icon" data-kedit="${c.id}" title="Editar">✏️</button>

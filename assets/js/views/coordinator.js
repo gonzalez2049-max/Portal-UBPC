@@ -23,6 +23,8 @@
       { key: "indicadores", label: "Indicadores UBPC", ico: "📏" }
     ]},
     { label: "Administración", items: [
+      { key: "enlace", label: "Enlace con el Referente", ico: "🔗",
+        badgeFn: () => S().all("solicitudes").filter(x => x.direccion === "ref-a-coord" && !/cerrad/i.test(x.estado || "")).length },
       { key: "solicitudes", label: "Solicitudes técnicas", ico: "📨",
         badgeFn: () => S().all("solicitudes").filter(x => x.estado === "Completada por referente").length },
       { key: "reportes", label: "Reportes", ico: "📑" },

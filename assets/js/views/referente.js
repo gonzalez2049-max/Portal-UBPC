@@ -82,6 +82,11 @@
           ${reuniones.length ? `<ul class="feed" style="margin-top:.2rem">${reuniones.slice(0, 2).map(r => `<li><span class="feed__ico">📅</span><div><strong>${u.esc(r.tema || "Reunión")}</strong><div class="feed__meta">${u.fechaCL(r.fecha)}</div></div></li>`).join("")}</ul>`
             : u.empty("Sin reuniones programadas.", "", "📅")}
         </div>
+        <div class="card rt-link">
+          <span class="hh-lbl">Enlace directo con Coordinación</span>
+          <p class="kpi__sub" style="margin:.25rem 0 .55rem">¿Necesitas apoyo, validación o una decisión? Escríbele directo al Coordinador/a UBPC.</p>
+          <button class="btn btn--primary btn--sm btn--block" id="rtApoyo">🆘 Solicitar apoyo al Coordinador</button>
+        </div>
       </div>
     </section>
 
@@ -128,6 +133,8 @@
   }
   function inicioBind() {
     U.components.kanban.mount(document.getElementById("refKanban"), "referente");
+    const apoyo = document.getElementById("rtApoyo");
+    if (apoyo) apoyo.onclick = () => U.solicitudes.crearApoyo({}, () => U.router.render());
   }
 
   /* ---------- Funciones del rol ---------- */
