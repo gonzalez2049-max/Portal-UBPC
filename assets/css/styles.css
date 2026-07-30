@@ -1308,15 +1308,31 @@ body.night .pin-prog{ background:rgba(255,255,255,.1); }
   padding:.15rem .4rem; border-radius:8px; }
 .doc-tb__color span{ font-size:15px; line-height:1; border-bottom:3px solid #17263d; }
 .doc-tb__color input{ position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
-.doc-cover{ min-height:58vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-align:center; gap:6px; padding:2rem 1rem; border-bottom:2px dashed #d7e0ea; margin-bottom:1rem; }
-.doc-cover__logo{ width:90px; height:90px; object-fit:contain; }
-.doc-cover__unit{ font-family:var(--font-disp); font-weight:700; font-size:1.2rem; color:#0d5044; }
+/* Portada institucional (rediseño): membrete arriba, título al centro y una
+   sola ficha de datos abajo — sin repetir la información del documento. */
+.doc-cover{ min-height:62vh; display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+  text-align:center; padding:2.4rem 1.5rem 2rem; border-bottom:2px dashed #d7e0ea; margin-bottom:1.4rem; user-select:none; }
+.doc-cover__top{ display:flex; align-items:center; gap:.7rem; }
+.doc-cover__logo{ width:66px; height:66px; object-fit:contain; }
+.doc-cover__org{ text-align:left; }
+.doc-cover__unit{ font-family:var(--font-disp); font-weight:700; font-size:1.05rem; color:#0d5044; line-height:1.15; }
 .doc-cover__hosp{ color:#5a6b84; font-size:.82rem; }
-.doc-cover__rule{ width:80px; height:4px; border-radius:3px; background:linear-gradient(90deg,#12b5a5,#7a5cd0); margin:.6rem 0; }
-.doc-cover__title{ font-family:var(--font-disp); color:#17263d; font-size:1.7rem; margin:.2em .5em; }
-.doc-cover__sub{ color:#5b34b0; font-weight:700; }
-.doc-cover__box{ margin-top:1rem; font-size:.8rem; color:#40536f; border:1px solid #dbe6f2; border-radius:10px; padding:.6rem 1rem; }
+.doc-cover__mid{ display:flex; flex-direction:column; align-items:center; margin:auto 0; }
+.doc-cover__kind{ color:#5b34b0; font-weight:800; font-size:.78rem; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:.5rem; }
+.doc-cover__title{ font-family:var(--font-disp); color:#17263d; font-size:2rem; line-height:1.2; margin:.1em .3em; max-width:22ch; }
+.doc-cover__rule{ width:84px; height:4px; border-radius:3px; background:linear-gradient(90deg,#12b5a5,#7a5cd0); margin:1rem auto 0; }
+.doc-cover__box{ display:flex; flex-wrap:wrap; justify-content:center; gap:0; font-size:.78rem; color:#40536f;
+  border:1px solid #dbe6f2; border-radius:12px; overflow:hidden; }
+.doc-cover__f{ display:flex; flex-direction:column; gap:.15rem; padding:.5rem 1.1rem; border-right:1px solid #eaf0f6; min-width:120px; }
+.doc-cover__f:last-child{ border-right:none; }
+.doc-cover__f b{ font-size:.66rem; letter-spacing:.5px; text-transform:uppercase; color:#7a8aa0; font-weight:800; }
+.doc-cover__cod,.doc-cover__ver,.doc-cover__fec{ font-weight:700; color:#17263d; }
+/* Con portada, el membrete superior de la hoja se oculta (los datos ya están en la
+   portada). El campo de título se vuelve compacto: sigue siendo editable pero sin
+   competir visualmente con el título grande de la portada. */
+.doc-page--cover .doc-page__hd{ display:none; }
+.doc-page--cover .doc-page__title{ font-size:1rem; color:#5a6b84; font-family:var(--font-body,inherit); font-weight:700;
+  margin-top:.9rem; padding-bottom:.15rem; border-bottom:1px dashed #cdd8e2; }
 /* Flujo documental: estado, barra de acciones, firma, anulado */
 .doc-estado{ display:inline-flex; align-items:center; gap:.3rem; font-weight:800; font-size:.78rem;
   color:var(--ec); background:color-mix(in srgb, var(--ec) 14%, transparent); border:1px solid color-mix(in srgb, var(--ec) 35%, transparent);
@@ -1546,10 +1562,14 @@ body.night .reco-corona__msg strong span{ color:#f2c53d; }
 body.night .doc-tpl,body.night .doc-card{ background:rgba(24,38,34,.9); border-color:rgba(255,255,255,.08); }
 
 /* Editor */
-.doc-bar{ display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.6rem; }
+/* Barra de Herramientas FIJA: todo el bloque de controles queda arriba y sólo
+   la hoja se desplaza al bajar. */
+.doc-tools{ position:sticky; top:52px; z-index:40; background:var(--surface); padding:.55rem .6rem .5rem;
+  margin:-.4rem 0 1rem; border:1px solid var(--border); border-radius:14px; box-shadow:0 6px 18px -12px rgba(15,90,80,.35); }
+.doc-bar{ display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.55rem; }
 .doc-bar__title{ flex:1; }
-.doc-tb{ position:sticky; top:64px; z-index:20; display:flex; align-items:center; gap:.15rem; flex-wrap:wrap;
-  background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:.3rem .4rem; margin-bottom:1rem; box-shadow:var(--shadow); }
+.doc-tb{ display:flex; align-items:center; gap:.15rem; flex-wrap:wrap;
+  background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:.3rem .4rem; }
 .doc-tb__btn{ min-width:32px; height:32px; padding:0 .5rem; border:none; background:transparent; border-radius:8px; cursor:pointer;
   font-size:14px; font-weight:700; color:var(--text-2); transition:background .15s, color .15s; }
 .doc-tb__btn:hover{ background:var(--azul-50); color:var(--c-azul); }
@@ -1570,8 +1590,16 @@ body.night .doc-tb__btn:hover{ background:rgba(18,181,165,.18); color:#7fe0d0; }
 .doc-page__title{ width:calc(100% - 3.2rem); margin:1rem 1.6rem .2rem; border:none; outline:none;
   font-family:var(--font-disp); font-weight:700; font-size:1.7rem; color:#0d5044; background:transparent; }
 .doc-page__title:focus{ border-bottom:2px solid #12b5a5; }
-.doc-page__body{ padding:.4rem 1.6rem 2rem; min-height:420px; outline:none; font-size:14.5px; line-height:1.6; color:#22303a; }
+.doc-page__body{ padding:1rem 2.1rem 2.6rem; min-height:520px; outline:none; font-size:14.5px; line-height:1.65; color:#22303a;
+  caret-color:#0f8f83; }
+.doc-page--cover .doc-page__body{ padding-top:.2rem; }
 .doc-page__body:focus{ background:linear-gradient(180deg, rgba(18,181,165,.02), transparent 40px); }
+/* Puntero visible: el bloque donde está el cursor se marca con un filete lateral */
+.doc-page__body .is-active-block{ position:relative; }
+.doc-page__body .is-active-block::before{ content:""; position:absolute; left:-1.15rem; top:.05em; bottom:.05em;
+  width:3px; border-radius:3px; background:#12b5a5; opacity:.8; }
+@keyframes caretPulse{ 0%,100%{ opacity:.85; } 50%{ opacity:.3; } }
+.doc-page__body:focus .is-active-block::before{ animation:caretPulse 1.1s ease-in-out infinite; }
 .doc-page__body h2{ font-family:var(--font-disp); color:#0f8f83; font-size:1.15rem; margin:1.1em 0 .3em; border-bottom:1px solid #eef2f8; padding-bottom:.2em; }
 .doc-page__body h3{ font-family:var(--font-disp); color:#5b34b0; font-size:1rem; margin:.9em 0 .2em; }
 .doc-page__body p{ margin:.4em 0; } .doc-page__body ul,.doc-page__body ol{ margin:.4em 0 .4em 1.3em; }
@@ -1582,7 +1610,7 @@ body.night .doc-tb__btn:hover{ background:rgba(18,181,165,.18); color:#7fe0d0; }
 .doc-page__body td{ padding:6px 8px; border:1px solid #e2e9f0; }
 /* La página del documento se mantiene clara aunque el portal esté en modo oscuro */
 body.night .doc-page{ background:#fff; }
-@media (max-width:860px){ .doc-tb{ top:56px; } .doc-page__title,.doc-page__body{ padding-left:1rem; padding-right:1rem; margin-left:1rem; margin-right:1rem; width:auto; } }
+@media (max-width:860px){ .doc-tools{ top:48px; } .doc-page__title,.doc-page__body{ padding-left:1rem; padding-right:1rem; margin-left:1rem; margin-right:1rem; width:auto; } }
 
 /* ============================================================
    AGENDA — calendario mensual + lista de eventos

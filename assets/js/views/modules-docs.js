@@ -141,17 +141,27 @@
   const plMeta = k => PLANTILLAS[k] || PLANTILLAS.informeTecnico;
   const tplContenido = p => (typeof p.build === "function" ? p.build() : p.html);
 
-  // Portada institucional (se agrega automáticamente a cada documento nuevo)
+  // Portada institucional (se agrega automáticamente a cada documento nuevo).
+  // Es contenteditable="false": los datos NO se repiten en el membrete y no se
+  // pueden alterar por accidente al escribir. El título se sincroniza al guardar.
   function coverHTML(titulo, label) {
     const u = ui(), me = U.auth.current();
-    return `<div class="doc-cover">`
+    return `<div class="doc-cover" contenteditable="false">`
+      + `<div class="doc-cover__top">`
       + `<img class="doc-cover__logo" src="assets/img/huap-logo.png" alt="HUAP">`
-      + `<div class="doc-cover__unit">Unidad de Buenas Prácticas Clínicas · UBPC</div>`
-      + `<div class="doc-cover__hosp">Hospital de Urgencia Asistencia Pública</div>`
-      + `<div class="doc-cover__rule"></div>`
+      + `<div class="doc-cover__org"><div class="doc-cover__unit">Unidad de Buenas Prácticas Clínicas · UBPC</div>`
+      + `<div class="doc-cover__hosp">Hospital de Urgencia Asistencia Pública</div></div>`
+      + `</div>`
+      + `<div class="doc-cover__mid">`
+      + (label ? `<div class="doc-cover__kind">${u.esc(label)}</div>` : "")
       + `<h1 class="doc-cover__title">${u.esc(titulo || "Documento institucional")}</h1>`
-      + `<div class="doc-cover__sub">Documento institucional${label ? " · " + u.esc(label) : ""}</div>`
-      + `<div class="doc-cover__box">Código: <span class="doc-cover__cod">__________</span> · Versión: <span class="doc-cover__ver">v1</span> · Fecha: <span class="doc-cover__fec">${u.fechaCL(new Date())}</span><br>Elaborado por: ${u.esc(me ? me.nombre : "")} · Coordinación UBPC</div>`
+      + `<div class="doc-cover__rule"></div></div>`
+      + `<div class="doc-cover__box">`
+      + `<span class="doc-cover__f"><b>Código</b><span class="doc-cover__cod">__________</span></span>`
+      + `<span class="doc-cover__f"><b>Versión</b><span class="doc-cover__ver">v1</span></span>`
+      + `<span class="doc-cover__f"><b>Fecha</b><span class="doc-cover__fec">${u.fechaCL(new Date())}</span></span>`
+      + `<span class="doc-cover__f"><b>Elaborado por</b>${u.esc(me ? me.nombre : "—")}</span>`
+      + `</div>`
       + `</div><div class="doc-pagebreak" contenteditable="false">Salto de hoja</div><p><br></p>`;
   }
   // Estampa el código/versión reales en la portada (al finalizar)
@@ -170,6 +180,104 @@
       const ver = tmp.querySelector(".doc-cover__ver"); if (ver) ver.textContent = "v" + (version || 1);
       return tmp.querySelector(".doc-cover") ? tmp.innerHTML : html;
     } catch (e) { return html; }
+  }
+  // Mantiene el título de la portada igual al título del documento (al guardar)
+  function syncCoverTitle(html, titulo) {
+    try {
+      const tmp = document.createElement("div"); tmp.innerHTML = html || "";
+      const t = tmp.querySelector(".doc-cover__title");
+      if (t) { t.textContent = titulo || "Documento institucional"; return tmp.innerHTML; }
+      return html;
+    } catch (e) { return html; }
+  }
+
+  /* ============================================================
+     EXPORTACIÓN UNIFICADA — Impresión/PDF y Word comparten el MISMO
+     formato. Se aplican estilos EN LÍNEA (pt) al contenido para que
+     ambos motores (ventana de impresión y Word) rendericen igual.
+     ============================================================ */
+  function applyInlineExport(root) {
+    const S1 = "font-family:Georgia,'Times New Roman',serif;";
+    root.querySelectorAll("h1").forEach(h => h.setAttribute("style", S1 + "color:#0d5044;font-size:21pt;font-weight:700;margin:0 0 6pt"));
+    root.querySelectorAll("h2").forEach(h => h.setAttribute("style", S1 + "color:#0f8f83;font-size:14pt;font-weight:700;margin:15pt 0 4pt;border-bottom:1px solid #dbe6f2;padding-bottom:2pt"));
+    root.querySelectorAll("h3").forEach(h => h.setAttribute("style", S1 + "color:#5b34b0;font-size:12pt;font-weight:700;margin:12pt 0 3pt"));
+    root.querySelectorAll("p").forEach(p => { if (!p.getAttribute("style")) p.setAttribute("style", "margin:5pt 0;line-height:1.5"); });
+    root.querySelectorAll("ul,ol").forEach(l => l.setAttribute("style", "margin:5pt 0 5pt 18pt;line-height:1.5"));
+    root.querySelectorAll("li").forEach(li => li.setAttribute("style", "margin:2pt 0"));
+    root.querySelectorAll("hr").forEach(h => h.setAttribute("style", "border:none;border-top:1px solid #dbe6f2;margin:9pt 0"));
+    root.querySelectorAll("table").forEach(t => { t.setAttribute("style", "border-collapse:collapse;width:100%;margin:7pt 0;font-size:10.5pt"); t.setAttribute("cellspacing", "0"); });
+    root.querySelectorAll("th").forEach(c => c.setAttribute("style", "background:#0f8f83;color:#fff;text-align:left;padding:5pt 7pt;border:1px solid #cdd8e2;font-weight:700"));
+    root.querySelectorAll("td").forEach(c => c.setAttribute("style", "padding:5pt 7pt;border:1px solid #e2e9f0;vertical-align:top"));
+    // Saltos de hoja
+    root.querySelectorAll(".doc-pagebreak").forEach(d => { const br = document.createElement("div"); br.setAttribute("style", "page-break-before:always;height:0;font-size:0;line-height:0;border:none"); br.innerHTML = "&nbsp;"; d.replaceWith(br); });
+  }
+  // Portada con estilos en línea (idéntica en PDF y Word), a partir de rec/título
+  function coverInline(titulo, label, me, rec) {
+    const u = ui(); rec = rec || {};
+    const cod = rec.codigo || "En trámite";
+    const ver = "v" + (rec.version || 1);
+    const fec = u.fechaCL(rec.fechaFinalizado || rec.fechaModificacion || new Date());
+    const elab = rec.finalizadoPor || rec.aprobadoPor || (me ? me.nombre : "—");
+    const cel = 'style="padding:6pt 12pt;border:1px solid #dbe6f2;font-size:9.5pt;color:#40536f"';
+    return `<div align="center" style="text-align:center;padding:34pt 0">`
+      + `<img src="${logoData()}" width="88" height="88" style="display:block;margin:0 auto 8pt"><br>`
+      + `<div style="font-family:Georgia,serif;font-weight:700;font-size:14pt;color:#0d5044">Unidad de Buenas Prácticas Clínicas · UBPC</div>`
+      + `<div style="color:#5a6b84;font-size:10pt;margin-bottom:20pt">Hospital de Urgencia Asistencia Pública</div>`
+      + (label ? `<div style="color:#5b34b0;font-weight:700;font-size:10.5pt;letter-spacing:1pt;text-transform:uppercase;margin-bottom:6pt">${u.esc(label)}</div>` : "")
+      + `<div style="font-family:Georgia,serif;color:#17263d;font-size:24pt;font-weight:700;margin:0 40pt 10pt">${u.esc(titulo || "Documento institucional")}</div>`
+      + `<div style="width:70pt;height:3pt;background:#12b5a5;margin:0 auto 22pt;font-size:0">&nbsp;</div>`
+      + `<table cellspacing="0" style="border-collapse:collapse;margin:0 auto;font-size:9.5pt"><tr>`
+      + `<td ${cel}><b>Código</b><br>${u.esc(cod)}</td>`
+      + `<td ${cel}><b>Versión</b><br>${u.esc(ver)}</td>`
+      + `<td ${cel}><b>Fecha</b><br>${u.esc(fec)}</td>`
+      + `<td ${cel}><b>Elaborado por</b><br>${u.esc(elab)}</td>`
+      + `</tr></table></div><div style="page-break-before:always;height:0;font-size:0;line-height:0">&nbsp;</div>`;
+  }
+  // Membrete (letterhead) para las páginas de contenido — mismo en PDF y Word
+  function membreteInline(me, rec) {
+    const u = ui(); rec = rec || {};
+    return `<div style="border-top:6px solid #12b5a5;height:0;font-size:0;margin:0 0 10pt">&nbsp;</div>`
+      + `<table cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:12pt"><tr>`
+      + `<td style="border:none;padding:0;font-size:10.5pt;vertical-align:middle"><b>Unidad de Buenas Prácticas Clínicas · UBPC</b><br><span style="color:#5a6b84;font-size:8.5pt">Hospital de Urgencia Asistencia Pública</span></td>`
+      + `<td style="border:none;padding:0;text-align:right;color:#5a6b84;font-size:8.5pt;vertical-align:middle">${u.fechaCL(new Date())}${rec.codigo ? `<br><span style="color:#0d8175;font-weight:700">${u.esc(rec.codigo)}</span> · v${rec.version || 1}` : ""}</td>`
+      + `</tr></table>`;
+  }
+  // Construye el cuerpo exportable (idéntico para PDF y Word), sin repetir datos.
+  // Si el contenido trae portada, esta va como página 1 y NO se repite el título.
+  function buildExportBody(titulo, bodyHTML, me, rec, label) {
+    rec = rec || {};
+    const u = ui();
+    const tmp = document.createElement("div"); tmp.innerHTML = bodyHTML || "";
+    const coverEl = tmp.querySelector(".doc-cover");
+    const hasCover = !!coverEl;
+    if (coverEl) {
+      // quita la portada editable y el salto que la sigue (los reemplaza la portada inline)
+      let nxt = coverEl.nextElementSibling;
+      coverEl.remove();
+      if (nxt && nxt.classList && nxt.classList.contains("doc-pagebreak")) { const after = nxt.nextElementSibling; nxt.remove(); if (after && after.tagName === "P" && !after.textContent.trim()) after.remove(); }
+    }
+    applyInlineExport(tmp);
+    const anulado = rec.estado === "anulado"
+      ? `<div style="margin:10pt 0;border:2px solid #c62f3b;color:#c62f3b;padding:8pt 12pt;text-align:center"><div style="font-weight:800;letter-spacing:3pt;font-size:15pt">ANULADO</div><div style="font-size:9.5pt"><b>Motivo:</b> ${u.esc(rec.motivoAnulacion || "—")}</div></div>`
+      : "";
+    const firma = rec.estado === "finalizado" ? firmaInline(me, rec) : "";
+    let out = "";
+    if (hasCover) out += coverInline(titulo, label, me, rec);
+    out += membreteInline(me, rec) + anulado;
+    if (!hasCover) out += `<h1 style="font-family:Georgia,serif;color:#0d5044;font-size:21pt;font-weight:700;margin:0 0 6pt">${u.esc(titulo || "Documento")}</h1>`;
+    out += tmp.innerHTML + firma;
+    return out;
+  }
+  function firmaInline(me, rec) {
+    const u = ui(); rec = rec || {};
+    const nombre = rec.finalizadoPor || (me ? me.nombre : "");
+    const fecha = rec.fechaFinalizado ? u.fechaCL(rec.fechaFinalizado) : u.fechaCL(new Date());
+    return `<div style="margin-top:44pt;text-align:center;page-break-inside:avoid">`
+      + `<div style="width:200pt;border-top:1px solid #17263d;margin:0 auto 5pt">&nbsp;</div>`
+      + `<div style="font-weight:700;color:#17263d">${u.esc(nombre)}</div>`
+      + `<div style="color:#5a6b84;font-size:9.5pt">Coordinador/a · Unidad de Buenas Prácticas Clínicas – UBPC</div>`
+      + `<div style="margin:9pt auto 0;color:#9aa7b6;font-size:8.5pt;border:1px dashed #c4d0dc;width:150pt;padding:16pt 6pt">Espacio para firma y timbre</div>`
+      + `<div style="margin-top:6pt;color:#5a6b84;font-size:8.5pt">${rec.codigo ? u.esc(rec.codigo) + " · " : ""}Versión ${rec.version || 1} · ${fecha}</div></div>`;
   }
 
   /* Informe Anual pre-rellenado con los datos reales del portal */
@@ -432,22 +540,25 @@
     const anuladoBlock = estado === "anulado"
       ? `<div class="doc-anulado"><div class="doc-anulado__sello">ANULADO</div><div class="doc-anulado__motivo"><strong>Motivo:</strong> ${u.esc(rec.motivoAnulacion || "—")}</div></div>` : "";
 
+    const hasCover = /doc-cover/.test(contenido);
     container.innerHTML = `
       <div class="doc-editor">
-        <div class="doc-bar no-print">
-          <button class="btn btn--ghost btn--sm" id="doc-back">← Volver</button>
-          <div class="doc-bar__title"><span class="tag" style="background:${p.color}22;color:${p.color}">${p.ic} ${u.esc(p.label)}</span> ${estadoBadge}</div>
-          <div class="btn-row">
-            ${histBtn}
-            <button class="btn btn--ghost btn--sm" id="doc-print">🖨️ Imprimir / PDF</button>
-            <button class="btn btn--ghost btn--sm" id="doc-word">📄 Word</button>
-            ${locked ? "" : `<button class="btn btn--primary btn--sm" id="doc-save">💾 Guardar</button>`}
+        <div class="doc-tools no-print">
+          <div class="doc-bar">
+            <button class="btn btn--ghost btn--sm" id="doc-back">← Volver</button>
+            <div class="doc-bar__title"><span class="tag" style="background:${p.color}22;color:${p.color}">${p.ic} ${u.esc(p.label)}</span> ${estadoBadge}</div>
+            <div class="btn-row">
+              ${histBtn}
+              <button class="btn btn--ghost btn--sm" id="doc-print">🖨️ Imprimir / PDF</button>
+              <button class="btn btn--ghost btn--sm" id="doc-word">📄 Word</button>
+              ${locked ? "" : `<button class="btn btn--primary btn--sm" id="doc-save">💾 Guardar</button>`}
+            </div>
           </div>
+          ${wf || locked ? `<div class="doc-wf">${wf}${locked ? `<span class="doc-wf__lock">🔒 Documento bloqueado (solo lectura)</span>` : ""}</div>` : ""}
+          ${rec && rec.planRef ? `<div class="doc-linked">📎 Documento vinculado al <strong>Plan de Intervención RNAO/BPSO</strong>. Se genera y sincroniza desde el plan; edita el plan para cambiar el contenido, y valídalo aquí (Aprobar → Finalizar). <a href="#/coord/m3?tab=planes&plan=${u.esc(rec.planRef)}">Abrir el plan →</a></div>` : ""}
+          ${locked ? "" : `<div class="doc-tb">${toolbar}</div>`}
         </div>
-        <div class="doc-wf no-print">${wf}${locked ? `<span class="doc-wf__lock">🔒 Documento bloqueado (solo lectura)</span>` : ""}</div>
-        ${rec && rec.planRef ? `<div class="doc-linked no-print">📎 Documento vinculado al <strong>Plan de Intervención RNAO/BPSO</strong>. Se genera y sincroniza desde el plan; edita el plan para cambiar el contenido, y valídalo aquí (Aprobar → Finalizar). <a href="#/coord/m3?tab=planes&plan=${u.esc(rec.planRef)}">Abrir el plan →</a></div>` : ""}
-        ${locked ? "" : `<div class="doc-tb no-print">${toolbar}</div>`}
-        <div class="doc-page" id="doc-page">
+        <div class="doc-page ${hasCover ? "doc-page--cover" : ""}" id="doc-page">
           <div class="doc-page__franja"></div>
           <div class="doc-page__hd">
             <div class="doc-page__brand"><img src="assets/img/huap-logo.png" alt="HUAP">
@@ -482,6 +593,57 @@
     bodyEl.addEventListener("keyup", saveSel);
     bodyEl.addEventListener("mouseup", saveSel);
     bodyEl.addEventListener("focus", saveSel);
+
+    // ---- Puntero visible: resalta el bloque (párrafo/título) donde está el cursor ----
+    const blockOf = node => {
+      let n = node && node.nodeType === 3 ? node.parentNode : node;
+      while (n && n !== bodyEl && n.parentNode !== bodyEl) n = n.parentNode;
+      return (n && n !== bodyEl && n.nodeType === 1) ? n : null;
+    };
+    const markActive = () => {
+      bodyEl.querySelectorAll(".is-active-block").forEach(el => el.classList.remove("is-active-block"));
+      const s = window.getSelection();
+      if (!s || !s.rangeCount || !bodyEl.contains(s.anchorNode)) return;
+      const b = blockOf(s.anchorNode);
+      if (b && !b.classList.contains("doc-cover") && !b.classList.contains("doc-pagebreak")) b.classList.add("is-active-block");
+    };
+    bodyEl.addEventListener("keyup", markActive);
+    bodyEl.addEventListener("mouseup", markActive);
+    bodyEl.addEventListener("focus", markActive);
+    bodyEl.addEventListener("blur", () => bodyEl.querySelectorAll(".is-active-block").forEach(el => el.classList.remove("is-active-block")));
+
+    // ---- Enter controlado: inserta un párrafo limpio, sin copiar/duplicar contenido ----
+    // Los títulos (H1/H2/H3) salen a texto normal al presionar Enter, y nunca se
+    // arrastra el formato ni el texto de la línea anterior.
+    bodyEl.addEventListener("keydown", e => {
+      if (e.key !== "Enter" || e.shiftKey) return;
+      const s = window.getSelection();
+      if (!s || !s.rangeCount || !bodyEl.contains(s.anchorNode)) return;
+      const blk = blockOf(s.anchorNode);
+      const isHeading = blk && /^H[1-6]$/.test(blk.tagName);
+      const atEnd = blk && s.isCollapsed && (() => {
+        const r = s.getRangeAt(0).cloneRange(); r.selectNodeContents(blk); r.setStart(s.anchorNode, s.anchorOffset);
+        return r.toString().trim() === "";
+      })();
+      // Solo intervenimos en el caso problemático: fin de un título → nuevo párrafo vacío.
+      if (isHeading && atEnd) {
+        e.preventDefault();
+        const pNew = document.createElement("p"); pNew.innerHTML = "<br>";
+        blk.parentNode.insertBefore(pNew, blk.nextSibling);
+        const r = document.createRange(); r.setStart(pNew, 0); r.collapse(true);
+        s.removeAllRanges(); s.addRange(r); saveSel(); markActive();
+      }
+    });
+
+    // ---- Pegar como texto limpio: evita traer estilos y "cosas copiadas" raras ----
+    bodyEl.addEventListener("paste", e => {
+      const cd = e.clipboardData || window.clipboardData; if (!cd) return;
+      e.preventDefault();
+      const text = cd.getData("text/plain") || "";
+      const html = text.split(/\r?\n/).map(l => l.trim() === "" ? "<br>" : u.esc(l)).join("<br>");
+      try { document.execCommand("insertHTML", false, html); } catch (err) { try { document.execCommand("insertText", false, text); } catch (e2) {} }
+      saveSel();
+    });
 
     // Botones (mousedown + preventDefault conserva la selección)
     container.querySelectorAll(".doc-tb__btn[data-cmd]").forEach(b => b.addEventListener("mousedown", e => {
@@ -574,7 +736,12 @@
     let current = rec;
     document.getElementById("doc-back").onclick = () => renderList(container);
     function doSave(silent) {
-      const data = { titulo: titleEl.value.trim() || p.titulo, plantilla, contenido: bodyEl.innerHTML, tamano: sheet };
+      const titulo = titleEl.value.trim() || p.titulo;
+      // Sincroniza el título de la portada con el título del documento (sin repetir edición)
+      if (bodyEl.querySelector(".doc-cover")) {
+        const ct = bodyEl.querySelector(".doc-cover__title"); if (ct) ct.textContent = titulo;
+      }
+      const data = { titulo, plantilla, contenido: bodyEl.innerHTML, tamano: sheet };
       if (current) S().update("docsTrabajo", current.id, data);
       else current = S().insert("docsTrabajo", Object.assign({ estado: "borrador", version: 1 }, data));
       if (!silent) u.toast("Documento guardado", "ok");
@@ -590,20 +757,9 @@
     wfBtn("wf-version", () => nuevaVersion(container, current));
     wfBtn("wf-anular", () => anular(container, current));
     wfBtn("wf-hist", () => verHistorial(current));
-    document.getElementById("doc-print").onclick = () => printDoc(titleEl.value, bodyEl.innerHTML, me, sheet, current);
-    document.getElementById("doc-word").onclick = () => {
-      const title = titleEl.value || p.titulo;
-      const franja = `<div style="border-top:6px solid #12b5a5;height:0;margin:0 0 10px"></div>`;
-      const header = `<table style="width:100%;border:none;margin-bottom:12px"><tr>
-        <td style="border:none;padding:0;font-size:11pt"><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong><br><span style="color:#5a6b84;font-size:9pt">Hospital de Urgencia Asistencia Pública</span></td>
-        <td style="border:none;padding:0;text-align:right;color:#5a6b84;font-size:9pt">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}</td></tr></table>`;
-      const h1 = `<h1 style="font-family:Georgia,serif;color:#0d5044">${u.esc(title)}</h1>`;
-      const body = bodyEl.innerHTML
-        .replace(/<h2>/g, '<h2 style="font-family:Georgia,serif;color:#0f8f83;border-bottom:1px solid #dbe6f2;padding-bottom:3px">')
-        .replace(/<h3>/g, '<h3 style="font-family:Georgia,serif;color:#5b34b0">')
-        .replace(/<div class="doc-pagebreak"[^>]*>.*?<\/div>/g, '<br clear="all" style="page-break-before:always">');
-      u.exportWord("documento-ubpc-" + u.hoyISO(), title, franja + header + h1 + body);
-    };
+    document.getElementById("doc-print").onclick = () => printDoc(titleEl.value, bodyEl.innerHTML, me, sheet, current || { plantilla });
+    document.getElementById("doc-word").onclick = () =>
+      exportWordDoc(titleEl.value || p.titulo, bodyEl.innerHTML, me, current || { plantilla }, "documento-ubpc");
   }
 
   /* ============================================================
@@ -841,17 +997,19 @@
 
     container.innerHTML = `
       <div class="doc-editor">
-        <div class="doc-bar no-print">
-          <button class="btn btn--ghost btn--sm" id="doc-back">← Volver</button>
-          <div class="doc-bar__title"><span class="tag" style="background:${p.color}22;color:${p.color}">${p.ic} ${u.esc(p.label)}</span> ${estadoBadge}</div>
-          <div class="btn-row">
-            ${histBtn}
-            <button class="btn btn--ghost btn--sm" id="doc-print">🖨️ Imprimir / PDF</button>
-            <button class="btn btn--ghost btn--sm" id="doc-word">📄 Word</button>
-            ${locked ? "" : `<button class="btn btn--primary btn--sm" id="doc-save">💾 Guardar</button>`}
+        <div class="doc-tools no-print">
+          <div class="doc-bar">
+            <button class="btn btn--ghost btn--sm" id="doc-back">← Volver</button>
+            <div class="doc-bar__title"><span class="tag" style="background:${p.color}22;color:${p.color}">${p.ic} ${u.esc(p.label)}</span> ${estadoBadge}</div>
+            <div class="btn-row">
+              ${histBtn}
+              <button class="btn btn--ghost btn--sm" id="doc-print">🖨️ Imprimir / PDF</button>
+              <button class="btn btn--ghost btn--sm" id="doc-word">📄 Word</button>
+              ${locked ? "" : `<button class="btn btn--primary btn--sm" id="doc-save">💾 Guardar</button>`}
+            </div>
           </div>
+          ${wf || locked ? `<div class="doc-wf">${wf}${locked ? `<span class="doc-wf__lock">🔒 Documento bloqueado (solo lectura)</span>` : ""}</div>` : ""}
         </div>
-        <div class="doc-wf no-print">${wf}${locked ? `<span class="doc-wf__lock">🔒 Documento bloqueado (solo lectura)</span>` : ""}</div>
         ${surface}
       </div>`;
 
@@ -912,19 +1070,8 @@
     wfBtn("wf-anular", () => anular(container, current));
     wfBtn("wf-hist", () => verHistorial(current));
 
-    document.getElementById("doc-print").onclick = () => { const c = contenidoNow(); printDoc(c.titulo, c.html, me, sheet, current || {}); };
-    document.getElementById("doc-word").onclick = () => {
-      const c = contenidoNow();
-      const franja = `<div style="border-top:6px solid #12b5a5;height:0;margin:0 0 10px"></div>`;
-      const header = `<table style="width:100%;border:none;margin-bottom:12px"><tr>
-        <td style="border:none;padding:0;font-size:11pt"><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong><br><span style="color:#5a6b84;font-size:9pt">Hospital de Urgencia Asistencia Pública</span></td>
-        <td style="border:none;padding:0;text-align:right;color:#5a6b84;font-size:9pt">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}</td></tr></table>`;
-      const h1 = `<h1 style="font-family:Georgia,serif;color:#0d5044">${u.esc(c.titulo)}</h1>`;
-      const body = c.html
-        .replace(/<h2>/g, '<h2 style="font-family:Georgia,serif;color:#0f8f83;border-bottom:1px solid #dbe6f2;padding-bottom:3px">')
-        .replace(/<div class="doc-pagebreak"[^>]*>.*?<\/div>/g, '<br clear="all" style="page-break-before:always">');
-      u.exportWord("plan-rnao-ubpc-" + u.hoyISO(), c.titulo, franja + header + h1 + body);
-    };
+    document.getElementById("doc-print").onclick = () => { const c = contenidoNow(); printDoc(c.titulo, c.html, me, sheet, current || { plantilla: "planRNAO" }); };
+    document.getElementById("doc-word").onclick = () => { const c = contenidoNow(); exportWordDoc(c.titulo, c.html, me, current || { plantilla: "planRNAO" }, "plan-rnao-ubpc"); };
   }
 
   function printDoc(titulo, html, me, sheet, rec) {
@@ -932,64 +1079,31 @@
     const w = window.open("", "_blank");
     if (!w) { u.toast("Permite las ventanas emergentes para imprimir", "danger"); return; }
     rec = rec || {};
-    const fr = new URL("assets/fonts/fraunces.woff2", document.baseURI).href;
-    const ns = new URL("assets/fonts/nunitosans.woff2", document.baseURI).href;
+    const label = rec.plantilla ? plMeta(rec.plantilla).label : "";
     const PAGE = { a4: "A4", carta: "216mm 279mm", oficio: "216mm 330mm" };
     const pageSize = PAGE[sheet] || "A4";
+    // Cuerpo unificado (mismo que Word) con estilos en línea → PDF y Word idénticos
+    const body = buildExportBody(titulo, html, me, rec, label);
     w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${u.esc(titulo || "Documento")}</title>
       <style>
-        @font-face{font-family:'Fraunces';src:url('${fr}') format('woff2');font-weight:100 900;font-display:swap}
-        @font-face{font-family:'Nunito Sans';src:url('${ns}') format('woff2');font-weight:200 900;font-display:swap}
-        @page{size:${pageSize};margin:0}
-        .doc-cover{min-height:calc(100vh - 30mm);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;break-after:page;page-break-after:always;gap:6px}
-        .doc-cover__logo{width:96px;height:96px;object-fit:contain;margin-bottom:8px}
-        .doc-cover__unit{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:1.25rem;color:#0d5044}
-        .doc-cover__hosp{color:#5a6b84;font-size:12px}
-        .doc-cover__rule{width:90px;height:4px;border-radius:3px;background:linear-gradient(90deg,#12b5a5,#7a5cd0);margin:14px 0}
-        .doc-cover__title{font-family:'Fraunces',Georgia,serif;color:#17263d;font-size:2rem;margin:.2em 1.5cm;border:none}
-        .doc-cover__sub{color:#5b34b0;font-weight:700}
-        .doc-cover__box{margin-top:26px;font-size:12px;color:#40536f;border:1px solid #dbe6f2;border-radius:10px;padding:10px 16px}
+        @page{size:${pageSize};margin:16mm 15mm}
         *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        html,body{margin:0}
-        body{font-family:'Nunito Sans',system-ui,Arial,sans-serif;color:#22303a;line-height:1.6;font-size:14.5px}
-        .franja{height:7px;background:linear-gradient(90deg,#1554b8,#1e9fe0,#0fb5ad,#37a04a,#f2c53d,#f07f2e,#7d4bcf,#e0538a)}
-        .sheet{padding:15mm 16mm 18mm}
-        .hd{display:flex;justify-content:space-between;align-items:center;gap:1rem;border-bottom:2px solid #eef2f8;padding-bottom:9px;margin-bottom:16px}
-        .hd .b{display:flex;gap:10px;align-items:center} .hd img{width:46px;height:46px;object-fit:contain}
-        .hd strong{font-size:14px;color:#17263d} .muted{color:#5a6b84;font-size:11.5px}
-        .meta{text-align:right;font-size:11.5px;color:#5a6b84}
-        h1{font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0d5044;font-size:1.7rem;margin:0 0 .25em}
-        h2{font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0f8f83;font-size:1.15rem;margin:1.1em 0 .3em;border-bottom:1px solid #eef2f8;padding-bottom:.2em}
-        h3{font-family:'Fraunces',Georgia,serif;font-weight:700;color:#5b34b0;font-size:1rem;margin:.9em 0 .2em}
-        p{margin:.4em 0} ul,ol{margin:.4em 0 .4em 1.3em} li{margin:.2em 0}
-        hr{border:none;border-top:1px solid #dbe6f2;margin:.9em 0}
-        em{color:#6f8880}
-        table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:13px}
-        th{background:#0f8f83;color:#fff;text-align:left;padding:6px 8px;border:1px solid #cdd8e2}
-        td{padding:6px 8px;border:1px solid #e2e9f0}
-        .doc-pagebreak{break-before:page;page-break-before:always;height:0;color:transparent;font-size:0}
-        .doc-firma{margin-top:60px;text-align:center;break-inside:avoid}
-        .doc-firma__line{width:270px;border-top:1px solid #17263d;margin:0 auto 6px}
-        .doc-firma__name{font-weight:700;color:#17263d}
-        .doc-firma__role{color:#5a6b84;font-size:12px}
-        .doc-firma__stamp{margin-top:12px;color:#9aa7b6;font-size:11px;border:1px dashed #c4d0dc;border-radius:8px;width:210px;padding:22px 8px;margin-left:auto;margin-right:auto}
-        .doc-firma__meta{margin-top:8px;color:#5a6b84;font-size:11px}
-        .doc-anulado{margin:10px 0;border:2px solid #c62f3b;color:#c62f3b;border-radius:10px;padding:10px 14px;text-align:center}
-        .doc-anulado__sello{font-weight:800;letter-spacing:.2em;font-size:1.3rem}
-        .doc-code{color:#0d8175;font-weight:700}
-      </style></head><body>
-      <div class="franja"></div>
-      <div class="sheet">
-        <div class="hd"><div class="b"><img src="${logoData()}" alt="HUAP"><div><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong><div class="muted">Hospital de Urgencia Asistencia Pública</div></div></div>
-          <div class="meta">${u.fechaCL(new Date())}<br>${u.esc(me ? me.nombre : "")}${rec.codigo ? `<br><span class="doc-code">${u.esc(rec.codigo)}</span> · v${rec.version || 1}` : ""}</div></div>
-        ${rec.estado === "anulado" ? `<div class="doc-anulado"><div class="doc-anulado__sello">ANULADO</div><div><strong>Motivo:</strong> ${u.esc(rec.motivoAnulacion || "—")}</div></div>` : ""}
-        <h1>${u.esc(titulo || "Documento")}</h1>${html}
-        ${rec.estado === "finalizado" ? firmaHTML(rec) : ""}
-      </div></body></html>`);
+        html,body{margin:0;padding:0}
+        body{font-family:'Nunito Sans',system-ui,Segoe UI,Arial,sans-serif;color:#22303a;line-height:1.55;font-size:11.5pt}
+        img{max-width:100%}
+      </style></head><body>${body}</body></html>`);
     w.document.close();
     const go = () => { try { w.focus(); w.print(); } catch (e) {} };
-    if (w.document.fonts && w.document.fonts.ready) { w.document.fonts.ready.then(() => setTimeout(go, 150)); setTimeout(go, 1400); }
+    if (w.document.fonts && w.document.fonts.ready) { w.document.fonts.ready.then(() => setTimeout(go, 150)); setTimeout(go, 1200); }
     else setTimeout(go, 500);
+  }
+
+  // Word con el MISMO cuerpo/formato que la impresión (estilos en línea)
+  function exportWordDoc(titulo, html, me, rec, filenamePrefix) {
+    const u = ui(); rec = rec || {};
+    const label = rec.plantilla ? plMeta(rec.plantilla).label : "";
+    const body = buildExportBody(titulo, html, me, rec, label);
+    u.exportWord((filenamePrefix || "documento-ubpc") + "-" + u.hoyISO(), titulo, body);
   }
 
   // Logo embebido para la ventana de impresión (ruta relativa no resuelve en la ventana nueva)
