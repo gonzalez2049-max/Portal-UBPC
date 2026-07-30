@@ -15,7 +15,7 @@
     "reuniones", "acuerdos", "articulaciones", "respaldos", "solicitudes", "nt234",
     "planesNT234", "colaboraciones", "notificaciones", "hitos", "kanban",
     "bibliotecaBitacora", "evidenciaRef", "capacitacionRef", "monitoreoRef",
-    "indicadores", "capacidadOperativa", "planesIntervencion", "evidenciaSemana", "actividadReciente", "docsTrabajo", "agendaEventos", "recursosGuia", "config"
+    "indicadores", "capacidadOperativa", "planesIntervencion", "protocolosEnf", "evidenciaSemana", "actividadReciente", "docsTrabajo", "agendaEventos", "recursosGuia", "config"
   ];
 
   // Prefijos de códigos automáticos por colección
@@ -23,7 +23,7 @@
     solicitudes: "SOL", reuniones: "REU", acuerdos: "ACU",
     documentos: "DOC", edicionesEVI: "EVI", colaboraciones: "COL",
     actividades: "CAP", articulaciones: "ART", accionesRNAO: "ACC",
-    evidenciaSemana: "EVA", docsTrabajo: "DOC", planesIntervencion: "PIN"
+    evidenciaSemana: "EVA", docsTrabajo: "DOC", planesIntervencion: "PIN", protocolosEnf: "PRO"
   };
 
   function emptyDB() {

@@ -128,7 +128,7 @@
   // (No se cuenta "hitos" porque la semilla ya crea uno de inicio.)
   function localSeedOnly() {
     const s = U.store;
-    const cols = ["evaluacionesRNAO", "accionesRNAO", "indicadores", "capacidadOperativa", "planesIntervencion", "documentos",
+    const cols = ["evaluacionesRNAO", "accionesRNAO", "indicadores", "capacidadOperativa", "planesIntervencion", "protocolosEnf", "documentos",
       "planesNT234", "kanban", "actividades", "reuniones", "acuerdos", "colaboraciones",
       "evidenciaSemana", "agendaEventos", "docsTrabajo", "recursosGuia",
       "articulaciones", "reconocimientos", "nt234", "solicitudes"];

@@ -81,13 +81,103 @@
   }
 
   /* ===================== MÓDULO 2 — GESTIÓN DOCUMENTAL ===================== */
-  function m2() {
+  const M2_TABS = [
+    { key: "documentos", label: "Documentos institucionales" },
+    { key: "protocolos", label: "Control de protocolos de enfermería" }
+  ];
+  function m2(params) {
+    const tab = (params && params.tab) || "documentos";
     return `<div class="page-head"><h1>Gestión Documental</h1>
       <p>Protocolos, normas, procedimientos, manuales y documentos institucionales. Códigos automáticos y permanentes.</p></div>
+      ${R().tabsBar("coord", "m2", M2_TABS, tab)}
       <div id="m2-body"></div>`;
   }
-  function m2Bind() {
-    R().mount(document.getElementById("m2-body"), {
+  function m2Bind(main, params) {
+    const tab = (params && params.tab) || "documentos";
+    const box = document.getElementById("m2-body");
+    if (tab === "protocolos") protocolosTab(box); else documentosTab(box);
+  }
+
+  /* ---------- Control de protocolos de enfermería ---------- */
+  const VIGENCIAS = ["6 meses", "1 año", "2 años", "3 años", "4 años", "5 años"];
+  const VIG_MESES = { "6 meses": 6, "1 año": 12, "2 años": 24, "3 años": 36, "4 años": 48, "5 años": 60 };
+  const FORMATO_OPC = ["Vigente", "Actualizado", "En revisión", "Por vencer", "Obsoleto"];
+  const FORMATO_BADGE = { "Vigente": "ok", "Actualizado": "ok", "En revisión": "warn", "Por vencer": "warn", "Obsoleto": "danger" };
+  function proximaRevision(rec) {
+    const mo = VIG_MESES[rec.vigencia]; if (!mo || !rec.fecha) return null;
+    const d = new Date(rec.fecha); if (isNaN(d)) return null;
+    d.setMonth(d.getMonth() + mo); d.setHours(0, 0, 0, 0); return d;
+  }
+  function revisionInfo(rec) {
+    const d = proximaRevision(rec); if (!d) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dias = Math.round((d - today) / 86400000);
+    return { d, dias, vencido: dias < 0, porVencer: dias >= 0 && dias <= 90 };
+  }
+  function protocoloDetalle(rec) {
+    const u = ui(); const ri = revisionInfo(rec);
+    const revTxt = ri ? (u.fechaCL(ri.d) + " · " + (ri.vencido ? "Vencido" : ri.porVencer ? "Por vencer (" + ri.dias + " días)" : "Vigente")) : "—";
+    detalleGenerico("Protocolo de enfermería", rec, [
+      ["Código", `<span class="mono">${u.esc(rec.codigo || "—")}</span>`, true],
+      ["Protocolo", rec.nombre], ["Unidad", rec.unidad], ["Versión", "v" + (rec.version || "1")],
+      ["Fecha", u.fechaCL(rec.fecha)], ["Vigencia", rec.vigencia],
+      ["Próxima revisión / modificación", revTxt, true],
+      ["Estado del formato (Coordinación)", u.estadoBadge(rec.estadoFormato), true],
+      ["Responsable / elaboró", rec.responsable], ["Ubicación / respaldo", rec.ubicacion],
+      ["Observaciones", rec.observaciones]
+    ]);
+  }
+  function protocolosTab(box) {
+    const u = ui();
+    const list = S().all("protocolosEnf");
+    const venc = list.filter(r => { const ri = revisionInfo(r); return ri && ri.vencido; }).length;
+    const porV = list.filter(r => { const ri = revisionInfo(r); return ri && !ri.vencido && ri.porVencer; }).length;
+    const obs = list.filter(r => r.estadoFormato === "Obsoleto").length;
+    const kpiC = (n, lab, kind) => `<div class="card kpi kpi--${kind}"><div class="kpi__label">${u.esc(lab)}</div><div class="kpi__value">${n}</div></div>`;
+    box.innerHTML = `<div class="grid grid--kpi" style="margin-bottom:1rem">
+        ${kpiC(list.length, "Protocolos registrados", "info")}
+        ${kpiC(porV, "Por vencer (≤90 días)", porV ? "warn" : "ok")}
+        ${kpiC(venc, "Con revisión vencida", venc ? "danger" : "ok")}
+        ${kpiC(obs, "Marcados obsoletos", obs ? "danger" : "ok")}
+      </div><div id="prot-res"></div>`;
+    R().mount(document.getElementById("prot-res"), {
+      collection: "protocolosEnf", title: "Protocolo de enfermería", icon: "📋", withCode: true, wideForm: true,
+      hint: "Registro de control de protocolos de enfermería. La próxima revisión se calcula desde la fecha y la vigencia; el estado del formato lo declara la Coordinación UBPC.",
+      newLabel: "Nuevo protocolo",
+      filters: [{ key: "unidad", label: "Unidad" }, { key: "estadoFormato", label: "Estado" }],
+      emptyMsg: "Aún no hay protocolos de enfermería registrados.",
+      emptySub: "Agrega el primero para llevar el control de vigencia y revisiones.",
+      columns: [
+        { key: "codigo", label: "Código", mono: true, width: "140px" },
+        { key: "nombre", label: "Protocolo" },
+        { key: "unidad", label: "Unidad" },
+        { key: "version", label: "Versión", render: (r, u2) => `v${u2.esc(r.version || "1")}` },
+        { key: "fecha", label: "Fecha", date: true },
+        { key: "vigencia", label: "Vigencia" },
+        { key: "proxRev", label: "Próxima revisión", exportVal: r => { const ri = revisionInfo(r); return ri ? ui().fechaCL(ri.d) : ""; },
+          render: (r, u2) => { const ri = revisionInfo(r); if (!ri) return `<span class="muted">—</span>`; const cls = ri.vencido ? "danger" : ri.porVencer ? "warn" : "ok"; return `${u2.fechaCL(ri.d)} <span class="badge badge--${cls}">${ri.vencido ? "Vencido" : ri.porVencer ? "Por vencer" : "Vigente"}</span>`; } },
+        { key: "estadoFormato", label: "Estado (Coord.)", render: (r, u2) => `<span class="badge badge--${FORMATO_BADGE[r.estadoFormato] || "neutral"}">${u2.esc(r.estadoFormato || "—")}</span>` }
+      ],
+      fields: [
+        { name: "nombre", label: "Nombre del protocolo", required: true, full: true },
+        { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
+        { name: "version", label: "Versión", value: "1" },
+        { name: "fecha", label: "Fecha (emisión / aprobación)", type: "date" },
+        { name: "vigencia", label: "Vigencia", type: "select", options: VIGENCIAS },
+        { name: "estadoFormato", label: "Estado del formato (Coordinación UBPC)", type: "select", options: FORMATO_OPC },
+        { name: "responsable", label: "Responsable / elaboró", full: true },
+        { name: "ubicacion", label: "Ubicación / respaldo (enlace o carpeta)", full: true },
+        { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
+      ],
+      defaults: () => ({ version: "1", vigencia: "3 años", estadoFormato: "Vigente", fecha: ui().hoyISO() }),
+      canDelete: () => true,
+      detail: protocoloDetalle,
+      afterChange: () => protocolosTab(box)
+    });
+  }
+
+  function documentosTab(box) {
+    R().mount(box, {
       collection: "documentos", title: "Documento", icon: "📄", withCode: true,
       hint: "Cada documento recibe un código automático permanente (UBPC-DOC-AAAA-000) y conserva su historial de versiones.",
       newLabel: "Nuevo documento",
