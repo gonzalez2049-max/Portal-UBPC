@@ -17,6 +17,7 @@
     capacitacion: { ic: "🎓", c: "#37a04a", lab: "Capacitación" },
     colaboracion: { ic: "🌐", c: "#1554b8", lab: "Colaboración" },
     medicion: { ic: "📏", c: "#0891b2", lab: "Medición de indicador" },
+    protocolo: { ic: "📋", c: "#be185d", lab: "Revisión de protocolo" },
     propio: { ic: "📌", c: "#e0526f", lab: "Evento propio" }
   };
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -49,6 +50,14 @@
       s.all("indicadores").forEach(r => {
         const pm = U.indicadoresUtil.proximaMedicion(r);
         if (pm) push(pm.toISOString(), "Medición · " + (r.nombre || "Indicador"), "medicion", "#/coord/indicadores", { deadline: true });
+      });
+    }
+    // Próxima revisión de protocolos de enfermería (según fecha + vigencia)
+    if (U.protocolos && U.protocolos.proximaRevision) {
+      s.all("protocolosEnf").forEach(r => {
+        if (r.estadoFormato === "Obsoleto") return;
+        const pr = U.protocolos.proximaRevision(r);
+        if (pr) push(pr.toISOString(), "Revisión protocolo · " + (r.nombre || ""), "protocolo", "#/coord/m2?tab=protocolos", { deadline: true });
       });
     }
     return ev.sort((a, b) => a.d - b.d);

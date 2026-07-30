@@ -114,6 +114,27 @@
     const dias = Math.round((d - today) / 86400000);
     return { d, dias, vencido: dias < 0, porVencer: dias >= 0 && dias <= 90 };
   }
+  function respElab(rec) {
+    const arr = (rec.responsablesElab && rec.responsablesElab.length) ? rec.responsablesElab : (rec.responsable ? [{ nombre: rec.responsable }] : []);
+    return arr.map(x => x.nombre + (x.cargo ? " (" + x.cargo + ")" : "")).join(" · ") || "—";
+  }
+  function protRespRow(r) {
+    const u = ui(); r = r || {};
+    return `<tr data-rrow>
+      <td><input class="input input--sm" data-f="nombre" value="${u.esc(r.nombre || "")}" placeholder="Nombre"></td>
+      <td><input class="input input--sm" data-f="cargo" value="${u.esc(r.cargo || "")}" placeholder="Cargo / estamento"></td>
+      <td class="pf-rep__x"><button type="button" class="btn-icon" data-rrm title="Quitar">🗑️</button></td></tr>`;
+  }
+  function protRespHTML(rows) {
+    rows = (rows && rows.length) ? rows : [{}];
+    return `<div class="field" style="grid-column:1/-1">
+      <label>Responsables de la elaboración</label>
+      <div class="kpi__sub" style="margin-bottom:.35rem">Agrega una o más personas que elaboraron el protocolo, con su cargo o estamento.</div>
+      <div class="pf-rep" id="prot-resp"><div class="table-wrap"><table class="tbl pf-rep__t"><thead><tr>
+        <th>Nombre</th><th>Cargo / estamento</th><th></th></tr></thead>
+        <tbody>${rows.map(protRespRow).join("")}</tbody></table></div>
+        <button type="button" class="btn btn--ghost btn--sm" id="prot-addresp">+ Agregar responsable</button></div></div>`;
+  }
   function protocoloDetalle(rec) {
     const u = ui(); const ri = revisionInfo(rec);
     const revTxt = ri ? (u.fechaCL(ri.d) + " · " + (ri.vencido ? "Vencido" : ri.porVencer ? "Por vencer (" + ri.dias + " días)" : "Vigente")) : "—";
@@ -123,7 +144,7 @@
       ["Fecha", u.fechaCL(rec.fecha)], ["Vigencia", rec.vigencia],
       ["Próxima revisión / modificación", revTxt, true],
       ["Estado del formato (Coordinación)", u.estadoBadge(rec.estadoFormato), true],
-      ["Responsable / elaboró", rec.responsable], ["Ubicación / respaldo", rec.ubicacion],
+      ["Responsables de la elaboración", respElab(rec)], ["Ubicación / respaldo", rec.ubicacion],
       ["Observaciones", rec.observaciones]
     ]);
   }
@@ -165,14 +186,33 @@
         { name: "fecha", label: "Fecha (emisión / aprobación)", type: "date" },
         { name: "vigencia", label: "Vigencia", type: "select", options: VIGENCIAS },
         { name: "estadoFormato", label: "Estado del formato (Coordinación UBPC)", type: "select", options: FORMATO_OPC },
-        { name: "responsable", label: "Responsable / elaboró", full: true },
         { name: "ubicacion", label: "Ubicación / respaldo (enlace o carpeta)", full: true },
         { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
       ],
       defaults: () => ({ version: "1", vigencia: "3 años", estadoFormato: "Vigente", fecha: ui().hoyISO() }),
       canDelete: () => true,
       detail: protocoloDetalle,
-      afterChange: () => protocolosTab(box)
+      afterChange: () => protocolosTab(box),
+      onFormMount(m, rec) {
+        const grid = m.querySelector(".form-grid");
+        grid.insertAdjacentHTML("afterend", protRespHTML(rec && rec.responsablesElab));
+        const wrap = m.querySelector("#prot-resp");
+        const bindRm = () => wrap.querySelectorAll("[data-rrm]").forEach(b => b.onclick = () => {
+          if (wrap.querySelectorAll("[data-rrow]").length > 1) b.closest("tr").remove();
+          else ui().toast("Debe quedar al menos una fila", "warn");
+        });
+        m.querySelector("#prot-addresp").onclick = () => { wrap.querySelector("tbody").insertAdjacentHTML("beforeend", protRespRow({})); bindRm(); };
+        bindRm();
+      },
+      onBeforeSave(data, rec, m) {
+        const rows = [...m.querySelectorAll("#prot-resp [data-rrow]")].map(tr => ({
+          nombre: (tr.querySelector('[data-f="nombre"]').value || "").trim(),
+          cargo: (tr.querySelector('[data-f="cargo"]').value || "").trim()
+        })).filter(r => r.nombre || r.cargo);
+        data.responsablesElab = rows;
+        data.responsable = rows.map(r => r.nombre).filter(Boolean).join(", ");
+        return data;
+      }
     });
   }
 
@@ -449,6 +489,8 @@
   /* ---------- Registro en el portal del Coordinador ---------- */
   Object.assign(U.coord.views, { m1, m2, m5, solicitudes: solicitudesCoord });
   Object.assign(U.coord.binders, { m1: m1Bind, m2: m2Bind, m5: m5Bind, solicitudes: solicitudesCoordBind });
+  // Utilidad para la Agenda: próxima revisión de protocolos
+  U.protocolos = { proximaRevision, revisionInfo };
 
   // El módulo "Solicitudes técnicas" se integró en "Enlace con el Referente".
   // Se conserva la ruta como redirección para no romper enlaces o marcadores previos.
