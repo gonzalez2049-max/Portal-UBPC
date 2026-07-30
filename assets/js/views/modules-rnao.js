@@ -565,8 +565,15 @@
         { key: "nombre", label: "Guía" },
         { key: "area", label: "Área", render: (r, u) => `<span class="tag">${u.esc(r.area || "—")}</span>` },
         { key: "estado", label: "Estado", badge: true },
-        { key: "unidades", label: "Unidades", exportVal: r => guiaUnidades(r).map(x => x.unidad + (x.lider ? " (líder: " + x.lider + ")" : "")).join(" · "),
-          render: (r, u) => { const a = guiaUnidades(r); return a.length ? `<span class="tag">${a.length}</span> ${u.esc(a.slice(0, 2).map(x => x.unidad).join(", "))}${a.length > 2 ? "…" : ""}` : `<span class="muted">—</span>`; } }
+        { key: "unidades", label: "Unidades implementadoras", exportVal: r => guiaUnidades(r).map(x => x.unidad + (x.jefatura ? " (jef: " + x.jefatura + ")" : "") + (x.lider ? " (líder: " + x.lider + ")" : "")).join(" · "),
+          render: (r, u) => {
+            const a = guiaUnidades(r);
+            if (!a.length) return `<span class="muted">—</span>`;
+            return `<div class="guia-units-cell">${a.map(x => {
+              const tip = [x.jefatura ? "Jefatura: " + x.jefatura : "", x.lider ? "Líder BP: " + x.lider : ""].filter(Boolean).join(" · ");
+              return `<span class="tag" ${tip ? `title="${u.esc(tip)}"` : ""}>${u.esc(x.unidad || "—")}</span>`;
+            }).join("")}</div>`;
+          } }
       ],
       fields: [
         { name: "nombre", label: "Nombre de la guía", required: true, full: true },

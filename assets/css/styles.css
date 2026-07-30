@@ -157,6 +157,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tbl .mono { font-variant-numeric: tabular-nums; font-family: "Consolas", monospace; font-size:13px; color: var(--azul-800); }
 .tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .tbl th.res-center, .tbl td.res-center { text-align: center; }
+.guia-units-cell{ display:flex; flex-wrap:wrap; gap:4px; max-width:340px; }
+.guia-units-cell .tag{ cursor:default; }
 
 /* ---------- Estados vacíos ---------- */
 .empty {
