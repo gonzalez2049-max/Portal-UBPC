@@ -156,6 +156,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tbl td.acciones { white-space: nowrap; width: 1%; }
 .tbl .mono { font-variant-numeric: tabular-nums; font-family: "Consolas", monospace; font-size:13px; color: var(--azul-800); }
 .tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tbl th.res-center, .tbl td.res-center { text-align: center; }
 
 /* ---------- Estados vacíos ---------- */
 .empty {

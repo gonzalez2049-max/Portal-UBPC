@@ -102,10 +102,10 @@
       }
       const cols = cfg.columns;
       bodyEl.innerHTML = `<div class="table-wrap"><table class="tbl"><thead><tr>
-        ${cols.map(c => `<th scope="col" ${c.width ? `style="width:${c.width}"` : ""}>${u.esc(c.label)}</th>`).join("")}
+        ${cols.map(c => `<th scope="col" class="${c.center ? "res-center" : ""}" ${c.width ? `style="width:${c.width}"` : ""}>${u.esc(c.label)}</th>`).join("")}
         <th scope="col" class="right">Acciones</th></tr></thead><tbody>
         ${list.map(rec => `<tr data-id="${rec.id}">
-          ${cols.map(c => `<td class="${c.num ? "num" : ""}">${cell(c, rec)}</td>`).join("")}
+          ${cols.map(c => `<td class="${c.num ? "num" : ""}${c.center ? " res-center" : ""}">${cell(c, rec)}</td>`).join("")}
           <td class="acciones"><div class="btn-row" style="justify-content:flex-end">
             ${(cfg.rowActions || []).map((a, i) =>
               (!a.show || a.show(rec)) ? `<button class="btn-icon" data-act="${i}" data-id="${rec.id}" title="${u.esc(a.title)}">${a.ico}</button>` : "").join("")}

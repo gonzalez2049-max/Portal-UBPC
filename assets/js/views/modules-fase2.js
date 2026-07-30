@@ -172,12 +172,12 @@
         { key: "codigo", label: "Código", mono: true, width: "140px" },
         { key: "nombre", label: "Protocolo" },
         { key: "unidad", label: "Unidad" },
-        { key: "version", label: "Versión", render: (r, u2) => `v${u2.esc(r.version || "1")}` },
-        { key: "fecha", label: "Fecha", date: true },
-        { key: "vigencia", label: "Vigencia" },
-        { key: "proxRev", label: "Próxima revisión", exportVal: r => { const ri = revisionInfo(r); return ri ? ui().fechaCL(ri.d) : ""; },
+        { key: "version", label: "Versión", center: true, render: (r, u2) => `v${u2.esc(r.version || "1")}` },
+        { key: "fecha", label: "Fecha", date: true, center: true },
+        { key: "vigencia", label: "Vigencia", center: true },
+        { key: "proxRev", label: "Próxima revisión", center: true, exportVal: r => { const ri = revisionInfo(r); return ri ? ui().fechaCL(ri.d) : ""; },
           render: (r, u2) => { const ri = revisionInfo(r); if (!ri) return `<span class="muted">—</span>`; const cls = ri.vencido ? "danger" : ri.porVencer ? "warn" : "ok"; return `${u2.fechaCL(ri.d)} <span class="badge badge--${cls}">${ri.vencido ? "Vencido" : ri.porVencer ? "Por vencer" : "Vigente"}</span>`; } },
-        { key: "estadoFormato", label: "Estado (Coord.)", render: (r, u2) => `<span class="badge badge--${FORMATO_BADGE[r.estadoFormato] || "neutral"}">${u2.esc(r.estadoFormato || "—")}</span>` }
+        { key: "estadoFormato", label: "Estado (Coord.)", center: true, render: (r, u2) => `<span class="badge badge--${FORMATO_BADGE[r.estadoFormato] || "neutral"}">${u2.esc(r.estadoFormato || "—")}</span>` }
       ],
       fields: [
         { name: "nombre", label: "Nombre del protocolo", required: true, full: true },
