@@ -14,17 +14,22 @@
     ).join("")}</div>`;
   }
 
-  /* Valor de celda según definición de columna */
+  /* Valor de celda según definición de columna.
+     Blindado: si una celda falla, muestra "—" en vez de romper toda la tabla. */
   function cell(col, rec) {
     const u = ui();
-    if (col.render) return col.render(rec, u);
-    let v = rec[col.key];
-    if (col.date) return `<span class="cell-date">${u.fechaCL(v)}</span>`;
-    if (col.badge) return u.estadoBadge(v);
-    if (v == null || v === "") return `<span class="muted">—</span>`;
-    if (col.mono) return `<span class="mono">${u.esc(v)}</span>`;
-    if (col.num) return u.esc(v);
-    return u.esc(String(v).length > 120 ? String(v).slice(0, 120) + "…" : v);
+    try {
+      if (col.render) return col.render(rec, u);
+      let v = rec[col.key];
+      if (col.date) return `<span class="cell-date">${u.fechaCL(v)}</span>`;
+      if (col.badge) return u.estadoBadge(v);
+      if (v == null || v === "") return `<span class="muted">—</span>`;
+      if (col.mono) return `<span class="mono">${u.esc(v)}</span>`;
+      if (col.num) return u.esc(v);
+      return u.esc(String(v).length > 120 ? String(v).slice(0, 120) + "…" : v);
+    } catch (e) {
+      return `<span class="muted" title="${u.esc(String((e && e.message) || e))}">—</span>`;
+    }
   }
 
   /* Exportación de una colección a CSV usando las columnas */
@@ -101,18 +106,27 @@
         return;
       }
       const cols = cfg.columns;
+      const rowHTML = rec => {
+        try {
+          return `<tr data-id="${rec.id}">
+            ${cols.map(c => `<td class="${c.num ? "num" : ""}${c.center ? " res-center" : ""}">${cell(c, rec)}</td>`).join("")}
+            <td class="acciones"><div class="btn-row" style="justify-content:flex-end">
+              ${(cfg.rowActions || []).map((a, i) =>
+                (!a.show || a.show(rec)) ? `<button class="btn-icon" data-act="${i}" data-id="${rec.id}" title="${u.esc(a.title)}">${a.ico}</button>` : "").join("")}
+              ${canEdit ? `<button class="btn-icon" data-edit="${rec.id}" title="Editar">✏️</button>` : ""}
+              ${canEdit && (!cfg.canDelete || cfg.canDelete(rec)) ? `<button class="btn-icon" data-del="${rec.id}" title="Eliminar">🗑️</button>` : ""}
+              ${cfg.detail ? `<button class="btn-icon" data-detail="${rec.id}" title="Ver detalle">👁️</button>` : ""}
+            </div></td></tr>`;
+        } catch (e) {
+          return `<tr data-id="${rec.id}"><td colspan="${cols.length + 1}" class="muted">⚠️ No se pudo mostrar este registro
+            <button class="btn-icon" data-edit="${rec.id}" title="Editar">✏️</button>
+            <button class="btn-icon" data-del="${rec.id}" title="Eliminar">🗑️</button></td></tr>`;
+        }
+      };
       bodyEl.innerHTML = `<div class="table-wrap"><table class="tbl"><thead><tr>
         ${cols.map(c => `<th scope="col" class="${c.center ? "res-center" : ""}" ${c.width ? `style="width:${c.width}"` : ""}>${u.esc(c.label)}</th>`).join("")}
         <th scope="col" class="right">Acciones</th></tr></thead><tbody>
-        ${list.map(rec => `<tr data-id="${rec.id}">
-          ${cols.map(c => `<td class="${c.num ? "num" : ""}${c.center ? " res-center" : ""}">${cell(c, rec)}</td>`).join("")}
-          <td class="acciones"><div class="btn-row" style="justify-content:flex-end">
-            ${(cfg.rowActions || []).map((a, i) =>
-              (!a.show || a.show(rec)) ? `<button class="btn-icon" data-act="${i}" data-id="${rec.id}" title="${u.esc(a.title)}">${a.ico}</button>` : "").join("")}
-            ${canEdit ? `<button class="btn-icon" data-edit="${rec.id}" title="Editar">✏️</button>` : ""}
-            ${canEdit && (!cfg.canDelete || cfg.canDelete(rec)) ? `<button class="btn-icon" data-del="${rec.id}" title="Eliminar">🗑️</button>` : ""}
-            ${cfg.detail ? `<button class="btn-icon" data-detail="${rec.id}" title="Ver detalle">👁️</button>` : ""}
-          </div></td></tr>`).join("")}
+        ${list.map(rowHTML).join("")}
       </tbody></table></div>`;
       bindBody();
     }
