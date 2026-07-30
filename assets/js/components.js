@@ -34,7 +34,7 @@
         </div>`;
       }).join("")}
     </div>
-    <p class="kanban__hint">✋ Arrastra las tarjetas entre columnas para cambiar su estado. En teléfono o tablet, mantén presionada la tarjeta y arrástrala.</p>`;
+    <p class="kanban__hint">✋ Arrastra las tarjetas entre columnas (en teléfono, mantén presionada la tarjeta y arrástrala) — o usa los botones <strong>◀ ▶</strong> de cada tarjeta para moverla sin arrastrar.</p>`;
   }
 
   function cardHTML(c) {
@@ -42,6 +42,8 @@
     const dias = ui.diasHasta(c.fechaLimite);
     const venc = dias != null && dias < 0 && c.columna !== "Completado";
     const prio = c.prioridad || "media";
+    const idx = COLS.findIndex(x => x.key === c.columna);
+    const canPrev = idx > 0, canNext = idx >= 0 && idx < COLS.length - 1;
     return `<div class="kcard kcard--${prio}" draggable="true" data-kid="${c.id}">
       <span class="kprio kprio--${prio}">${PRIO[prio] || prio}</span>
       <div class="kcard__title">${ui.esc(c.titulo)}</div>
@@ -50,6 +52,8 @@
         ${c.asignadoPor ? `<span title="Asignada por Coordinación">📌 ${ui.esc(c.asignadoPor)}</span>` : ""}
         ${c.fechaLimite ? `<span style="${venc ? "color:var(--danger);font-weight:700" : ""}">📅 ${ui.fechaCL(c.fechaLimite)}${venc ? " · vencida" : ""}</span>` : ""}
         <span style="margin-left:auto" class="btn-row">
+          <button class="btn-icon" data-kmove="prev" data-kid="${c.id}" title="Mover a la columna anterior" ${canPrev ? "" : "disabled"}>◀</button>
+          <button class="btn-icon" data-kmove="next" data-kid="${c.id}" title="Mover a la columna siguiente" ${canNext ? "" : "disabled"}>▶</button>
           <button class="btn-icon" data-kedit="${c.id}" title="Editar">✏️</button>
           <button class="btn-icon" data-kdel="${c.id}" title="Eliminar">🗑️</button>
         </span>
@@ -148,6 +152,19 @@
     root.querySelectorAll("[data-kedit]").forEach(b => b.onclick = () => cardForm(owner, U.store.get("kanban", b.dataset.kedit)));
     root.querySelectorAll("[data-kdel]").forEach(b => b.onclick = () => {
       U.ui.confirmDelete("¿Eliminar esta tarjeta del tablero?", () => { U.store.remove("kanban", b.dataset.kdel); refresh(owner); });
+    });
+    // Mover con botones ◀ ▶ (funciona en cualquier dispositivo, sin arrastrar)
+    root.querySelectorAll("[data-kmove]").forEach(b => b.onclick = e => {
+      e.stopPropagation();
+      const rec = U.store.get("kanban", b.dataset.kid); if (!rec) return;
+      const idx = COLS.findIndex(x => x.key === rec.columna);
+      const ni = b.dataset.kmove === "next" ? idx + 1 : idx - 1;
+      if (idx < 0 || ni < 0 || ni >= COLS.length) return;
+      const oldCol = rec.columna, newCol = COLS[ni].key;
+      const maxOrden = Math.max(0, ...U.store.all("kanban").filter(c => (c.owner || "coordinador") === owner && c.columna === newCol).map(c => c.orden || 0));
+      U.store.update("kanban", rec.id, { columna: newCol, orden: maxOrden + 1 });
+      refresh(owner);
+      if (newCol === "Completado" && oldCol !== "Completado") celebrar(rec.titulo);
     });
 
     // Drag & drop: mover entre columnas Y reordenar dentro de la misma columna
