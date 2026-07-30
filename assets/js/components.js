@@ -44,7 +44,7 @@
     const prio = c.prioridad || "media";
     const idx = COLS.findIndex(x => x.key === c.columna);
     const canPrev = idx > 0, canNext = idx >= 0 && idx < COLS.length - 1;
-    return `<div class="kcard kcard--${prio}" draggable="true" data-kid="${c.id}">
+    return `<div class="kcard kcard--${prio}" data-kid="${c.id}">
       <span class="kprio kprio--${prio}">${PRIO[prio] || prio}</span>
       <div class="kcard__title">${ui.esc(c.titulo)}</div>
       <div class="kcard__meta">
@@ -167,38 +167,50 @@
       if (newCol === "Completado" && oldCol !== "Completado") celebrar(rec.titulo);
     });
 
-    // Drag & drop: mover entre columnas Y reordenar dentro de la misma columna
-    let dragEl = null;
-
+    // Arrastre: tomar la tarjeta y moverla entre columnas o reordenar.
+    // Mouse (computador) y táctil (tablet/teléfono). Los botones ◀ ▶ son la
+    // alternativa que funciona siempre.
     root.querySelectorAll(".kcard").forEach(card => {
-      card.addEventListener("dragstart", e => {
-        dragEl = card;
+      // ----- Mouse -----
+      card.addEventListener("mousedown", e => {
+        if (e.button !== 0) return;
+        if (e.target.closest("button, a, input, textarea, select, .btn-icon")) return;
+        e.preventDefault(); // evita seleccionar texto / arrastre de imagen nativo
         const rec = U.store.get("kanban", card.dataset.kid);
-        card._fromCol = rec ? rec.columna : null;
-        card.classList.add("dragging");
-        e.dataTransfer.effectAllowed = "move";
-      });
-      card.addEventListener("dragend", () => {
-        const moved = dragEl, fromCol = moved ? moved._fromCol : null;
-        if (dragEl) dragEl.classList.remove("dragging");
-        dragEl = null;
-        root.querySelectorAll(".kanban__col").forEach(c => c.classList.remove("drag-over"));
-        persistOrder(owner);
-        if (moved) {
-          const rec = U.store.get("kanban", moved.dataset.kid);
-          if (rec && rec.columna === "Completado" && fromCol !== "Completado") celebrar(rec.titulo);
-        }
+        const md = { owner, card, x: e.clientX, y: e.clientY, active: false, fromCol: rec ? rec.columna : null };
+
+        const onMove = ev => {
+          if (!md.active) {
+            if (Math.abs(ev.clientX - md.x) > 4 || Math.abs(ev.clientY - md.y) > 4) {
+              md.active = true; card.classList.add("dragging");
+            } else return;
+          }
+          ev.preventDefault();
+          moveDragCard(card, ev.clientX, ev.clientY);
+        };
+        const onUp = () => {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+          if (_container) _container.querySelectorAll(".kanban__col").forEach(c => c.classList.remove("drag-over"));
+          if (md.active) {
+            card.classList.remove("dragging");
+            persistOrder(owner);
+            const r2 = U.store.get("kanban", card.dataset.kid);
+            if (r2 && r2.columna === "Completado" && md.fromCol !== "Completado") celebrar(r2.titulo);
+          }
+        };
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
       });
 
-      // Soporte táctil (tablet/teléfono): el drag & drop de HTML5 no responde al dedo.
-      // Se mantiene presionada la tarjeta ~200 ms y luego se arrastra entre columnas.
+      // ----- Táctil (mantener presionado ~180 ms y mover) -----
       let td = null;
       card.addEventListener("touchstart", e => {
-        if (e.target.closest("button, a, input, textarea, .btn-icon")) return;
+        if (e.target.closest("button, a, input, textarea, select, .btn-icon")) return;
         const t = e.touches[0];
         const rec = U.store.get("kanban", card.dataset.kid);
         td = { fromCol: rec ? rec.columna : null, x: t.clientX, y: t.clientY, active: false,
-          hold: setTimeout(() => { if (td) { td.active = true; card.classList.add("dragging"); } }, 200) };
+          hold: setTimeout(() => { if (td) { td.active = true; card.classList.add("dragging"); } }, 180) };
       }, { passive: true });
       card.addEventListener("touchmove", e => {
         if (!td) return;
@@ -207,20 +219,14 @@
           if (Math.abs(t.clientX - td.x) > 8 || Math.abs(t.clientY - td.y) > 8) { clearTimeout(td.hold); td = null; }
           return;
         }
-        e.preventDefault(); // evita el scroll de la página mientras se arrastra
-        const under = document.elementFromPoint(t.clientX, t.clientY);
-        const drop = under && under.closest(".kanban__drop");
-        if (drop) {
-          const ref = afterCard(drop, t.clientY);
-          if (ref == null) drop.appendChild(card); else drop.insertBefore(card, ref);
-          root.querySelectorAll(".kanban__col").forEach(c => c.classList.toggle("drag-over", c.contains(drop)));
-        }
+        e.preventDefault();
+        moveDragCard(card, t.clientX, t.clientY);
       }, { passive: false });
       const endTouch = () => {
         if (!td) return;
         clearTimeout(td.hold);
         const was = td.active, from = td.fromCol; td = null;
-        root.querySelectorAll(".kanban__col").forEach(c => c.classList.remove("drag-over"));
+        _container.querySelectorAll(".kanban__col").forEach(c => c.classList.remove("drag-over"));
         if (was) {
           card.classList.remove("dragging");
           persistOrder(owner);
@@ -231,39 +237,29 @@
       card.addEventListener("touchend", endTouch);
       card.addEventListener("touchcancel", endTouch);
     });
-
-    // Devuelve la tarjeta que debe quedar DESPUÉS del punto de soltado (según la Y del cursor)
-    function afterCard(drop, y) {
-      const els = [...drop.querySelectorAll(".kcard:not(.dragging)")];
-      let closest = { off: -Infinity, el: null };
-      els.forEach(el => {
-        const box = el.getBoundingClientRect();
-        const off = y - box.top - box.height / 2;
-        if (off < 0 && off > closest.off) closest = { off, el };
-      });
-      return closest.el;
-    }
-
-    root.querySelectorAll(".kanban__drop").forEach(drop => {
-      const col = drop.closest(".kanban__col");
-      drop.addEventListener("dragover", e => {
-        e.preventDefault();
-        if (!dragEl) return;
-        col.classList.add("drag-over");
-        const ref = afterCard(drop, e.clientY);
-        if (ref == null) drop.appendChild(dragEl);
-        else drop.insertBefore(dragEl, ref);
-      });
-      drop.addEventListener("dragleave", e => {
-        if (!drop.contains(e.relatedTarget)) col.classList.remove("drag-over");
-      });
-      drop.addEventListener("drop", e => {
-        e.preventDefault();
-        col.classList.remove("drag-over");
-      });
-    });
   }
 
+  // Devuelve la tarjeta que debe quedar DESPUÉS del punto de soltado (según la Y)
+  function afterCard(drop, y) {
+    const els = [...drop.querySelectorAll(".kcard:not(.dragging)")];
+    let closest = { off: -Infinity, el: null };
+    els.forEach(el => {
+      const box = el.getBoundingClientRect();
+      const off = y - box.top - box.height / 2;
+      if (off < 0 && off > closest.off) closest = { off, el };
+    });
+    return closest.el;
+  }
+  // Reubica la tarjeta arrastrada bajo la posición del cursor/dedo
+  function moveDragCard(card, x, y) {
+    const under = document.elementFromPoint(x, y);
+    const drop = under && under.closest(".kanban__drop");
+    if (drop && _container && _container.contains(drop)) {
+      const ref = afterCard(drop, y);
+      if (ref == null) drop.appendChild(card); else drop.insertBefore(card, ref);
+      _container.querySelectorAll(".kanban__col").forEach(c => c.classList.toggle("drag-over", c.contains(drop)));
+    }
+  }
   // Lee el orden visual del DOM y persiste columna + orden de cada tarjeta en una sola escritura
   function persistOrder(owner) {
     const root = _container;

@@ -200,6 +200,37 @@
     return `<div class="nt-plazo nt-plazo--${kind}"><div class="nt-plazo__v">${arr.length}</div><div class="nt-plazo__l">${label}</div>
       <div class="kpi__sub">${arr.length ? [...new Set(arr.map(p => p.unidad || "—"))].join(" · ") : "Sin unidades"}</div></div>`;
   }
+  const NT_SUBESTADOS = ["En elaboración", "En ejecución", "En revisión", "Aprobado", "Cerrado", "Reabierto", "Suspendido"];
+  const NT_INDICADORES = [
+    "Valoración del riesgo (EMINA/Braden)", "Cambios de posición", "Uso de superficie de apoyo",
+    "Valoración de la piel", "Evaluación nutricional", "Prominencias óseas", "Registro responsable"
+  ];
+  function ntIndRow(r) {
+    const u = ui(); r = r || {};
+    return `<tr data-nirow>
+      <td><select class="input input--sm" data-f="indicador"><option value="">Seleccionar…</option>${NT_INDICADORES.map(o => `<option ${o === (r.indicador || "") ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select></td>
+      <td><input class="input input--sm" data-f="valor" type="number" value="${u.esc(r.valor != null ? r.valor : "")}" placeholder="%" style="max-width:90px"></td>
+      <td class="pf-rep__x"><button type="button" class="btn-icon" data-nirm title="Quitar">🗑️</button></td></tr>`;
+  }
+  function ntIndHTML(rows) {
+    rows = (rows && rows.length) ? rows : [{}];
+    return `<div class="field" style="grid-column:1/-1">
+      <label>Indicadores a trabajar</label>
+      <div class="kpi__sub" style="margin-bottom:.35rem">Elige uno o más indicadores de la Norma Técnica 234 y, si quieres, su resultado (%).</div>
+      <div class="pf-rep" id="nt-inds"><div class="table-wrap"><table class="tbl pf-rep__t"><thead><tr>
+        <th>Indicador</th><th>Resultado %</th><th></th></tr></thead>
+        <tbody>${rows.map(ntIndRow).join("")}</tbody></table></div>
+        <button type="button" class="btn btn--ghost btn--sm" id="nt-addind">+ Agregar indicador</button></div></div>`;
+  }
+  function ntIndParse(rec) {
+    if (rec && Array.isArray(rec.indicadoresLista) && rec.indicadoresLista.length) return rec.indicadoresLista;
+    if (rec && rec.indicadores) return rec.indicadores.split(/[,;]/).map(s => {
+      const m = s.trim().match(/^(.*?)\s*(\d+)\s*%?$/);
+      return m ? { indicador: m[1].trim(), valor: m[2] } : { indicador: s.trim() };
+    }).filter(x => x.indicador);
+    return [];
+  }
+
   function planes234(box) {
     const u = ui();
     const planes = S().all("planesNT234");
@@ -231,18 +262,38 @@
         { key: "indicadores", label: "Indicadores a trabajar", render: (r, u2) => (r.indicadores || "").split(/[,;]/).map(s => s.trim()).filter(Boolean).map(s => `<span class="tag nt-chip">${u2.esc(s)}</span>`).join(" ") || "—" },
         { key: "observaciones", label: "Observaciones", render: (r, u2) => `<div class="nt-obs">${u2.esc(r.observaciones || "—")}</div>` }
       ],
+      wideForm: true,
       fields: [
         { name: "estado", label: "Estado", type: "select", options: ["Pendiente", "En curso", "Entregado", "Completado", "Vencido"] },
-        { name: "subestado", label: "Subestado", hint: "Ej: Cerrado" },
+        { name: "subestado", label: "Subestado", type: "select", options: NT_SUBESTADOS, placeholder: "Sin subestado" },
         { name: "fechaSolicitud", label: "Fecha de solicitud", type: "date", required: true },
         { name: "plazo", label: "Plazo", type: "date" },
         { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
-        { name: "indicadores", label: "Indicadores a trabajar", full: true, hint: "Separa con comas. Ej: Cambios de Posición 52%, Superficie de Apoyo 58%" },
         { name: "responsable", label: "Responsable" },
         { name: "requiereReferente", label: "Necesidad de intervención técnica", type: "select", options: ["No", "Sí"] },
         { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
       ],
       defaults: () => ({ estado: "Pendiente", fechaSolicitud: ui().hoyISO(), requiereReferente: "No" }),
+      onFormMount(m, rec) {
+        const grid = m.querySelector(".form-grid");
+        grid.insertAdjacentHTML("afterend", ntIndHTML(ntIndParse(rec)));
+        const wrap = m.querySelector("#nt-inds");
+        const bindRm = () => wrap.querySelectorAll("[data-nirm]").forEach(b => b.onclick = () => {
+          if (wrap.querySelectorAll("[data-nirow]").length > 1) b.closest("tr").remove();
+          else ui().toast("Debe quedar al menos una fila", "warn");
+        });
+        m.querySelector("#nt-addind").onclick = () => { wrap.querySelector("tbody").insertAdjacentHTML("beforeend", ntIndRow({})); bindRm(); };
+        bindRm();
+      },
+      onBeforeSave(data, rec, m) {
+        const rows = [...m.querySelectorAll("#nt-inds [data-nirow]")].map(tr => ({
+          indicador: (tr.querySelector('[data-f="indicador"]').value || "").trim(),
+          valor: (tr.querySelector('[data-f="valor"]').value || "").trim()
+        })).filter(r => r.indicador);
+        data.indicadoresLista = rows;
+        data.indicadores = rows.map(r => r.indicador + (r.valor !== "" ? " " + r.valor + "%" : "")).join(", ");
+        return data;
+      },
       rowActions: [{ ico: "📨", title: "Solicitar intervención técnica", show: r => r.requiereReferente === "Sí",
         fn: r => U.solicitudes.crearDesde("Norma Técnica 234", { titulo: "Plan de mejora NT 234 · " + (r.unidad || ""), unidad: r.unidad, prioridad: "alta", descripcion: r.observaciones || r.indicadores || "" }, () => {}) }]
     });

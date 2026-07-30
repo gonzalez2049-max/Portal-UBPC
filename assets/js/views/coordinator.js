@@ -412,7 +412,8 @@
       onMount(m) { m.querySelector("[data-save]").onclick = () => {
         const d = u.readForm(m);
         if (!d.titulo) { u.toast("El título es obligatorio", "danger"); return; }
-        d.fecha = new Date(d.fecha).toISOString();
+        // Ancla al mediodía local para que no se corra un día por zona horaria (Chile UTC-3/-4).
+        d.fecha = d.fecha ? new Date(d.fecha + "T12:00:00").toISOString() : "";
         if (hito) S().update("hitos", hito.id, d); else S().insert("hitos", d);
         u.closeModal(); U.router.render();
       }; } });
