@@ -295,31 +295,82 @@
   }
 
   /* ---------- Tendencia ---------- */
-  function tendenciaHTML() {
-    const evals = S().all("evaluacionesRNAO");
-    if (!evals.length) return ui().empty("Sin datos de tendencia todavía.", "Registra evaluaciones RNAO para visualizar la evolución del cumplimiento.", "📈");
-    // Agrupar por guía + unidad (no mezclar indicadores distintos en una misma línea)
+  // Paleta para distinguir guías cuando se muestran "Todas"
+  const TREND_COLORS = ["var(--c-celeste)", "var(--morado)", "var(--naranjo)", "var(--verde)", "var(--rosado)", "var(--c-azul)", "#e0a12f", "#1e9fe0"];
+  let _tendSel = "__all__"; // guía seleccionada en el gráfico ("__all__" = todas)
+
+  function tendenciaGroups() {
     const groups = {};
-    evals.forEach(e => {
+    S().all("evaluacionesRNAO").forEach(e => {
       const key = (e.guia || "Guía") + " · " + (e.unidad || "Unidad");
       (groups[key] = groups[key] || []).push(e);
     });
-    const key = Object.keys(groups)[0];
-    const serieEvals = groups[key].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-    const labels = serieEvals.map(e => e.periodo || ui().fechaCL(e.fecha));
+    return groups;
+  }
+
+  function tendenciaHTML() {
+    const u = ui();
+    const evals = S().all("evaluacionesRNAO");
+    if (!evals.length) return u.empty("Sin datos de tendencia todavía.", "Registra evaluaciones RNAO para visualizar la evolución del cumplimiento.", "📈");
+    const groups = tendenciaGroups();
+    const keys = Object.keys(groups);
+    if (!keys.includes(_tendSel) && _tendSel !== "__all__") _tendSel = "__all__";
+
+    // Selector de guía (Todas o una específica)
+    const selector = `<div class="flex" style="justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;margin:0 0 .6rem">
+        <div style="display:flex;align-items:center;gap:.45rem">
+          <label for="tendSel" class="kpi__sub" style="margin:0">Ver:</label>
+          <select id="tendSel" class="doc-tb__sel" style="min-width:220px">
+            <option value="__all__" ${_tendSel === "__all__" ? "selected" : ""}>Todas las guías</option>
+            ${keys.map(k => `<option value="${u.esc(k)}" ${_tendSel === k ? "selected" : ""}>${u.esc(k)}</option>`).join("")}
+          </select>
+        </div>
+      </div>`;
+
+    const meta = Number((groups[keys[0]][0] || {}).meta) || 90;
+
+    // ----- Modo "Todas": una línea por guía sobre un eje común de períodos -----
+    if (_tendSel === "__all__") {
+      // Eje común: unión de períodos ordenados por fecha
+      const periodMap = {}; // label -> fecha representativa
+      evals.forEach(e => { const lab = e.periodo || u.fechaCL(e.fecha); if (!(lab in periodMap)) periodMap[lab] = new Date(e.fecha); });
+      const labels = Object.keys(periodMap).sort((a, b) => periodMap[a] - periodMap[b]);
+      const series = keys.map((k, i) => {
+        const byLabel = {};
+        groups[k].forEach(e => { byLabel[e.periodo || u.fechaCL(e.fecha)] = globalCumplimiento(e); });
+        return { name: k, color: TREND_COLORS[i % TREND_COLORS.length],
+          values: labels.map(l => (l in byLabel && byLabel[l] != null) ? byLabel[l] : null) };
+      });
+      return `${selector}
+        <div class="card__hint" style="margin-top:0"><strong>Todas las guías</strong> · Meta institucional ${meta}%</div>
+        ${U.charts.lineChart({ labels, series, meta, hideValues: keys.length > 2 })}
+        <p class="narrativo" style="margin:.6rem 0 0"><strong>Interpretación:</strong> Comparación del cumplimiento global de las ${keys.length} guía(s) frente a la meta ${meta}%. Elige una guía en el selector para ver su tendencia en detalle.</p>`;
+    }
+
+    // ----- Modo una guía: su serie temporal -----
+    const key = _tendSel;
+    const serieEvals = groups[key].slice().sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    const labels = serieEvals.map(e => e.periodo || u.fechaCL(e.fecha));
     const values = serieEvals.map(e => globalCumplimiento(e) || 0);
-    const meta = Number(serieEvals[0].meta) || 90;
+    const metaG = Number(serieEvals[0].meta) || 90;
     const last = values[values.length - 1], base = values[0];
-    const interp = values.length < 2 ? "Se requiere al menos un seguimiento para interpretar la tendencia."
+    const interp = values.length < 2 ? "Se requiere al menos un seguimiento para interpretar la tendencia de esta guía."
       : (last >= base ? `Tendencia al alza: de ${base}% (línea base) a ${last}% en el último seguimiento.`
         : `Tendencia a la baja: de ${base}% a ${last}%. Se recomienda reforzar acciones de mejora.`);
+    return `${selector}
+      <div class="card__hint" style="margin-top:0"><strong>${u.esc(key)}</strong> · Meta institucional ${metaG}%</div>
+      ${U.charts.lineChart({ labels, series: [{ name: key, color: "var(--c-celeste)", values }], meta: metaG })}
+      <p class="narrativo" style="margin:.6rem 0 0"><strong>Interpretación:</strong> ${u.esc(interp)}</p>`;
+  }
 
-    return `<div class="card__hint" style="margin-top:0">
-        <strong>${ui().esc(key)}</strong> · Meta institucional ${meta}%
-      </div>
-      ${U.charts.lineChart({ labels, series: [{ name: key, color: "var(--c-celeste)", values }], meta })}
-      <p class="narrativo" style="margin:.6rem 0 0"><strong>Interpretación:</strong> ${ui().esc(interp)}</p>
-      ${Object.keys(groups).length > 1 ? `<p class="kpi__sub">Mostrando la primera serie. Cada indicador/guía se grafica por separado para no mezclar mediciones distintas.</p>` : ""}`;
+  function bindTendencia() {
+    const sel = document.getElementById("tendSel");
+    if (!sel) return;
+    sel.onchange = () => {
+      _tendSel = sel.value;
+      const box = document.getElementById("tendencia");
+      if (box) { box.innerHTML = tendenciaHTML(); bindTendencia(); }
+    };
   }
 
   /* ---------- Actividad reciente ---------- */
@@ -370,6 +421,7 @@
   /* ---------- Binder del Home ---------- */
   function homeBind(root) {
     U.components.kanban.mount(document.getElementById("homeKanban"), "coordinador");
+    bindTendencia();
 
     const addHito = document.getElementById("addHito");
     if (addHito) addHito.onclick = () => hitoForm();

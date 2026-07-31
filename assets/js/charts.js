@@ -49,13 +49,17 @@
         <text x="${w - padR}" y="${y(cfg.meta) - 5}" text-anchor="end" font-size="11" font-weight="700" fill="var(--morado)">Meta ${cfg.meta}%</text>`;
     }
 
+    const showVals = cfg.hideValues !== true;
     const paths = (cfg.series || []).map(s => {
-      const pts = s.values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
-      const dots = s.values.map((v, i) => {
-        const anchor = i === 0 ? "start" : (i === s.values.length - 1 ? "end" : "middle");
-        const dx = i === 0 ? 5 : (i === s.values.length - 1 ? -5 : 0);
-        return `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}"/>
-         <text x="${x(i) + dx}" y="${y(v) - 9}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="${s.color}">${v}%</text>`;
+      // Puntos válidos (omite null/NaN) → permite superponer series con distintos períodos
+      const valid = s.values.map((v, i) => ({ v, i })).filter(o => o.v != null && !isNaN(o.v));
+      const pts = valid.map(o => `${x(o.i)},${y(o.v)}`).join(" ");
+      const dots = valid.map((o, k) => {
+        const first = k === 0, lastp = k === valid.length - 1;
+        const anchor = first ? "start" : (lastp ? "end" : "middle");
+        const dx = first ? 5 : (lastp ? -5 : 0);
+        return `<circle cx="${x(o.i)}" cy="${y(o.v)}" r="4" fill="${s.color}"/>${showVals
+          ? `<text x="${x(o.i) + dx}" y="${y(o.v) - 9}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="${s.color}">${o.v}%</text>` : ""}`;
       }).join("");
       return `<polyline fill="none" stroke="${s.color}" stroke-width="3" points="${pts}"/>${dots}`;
     }).join("");

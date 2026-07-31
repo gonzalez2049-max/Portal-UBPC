@@ -68,7 +68,9 @@
     const globalTxt = global == null ? "—" : global + "%";
     const color = global == null ? "var(--neutral)" : (global >= meta ? "var(--verde)" : (global >= meta - 15 ? "var(--naranjo)" : "var(--danger)"));
     const bajos = inds.slice(0, 2);
-    return `<div class="card" style="border-top:4px solid ${color}">
+    // Filete superior verde para todas las guías (identidad común). El número
+    // grande conserva su color de semáforo para leer el desempeño.
+    return `<div class="card" style="border-top:4px solid var(--verde)">
       <div class="card__head"><div>
         <span class="tag">${u.esc(e.guia || "Guía")}</span>
         <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(e.tipo || "")}</span>
