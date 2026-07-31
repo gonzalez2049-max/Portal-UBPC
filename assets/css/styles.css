@@ -412,6 +412,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   --neutral:#5f7d76; --neutral-bg:#eef4f2;
   --c-azul:#0f8f83; --c-celeste:#12b5a5; --c-turquesa:#37c6a0; --naranjo:#e0912f;
   --verde:#37a04a; --rosado:#e0526f; --morado:#7a5cd0;
+  /* Acentos nuevos (más "bacanes"): para fondos ambientales, chips y detalles */
+  --acc-coral:#ff7a5c; --acc-indigo:#5b6ef5; --acc-cyan:#12c8d0; --acc-lima:#7bd150; --acc-fucsia:#e0559c;
   --radius:15px; --radius-sm:11px;
   --font: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-disp: "Fraunces", Georgia, serif;
@@ -490,9 +492,11 @@ body{ background:
   background-attachment: fixed; }
 /* Capa de blobs pastel (color de marca) */
 body::before{ content:""; position:fixed; inset:0; z-index:-2; pointer-events:none; background:
-  radial-gradient(42vw 42vw at -6% 108%, rgba(18,181,165,.20), transparent 60%),
-  radial-gradient(40vw 40vw at 106% 0%, rgba(122,92,208,.16), transparent 60%),
-  radial-gradient(32vw 32vw at 62% 122%, rgba(55,198,160,.13), transparent 60%); }
+  radial-gradient(44vw 44vw at -6% 108%, rgba(18,181,165,.24), transparent 60%),
+  radial-gradient(40vw 40vw at 106% 2%, rgba(122,92,208,.20), transparent 60%),
+  radial-gradient(30vw 30vw at 6% 2%, rgba(91,110,245,.14), transparent 60%),
+  radial-gradient(28vw 28vw at 98% 96%, rgba(255,122,92,.13), transparent 60%),
+  radial-gradient(32vw 32vw at 62% 122%, rgba(18,200,208,.15), transparent 60%); }
 /* Capa de figuras transparentes (innovación y evidencia científica).
    Marca de agua sutil: se desvanece hacia el centro para respirar
    detrás del contenido y quedar claramente en formato transparente. */
@@ -507,8 +511,8 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
 .franja{ height:5px; }
 
 /* Encabezado glass */
-.app__header{ background: rgba(255,255,255,.72); backdrop-filter: blur(10px); border-bottom:1px solid rgba(255,255,255,.7);
-  box-shadow: 0 10px 24px -18px rgba(18,90,80,.4); }
+.app__header{ background: rgba(255,255,255,.60); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom:1px solid rgba(255,255,255,.55); box-shadow: 0 10px 26px -18px rgba(18,90,80,.4); }
 .brand-mini__logo{ background: var(--g-brand); border-radius:12px; font-family:var(--font-disp); }
 
 /* ============================================================
@@ -573,8 +577,9 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
   color: rgba(255,255,255,.82); text-align:center; }
 
 /* Tarjetas y superficies */
-.card{ border-radius:18px; border:1px solid rgba(255,255,255,.9); background: rgba(255,255,255,.86);
-  backdrop-filter: blur(4px); box-shadow: var(--shadow); transition: transform .28s cubic-bezier(.22,.7,.3,1), box-shadow .28s; }
+.card{ border-radius:18px; border:1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.74);
+  backdrop-filter: blur(11px) saturate(1.25); -webkit-backdrop-filter: blur(11px) saturate(1.25);
+  box-shadow: var(--shadow); transition: transform .28s cubic-bezier(.22,.7,.3,1), box-shadow .28s; }
 .card:hover{ box-shadow: 0 22px 46px -22px rgba(18,90,80,.34); }
 .kpi{ border-left-width:5px; border-radius:16px; }
 .table-wrap{ border-radius:16px; background: rgba(255,255,255,.9); }
@@ -791,17 +796,20 @@ body.night{ color:#e8f5ef;
     radial-gradient(900px 520px at -6% 108%, rgba(18,181,165,.15), transparent),
     linear-gradient(160deg,#0a1714 0%,#0b1520 55%,#120f1c 100%); }
 body.night::before{ background:
-  radial-gradient(42vw 42vw at -6% 108%, rgba(18,181,165,.16), transparent 60%),
-  radial-gradient(40vw 40vw at 106% 0%, rgba(122,92,208,.16), transparent 60%); }
+  radial-gradient(42vw 42vw at -6% 108%, rgba(18,181,165,.18), transparent 60%),
+  radial-gradient(40vw 40vw at 106% 0%, rgba(122,92,208,.18), transparent 60%),
+  radial-gradient(28vw 28vw at 6% 2%, rgba(91,110,245,.16), transparent 60%),
+  radial-gradient(26vw 26vw at 98% 96%, rgba(255,122,92,.10), transparent 60%),
+  radial-gradient(30vw 30vw at 62% 122%, rgba(18,200,208,.13), transparent 60%); }
 body.night::after{ opacity:.26; filter:brightness(2.3) saturate(.65); }
 body.night a{ color:#5fd8c4; }
 body.night h1,body.night h2,body.night h3,body.night h4,
 body.night .section__title,body.night .card__title,body.night .page-head h1,body.night .kpi__value{ color:#eaf5ef; }
-body.night .app__header{ background:rgba(12,24,20,.74); border-bottom-color:rgba(255,255,255,.06); }
+body.night .app__header{ background:rgba(12,24,20,.62); border-bottom-color:rgba(255,255,255,.06); }
 body.night .brand-mini__txt strong{ color:#eaf5ef; }
 body.night .brand-mini__txt span{ color:#8aa89e; }
 body.night .header__user-txt strong{ color:#eaf5ef; }
-body.night .card{ background:rgba(18,32,28,.82); border-color:rgba(255,255,255,.07); }
+body.night .card{ background:rgba(18,32,28,.70); border-color:rgba(255,255,255,.09); }
 body.night .card__hint,body.night .kpi__sub,body.night .section__hint,body.night .muted{ color:#8fa89e; }
 body.night .kpi__label{ color:#a9c4bb; }
 body.night .table-wrap{ background:rgba(16,30,26,.85); border-color:rgba(255,255,255,.07); }
@@ -1567,8 +1575,10 @@ body.night .doc-tpl,body.night .doc-card{ background:rgba(24,38,34,.9); border-c
 /* Editor */
 /* Barra de Herramientas FIJA: todo el bloque de controles queda arriba y sólo
    la hoja se desplaza al bajar. */
-.doc-tools{ position:sticky; top:66px; z-index:40; background:var(--surface); padding:.55rem .6rem .5rem;
-  margin:-.4rem 0 1rem; border:1px solid var(--border); border-radius:14px; box-shadow:0 6px 18px -12px rgba(15,90,80,.35); }
+.doc-tools{ position:sticky; top:66px; z-index:40; background:rgba(255,255,255,.68); backdrop-filter:blur(14px) saturate(1.3);
+  -webkit-backdrop-filter:blur(14px) saturate(1.3); padding:.55rem .6rem .5rem;
+  margin:-.4rem 0 1rem; border:1px solid rgba(255,255,255,.6); border-radius:14px; box-shadow:0 8px 22px -12px rgba(15,90,80,.4); }
+body.night .doc-tools{ background:rgba(14,26,22,.72); border-color:rgba(255,255,255,.08); }
 .doc-bar{ display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.55rem; }
 .doc-bar__title{ flex:1; }
 .doc-tb{ display:flex; align-items:center; gap:.15rem; flex-wrap:wrap;
