@@ -18,6 +18,7 @@
     colaboracion: { ic: "🌐", c: "#1554b8", lab: "Colaboración" },
     medicion: { ic: "📏", c: "#0891b2", lab: "Medición de indicador" },
     protocolo: { ic: "📋", c: "#be185d", lab: "Revisión de protocolo" },
+    champion: { ic: "⭐", c: "#ca8a04", lab: "Convocatoria Champions" },
     propio: { ic: "📌", c: "#e0526f", lab: "Evento propio" }
   };
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -43,6 +44,7 @@
     s.all("evaluacionesRNAO").forEach(r => push(r.proximaMedicion, "Próxima evaluación · " + (r.guia || "") + (r.unidad ? " (" + r.unidad + ")" : ""), "evalRNAO", "#/coord/m3"));
     s.all("kanban").forEach(r => push(r.fechaLimite, r.titulo || r.tarea || "Tarea", "tarea", "#/coord/home", { deadline: true, done: /complet/i.test(r.columna || "") }));
     s.all("actividades").forEach(r => push(r.fecha, "Capacitación · " + (r.actividad || ""), "capacitacion", "#/coord/m4"));
+    s.all("convocatoriaChampion").forEach(r => push(r.fecha, "Champions · " + (r.tipo || "Convocatoria") + (r.tema ? " · " + r.tema : ""), "champion", "#/coord/m3?tab=champion"));
     s.all("colaboraciones").forEach(r => push(r.fecha, "Colaboración · " + (r.institucion || ""), "colaboracion", "#/coord/m5?tab=colaboraciones"));
     s.all("agendaEventos").forEach(r => push(r.fecha, r.titulo || "Evento", "propio", null, { propio: true, id: r.id, hora: r.hora, nota: r.nota }));
     // Próxima medición de cada indicador según su periodicidad
