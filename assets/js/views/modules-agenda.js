@@ -231,6 +231,19 @@
         u.confirmDelete("¿Eliminar este evento?", () => { S().remove("agendaEventos", b.dataset.evdel); draw(); }));
     };
     draw();
+
+    // Al llegar desde "Próximos pasos" (tareas vencidas): resalta con una
+    // lucecita intermitente lo que está vencido, para ubicarlo de inmediato.
+    if (/[?&]focus=vencidos/.test(location.hash)) {
+      setTimeout(() => {
+        const card = container.querySelector(".agc-venc") || container.querySelector(".kpi--danger");
+        if (card) {
+          card.classList.add("is-spotlight");
+          try { card.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+          setTimeout(() => card.classList.remove("is-spotlight"), 5400);
+        }
+      }, 120);
+    }
   }
 
   function kpi(label, value, sub, kind, icon) {

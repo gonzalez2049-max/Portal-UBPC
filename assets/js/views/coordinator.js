@@ -142,7 +142,7 @@
     const items = [];
     if (borradores) items.push({ ico: "✏️", n: borradores, txt: `documento(s) en borrador por revisar y aprobar`, href: "#/coord/m1?tab=docs", cta: "Revisar", kind: "info" });
     if (aprobados) items.push({ ico: "✔️", n: aprobados, txt: `documento(s) aprobado(s) por finalizar y codificar`, href: "#/coord/m1?tab=docs", cta: "Finalizar", kind: "info" });
-    if (st2.vencidas) items.push({ ico: "⏱️", n: st2.vencidas, txt: `tarea(s) o acción(es) vencida(s)`, href: "#/coord/agenda", cta: "Revisar", kind: "danger" });
+    if (st2.vencidas) items.push({ ico: "⏱️", n: st2.vencidas, txt: `tarea(s) o acción(es) vencida(s)`, href: "#/coord/agenda?focus=vencidos", cta: "Revisar", kind: "danger" });
     if (st2.solPend) items.push({ ico: "📨", n: st2.solPend, txt: `solicitud(es) técnica(s) en gestión`, href: "#/coord/enlace", cta: "Ver", kind: "warn" });
     if (prox7) items.push({ ico: "🗓️", n: prox7, txt: `evento(s) programado(s) en los próximos 7 días`, href: "#/coord/agenda", cta: "Ver agenda", kind: "info" });
 
