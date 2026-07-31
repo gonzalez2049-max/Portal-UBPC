@@ -338,11 +338,11 @@
       const d = S().get("docsTrabajo", params.doc);
       if (d) { openEditor(container, d); return; }
     }
-    renderList(container);
+    renderList(container, params);
   }
 
   /* ---------- Listado + galería de plantillas ---------- */
-  function renderList(container) {
+  function renderList(container, params) {
     const u = ui();
     const docs = S().all("docsTrabajo").sort((a, b) => new Date(b.fechaModificacion || 0) - new Date(a.fechaModificacion || 0));
     const gallery = Object.keys(PLANTILLAS).map(k => {
@@ -357,7 +357,7 @@
       ? `<div class="grid grid--3">${docs.map(d => {
           const p = plMeta(d.plantilla);
           const dst = estadoDe(d);
-          return `<div class="doc-card" style="--tc:${p.color}">
+          return `<div class="doc-card" data-estado="${u.esc(d.estado || "borrador")}" style="--tc:${p.color}">
             <div class="doc-card__top"><span class="doc-card__ic">${p.ic}</span>
               <span class="doc-card__tag">${u.esc(p.label)}</span>
               <span class="doc-estado doc-estado--sm" style="--ec:${dst.color}">${dst.ic} ${u.esc(dst.label)}</span></div>
@@ -380,6 +380,19 @@
     container.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openEditor(container, S().get("docsTrabajo", b.dataset.open)));
     container.querySelectorAll("[data-del]").forEach(b => b.onclick = () =>
       u.confirmDelete("¿Eliminar este documento?", () => { S().remove("docsTrabajo", b.dataset.del); renderList(container); }));
+
+    // Lucecita: al llegar desde "Próximos pasos", resalta los documentos del estado pedido
+    if (params && params.focus) {
+      const target = { borradores: "borrador", aprobados: "aprobado" }[params.focus];
+      if (target) {
+        const cards = [...container.querySelectorAll('.doc-card[data-estado="' + target + '"]')];
+        if (cards.length) {
+          cards.forEach(c => c.classList.add("is-spotlight"));
+          setTimeout(() => { try { cards[0].scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {} }, 100);
+          setTimeout(() => cards.forEach(c => c.classList.remove("is-spotlight")), 5400);
+        }
+      }
+    }
   }
 
   /* ---------- Flujo documental (Etapa 4) ---------- */

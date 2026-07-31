@@ -156,6 +156,17 @@
     // Panel completo de solicitudes (antes era el módulo "Solicitudes técnicas")
     const box = document.getElementById("enl-sol-body");
     if (box && U.solicitudes) U.solicitudes.coordPanel(box);
+
+    // Lucecita: al llegar desde "Próximos pasos", resalta el panel de solicitudes.
+    // Se apunta al panel interno (no a la .section, hija directa de app__main cuya
+    // animación de entrada taparía el parpadeo).
+    if (box && /[?&]focus=solicitudes/.test(location.hash)) {
+      setTimeout(() => {
+        box.classList.add("is-spotlight");
+        try { box.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+        setTimeout(() => box.classList.remove("is-spotlight"), 5400);
+      }, 140);
+    }
   }
 
   // Registrar en el portal del Coordinador
