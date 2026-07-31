@@ -611,17 +611,106 @@
   }
 
   /* ===================== RED CHAMPION ===================== */
-  function championTab(box) {
-    U.components.resource.mount(box, {
+  /* ===================== RED CHAMPION + PARTICIPACIÓN (híbrido) =====================
+     1) Registro del champion (quién es).
+     2) Bitácora de participación individual (qué hace).
+     3) Convocatorias (reuniones/capacitaciones) con lista de asistencia → tasa real.
+     Los indicadores (nivel de actividad, % activos, tasa de asistencia) se calculan
+     a partir de (2) y (3). */
+  const CH_TIPOS = ["Reunión de la red", "Capacitación dictada", "Capacitación recibida", "Auditoría / ronda", "Difusión / sensibilización", "Otra"];
+  const CH_ROLES = ["Asistió", "Lideró"];
+  const CH_CONV_TIPOS = ["Reunión de la red", "Capacitación", "Auditoría / ronda", "Difusión / sensibilización", "Otra"];
+
+  // Eventos de participación de un champion (bitácora + convocatorias a las que asistió)
+  function champEventos(champId) {
+    const bit = S().all("participacionChampion").filter(p => p.championId === champId)
+      .map(p => ({ fecha: p.fecha, horas: Number(p.horas) || 0, tipo: p.tipo, rol: p.rol, tema: p.tema, origen: "bitacora", id: p.id, evidencia: p.evidencia }));
+    const conv = S().all("convocatoriaChampion").filter(c => (c.asistentes || []).includes(champId))
+      .map(c => ({ fecha: c.fecha, horas: Number(c.horas) || 0, tipo: c.tipo, rol: "Asistió", tema: c.tema, origen: "convocatoria", id: c.id }));
+    return bit.concat(conv).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  }
+  const NIVEL = {
+    activo: { label: "Activo", color: "var(--verde)", ic: "🟢" },
+    riesgo: { label: "En riesgo", color: "var(--naranjo)", ic: "🟡" },
+    inactivo: { label: "Inactivo", color: "var(--danger)", ic: "🔴" }
+  };
+  function champStats(champId) {
+    const evs = champEventos(champId);
+    const horas = evs.reduce((a, e) => a + (e.horas || 0), 0);
+    const ultima = evs.length ? new Date(evs[0].fecha) : null;
+    const dias = ultima ? Math.floor((Date.now() - ultima.getTime()) / 86400000) : null;
+    const lidera = evs.filter(e => /lider/i.test(e.rol || "")).length;
+    const nivel = dias == null ? "inactivo" : (dias <= 60 ? "activo" : (dias <= 120 ? "riesgo" : "inactivo"));
+    return { total: evs.length, horas, ultima, dias, lidera, nivel };
+  }
+  // Asistencia a convocatorias donde el champion fue convocado
+  function champAsistencia(champId) {
+    const conv = S().all("convocatoriaChampion").filter(c => (c.convocados || []).includes(champId));
+    const asis = conv.filter(c => (c.asistentes || []).includes(champId)).length;
+    return { convocado: conv.length, asistio: asis, tasa: conv.length ? Math.round(asis / conv.length * 100) : null };
+  }
+
+  function championTab(box) { renderChampion(box); }
+
+  function renderChampion(box) {
+    const u = ui();
+    box.innerHTML = `
+      <div id="ch-kpis" style="margin-bottom:1rem"></div>
+      <div class="section">
+        <div class="section__head"><div><h3 class="section__title">Red de Champions</h3>
+          <p class="section__hint">Referentes clínicos por unidad y guía. Usa <strong>📋</strong> para ver y registrar su participación.</p></div></div>
+        <div id="ch-registry"></div>
+      </div>
+      <div class="section">
+        <div class="section__head"><div><h3 class="section__title">Convocatorias · reuniones y capacitaciones</h3>
+          <p class="section__hint">Crea la instancia y marca la asistencia; el portal calcula la tasa de participación.</p></div></div>
+        <div id="ch-convoc"></div>
+      </div>`;
+    renderChampKpis(document.getElementById("ch-kpis"));
+    mountRegistry(document.getElementById("ch-registry"), box);
+    mountConvoc(document.getElementById("ch-convoc"), box);
+  }
+
+  function renderChampKpis(el) {
+    const u = ui();
+    const champs = S().all("redChampion").filter(c => c.estado !== "Inactivo");
+    const total = champs.length;
+    const activos = champs.filter(c => champStats(c.id).nivel === "activo").length;
+    const pctActivos = total ? Math.round(activos / total * 100) : null;
+    // Tasa de asistencia global a convocatorias
+    const conv = S().all("convocatoriaChampion");
+    let cono = 0, asi = 0;
+    conv.forEach(c => { cono += (c.convocados || []).length; asi += (c.asistentes || []).length; });
+    const tasa = cono ? Math.round(asi / cono * 100) : null;
+    // Participaciones del mes en curso
+    const now = new Date(), mes = now.getMonth(), anio = now.getFullYear();
+    const enMes = d => { const x = new Date(d); return x.getMonth() === mes && x.getFullYear() === anio; };
+    const partMes = S().all("participacionChampion").filter(p => enMes(p.fecha)).length
+      + conv.filter(c => enMes(c.fecha)).reduce((a, c) => a + (c.asistentes || []).length, 0);
+    const card = (lab, val, sub, color) => `<div class="card kpi" style="border-left-color:${color || "var(--c-celeste)"}">
+      <div class="kpi__label">${lab}</div><div class="kpi__value">${val}</div><div class="kpi__sub">${sub}</div></div>`;
+    el.innerHTML = `<div class="grid grid--kpi">
+      ${card("Champions activos", total, "Registrados en la red", "var(--c-celeste)")}
+      ${card("% con actividad reciente", pctActivos == null ? "—" : pctActivos + "%", activos + " participaron ≤60 días", pctActivos != null && pctActivos >= 60 ? "var(--verde)" : "var(--naranjo)")}
+      ${card("Tasa de asistencia", tasa == null ? "—" : tasa + "%", conv.length + " convocatoria(s)", tasa != null && tasa >= 70 ? "var(--verde)" : "var(--naranjo)")}
+      ${card("Participaciones del mes", partMes, "Bitácora + asistencias", "var(--morado)")}
+    </div>`;
+  }
+
+  function mountRegistry(el, box) {
+    const u = ui();
+    U.components.resource.mount(el, {
       collection: "redChampion", title: "Champion", icon: "⭐",
-      hint: "Red de Champions (referentes clínicos) por unidad y guía.",
-      newLabel: "Nuevo champion",
+      hint: "", newLabel: "Nuevo champion",
       emptyMsg: "Aún no hay Champions registrados.",
+      afterChange: () => renderChampion(box),
       columns: [
         { key: "nombre", label: "Nombre" },
-        { key: "estamento", label: "Estamento", render: (r, u) => `<span class="tag">${u.esc(r.estamento || "—")}</span>` },
         { key: "unidad", label: "Unidad" },
-        { key: "guia", label: "Guía" },
+        { key: "guia", label: "Guía", render: (r, uu) => { const g = U.data.guiaColor(r.guia); return `<span class="tag" style="background:${g}1f;color:${g};border:1px solid ${g}55">${uu.esc(r.guia || "—")}</span>`; } },
+        { key: "part", label: "Participaciones", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${s.horas}h`; }, exportVal: r => champStats(r.id).total },
+        { key: "ultima", label: "Última", center: true, render: (r, uu) => { const s = champStats(r.id); return s.ultima ? `${uu.fechaCL(s.ultima)}<br><span class="kpi__sub">hace ${s.dias} d</span>` : "—"; }, exportVal: r => { const s = champStats(r.id); return s.ultima ? ui().fechaCL(s.ultima) : ""; } },
+        { key: "nivel", label: "Actividad", center: true, render: r => { const n = NIVEL[champStats(r.id).nivel]; return `<span class="doc-estado" style="--ec:${n.color}">${n.ic} ${n.label}</span>`; }, exportVal: r => NIVEL[champStats(r.id).nivel].label },
         { key: "estado", label: "Estado", badge: true }
       ],
       fields: [
@@ -629,11 +718,139 @@
         { name: "estamento", label: "Estamento", type: "select", options: CAT().estamentos },
         { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
         { name: "guia", label: "Guía", type: "select", options: CAT().guiasArea },
+        { name: "fechaNombramiento", label: "Fecha de nombramiento", type: "date" },
         { name: "contacto", label: "Contacto" },
         { name: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] }
       ],
-      defaults: () => ({ estado: "Activo" })
+      defaults: () => ({ estado: "Activo" }),
+      rowActions: [
+        { ico: "📋", title: "Ver / registrar participación", fn: (rec) => bitacoraModal(rec, box) }
+      ]
     });
+  }
+
+  // Modal de bitácora individual del champion
+  function bitacoraModal(champ, box) {
+    const u = ui();
+    const render = () => {
+      const evs = champEventos(champ.id);
+      const s = champStats(champ.id), a = champAsistencia(champ.id);
+      const n = NIVEL[s.nivel];
+      const filas = evs.length ? evs.map(e => `<tr>
+          <td>${u.fechaCL(e.fecha)}</td><td>${u.esc(e.tipo || "—")}</td>
+          <td>${u.esc(e.tema || "—")}</td><td class="num">${e.horas || 0}h</td>
+          <td>${/lider/i.test(e.rol || "") ? "⭐ Lideró" : "Asistió"}</td>
+          <td class="right">${e.origen === "bitacora" ? `<button class="btn-icon" data-delp="${e.id}" title="Quitar">🗑️</button>` : `<span class="tag" title="Desde convocatoria">📅</span>`}</td>
+        </tr>`).join("") : `<tr><td colspan="6" class="muted">Sin participaciones registradas todavía.</td></tr>`;
+      return `<div class="dl" style="margin-bottom:.6rem">
+          <div><span>Participaciones</span><strong>${s.total} · ${s.horas}h</strong></div>
+          <div><span>Última</span><strong>${s.ultima ? u.fechaCL(s.ultima) + " (hace " + s.dias + " d)" : "—"}</strong></div>
+          <div><span>Actividad</span><strong style="color:${n.color}">${n.ic} ${n.label}</strong></div>
+          <div><span>Asistencia a convocatorias</span><strong>${a.tasa == null ? "—" : a.asistio + "/" + a.convocado + " (" + a.tasa + "%)"}</strong></div>
+        </div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Tipo</th><th>Tema</th><th class="right">Horas</th><th>Rol</th><th></th></tr></thead>
+          <tbody>${filas}</tbody></table></div>
+        <p class="kpi__sub" style="margin:.5rem 0 .2rem">Las entradas con 📅 provienen de convocatorias (se editan en esa sección).</p>`;
+    };
+    const refreshBehind = () => { if (box) renderChampion(box); };
+    const openForm = () => bitacoraForm(champ, () => { u.closeModal(); refreshBehind(); bitacoraModal(champ, box); });
+    u.modal({
+      title: "Participación · " + (champ.nombre || "Champion"), wide: true,
+      body: render(),
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button><button class="btn btn--primary" data-add>+ Registrar participación</button>`,
+      onMount(m) {
+        m.querySelector("[data-add]").onclick = openForm;
+        m.querySelectorAll("[data-delp]").forEach(b => b.onclick = () =>
+          u.confirmDelete("¿Quitar esta participación?", () => { S().remove("participacionChampion", b.dataset.delp); u.closeModal(); refreshBehind(); bitacoraModal(champ, box); }));
+      }
+    });
+  }
+  function bitacoraForm(champ, onDone) {
+    const u = ui();
+    u.modal({
+      title: "Nueva participación · " + (champ.nombre || ""),
+      body: u.formHTML([
+        { name: "fecha", label: "Fecha", type: "date", value: u.hoyISO(), required: true },
+        { name: "tipo", label: "Tipo", type: "select", options: CH_TIPOS, required: true },
+        { name: "rol", label: "Rol", type: "select", options: CH_ROLES },
+        { name: "horas", label: "Horas", type: "number" },
+        { name: "tema", label: "Tema / actividad", full: true },
+        { name: "evidencia", label: "Evidencia / enlace", full: true }
+      ], { rol: "Asistió" }),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.fecha || !d.tipo) { u.toast("Fecha y tipo son obligatorios", "danger"); return; }
+          S().insert("participacionChampion", Object.assign({ championId: champ.id }, d));
+          u.toast("Participación registrada", "ok");
+          if (onDone) onDone();
+        };
+      }
+    });
+  }
+
+  // Convocatorias con lista de asistencia
+  function mountConvoc(el, box) {
+    const u = ui();
+    U.components.resource.mount(el, {
+      collection: "convocatoriaChampion", title: "Convocatoria", icon: "📅",
+      hint: "", newLabel: "Nueva convocatoria", wideForm: true,
+      emptyMsg: "Aún no hay convocatorias registradas.",
+      emptySub: "Crea una reunión o capacitación y marca la asistencia de los Champions.",
+      afterChange: () => renderChampion(box),
+      columns: [
+        { key: "fecha", label: "Fecha", date: true },
+        { key: "tipo", label: "Tipo" },
+        { key: "tema", label: "Tema" },
+        { key: "guia", label: "Guía", render: (r, uu) => r.guia ? (() => { const g = U.data.guiaColor(r.guia); return `<span class="tag" style="background:${g}1f;color:${g};border:1px solid ${g}55">${uu.esc(r.guia)}</span>`; })() : "—" },
+        { key: "asist", label: "Asistencia", center: true, render: r => { const co = (r.convocados || []).length, as = (r.asistentes || []).length; const t = co ? Math.round(as / co * 100) : null; const col = t == null ? "var(--neutral)" : (t >= 70 ? "var(--verde)" : "var(--naranjo)"); return `<strong style="color:${col}">${as}/${co}</strong>${t == null ? "" : " · " + t + "%"}`; }, exportVal: r => (r.asistentes || []).length + "/" + (r.convocados || []).length }
+      ],
+      fields: [
+        { name: "fecha", label: "Fecha", type: "date", value: u.hoyISO(), required: true },
+        { name: "tipo", label: "Tipo", type: "select", options: CH_CONV_TIPOS, required: true },
+        { name: "tema", label: "Tema / motivo", full: true },
+        { name: "unidad", label: "Unidad", type: "select", options: ["—"].concat(CAT().unidades) },
+        { name: "guia", label: "Guía", type: "select", options: ["—"].concat(CAT().guiasArea) },
+        { name: "horas", label: "Horas", type: "number" }
+      ],
+      defaults: () => ({ fecha: u.hoyISO() }),
+      onFormMount: (m, rec) => injectAsistencia(m, rec),
+      onBeforeSave: (data, rec, m) => {
+        const conv = [], asis = [];
+        m.querySelectorAll("[data-champ]").forEach(row => {
+          const id = row.dataset.champ;
+          if (row.querySelector("[data-conv]").checked) conv.push(id);
+          if (row.querySelector("[data-asis]").checked) asis.push(id);
+        });
+        data.convocados = conv; data.asistentes = asis;
+        if (data.unidad === "—") data.unidad = "";
+        if (data.guia === "—") data.guia = "";
+        return data;
+      }
+    });
+  }
+  // Inyecta la lista de asistencia (Convocado / Asistió) en el formulario de convocatoria
+  function injectAsistencia(m, rec) {
+    const u = ui();
+    const champs = S().all("redChampion").filter(c => c.estado !== "Inactivo").sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+    rec = rec || {};
+    const conv = rec.convocados || [], asis = rec.asistentes || [];
+    const rows = champs.length ? champs.map(c => {
+      const g = U.data.guiaColor(c.guia);
+      const isConv = rec.id ? conv.includes(c.id) : true; // por defecto, todos convocados en una nueva
+      const isAsis = asis.includes(c.id);
+      return `<tr data-champ="${c.id}">
+        <td>${u.esc(c.nombre)}<br><span class="kpi__sub">${u.esc(c.unidad || "")}${c.guia ? ` · <span style="color:${g}">${u.esc(c.guia)}</span>` : ""}</span></td>
+        <td class="res-center"><input type="checkbox" data-conv ${isConv ? "checked" : ""}></td>
+        <td class="res-center"><input type="checkbox" data-asis ${isAsis ? "checked" : ""}></td></tr>`;
+    }).join("") : `<tr><td colspan="3" class="muted">No hay Champions activos. Registra Champions primero.</td></tr>`;
+    const html = `<div class="pf-rep" style="margin-top:.4rem">
+      <div class="pf-rep-lbl">Lista de asistencia <span class="pf-help">Marca a quién se convocó y quién asistió. La tasa se calcula automáticamente.</span></div>
+      <div class="table-wrap"><table class="tbl"><thead><tr><th>Champion</th><th class="res-center">Convocado</th><th class="res-center">Asistió</th></tr></thead>
+        <tbody>${rows}</tbody></table></div></div>`;
+    const grid = m.querySelector(".form-grid");
+    if (grid) grid.insertAdjacentHTML("afterend", html); else m.querySelector(".modal__body").insertAdjacentHTML("beforeend", html);
   }
 
   /* ===================== ÍNDICE DE IMPLEMENTACIÓN ===================== */
@@ -648,18 +865,23 @@
       const unidades = new Set(eg.map(e => e.unidad).filter(x => x && x !== "Todas las unidades"));
       const globals = eg.map(e => CS().globalCumplimiento(e)).filter(x => x != null);
       const prom = globals.length ? Math.round(globals.reduce((a, b) => a + b, 0) / globals.length) : null;
-      const champ = champions.filter(c => c.guia === g).length;
-      // índice compuesto simple (0-100): cumplimiento (60%) + cobertura de seguimiento (25%) + champions (15%)
-      const idx = prom == null ? 0 : Math.round(prom * 0.6 + Math.min(unidades.size, 5) / 5 * 25 + Math.min(champ, 5) / 5 * 15);
-      return { g, unidades: unidades.size, seg: seg.length, prom, champ, idx };
+      const champG = champions.filter(c => c.guia === g);
+      const champ = champG.length;
+      // Champions con actividad reciente (nivel "activo") → mide participación, no sólo presencia
+      const activos = champG.filter(c => champStats(c.id).nivel === "activo").length;
+      // índice compuesto (0-100): cumplimiento 60% + cobertura seguimiento 25% + participación Champion 15%.
+      // El componente Champion premia a los ACTIVOS (participación), no la mera cantidad.
+      const champScore = champ ? (activos / champ) * Math.min(champ, 3) / 3 : 0;
+      const idx = prom == null ? 0 : Math.round(prom * 0.6 + Math.min(unidades.size, 5) / 5 * 25 + champScore * 15);
+      return { g, unidades: unidades.size, seg: seg.length, prom, champ, activos, idx };
     });
-    box.innerHTML = `<p class="section__hint">Índice compuesto por guía: cumplimiento (60%), cobertura de seguimiento (25%) y Red Champion (15%).</p>
+    box.innerHTML = `<p class="section__hint">Índice compuesto por guía: cumplimiento (60%), cobertura de seguimiento (25%) y participación de la Red Champion (15%, según Champions activos).</p>
       <div class="table-wrap"><table class="tbl"><thead><tr>
-        <th>Guía</th><th class="right">Unidades</th><th class="right">Seguimientos</th><th class="right">Cumplimiento prom.</th><th class="right">Champions</th><th class="right">Índice</th></tr></thead><tbody>
-        ${filas.map(f => `<tr><td><span class="tag">${u.esc(f.g)}</span></td>
+        <th>Guía</th><th class="right">Unidades</th><th class="right">Seguimientos</th><th class="right">Cumplimiento prom.</th><th class="right">Champions (activos)</th><th class="right">Índice</th></tr></thead><tbody>
+        ${filas.map(f => { const gc = U.data.guiaColor(f.g); return `<tr><td><span class="tag" style="background:${gc}1f;color:${gc};border:1px solid ${gc}55">${u.esc(f.g)}</span></td>
           <td class="num">${f.unidades}</td><td class="num">${f.seg}</td>
-          <td class="num">${f.prom != null ? f.prom + "%" : "—"}</td><td class="num">${f.champ}</td>
-          <td class="num"><strong style="color:${f.idx >= 75 ? "var(--verde)" : f.idx >= 50 ? "var(--naranjo)" : "var(--danger)"}">${f.idx}</strong></td></tr>`).join("")}
+          <td class="num">${f.prom != null ? f.prom + "%" : "—"}</td><td class="num">${f.champ} <span class="kpi__sub">(${f.activos})</span></td>
+          <td class="num"><strong style="color:${f.idx >= 75 ? "var(--verde)" : f.idx >= 50 ? "var(--naranjo)" : "var(--danger)"}">${f.idx}</strong></td></tr>`; }).join("")}
       </tbody></table></div>`;
   }
 
