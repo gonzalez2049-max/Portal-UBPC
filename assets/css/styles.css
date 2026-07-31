@@ -284,7 +284,10 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   min-width:18px; height:18px; border-radius:9px; display:grid; place-items:center; padding:0 4px; }
 
 /* Main */
-.app__main { padding: 1.3rem 1.5rem 3rem; overflow-x: hidden; }
+/* overflow-x:clip (no 'hidden') recorta el desborde horizontal SIN convertir a
+   .app__main en un contenedor de scroll — así los elementos sticky (como la
+   barra de herramientas del editor) se fijan respecto a la ventana. */
+.app__main { padding: 1.3rem 1.5rem 3rem; overflow-x: clip; }
 .page-head { margin-bottom: 1.1rem; }
 .page-head h1 { font-size: 1.45rem; margin:0; }
 .page-head p { color: var(--text-muted); font-size: 14px; margin:.2rem 0 0; }
@@ -1564,7 +1567,7 @@ body.night .doc-tpl,body.night .doc-card{ background:rgba(24,38,34,.9); border-c
 /* Editor */
 /* Barra de Herramientas FIJA: todo el bloque de controles queda arriba y sólo
    la hoja se desplaza al bajar. */
-.doc-tools{ position:sticky; top:52px; z-index:40; background:var(--surface); padding:.55rem .6rem .5rem;
+.doc-tools{ position:sticky; top:66px; z-index:40; background:var(--surface); padding:.55rem .6rem .5rem;
   margin:-.4rem 0 1rem; border:1px solid var(--border); border-radius:14px; box-shadow:0 6px 18px -12px rgba(15,90,80,.35); }
 .doc-bar{ display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.55rem; }
 .doc-bar__title{ flex:1; }
@@ -1610,7 +1613,7 @@ body.night .doc-tb__btn:hover{ background:rgba(18,181,165,.18); color:#7fe0d0; }
 .doc-page__body td{ padding:6px 8px; border:1px solid #e2e9f0; }
 /* La página del documento se mantiene clara aunque el portal esté en modo oscuro */
 body.night .doc-page{ background:#fff; }
-@media (max-width:860px){ .doc-tools{ top:48px; } .doc-page__title,.doc-page__body{ padding-left:1rem; padding-right:1rem; margin-left:1rem; margin-right:1rem; width:auto; } }
+@media (max-width:860px){ .doc-tools{ top:58px; } .doc-page__title,.doc-page__body{ padding-left:1rem; padding-right:1rem; margin-left:1rem; margin-right:1rem; width:auto; } }
 
 /* ============================================================
    AGENDA — calendario mensual + lista de eventos
