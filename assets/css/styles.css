@@ -408,7 +408,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   --surface:#ffffff; --surface-2:#f3faf8; --border:#dde9e5; --border-2:#cbddd7;
   --text:#17302b; --text-2:#3f5f58; --text-muted:#6f8880;
   --ok:#1f9d57; --ok-bg:#e4f6ec; --warn:#e0912f; --warn-bg:#fbf1de;
-  --danger:#e0526f; --danger-bg:#fbe6ea; --info:#12b5a5; --info-bg:#e0f6f2;
+  --danger:#e0526f; --danger-bg:#fbe6ea; --info:#176ac0; --info-bg:#e7f0fb;
   --neutral:#5f7d76; --neutral-bg:#eef4f2;
   --c-azul:#0f8f83; --c-celeste:#12b5a5; --c-turquesa:#37c6a0; --naranjo:#e0912f;
   --verde:#37a04a; --rosado:#e0526f; --morado:#7a5cd0;

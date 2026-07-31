@@ -201,6 +201,12 @@
       <div class="kpi__sub">${arr.length ? [...new Set(arr.map(p => p.unidad || "—"))].join(" · ") : "Sin unidades"}</div></div>`;
   }
   const NT_SUBESTADOS = ["En elaboración", "En ejecución", "En revisión", "Aprobado", "Cerrado", "Reabierto", "Suspendido"];
+  // Color propio por subestado para diferenciarlos de un vistazo
+  const NT_SUB_COLOR = {
+    "En elaboración": "#8a94a6", "En ejecución": "#176ac0", "En revisión": "#7a5cd0",
+    "Aprobado": "#1f9d57", "Cerrado": "#0e6b62", "Reabierto": "#e0912f", "Suspendido": "#e0526f"
+  };
+  const ntSubChip = s => { const c = NT_SUB_COLOR[s] || "var(--neutral)"; return `<span class="doc-estado" style="--ec:${c};font-size:.68rem;margin-top:.2rem">${U.ui.esc(s)}</span>`; };
   const NT_INDICADORES = [
     "Valoración del riesgo (EMINA/Braden)", "Cambios de posición", "Uso de superficie de apoyo",
     "Valoración de la piel", "Evaluación nutricional", "Prominencias óseas", "Registro responsable"
@@ -255,7 +261,7 @@
       emptyMsg: "Aún no hay planes de mejora.",
       sort: (a, b) => new Date(b.fechaSolicitud || b.fechaCreacion) - new Date(a.fechaSolicitud || a.fechaCreacion),
       columns: [
-        { key: "estado", label: "Estado", render: (r, u2) => `<span class="badge badge--${/entreg|complet|cerr/i.test(r.estado || "") ? "ok" : new Date(r.plazo) < new Date() ? "danger" : "warn"}">${u2.esc(r.estado || "—")}</span>${r.subestado ? `<div class="kpi__sub">${u2.esc(r.subestado)}</div>` : ""}` },
+        { key: "estado", label: "Estado", render: (r, u2) => `<span class="badge badge--${/entreg|complet|cerr/i.test(r.estado || "") ? "ok" : new Date(r.plazo) < new Date() ? "danger" : "warn"}">${u2.esc(r.estado || "—")}</span>${r.subestado ? `<div>${ntSubChip(r.subestado)}</div>` : ""}` },
         { key: "fechaSolicitud", label: "Fecha solicitud", date: true },
         { key: "plazo", label: "Plazo", date: true },
         { key: "unidad", label: "Unidad" },
