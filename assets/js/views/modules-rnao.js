@@ -69,10 +69,12 @@
     const color = global == null ? "var(--neutral)" : (global >= meta ? "var(--verde)" : (global >= meta - 15 ? "var(--naranjo)" : "var(--danger)"));
     const bajos = inds.slice(0, 2);
     // Filete superior verde para todas las guías (identidad común). El número
-    // grande conserva su color de semáforo para leer el desempeño.
+    // grande conserva su color de semáforo para leer el desempeño. La guía se
+    // distingue por una etiqueta con su color propio.
+    const gc = U.data.guiaColor(e.guia);
     return `<div class="card" style="border-top:4px solid var(--verde)">
       <div class="card__head"><div>
-        <span class="tag">${u.esc(e.guia || "Guía")}</span>
+        <span class="tag" style="background:${gc}1f;color:${gc};border:1px solid ${gc}55"><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${gc};margin-right:5px;vertical-align:middle"></span>${u.esc(e.guia || "Guía")}</span>
         <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(e.tipo || "")}</span>
       </div>${u.estadoBadge(e.estado || (global >= meta ? "Dentro de meta" : "En seguimiento"))}</div>
       <div class="kpi__sub">${u.esc(e.unidad || "—")} · ${u.esc(e.periodo || u.fechaCL(e.fecha))}</div>

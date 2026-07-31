@@ -295,8 +295,9 @@
   }
 
   /* ---------- Tendencia ---------- */
-  // Paleta para distinguir guías cuando se muestran "Todas"
-  const TREND_COLORS = ["var(--c-celeste)", "var(--morado)", "var(--naranjo)", "var(--verde)", "var(--rosado)", "var(--c-azul)", "#e0a12f", "#1e9fe0"];
+  // Color por guía (consistente con las etiquetas de las tarjetas). El morado
+  // queda reservado para la línea de Meta, por eso no se usa aquí.
+  const guiaCol = k => U.data.guiaColor((k || "").split(" · ")[0]);
   let _tendSel = "__all__"; // guía seleccionada en el gráfico ("__all__" = todas)
 
   function tendenciaGroups() {
@@ -335,10 +336,10 @@
       const periodMap = {}; // label -> fecha representativa
       evals.forEach(e => { const lab = e.periodo || u.fechaCL(e.fecha); if (!(lab in periodMap)) periodMap[lab] = new Date(e.fecha); });
       const labels = Object.keys(periodMap).sort((a, b) => periodMap[a] - periodMap[b]);
-      const series = keys.map((k, i) => {
+      const series = keys.map((k) => {
         const byLabel = {};
         groups[k].forEach(e => { byLabel[e.periodo || u.fechaCL(e.fecha)] = globalCumplimiento(e); });
-        return { name: k, color: TREND_COLORS[i % TREND_COLORS.length],
+        return { name: k, color: guiaCol(k),
           values: labels.map(l => (l in byLabel && byLabel[l] != null) ? byLabel[l] : null) };
       });
       return `${selector}

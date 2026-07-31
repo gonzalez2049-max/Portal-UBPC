@@ -103,6 +103,22 @@
     }
   }
 
+  /* ---------- Color de identidad por guía (etiquetas y gráficos) ----------
+     Estable por nombre de guía y consistente en todo el portal. No usa morado:
+     ese color queda reservado para la línea de "Meta institucional". */
+  const GUIA_COLORS = {
+    "Lesiones por presión": "#12b5a5",
+    "Accesos vasculares":   "#e0912f",
+    "Dolor":                "#e0526f"
+  };
+  const GUIA_PALETTE = ["#12b5a5", "#e0912f", "#e0526f", "#37a04a", "#1e9fe0", "#0891b2", "#be185d", "#8a6d3b"];
+  function guiaColor(nombre) {
+    const n = (nombre || "").trim();
+    if (GUIA_COLORS[n]) return GUIA_COLORS[n];
+    let h = 0; for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0;
+    return GUIA_PALETTE[h % GUIA_PALETTE.length];
+  }
+
   window.UBPC = window.UBPC || {};
-  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty };
+  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor };
 })();
