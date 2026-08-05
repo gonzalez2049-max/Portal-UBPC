@@ -58,7 +58,7 @@
     if (critNoMeta) alertas.push(`${critNoMeta} indicador(es) bajo la meta`);
 
     return {
-      global,
+      global, metaInst: metaInstitucional(),
       guiasActivas: s.all("guiasBPSO").filter(g => g.estado === "Activa").length,
       procesosActivos: s.all("apoyoMejora").filter(a => (a.estado || "").toLowerCase() !== "finalizado").length,
       docPendientes: s.all("documentos").filter(d => /revisi|borrador|enviado/i.test(d.estado || "")).length,
@@ -100,7 +100,15 @@
     return (e.indicadores || []).map(i => ({ nombre: i.nombre, pct: pctIndicador(i) }))
       .filter(i => i.pct != null && i.pct < meta);
   }
-  U.coordStats = { stats, globalCumplimiento, pctIndicador, indicadoresBajoMeta };
+  // Meta institucional = la meta más usada entre las evaluaciones (no un valor fijo).
+  // Si el Coordinador cambia la meta en sus evaluaciones, todo el portal lo refleja.
+  function metaInstitucional() {
+    const metas = S().all("evaluacionesRNAO").map(e => Number(e.meta) || 90).filter(m => m > 0);
+    if (!metas.length) return 90;
+    const f = {}; metas.forEach(m => f[m] = (f[m] || 0) + 1);
+    return Number(Object.keys(f).sort((a, b) => f[b] - f[a] || b - a)[0]);
+  }
+  U.coordStats = { stats, globalCumplimiento, pctIndicador, indicadoresBajoMeta, metaInstitucional };
 
   // Cumplimiento promedio por guía BPSO (para el bloom del Home)
   function cumplPorGuia() {
@@ -186,7 +194,7 @@
     const st = stats();
     const globalTxt = st.global == null ? "—" : st.global + "%";
     const globalSub = st.global == null ? "Aún sin evaluaciones registradas"
-      : (st.global >= 90 ? "Dentro de la meta institucional" : "Bajo la meta institucional (90%)");
+      : (st.global >= st.metaInst ? "Dentro de la meta institucional" : "Bajo la meta institucional (" + st.metaInst + "%)");
 
     // HERO BENTO (Nivel 1 — prioridad)
     const me = U.auth.current();
@@ -196,7 +204,7 @@
     const bloomLegend = guias.map((g, i) => `
       <div class="bloom-lg"><i style="background:${GC[i].color}"></i>
       <span class="nm">${u.esc(g.label)}</span><span class="pc">${g.hasData ? g.pct + "%" : "—"}</span></div>`).join("");
-    const globalColor = st.global == null ? "#ffffff" : (st.global >= 90 ? "#eafff7" : "#fff");
+    const globalColor = st.global == null ? "#ffffff" : (st.global >= st.metaInst ? "#eafff7" : "#fff");
     const heroAlertas = st.alertas.length
       ? st.alertas.slice(0, 3).map((a, i) => `<div class="hh-al ${["d","w","i"][i] || "i"}"><span class="dot"></span>${u.esc(a)}</div>`).join("")
       : `<div class="hh-al ok"><span class="dot"></span>No existen alertas activas</div>`;
@@ -218,7 +226,7 @@
       </div>
       <div class="card hh-bloom">
         <div class="hh-bloom__top"><span class="hh-lbl">Cumplimiento por guía</span>
-          ${st.global != null ? `<span class="hh-trend ${st.global >= 90 ? "ok" : "warn"}">Meta 90%</span>` : ""}</div>
+          ${st.global != null ? `<span class="hh-trend ${st.global >= st.metaInst ? "ok" : "warn"}">Meta ${st.metaInst}%</span>` : ""}</div>
         <div class="hh-bloom__mid">
           <div class="ringwrap">${U.charts.bloomRings(bloomSegs, { track: "rgba(255,255,255,.18)", disc: "rgba(9,70,63,.32)" })}
             <div class="ringwrap__ctr"><b style="color:${globalColor}">${globalTxt}</b><span>Global</span></div></div>

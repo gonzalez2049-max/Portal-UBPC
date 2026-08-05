@@ -240,6 +240,7 @@
 
     const globals = evals.map(e => ({ e, g: CS().globalCumplimiento(e) })).filter(x => x.g != null);
     const instituc = globals.length ? Math.round(globals.reduce((a, b) => a + b.g, 0) / globals.length) : null;
+    const metaI = CS().metaInstitucional();
 
     const byKey = (keyFn) => {
       const m = {};
@@ -273,7 +274,7 @@
       <div class="grid grid--2">
         <div class="card center" style="border-top:4px solid var(--azul-700)">
           <h3 class="card__title">Cumplimiento institucional</h3>
-          <div style="display:flex;justify-content:center">${U.charts.gauge(instituc || 0, { meta: 90, label: "Institucional", size: 170 })}</div>
+          <div style="display:flex;justify-content:center">${U.charts.gauge(instituc || 0, { meta: metaI, label: "Institucional", size: 170 })}</div>
           <p class="kpi__sub">Promedio de resultados oficiales de ${globals.length} evaluación(es).</p>
         </div>
         <div class="card">
@@ -289,8 +290,8 @@
         </div>
       </div>
       <div class="grid grid--2" style="margin-top:1rem">
-        <div class="card"><h3 class="card__title">Comparación por guía</h3>${porGuia.length ? U.charts.bars(porGuia, { meta: 90 }) : u.empty("Sin datos por guía.")}</div>
-        <div class="card"><h3 class="card__title">Comparación por unidad</h3>${porUnidad.length ? U.charts.bars(porUnidad, { meta: 90 }) : u.empty("Sin datos por unidad.")}</div>
+        <div class="card"><h3 class="card__title">Comparación por guía</h3>${porGuia.length ? U.charts.bars(porGuia, { meta: metaI }) : u.empty("Sin datos por guía.")}</div>
+        <div class="card"><h3 class="card__title">Comparación por unidad</h3>${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI }) : u.empty("Sin datos por unidad.")}</div>
       </div>
       <div class="grid grid--2" style="margin-top:1rem">
         <div class="card"><h3 class="card__title">Indicadores críticos</h3>
