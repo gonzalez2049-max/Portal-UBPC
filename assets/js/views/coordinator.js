@@ -100,9 +100,11 @@
     return (e.indicadores || []).map(i => ({ nombre: i.nombre, pct: pctIndicador(i) }))
       .filter(i => i.pct != null && i.pct < meta);
   }
-  // Meta institucional = la meta más usada entre las evaluaciones (no un valor fijo).
-  // Si el Coordinador cambia la meta en sus evaluaciones, todo el portal lo refleja.
+  // Meta institucional: valor único configurado por el Coordinador. Si no se ha
+  // configurado, se infiere de las evaluaciones (la más usada) y por defecto 90.
   function metaInstitucional() {
+    const cfg = Number(S().getConfig("metaInstitucional", ""));
+    if (cfg > 0) return cfg;
     const metas = S().all("evaluacionesRNAO").map(e => Number(e.meta) || 90).filter(m => m > 0);
     if (!metas.length) return 90;
     const f = {}; metas.forEach(m => f[m] = (f[m] || 0) + 1);
@@ -621,6 +623,19 @@
         <p class="card__hint">Elige la paleta de color y el modo claro u oscuro. Se aplica en todo el portal y se recuerda en este dispositivo.</p>
         ${U.theme ? U.theme.pickerHTML() : ""}
       </div>
+      <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--morado)">
+        <h3 class="card__title">🎯 Meta institucional de cumplimiento</h3>
+        <p class="card__hint">Un único valor para todo el portal (panel del Home, gauge institucional y comparaciones). Las evaluaciones nuevas la toman como meta por defecto.</p>
+        <div class="btn-row" style="align-items:center;gap:.6rem;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:.3rem">
+            <input type="number" id="metaInstInput" class="input" style="max-width:110px" min="1" max="100" value="${u.esc(U.coordStats.metaInstitucional())}">
+            <strong>%</strong>
+          </div>
+          <button class="btn btn--primary" id="metaInstSave">💾 Guardar meta</button>
+          <button class="btn btn--ghost" id="metaInstApply" title="Iguala la meta de todas las evaluaciones ya registradas">↻ Aplicar a todas las evaluaciones</button>
+        </div>
+        <p class="kpi__sub" style="margin-top:.5rem">Meta actual en uso: <strong>${u.esc(U.coordStats.metaInstitucional())}%</strong>.</p>
+      </div>
       <div class="card" style="margin-bottom:1rem;border-left:5px solid var(--ok)">
         <h3 class="card__title">Guardado en este equipo</h3>
         <p class="card__hint">Todo lo que ingresas (tu nombre, foto, registros y configuración) se guarda automáticamente en este dispositivo. Para que el navegador <strong>no borre</strong> tus datos con el tiempo, mantén activada la protección.</p>
@@ -689,6 +704,35 @@
     if (askPass) askPass.onchange = () => {
       S().setConfig("pedirClaveIngreso", askPass.checked);
       u.toast(askPass.checked ? "Se pedirá contraseña al entrar" : "Ingreso rápido activado (sin contraseña)", "ok");
+    };
+    // Meta institucional (valor único)
+    const metaSave = document.getElementById("metaInstSave");
+    if (metaSave) metaSave.onclick = () => {
+      const v = Math.round(Number(document.getElementById("metaInstInput").value));
+      if (!(v > 0 && v <= 100)) { u.toast("Ingresa una meta entre 1 y 100", "danger"); return; }
+      S().setConfig("metaInstitucional", v);
+      u.toast("Meta institucional guardada: " + v + "%", "ok");
+      U.router.render();
+    };
+    const metaApply = document.getElementById("metaInstApply");
+    if (metaApply) metaApply.onclick = () => {
+      const v = Math.round(Number(document.getElementById("metaInstInput").value));
+      if (!(v > 0 && v <= 100)) { u.toast("Ingresa una meta entre 1 y 100", "danger"); return; }
+      const evals = S().all("evaluacionesRNAO");
+      u.modal({
+        title: "Aplicar meta a todas las evaluaciones",
+        body: `<p class="narrativo">Se igualará la meta de las <strong>${evals.length}</strong> evaluación(es) registrada(s) a <strong>${v}%</strong>, y quedará como meta institucional del portal. ¿Continuar?</p>`,
+        footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>Aplicar ${v}%</button>`,
+        onMount(m) {
+          m.querySelector("[data-ok]").onclick = () => {
+            S().setConfig("metaInstitucional", v);
+            evals.forEach(e => S().update("evaluacionesRNAO", e.id, { meta: v }));
+            u.closeModal();
+            u.toast("Meta aplicada a todas las evaluaciones", "ok");
+            U.router.render();
+          };
+        }
+      });
     };
     document.getElementById("editMe").onclick = () => U.views.editPerfil(me.id, () => U.router.render());
     document.getElementById("expJson").onclick = () => {

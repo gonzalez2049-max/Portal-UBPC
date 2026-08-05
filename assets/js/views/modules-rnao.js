@@ -141,7 +141,7 @@
       { name: "fuente", label: "Fuente de verificación", value: rec.fuente || "" },
       { name: "responsable", label: "Responsable de la evaluación", value: rec.responsable || "" },
       { name: "referente", label: "Referente UBPC", value: rec.referente || (U.auth.referente() ? U.auth.referente().nombre : "") },
-      { name: "meta", label: "Meta de cumplimiento (%)", type: "number", value: rec.meta || 90 },
+      { name: "meta", label: "Meta de cumplimiento (%)", type: "number", value: rec.meta || CS().metaInstitucional() },
       { name: "proximaMedicion", label: "Próxima medición", type: "date", value: rec.proximaMedicion ? u.isoDay(rec.proximaMedicion) : "" }
     ], {});
 
