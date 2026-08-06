@@ -39,10 +39,10 @@
       ev.push(Object.assign({ iso, d: dateFromIso(iso), titulo, tipo, ruta }, opt || {}));
     };
     s.all("reuniones").forEach(r => push(r.fecha, r.tema || r.tipo || "Reunión", "reunion", "#/coord/m5"));
-    s.all("planesNT234").forEach(r => push(r.plazo, "Plan de mejora NT 234 · " + (r.unidad || ""), "planNT", "#/coord/m6?tab=planes", { deadline: true, done: /entreg|complet|cerr/i.test((r.estado || "") + " " + (r.subestado || "")) }));
-    s.all("accionesRNAO").forEach(r => push(r.fechaComprometida, "Acción de mejora · " + (r.guia || r.indicadorOrigen || ""), "accionRNAO", "#/coord/m3", { deadline: true, done: /complet/i.test(r.estado || "") }));
+    s.all("planesNT234").forEach(r => push(r.plazo, "Plan de mejora NT 234 · " + (r.unidad || ""), "planNT", "#/coord/m6?tab=planes", { deadline: true, done: /entreg|complet|cerr/i.test((r.estado || "") + " " + (r.subestado || "")), col: "planesNT234", rid: r.id, dateField: "plazo" }));
+    s.all("accionesRNAO").forEach(r => push(r.fechaComprometida, "Acción de mejora · " + (r.guia || r.indicadorOrigen || ""), "accionRNAO", "#/coord/m3", { deadline: true, done: /complet/i.test(r.estado || ""), col: "accionesRNAO", rid: r.id, dateField: "fechaComprometida" }));
     s.all("evaluacionesRNAO").forEach(r => push(r.proximaMedicion, "Próxima evaluación · " + (r.guia || "") + (r.unidad ? " (" + r.unidad + ")" : ""), "evalRNAO", "#/coord/m3"));
-    s.all("kanban").forEach(r => push(r.fechaLimite, r.titulo || r.tarea || "Tarea", "tarea", "#/coord/home", { deadline: true, done: /complet/i.test(r.columna || "") }));
+    s.all("kanban").forEach(r => push(r.fechaLimite, r.titulo || r.tarea || "Tarea", "tarea", "#/coord/home", { deadline: true, done: /complet/i.test(r.columna || ""), col: "kanban", rid: r.id, dateField: "fechaLimite" }));
     s.all("actividades").forEach(r => push(r.fecha, "Capacitación · " + (r.actividad || ""), "capacitacion", "#/coord/m4"));
     s.all("convocatoriaChampion").forEach(r => push(r.fecha, "Champions · " + (r.tipo || "Convocatoria") + (r.tema ? " · " + r.tema : ""), "champion", "#/coord/m3?tab=champion"));
     s.all("colaboraciones").forEach(r => push(r.fecha, "Colaboración · " + (r.institucion || ""), "colaboracion", "#/coord/m5?tab=colaboraciones"));
@@ -82,6 +82,30 @@
           if (!d.titulo || !d.fecha) { u.toast("Completa el título y la fecha", "danger"); return; }
           if (rec) S().update("agendaEventos", rec.id, d); else S().insert("agendaEventos", d);
           u.closeModal(); u.toast(rec ? "Evento actualizado" : "Evento agregado", "ok"); done();
+        };
+      }
+    });
+  }
+
+  // Editar la fecha del plazo de un registro vencido (tarea, acción, plan)
+  const LABEL_COL = { kanban: "tarea del tablero", accionesRNAO: "acción de mejora", planesNT234: "plan de mejora NT 234" };
+  function editarFechaVencido(col, rid, field, done) {
+    const u = ui();
+    const rec = S().get(col, rid);
+    if (!rec) { u.toast("El registro ya no existe", "warn"); if (done) done(); return; }
+    const titulo = rec.titulo || rec.tarea || rec.accion || rec.unidad || "registro";
+    u.modal({
+      title: "Editar fecha del plazo",
+      body: `<p class="card__hint">Nueva fecha para <strong>${u.esc(titulo)}</strong> (${LABEL_COL[col] || "registro"}).</p>`
+        + u.formHTML([{ name: "fecha", label: "Fecha del plazo", type: "date", required: true, value: rec[field] ? u.isoDay(rec[field]) : u.hoyISO() }], {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>Guardar fecha</button>`,
+      onMount(m) {
+        m.querySelector("[data-ok]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.fecha) { u.toast("Indica la fecha", "danger"); return; }
+          // Se ancla al mediodía local para evitar el desfase de un día
+          S().update(col, rid, { [field]: new Date(d.fecha + "T12:00:00").toISOString() });
+          u.closeModal(); u.toast("Fecha actualizada", "ok"); if (done) done();
         };
       }
     });
@@ -159,6 +183,20 @@
             <span class="agc-item__acts"><button class="btn btn--ghost btn--sm" data-evedit="${e.id}" title="Editar">✏️</button>
             <button class="btn btn--ghost btn--sm" data-evdel="${e.id}" title="Eliminar">🗑️</button></span></div>`;
         }
+        // Vencido con origen editable: en vez de navegar, ofrece Editar fecha / Eliminar / Ir al registro
+        if (over && e.col && e.dateField) {
+          const key = e.col + "|" + e.rid + "|" + e.dateField;
+          return `<div class="agc-item agc-item--venc" style="--tc:${m.c}">
+            <span class="agc-item__ic">${m.ic}</span>
+            <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
+              <span class="agc-item__meta">${meta}</span></div>
+            ${cuando}
+            <span class="agc-item__acts">
+              <button class="btn btn--ghost btn--sm" data-vfecha="${key}" title="Editar fecha">📅 Fecha</button>
+              <button class="btn btn--ghost btn--sm" data-vdel="${e.col}|${e.rid}" title="Eliminar">🗑️</button>
+              ${e.ruta ? `<a class="btn btn--ghost btn--sm" href="${e.ruta}" title="Ir al registro">↗</a>` : ""}
+            </span></div>`;
+        }
         return `<a class="agc-item" href="${e.ruta}" style="--tc:${m.c}">
           <span class="agc-item__ic">${m.ic}</span>
           <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
@@ -229,6 +267,15 @@
       container.querySelectorAll("[data-evedit]").forEach(b => b.onclick = () => eventoForm(S().get("agendaEventos", b.dataset.evedit), draw));
       container.querySelectorAll("[data-evdel]").forEach(b => b.onclick = () =>
         u.confirmDelete("¿Eliminar este evento?", () => { S().remove("agendaEventos", b.dataset.evdel); draw(); }));
+      // Vencidos con origen editable: editar la fecha del plazo o eliminar el registro
+      container.querySelectorAll("[data-vfecha]").forEach(b => b.onclick = () => {
+        const [col, rid, field] = b.dataset.vfecha.split("|");
+        editarFechaVencido(col, rid, field, draw);
+      });
+      container.querySelectorAll("[data-vdel]").forEach(b => b.onclick = () => {
+        const [col, rid] = b.dataset.vdel.split("|");
+        u.confirmDelete("¿Eliminar este registro vencido? Se quita de forma permanente.", () => { S().remove(col, rid); draw(); });
+      });
     };
     draw();
 
