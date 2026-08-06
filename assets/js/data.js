@@ -10,7 +10,7 @@
     unidades: [
       "Emergencia Hospitalaria", "UCI Valech", "Quemados",
       "UCM 3 piso", "UCM 4 piso", "UCM 6 piso", "UTI",
-      "Clínica Asistencial", "Pabellón y Anestesia",
+      "Clínica Asistencial", "Pabellón y Anestesia", "Esterilización",
       "Buenas Prácticas Clínicas", "Acceso Vascular", "Angiografía",
       "Subdirección de Gestión del Cuidado", "Hospitalización Domiciliaria",
       "Control Post Alta", "Epidemiología – Gestión RedCap",
