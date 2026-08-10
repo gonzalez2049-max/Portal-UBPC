@@ -229,6 +229,9 @@
         { key: "tipo", label: "Tipo", render: (r, u) => `<span class="tag">${u.esc(r.tipo || "—")}</span>` },
         { key: "version", label: "Versión", render: (r, u) => `v${u.esc(r.version || "1")}` },
         { key: "estado", label: "Estado", badge: true },
+        { key: "revisadoUBP", label: "V°B° UBPC", center: true,
+          render: r => /s[íi]/i.test(r.revisadoUBP || "") ? `<span class="badge badge--ok" title="Revisado por la UBPC${r.responsableRevision ? " · " + r.responsableRevision : ""}">✔ Sí</span>` : `<span class="badge badge--neutral" title="Sin V°B° de la UBPC">—</span>`,
+          exportVal: r => /s[íi]/i.test(r.revisadoUBP || "") ? "Sí" : "No" },
         { key: "fecha", label: "Fecha", date: true }
       ],
       fields: [
