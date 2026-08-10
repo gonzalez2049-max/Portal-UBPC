@@ -241,7 +241,9 @@
         { name: "estado", label: "Estado actual", type: "select", options: CAT().estadosDoc },
         { name: "envioCalidad", label: "Envío a Calidad", type: "select", options: ["No", "Sí"] },
         { name: "fechaEnvio", label: "Fecha de envío", type: "date" },
-        { name: "difusion", label: "Difusión", full: true },
+        { name: "revisadoUBP", label: "Revisado por Unidad Buenas Prácticas", type: "select", options: ["No", "Sí"] },
+        { name: "responsableRevision", label: "Responsable de la revisión" },
+        { name: "fechaRecepcion", label: "Fecha de recepción del documento", type: "date" },
         { name: "observaciones", label: "Observaciones", type: "textarea", full: true },
         { name: "respaldo", label: "Respaldo (enlace)", full: true }
       ],
@@ -284,7 +286,10 @@
       ["Nombre", rec.nombre], ["Tipo", rec.tipo], ["Versión actual", "v" + (rec.version || "1")],
       ["Unidad responsable", rec.unidadResponsable], ["Responsable", rec.responsable],
       ["Estado", u.estadoBadge(rec.estado), true], ["Envío a Calidad", rec.envioCalidad],
-      ["Fecha de envío", u.fechaCL(rec.fechaEnvio)], ["Difusión", rec.difusion],
+      ["Fecha de envío", u.fechaCL(rec.fechaEnvio)],
+      ["Revisado por Unidad Buenas Prácticas", rec.revisadoUBP],
+      ["Responsable de la revisión", rec.responsableRevision],
+      ["Fecha de recepción", rec.fechaRecepcion ? u.fechaCL(rec.fechaRecepcion) : "—"],
       ["Observaciones", rec.observaciones]
     ], histHTML);
   }
