@@ -216,9 +216,50 @@
     });
   }
 
+  // KPIs de productividad documental (encima de la tabla)
+  function documentosKPIs(el) {
+    if (!el) return;
+    const u = ui(), s = S();
+    const docs = s.all("documentos");
+    const total = docs.length;
+    const by = est => docs.filter(d => (d.estado || "") === est).length;
+    const vigentes = by("Vigente");
+    const enProceso = docs.filter(d => /borrador|revisi|enviado/i.test(d.estado || "")).length;
+    const revisados = docs.filter(d => /s[íi]/i.test(d.revisadoUBP || "")).length;
+    const pctRev = total ? Math.round(revisados / total * 100) : 0;
+    const yr = new Date().getFullYear();
+    const esteAnio = docs.filter(d => d.fecha && new Date(d.fecha).getFullYear() === yr).length;
+    const mes = new Date().getMonth();
+    const esteMes = docs.filter(d => d.fecha && new Date(d.fecha).getFullYear() === yr && new Date(d.fecha).getMonth() === mes).length;
+    const card = (lab, val, sub, color) => `<div class="card kpi" style="border-left-color:${color}">
+      <div class="kpi__label">${lab}</div><div class="kpi__value">${val}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
+    const chips = CAT().estadosDoc.map(e => { const n = by(e); return n ? `<span style="display:inline-flex;align-items:center;gap:.35rem;margin:.15rem .5rem .15rem 0">${u.estadoBadge(e)}<strong>${n}</strong></span>` : ""; }).join("")
+      || `<span class="kpi__sub">Aún sin documentos.</span>`;
+    el.innerHTML = `
+      <div class="grid grid--kpi" style="margin-bottom:.8rem">
+        ${card("Total documentos", total, "Registrados en la unidad", "var(--c-celeste)")}
+        ${card("Vigentes", vigentes, "Aprobados y en uso", "var(--verde)")}
+        ${card("En proceso", enProceso, "Borrador · revisión · Calidad", "var(--naranjo)")}
+        ${card("Con V°B° UBPC", revisados + " · " + pctRev + "%", "Revisados por la Unidad", pctRev >= 70 ? "var(--verde)" : "var(--morado)")}
+        ${card("Productividad " + yr, esteAnio, esteMes + " este mes", "var(--c-azul)")}
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="flex" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.4rem">
+          <h3 class="card__title" style="margin:0">Estado del inventario documental</h3>
+          <span class="kpi__sub">Cobertura de revisión UBPC: <strong>${pctRev}%</strong> (${revisados}/${total})</span>
+        </div>
+        <div class="pin-prog" style="margin:.5rem 0 .7rem"><div class="pin-prog__bar" style="width:${pctRev}%;background:${pctRev >= 70 ? "var(--verde)" : "var(--naranjo)"}"></div></div>
+        <div>${chips}</div>
+      </div>`;
+  }
+
   function documentosTab(box) {
-    R().mount(box, {
+    box.innerHTML = `<div id="doc-kpis"></div><div id="doc-list"></div>`;
+    const kpisEl = document.getElementById("doc-kpis");
+    documentosKPIs(kpisEl);
+    R().mount(document.getElementById("doc-list"), {
       collection: "documentos", title: "Documento", icon: "📄", withCode: true,
+      afterChange: () => documentosKPIs(kpisEl),
       hint: "Cada documento recibe un código automático permanente (UBPC-DOC-AAAA-000) y conserva su historial de versiones.",
       newLabel: "Nuevo documento",
       filters: [{ key: "estado", label: "Estado" }, { key: "tipo", label: "Tipo" }],
