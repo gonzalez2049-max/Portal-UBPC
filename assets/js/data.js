@@ -28,7 +28,7 @@
     tiposColaboracion: ["Asesoría Técnica", "Colaboración interna", "Visita técnica",
       "Curso", "Capacitación", "Curso B-learning", "Taller", "Exposición", "Otra colaboración"],
     rolUBPC: ["Solicitó apoyo", "Entregó apoyo", "Colaboración recíproca"],
-    tiposDocumento: ["Protocolo", "Norma", "Procedimiento", "Manual", "Instructivo", "Flujograma", "Otro"],
+    tiposDocumento: ["Protocolo", "Guía", "Norma", "Procedimiento", "Manual", "Instructivo", "Flujograma", "Otro"],
     estadosDoc: ["Borrador", "En revisión", "Vigente", "Enviado a Calidad", "Obsoleto"],
     estadoGenerico: ["Pendiente", "En curso", "Completado"],
     tipoEvaluacion: ["Línea base", "Seguimiento"],
