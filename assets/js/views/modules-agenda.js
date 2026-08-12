@@ -120,7 +120,7 @@
   function agendaBind() {
     const container = document.getElementById("agenda-body");
     const u = ui();
-    let monthOffset = 0, selIso = null, hiddenTypes = {};
+    let monthOffset = 0, selIso = null, hiddenTypes = {}, showProx = false;
 
     const draw = () => {
       const events = buildEvents().filter(e => !hiddenTypes[e.tipo]);
@@ -163,9 +163,9 @@
           ${evs.length ? "" : `<span class="agc-day__add">＋</span>`}</div>`;
       }
 
-      // ---- Lista (día seleccionado o próximos) ----
-      const listEvents = selIso ? (byIso[selIso] || []) : events.filter(e => e.d >= today).slice(0, 12);
-      const listTitle = selIso ? "Eventos del " + u.fechaCL(dateFromIso(selIso)) : "Próximos eventos";
+      // ---- Detalle del día seleccionado / próximos (bajo el calendario) ----
+      const dayEvents = selIso ? (byIso[selIso] || []) : [];
+      const proxEvents = events.filter(e => e.d >= today).slice(0, 15);
       const itemHTML = e => {
         const m = TIPO[e.tipo], over = e.deadline && !e.done && e.d < today;
         const dias = Math.round((e.d - today) / 86400000);
@@ -203,11 +203,27 @@
             <span class="agc-item__meta">${meta}</span></div>
           ${cuando}</a>`;
       };
-      const lista = listEvents.length ? listEvents.map(itemHTML).join("")
-        : (selIso
-            ? `<div class="agc-empty"><span>📅</span><p>Sin eventos el ${u.fechaCL(dateFromIso(selIso))}.</p>
-                <button class="btn btn--primary btn--sm" id="agc-addday2">+ Agregar evento este día</button></div>`
-            : `<p class="muted" style="padding:.6rem">Sin eventos próximos.</p>`);
+      // Contenido del panel inferior según el modo (día seleccionado · próximos · pista)
+      let panelTitle, panelActions, panelBody;
+      if (selIso) {
+        panelTitle = "Eventos del " + u.fechaCL(dateFromIso(selIso));
+        panelActions = `<button class="btn btn--ghost btn--sm" id="agc-clear">✕ Cerrar día</button>
+          <button class="btn btn--primary btn--sm" id="agc-addday">+ Agregar este día</button>`;
+        panelBody = dayEvents.length ? `<div class="agc-list">${dayEvents.map(itemHTML).join("")}</div>`
+          : `<div class="agc-empty"><span>📅</span><p>Sin eventos el ${u.fechaCL(dateFromIso(selIso))}.</p>
+              <button class="btn btn--primary btn--sm" id="agc-addday2">+ Agregar evento este día</button></div>`;
+      } else if (showProx) {
+        panelTitle = "Próximos eventos";
+        panelActions = `<button class="btn btn--ghost btn--sm" id="agc-hideprox">Ocultar</button>
+          <button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`;
+        panelBody = proxEvents.length ? `<div class="agc-list">${proxEvents.map(itemHTML).join("")}</div>`
+          : `<p class="muted" style="padding:.6rem">Sin eventos próximos.</p>`;
+      } else {
+        panelTitle = "Agenda del mes";
+        panelActions = `<button class="btn btn--ghost btn--sm" id="agc-showprox">🗓️ Ver próximos eventos</button>
+          <button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`;
+        panelBody = `<div class="agc-empty"><span>👆</span><p>Haz clic en un día del calendario para ver o agregar lo que está agendado.</p></div>`;
+      }
 
       const vencHTML = vencidos.length ? `<div class="card agc-venc" style="border-left:4px solid var(--danger)">
           <h3 class="card__title" style="color:var(--danger);margin:0 0 .4rem">⏰ Vencidos (${vencidos.length})</h3>
@@ -223,34 +239,31 @@
           ${kpi("Vencidos", vencidos.length, "Plazos sin cerrar", vencidos.length ? "danger" : "ok", "⏰")}
           ${kpi("Este mes", mesEventos, MESES[mo] + " " + y, "info", "📆")}
         </div>
-        <div class="grid grid--2" style="align-items:start">
-          <div class="card">
-            <div class="agc-cal-head">
-              <button class="btn-icon" id="agc-prev" aria-label="Mes anterior">‹</button>
-              <strong>${MESES[mo][0].toUpperCase() + MESES[mo].slice(1)} ${y}</strong>
-              <button class="btn-icon" id="agc-next" aria-label="Mes siguiente">›</button>
-            </div>
-            <div class="agc-grid agc-dow">${DOW.map(d => `<div class="agc-dow__c">${d}</div>`).join("")}</div>
-            <div class="agc-grid">${cells}</div>
-            ${legend}
+        <div class="card agc-cal-card">
+          <div class="agc-cal-head">
+            <button class="btn-icon" id="agc-prev" aria-label="Mes anterior">‹</button>
+            <strong>${MESES[mo][0].toUpperCase() + MESES[mo].slice(1)} ${y}</strong>
+            <button class="btn-icon" id="agc-next" aria-label="Mes siguiente">›</button>
           </div>
-          <div class="agc-right">
-            ${vencHTML}
-            <div class="card">
-              <div class="section__head" style="margin-bottom:.4rem"><h3 class="card__title" style="margin:0">${listTitle}</h3>
-                <div class="btn-row">
-                  ${selIso ? `<button class="btn btn--ghost btn--sm" id="agc-clear">Ver próximos</button>
-                    <button class="btn btn--primary btn--sm" id="agc-addday">+ Agregar este día</button>`
-                    : `<button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`}</div></div>
-              <div class="agc-list">${lista}</div>
-            </div>
+          <div class="agc-grid agc-dow">${DOW.map(d => `<div class="agc-dow__c">${d}</div>`).join("")}</div>
+          <div class="agc-grid agc-grid--big">${cells}</div>
+          ${legend}
+        </div>
+        <div class="agc-below" style="margin-top:1rem">
+          ${vencHTML}
+          <div class="card${selIso ? " agc-daycard is-open" : ""}">
+            <div class="section__head" style="margin-bottom:.4rem"><h3 class="card__title" style="margin:0">${panelTitle}</h3>
+              <div class="btn-row">${panelActions}</div></div>
+            ${panelBody}
           </div>
         </div>`;
 
       document.getElementById("agc-prev").onclick = () => { monthOffset--; selIso = null; draw(); };
       document.getElementById("agc-next").onclick = () => { monthOffset++; selIso = null; draw(); };
       const clr = document.getElementById("agc-clear"); if (clr) clr.onclick = () => { selIso = null; draw(); };
-      container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => { selIso = b.dataset.iso; draw(); });
+      const sp = document.getElementById("agc-showprox"); if (sp) sp.onclick = () => { showProx = true; draw(); };
+      const hp = document.getElementById("agc-hideprox"); if (hp) hp.onclick = () => { showProx = false; draw(); };
+      container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => { selIso = b.dataset.iso; showProx = false; draw(); });
       // Clic en un bloque de evento: abre el registro (o edita el evento propio)
       container.querySelectorAll(".agc-chip").forEach(c => c.onclick = ev => {
         ev.stopPropagation();
