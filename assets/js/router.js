@@ -83,7 +83,7 @@
   }
   function updateBell(rol) {
     const b = el("bellBtn"); if (!b) return;
-    const n = U.notif.unread(rol).length;
+    const n = U.notif.badgeCount(rol);
     let c = b.querySelector(".bell__count");
     if (n && !c) { c = document.createElement("span"); c.className = "bell__count"; b.appendChild(c); }
     if (c) { if (n) c.textContent = n; else c.remove(); }
@@ -104,7 +104,7 @@
   function layout(portal, config, activeKey, user, mainHTML) {
     const ui = U.ui;
     const rol = portal === "coord" ? "coordinador" : "referente";
-    const unread = U.notif.unread(rol).length;
+    const unread = U.notif.badgeCount(rol);
     const sideClass = portal === "ref" ? "app__side ref" : "app__side";
 
     const nav = config.nav.map(group => `
@@ -214,24 +214,34 @@
     const ui = U.ui;
     let existing = document.querySelector(".notif-panel");
     if (existing) { existing.remove(); return; }
+    const attention = U.notif.attention(rol);
     const list = U.notif.forRole(rol);
     const panel = document.createElement("div");
     panel.className = "notif-panel";
+    const attItem = n => {
+      const cl = n.prioridad === "alta" ? "notif-item--alta" : "";
+      const badge = n.prioridad === "alta" ? "<strong style='color:#c62f3b'>Vencido</strong>" : (n.prioridad === "media" ? "<strong style='color:#e0912f'>Hoy</strong>" : "Próximo");
+      return `<div class="notif-item notif-item--unread ${cl}" data-nid="${n.id}" data-ref="${ui.esc(n.ref)}">
+        <span class="notif-item__dot"></span>
+        <div><div class="notif-item__title">${ui.esc(n.titulo)}</div>
+          <div class="notif-item__meta">${ui.esc(n.modulo)} · ${badge}</div></div></div>`;
+    };
     panel.innerHTML = `
       <div class="notif-panel__head">
         <strong>Notificaciones</strong>
         <button class="btn btn--ghost btn--sm" data-readall>Marcar todas como leídas</button>
       </div>
       <div class="notif-list">
-        ${list.length ? list.slice(0, 40).map(n => `
+        ${attention.length ? `<div class="notif-sec">⚠️ Requiere atención (${attention.length})</div>` + attention.slice(0, 30).map(attItem).join("") : ""}
+        ${list.length ? `<div class="notif-sec">🔔 Otras notificaciones</div>` + list.slice(0, 40).map(n => `
           <div class="notif-item ${n.leida ? "" : "notif-item--unread"} ${n.prioridad === "alta" ? "notif-item--alta" : ""}" data-nid="${n.id}" ${n.ref ? `data-ref="${ui.esc(n.ref)}"` : ""}>
             <span class="notif-item__dot"></span>
             <div>
               <div class="notif-item__title">${ui.esc(n.titulo)}</div>
               <div class="notif-item__meta">${ui.esc(n.modulo || "")} · ${ui.fechaHoraCL(n.fecha)} ${n.prioridad === "alta" ? "· <strong style='color:#c62f3b'>Prioritaria</strong>" : ""}</div>
             </div>
-          </div>`).join("")
-        : `<div style="padding:1.4rem 1rem">${ui.empty("No existen notificaciones.", "", "🔔")}</div>`}
+          </div>`).join("") : ""}
+        ${!attention.length && !list.length ? `<div style="padding:1.4rem 1rem">${ui.empty("Todo al día. No hay avisos.", "", "✅")}</div>` : ""}
       </div>`;
     const bell = document.querySelector(".bell");
     bell.appendChild(panel);

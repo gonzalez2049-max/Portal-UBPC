@@ -42,8 +42,40 @@
         fecha: new Date().toISOString()
       }, { silent: true });
     },
-    markRead(id) { store().update("notificaciones", id, { leida: true }); },
-    markAllRead(rol) { Notif.unread(rol).forEach(n => Notif.markRead(n.id)); }
+    markRead(id) { if (id && String(id).indexOf("live-") === 0) return; store().update("notificaciones", id, { leida: true }); },
+    markAllRead(rol) { Notif.unread(rol).forEach(n => Notif.markRead(n.id)); },
+
+    // Notificaciones "vivas": lo vencido y lo próximo, calculado desde la Agenda.
+    attention(rol) {
+      const items = [];
+      if (rol !== "coordinador") return items;
+      try {
+        const U = window.UBPC;
+        if (!U.agenda || !U.agenda.buildEvents) return items;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const in3 = new Date(today); in3.setDate(in3.getDate() + 3);
+        U.agenda.buildEvents().forEach(e => {
+          if (e.done || !e.d) return;
+          if (e.deadline && e.d < today) {
+            items.push({ id: "live-v-" + e.tipo + "-" + (e.rid || e.iso), live: true, titulo: "Vencido · " + e.titulo,
+              modulo: "Agenda", prioridad: "alta", ref: "#/coord/agenda?focus=vencidos", fecha: e.d.toISOString() });
+          } else if (e.d >= today && e.d <= in3) {
+            const dias = Math.round((e.d - today) / 86400000);
+            const cuando = dias === 0 ? "Hoy" : dias === 1 ? "Mañana" : "En " + dias + " días";
+            items.push({ id: "live-p-" + e.tipo + "-" + (e.rid || e.iso), live: true, titulo: cuando + " · " + e.titulo,
+              modulo: "Agenda", prioridad: dias === 0 ? "media" : "normal", ref: "#/coord/agenda", fecha: e.d.toISOString() });
+          }
+        });
+        const rank = p => p === "alta" ? 0 : p === "media" ? 1 : 2;
+        items.sort((a, b) => rank(a.prioridad) - rank(b.prioridad) || new Date(a.fecha) - new Date(b.fecha));
+      } catch (e) {}
+      return items;
+    },
+    // Contador de la campana: vencidos + hoy + notificaciones no leídas
+    badgeCount(rol) {
+      const urgent = Notif.attention(rol).filter(n => n.prioridad === "alta" || n.prioridad === "media").length;
+      return urgent + Notif.unread(rol).length;
+    }
   };
 
   window.UBPC = window.UBPC || {};
