@@ -44,17 +44,20 @@
       "Plan preventivo acorde al riesgo",
       "Cambios de posición",
       "Superficie de alivio o redistribución de presión",
-      "Registro de LPP previa"
+      "Registro de LPP previa",
+      "Pacientes sin LPP intrahospitalaria"
     ],
     "Accesos vasculares": [
       "Indicación documentada",
       "Evaluación diaria del acceso vascular",
-      "Vigilancia del sitio de inserción"
+      "Vigilancia del sitio de inserción",
+      "Accesos sin complicaciones (flebitis/infección)"
     ],
     "Dolor": [
       "Valoración inicial del dolor",
       "Reevaluación posterior a la intervención",
-      "Manejo multimodal del dolor"
+      "Manejo multimodal del dolor",
+      "Pacientes con dolor controlado (EVA ≤ meta)"
     ]
   };
 
@@ -69,14 +72,17 @@
     "Cambios de posición": "Proceso",
     "Superficie de alivio o redistribución de presión": "Estructura",
     "Registro de LPP previa": "Proceso",
+    "Pacientes sin LPP intrahospitalaria": "Resultado",
     // Accesos vasculares
     "Indicación documentada": "Proceso",
     "Evaluación diaria del acceso vascular": "Proceso",
     "Vigilancia del sitio de inserción": "Proceso",
+    "Accesos sin complicaciones (flebitis/infección)": "Resultado",
     // Dolor
     "Valoración inicial del dolor": "Proceso",
     "Reevaluación posterior a la intervención": "Proceso",
-    "Manejo multimodal del dolor": "Proceso"
+    "Manejo multimodal del dolor": "Proceso",
+    "Pacientes con dolor controlado (EVA ≤ meta)": "Resultado"
   };
   const TIPO_DONABEDIAN = {
     "Estructura": { color: "#7a5cd0", ic: "🏗️", def: "Recursos y capacidad (disponibilidad de insumos, protocolos vigentes, dotación)." },
