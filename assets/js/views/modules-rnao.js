@@ -38,6 +38,17 @@
       .filter(i => i.pct != null).sort((a, b) => a.pct - b.pct);
   }
   function metaDe(e) { return Number(e.meta) || 90; }
+  // Chip con el tipo Donabedian del indicador (Estructura / Proceso / Resultado)
+  function indTipoChip(nombre, tipoOverride) {
+    const t = tipoOverride || U.data.indicadorTipo(nombre);
+    const d = (U.data.TIPO_DONABEDIAN || {})[t] || {};
+    const c = d.color || "#5f7d76";
+    return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}55" title="${(d.def || "").replace(/"/g, "&quot;")}">${d.ic || ""} ${t}</span>`;
+  }
+  function donabedianLeyenda() {
+    const T = U.data.TIPO_DONABEDIAN || {};
+    return `<div class="don-leg">${Object.keys(T).map(k => `<span class="don-leg__i" title="${(T[k].def || "").replace(/"/g, "&quot;")}"><span class="don-leg__dot" style="background:${T[k].color}"></span>${T[k].ic} <strong>${k}</strong>: ${U.ui.esc(T[k].def)}</span>`).join("")}</div>`;
+  }
 
   /* ===================== EVALUACIONES (tarjetas consolidadas) ===================== */
   function evaluaciones(box) {
@@ -101,6 +112,7 @@
     const meta = metaDe(e);
     const rows = inds.map(i => `<tr>
       <td>${u.esc(i.nombre)}</td>
+      <td>${indTipoChip(i.nombre, (i.raw || {}).tipo)}</td>
       <td class="num"><strong style="color:${i.pct < meta ? "var(--danger)" : "var(--verde)"}">${i.pct}%</strong></td>
       <td>${i.pct < meta ? `<button class="btn btn--ghost btn--sm" data-genacc="${u.esc(i.nombre)}">Generar plan de intervención</button>` : `<span class="badge badge--ok">En meta</span>`}</td>
     </tr>`).join("");
@@ -109,7 +121,7 @@
       body: `<div class="dl"><div><span>Cumplimiento global</span><strong>${CS().globalCumplimiento(e) != null ? CS().globalCumplimiento(e) + "%" : "—"}</strong></div>
         <div><span>Meta</span><strong>${meta}%</strong></div><div><span>Tipo</span><strong>${u.esc(e.tipo || "")}</strong></div>
         <div><span>Periodo</span><strong>${u.esc(e.periodo || "")}</strong></div></div>
-        ${inds.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Indicador</th><th class="right">Cumplimiento</th><th>Brecha</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        ${inds.length ? donabedianLeyenda() + `<div class="table-wrap"><table class="tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th class="right">Cumplimiento</th><th>Brecha</th></tr></thead><tbody>${rows}</tbody></table></div>`
           : u.empty("Esta evaluación no tiene indicadores con porcentaje.", "", "📊")}
         ${e.brechas ? `<p style="margin-top:.6rem"><strong>Brechas:</strong> ${u.esc(e.brechas)}</p>` : ""}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`,
@@ -151,8 +163,9 @@
 
     u.modal({
       title: (rec.id ? "Editar" : "Nueva") + " evaluación RNAO", wide: true,
-      body: `<h4>Datos de la evaluación</h4>${header}${modoSel}
-        <h4 style="margin-top:.6rem">Indicadores de la guía</h4>
+      body: `<div class="rnao-flow">🧭 <strong>Flujo RNAO:</strong> Guía → Unidad(es) → <strong>Indicadores</strong> (se definen una vez) → <strong>Línea base (T0)</strong> = primera medición → <strong>Seguimientos</strong> (T1, T2…) con el mismo método, para que sean comparables.</div>
+        <h4>Datos de la evaluación</h4>${header}${modoSel}
+        <h4 style="margin-top:.6rem">Indicadores de la guía <span class="kpi__sub" style="font-weight:400">— clasificados por tipo (Donabedian / NQuIRE)</span></h4>
         <div id="ev-inds"></div>
         <div class="form-grid" style="margin-top:.6rem">
           <div class="field" style="grid-column:1/-1"><label>Resultado global oficial (%) <span class="muted">— si se informa, no se promedian los indicadores</span></label>
@@ -172,16 +185,16 @@
           const names = IND()[guia] || [];
           const existing = {};
           (rec.indicadores || []).forEach(i => existing[i.nombre] = i);
-          indsBox.innerHTML = `<div class="table-wrap"><table class="tbl"><thead><tr>
-            <th>Indicador</th>${esPct()
+          indsBox.innerHTML = `${donabedianLeyenda()}<div class="table-wrap"><table class="tbl"><thead><tr>
+            <th>Indicador</th><th>Tipo</th>${esPct()
               ? `<th class="right">% cumplimiento</th>`
               : `<th class="right">Denominador</th><th class="right">Cumplen</th><th class="right">No cumplen</th><th class="right">No aplica</th><th class="right">%</th>`}
             </tr></thead><tbody>
             ${names.map((n, idx) => {
               const ex = existing[n] || {};
-              if (esPct()) return `<tr><td>${u.esc(n)}</td>
+              if (esPct()) return `<tr><td>${u.esc(n)}</td><td>${indTipoChip(n)}</td>
                 <td class="num"><input class="input" style="width:90px" type="number" min="0" max="100" data-ind="${idx}" data-f="porcentaje" value="${ex.porcentaje != null ? ex.porcentaje : ""}"></td></tr>`;
-              return `<tr><td>${u.esc(n)}</td>
+              return `<tr><td>${u.esc(n)}</td><td>${indTipoChip(n)}</td>
                 <td class="num"><input class="input" style="width:80px" type="number" min="0" data-ind="${idx}" data-f="denominador" value="${ex.denominador != null ? ex.denominador : ""}"></td>
                 <td class="num"><input class="input" style="width:80px" type="number" min="0" data-ind="${idx}" data-f="cumplen" value="${ex.cumplen != null ? ex.cumplen : ""}"></td>
                 <td class="num"><input class="input" style="width:80px" type="number" min="0" data-ind="${idx}" data-f="noCumplen" value="${ex.noCumplen != null ? ex.noCumplen : ""}"></td>
@@ -216,10 +229,11 @@
           d.modoIngreso = modoDD.value;
           const names = IND()[guiaSel.value] || [];
           d.indicadores = names.map((n, idx) => {
-            if (esPct()) { const p = val(idx, "porcentaje"); return p === "" ? null : { nombre: n, porcentaje: Number(p) }; }
+            const tipo = U.data.indicadorTipo(n);
+            if (esPct()) { const p = val(idx, "porcentaje"); return p === "" ? null : { nombre: n, tipo, porcentaje: Number(p) }; }
             const den = val(idx, "denominador");
             if (den === "") return null;
-            return { nombre: n, denominador: Number(den), cumplen: Number(val(idx, "cumplen") || 0),
+            return { nombre: n, tipo, denominador: Number(den), cumplen: Number(val(idx, "cumplen") || 0),
               noCumplen: Number(val(idx, "noCumplen") || 0), noAplica: Number(val(idx, "noAplica") || 0) };
           }).filter(Boolean);
           if (d.fecha) d.fecha = new Date(d.fecha).toISOString();

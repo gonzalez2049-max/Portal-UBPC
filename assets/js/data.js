@@ -58,6 +58,33 @@
     ]
   };
 
+  /* ---------- Clasificación de indicadores (modelo Donabedian / NQuIRE) ----------
+     Estructura = recursos/capacidad · Proceso = si se hace la práctica recomendada
+     · Resultado = efecto clínico. Se asigna automáticamente por nombre. */
+  const INDICADOR_TIPO = {
+    // Lesiones por presión
+    "Escala de riesgo aplicada antes de 6 horas": "Proceso",
+    "Reevaluación según condición clínica": "Proceso",
+    "Plan preventivo acorde al riesgo": "Proceso",
+    "Cambios de posición": "Proceso",
+    "Superficie de alivio o redistribución de presión": "Estructura",
+    "Registro de LPP previa": "Proceso",
+    // Accesos vasculares
+    "Indicación documentada": "Proceso",
+    "Evaluación diaria del acceso vascular": "Proceso",
+    "Vigilancia del sitio de inserción": "Proceso",
+    // Dolor
+    "Valoración inicial del dolor": "Proceso",
+    "Reevaluación posterior a la intervención": "Proceso",
+    "Manejo multimodal del dolor": "Proceso"
+  };
+  const TIPO_DONABEDIAN = {
+    "Estructura": { color: "#7a5cd0", ic: "🏗️", def: "Recursos y capacidad (disponibilidad de insumos, protocolos vigentes, dotación)." },
+    "Proceso":    { color: "#176ac0", ic: "⚙️", def: "Si se realiza la práctica recomendada (adherencia: valoración, cambios de posición, registro)." },
+    "Resultado":  { color: "#2f9d57", ic: "🎯", def: "Efecto clínico observado (incidencia/prevalencia de LPP, tasa de complicaciones)." }
+  };
+  function indicadorTipo(nombre) { return INDICADOR_TIPO[(nombre || "").trim()] || "Proceso"; }
+
   /* ---------- Semilla inicial (solo si la base está vacía) ---------- */
   function seedIfEmpty() {
     const s = store();
@@ -120,5 +147,5 @@
   }
 
   window.UBPC = window.UBPC || {};
-  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor };
+  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, INDICADOR_TIPO, TIPO_DONABEDIAN, indicadorTipo };
 })();

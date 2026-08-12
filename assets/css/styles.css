@@ -889,6 +889,13 @@ body.night .profile-card__name{ color:#eaf5ef; }
 body.night .orient-card{ background:rgba(18,28,34,.82); border-color:rgba(255,255,255,.08); }
 body.night .orient-card__title{ color:#eaf3f1; }
 
+/* Flujo RNAO + leyenda Donabedian en el formulario de evaluación */
+.rnao-flow{ background:color-mix(in srgb, var(--c-turquesa) 10%, transparent); border:1px solid color-mix(in srgb, var(--c-turquesa) 30%, var(--border));
+  border-radius:10px; padding:.55rem .8rem; font-size:.85rem; color:var(--text-2); margin-bottom:.8rem; line-height:1.5; }
+.don-leg{ display:flex; flex-wrap:wrap; gap:.4rem .9rem; margin:.2rem 0 .6rem; font-size:.76rem; color:var(--text-2); }
+.don-leg__i{ display:inline-flex; align-items:center; gap:.35rem; }
+.don-leg__dot{ width:9px; height:9px; border-radius:50%; flex:none; }
+
 /* Brechas priorizadas — resumen + grilla compacta */
 .brecha-sum{ display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.75rem; }
 .brecha-sum__chip{ font-size:.8rem; font-weight:800; padding:.2rem .6rem; border-radius:999px; border:1px solid transparent; }
