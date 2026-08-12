@@ -131,7 +131,7 @@
     const cols = ["evaluacionesRNAO", "accionesRNAO", "indicadores", "capacidadOperativa", "planesIntervencion", "protocolosEnf", "documentos",
       "planesNT234", "kanban", "actividades", "reuniones", "acuerdos", "colaboraciones",
       "evidenciaSemana", "agendaEventos", "docsTrabajo", "recursosGuia",
-      "participacionChampion", "convocatoriaChampion",
+      "participacionChampion", "convocatoriaChampion", "codigosInternos",
       "articulaciones", "reconocimientos", "nt234", "solicitudes"];
     const hasRecords = cols.some(c => (s.all(c) || []).length > 0);
     const editedProfile = (s.all("usuarios") || []).some(u => u.esPlaceholder === false);

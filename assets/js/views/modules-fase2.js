@@ -83,7 +83,8 @@
   /* ===================== MÓDULO 2 — GESTIÓN DOCUMENTAL ===================== */
   const M2_TABS = [
     { key: "documentos", label: "Documentos institucionales" },
-    { key: "protocolos", label: "Control de protocolos de enfermería" }
+    { key: "protocolos", label: "Control de protocolos de enfermería" },
+    { key: "generador", label: "Generador de código" }
   ];
   function m2(params) {
     const tab = (params && params.tab) || "documentos";
@@ -95,7 +96,114 @@
   function m2Bind(main, params) {
     const tab = (params && params.tab) || "documentos";
     const box = document.getElementById("m2-body");
-    if (tab === "protocolos") protocolosTab(box); else documentosTab(box);
+    if (tab === "protocolos") protocolosTab(box);
+    else if (tab === "generador") generadorTab(box);
+    else documentosTab(box);
+  }
+
+  /* ===================== GENERADOR DE CÓDIGO INTERNO =====================
+     Entrega el próximo código correlativo REAL (avanza el contador, igual que
+     al crear en el portal), para usarlo en documentos trabajados fuera del
+     sistema y mantener coherencia y correlación. Cada código queda registrado. */
+  const GEN_FAMILIAS = [
+    { key: "documentos", label: "Documento institucional (UBPC-DOC)" },
+    { key: "protocolosEnf", label: "Protocolo de enfermería · control (UBPC-PRO)" },
+    { key: "planesIntervencion", label: "Plan de intervención RNAO (UBPC-PIN)" },
+    { key: "reuniones", label: "Acta / Reunión (UBPC-REU)" },
+    { key: "acuerdos", label: "Acuerdo (UBPC-ACU)" },
+    { key: "actividades", label: "Capacitación (UBPC-CAP)" },
+    { key: "colaboraciones", label: "Colaboración (UBPC-COL)" }
+  ];
+  function generadorTab(box) {
+    const u = ui();
+    const famOpts = GEN_FAMILIAS.map(f => `<option value="${f.key}">${u.esc(f.label)}</option>`).join("");
+    const tipoOpts = CAT().tiposDocumento.map(t => `<option>${u.esc(t)}</option>`).join("");
+    box.innerHTML = `
+      <div class="card" style="border-left:5px solid var(--morado);margin-bottom:1rem">
+        <h3 class="card__title">🔢 Generar código interno</h3>
+        <p class="card__hint">Obtén el siguiente código correlativo de la Unidad para un documento que estás trabajando <strong>fuera del portal</strong>. El contador avanza igual que al crear aquí, así se mantiene la coherencia y no se repiten códigos.</p>
+        <div class="form-grid">
+          <div class="field"><label for="gen-fam">Familia / tipo de registro</label>
+            <select id="gen-fam" class="select">${famOpts}</select></div>
+          <div class="field"><label for="gen-tipo">Tipo de documento</label>
+            <select id="gen-tipo" class="select">${tipoOpts}</select></div>
+          <div class="field" style="grid-column:1/-1"><label for="gen-nombre">Nombre del documento</label>
+            <input id="gen-nombre" class="input" placeholder="Ej: Protocolo de manejo de accesos vasculares"></div>
+          <div class="field"><label for="gen-resp">Responsable</label>
+            <input id="gen-resp" class="input" value="${u.esc((U.auth.current() || {}).nombre || "")}"></div>
+        </div>
+        <div class="gen-preview" id="gen-preview"></div>
+        <div class="btn-row" style="margin-top:.7rem">
+          <button class="btn btn--primary" id="gen-btn">🔢 Generar código</button>
+        </div>
+      </div>
+      <div class="section__head"><div><h3 class="section__title">Códigos generados</h3>
+        <p class="section__hint">Registro de los códigos internos emitidos (incluye los usados fuera del portal).</p></div></div>
+      <div id="gen-list"></div>`;
+
+    const famSel = box.querySelector("#gen-fam");
+    const prevEl = box.querySelector("#gen-preview");
+    const paintPreview = () => {
+      const code = S().peekCode(famSel.value);
+      prevEl.innerHTML = `Próximo código disponible: <span class="gen-code">${u.esc(code || "—")}</span>`;
+    };
+    famSel.onchange = paintPreview;
+    paintPreview();
+
+    box.querySelector("#gen-btn").onclick = () => {
+      const fam = famSel.value;
+      const nombre = box.querySelector("#gen-nombre").value.trim();
+      if (!nombre) { u.toast("Indica el nombre del documento", "danger"); return; }
+      const codigo = S().nextCode(fam);
+      if (!codigo) { u.toast("No se pudo generar el código", "danger"); return; }
+      S().insert("codigosInternos", {
+        codigo, familia: fam,
+        familiaLabel: (GEN_FAMILIAS.find(f => f.key === fam) || {}).label || fam,
+        tipo: box.querySelector("#gen-tipo").value,
+        nombre, responsable: box.querySelector("#gen-resp").value.trim(),
+        fecha: new Date().toISOString()
+      });
+      u.toast("Código generado: " + codigo, "ok");
+      box.querySelector("#gen-nombre").value = "";
+      generadorTab(box); // redibuja (actualiza preview + lista)
+      // Muestra el código recién creado destacado
+      setTimeout(() => { const pv = box.querySelector("#gen-preview"); if (pv) pv.innerHTML = `Último código generado: <span class="gen-code gen-code--new">${u.esc(codigo)}</span> <button class="btn btn--ghost btn--sm" data-copy="${u.esc(codigo)}">📋 Copiar</button>`; bindCopy(box); }, 30);
+    };
+
+    renderGenLista(box);
+    bindCopy(box);
+  }
+  function bindCopy(box) {
+    box.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => {
+      const txt = b.dataset.copy;
+      const done = () => ui().toast("Código copiado: " + txt, "ok");
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+      else fallbackCopy(txt, done);
+    });
+  }
+  function fallbackCopy(txt, done) {
+    try { const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); done(); } catch (e) { ui().toast("No se pudo copiar automáticamente: " + txt, "warn"); }
+  }
+  function renderGenLista(box) {
+    const u = ui();
+    const el = box.querySelector("#gen-list");
+    const list = S().all("codigosInternos").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    if (!list.length) { el.innerHTML = u.empty("Aún no has generado códigos internos.", "Genera el primero arriba para documentos que trabajes fuera del portal.", "🔢"); return; }
+    el.innerHTML = `<div class="table-wrap"><table class="tbl"><thead><tr>
+      <th>Código</th><th>Documento</th><th>Tipo</th><th>Responsable</th><th>Fecha</th><th></th></tr></thead><tbody>
+      ${list.map(r => `<tr>
+        <td><span class="mono"><strong>${u.esc(r.codigo)}</strong></span></td>
+        <td>${u.esc(r.nombre || "—")}</td>
+        <td>${r.tipo ? tipoDocChip(r.tipo, u) : "—"}</td>
+        <td>${u.esc(r.responsable || "—")}</td>
+        <td>${u.fechaCL(r.fecha)}</td>
+        <td class="right"><div class="btn-row" style="justify-content:flex-end">
+          <button class="btn-icon" data-copy="${u.esc(r.codigo)}" title="Copiar código">📋</button>
+          <button class="btn-icon" data-gendel="${r.id}" title="Eliminar del registro">🗑️</button></div></td></tr>`).join("")}
+      </tbody></table></div>`;
+    el.querySelectorAll("[data-gendel]").forEach(b => b.onclick = () =>
+      u.confirmDelete("¿Quitar este código del registro? (No revierte el contador correlativo.)", () => { S().remove("codigosInternos", b.dataset.gendel); renderGenLista(box); bindCopy(box); }));
+    bindCopy(box);
   }
 
   /* ---------- Control de protocolos de enfermería ---------- */

@@ -16,7 +16,7 @@
     "planesNT234", "colaboraciones", "notificaciones", "hitos", "kanban",
     "bibliotecaBitacora", "evidenciaRef", "capacitacionRef", "monitoreoRef",
     "indicadores", "capacidadOperativa", "planesIntervencion", "protocolosEnf", "evidenciaSemana", "actividadReciente", "docsTrabajo", "agendaEventos", "recursosGuia",
-    "participacionChampion", "convocatoriaChampion", "config"
+    "participacionChampion", "convocatoriaChampion", "codigosInternos", "config"
   ];
 
   // Prefijos de códigos automáticos por colección
@@ -74,6 +74,15 @@
     const key = prefix + "-" + year;
     DB.__seq[key] = (DB.__seq[key] || 0) + 1;
     const n = String(DB.__seq[key]).padStart(3, "0");
+    return `UBPC-${prefix}-${year}-${n}`;
+  }
+  // Muestra el próximo código SIN avanzar el contador (para previsualizar)
+  function peekCode(collection, year) {
+    const prefix = CODE_PREFIX[collection];
+    if (!prefix) return null;
+    year = year || new Date().getFullYear();
+    const key = prefix + "-" + year;
+    const n = String((DB.__seq[key] || 0) + 1).padStart(3, "0");
     return `UBPC-${prefix}-${year}-${n}`;
   }
 
@@ -155,7 +164,7 @@
       persist();
     },
 
-    nextCode,
+    nextCode, peekCode,
 
     // Configuración simple clave/valor
     getConfig(key, def) {

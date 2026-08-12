@@ -1679,6 +1679,13 @@ body.night .agc-leg.is-off{ background:rgba(255,255,255,.02); }
 .agc-when{ font-size:11px; font-weight:800; color:var(--text-2); background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:.1rem .5rem; white-space:nowrap; }
 .agc-when.hoy{ color:#fff; background:var(--c-celeste); border-color:transparent; }
 .agc-when.over{ color:#fff; background:var(--danger); border-color:transparent; }
+/* Generador de código interno */
+.gen-preview{ margin-top:.7rem; font-size:.92rem; color:var(--text-2); }
+.gen-code{ font-family:var(--font-disp); font-weight:800; font-size:1.15rem; letter-spacing:.02em; color:var(--c-azul);
+  background:color-mix(in srgb, var(--morado) 12%, transparent); border:1px solid color-mix(in srgb, var(--morado) 35%, transparent);
+  padding:.15rem .55rem; border-radius:9px; }
+.gen-code--new{ color:var(--verde); background:color-mix(in srgb, var(--verde) 14%, transparent); border-color:color-mix(in srgb, var(--verde) 40%, transparent); animation:spotPulse 1.05s ease-in-out 2; }
+
 /* Lucecita intermitente: resalta lo vencido al llegar desde "Próximos pasos" */
 @keyframes spotPulse{
   0%,100%{ box-shadow:0 0 0 0 rgba(224,82,111,0), var(--shadow); }
