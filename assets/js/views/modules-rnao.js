@@ -154,7 +154,7 @@
       { name: "responsable", label: "Responsable de la evaluación", value: rec.responsable || "" },
       { name: "referente", label: "Referente UBPC", value: rec.referente || (U.auth.referente() ? U.auth.referente().nombre : "") },
       { name: "meta", label: "Meta de cumplimiento (%)", type: "number", value: rec.meta || CS().metaInstitucional() },
-      { name: "proximaMedicion", label: "Próxima medición", type: "date", value: rec.proximaMedicion ? u.isoDay(rec.proximaMedicion) : "" }
+      { name: "proximaMedicion", label: "Próxima medición", type: "date", value: rec.proximaMedicion ? u.isoDay(rec.proximaMedicion) : "", hint: "Se calcula desde la frecuencia; puedes ajustarla." }
     ], {});
 
     const modoSel = `<div class="field"><label class="req">Modo de ingreso</label>
@@ -216,6 +216,20 @@
         }
         function computePct() { computeAll(); }
         function val(idx, f) { const el = indsBox.querySelector(`input[data-ind="${idx}"][data-f="${f}"]`); return el ? el.value : ""; }
+
+        // Próxima medición = fecha + frecuencia (medición periódica RNAO). Editable.
+        const fechaEl = m.querySelector('input[name="fecha"]');
+        const frecEl = m.querySelector('select[name="frecuencia"]');
+        const proxEl = m.querySelector('input[name="proximaMedicion"]');
+        const FREC_MESES = { "Mensual": 1, "Bimensual": 2, "Trimestral": 3, "Semestral": 6, "Anual": 12 };
+        function calcProx() {
+          const meses = FREC_MESES[frecEl.value];
+          if (!meses || !fechaEl.value) return;
+          const d = new Date(fechaEl.value + "T12:00:00"); d.setMonth(d.getMonth() + meses);
+          proxEl.value = d.toISOString().slice(0, 10);
+        }
+        if (frecEl) frecEl.addEventListener("change", calcProx);
+        if (fechaEl) fechaEl.addEventListener("change", () => { if (frecEl.value) calcProx(); });
 
         // tipo Línea base → cobertura "Todas las unidades"
         tipoSel.onchange = () => { if (tipoSel.value === "Línea base") unidadSel.value = "Todas las unidades"; };
