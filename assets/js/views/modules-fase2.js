@@ -324,15 +324,16 @@
     });
   }
 
-  // Color propio por tipo documental (para diferenciarlos en la tabla)
+  // Color propio por tipo documental (distintos entre sí y del color base de las etiquetas)
   const TIPO_DOC_COLOR = {
-    "Protocolo": "#12b5a5", "Guía": "#37a04a", "Norma": "#1554b8", "Procedimiento": "#e0912f",
-    "Manual": "#7a5cd0", "Instructivo": "#0891b2", "Flujograma": "#e0559c", "Otro": "#5f7d76"
+    "Protocolo": "#1554b8", "Guía": "#2f9d57", "Norma": "#7a5cd0", "Procedimiento": "#e0912f",
+    "Manual": "#0891b2", "Instructivo": "#be185d", "Flujograma": "#b45309", "Otro": "#5f7d76"
   };
   function tipoDocChip(tipo, u) {
     const t = tipo || "—";
     const c = TIPO_DOC_COLOR[t] || "#5f7d76";
-    return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}55">${u.esc(t)}</span>`;
+    return `<span class="tag tipo-chip" style="background:${c}22;color:${c};border-color:${c}">`
+      + `<span class="tipo-chip__dot" style="background:${c}"></span>${u.esc(t)}</span>`;
   }
 
   // KPIs de productividad documental (encima de la tabla)

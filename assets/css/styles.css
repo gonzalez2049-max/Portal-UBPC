@@ -1679,6 +1679,10 @@ body.night .agc-leg.is-off{ background:rgba(255,255,255,.02); }
 .agc-when{ font-size:11px; font-weight:800; color:var(--text-2); background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:.1rem .5rem; white-space:nowrap; }
 .agc-when.hoy{ color:#fff; background:var(--c-celeste); border-color:transparent; }
 .agc-when.over{ color:#fff; background:var(--danger); border-color:transparent; }
+/* Etiqueta de tipo documental con color e indicador (puntito) por tipo */
+.tipo-chip{ display:inline-flex; align-items:center; gap:.4em; font-weight:800; }
+.tipo-chip__dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+
 /* Generador de código interno */
 .gen-preview{ margin-top:.7rem; font-size:.92rem; color:var(--text-2); }
 .gen-code{ font-family:var(--font-disp); font-weight:800; font-size:1.15rem; letter-spacing:.02em; color:var(--c-azul);
