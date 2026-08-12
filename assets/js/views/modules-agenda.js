@@ -183,10 +183,11 @@
             <span class="agc-item__acts"><button class="btn btn--ghost btn--sm" data-evedit="${e.id}" title="Editar">✏️</button>
             <button class="btn btn--ghost btn--sm" data-evdel="${e.id}" title="Eliminar">🗑️</button></span></div>`;
         }
-        // Vencido con origen editable: en vez de navegar, ofrece Editar fecha / Eliminar / Ir al registro
-        if (over && e.col && e.dateField) {
+        // Con origen editable (tarea, acción, plan): ofrece Editar fecha / Eliminar /
+        // Ir al registro, en vez de navegar directamente al módulo.
+        if (e.col && e.dateField) {
           const key = e.col + "|" + e.rid + "|" + e.dateField;
-          return `<div class="agc-item agc-item--venc" style="--tc:${m.c}">
+          return `<div class="agc-item${over ? " agc-item--venc" : ""}" style="--tc:${m.c}">
             <span class="agc-item__ic">${m.ic}</span>
             <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
               <span class="agc-item__meta">${meta}</span></div>
@@ -264,11 +265,12 @@
       const sp = document.getElementById("agc-showprox"); if (sp) sp.onclick = () => { showProx = true; draw(); };
       const hp = document.getElementById("agc-hideprox"); if (hp) hp.onclick = () => { showProx = false; draw(); };
       container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => { selIso = b.dataset.iso; showProx = false; draw(); });
-      // Clic en un bloque de evento: abre el registro (o edita el evento propio)
+      // Clic en un bloque de evento: abre el detalle del día (para ver/editar/eliminar)
+      // en vez de navegar directamente al módulo.
       container.querySelectorAll(".agc-chip").forEach(c => c.onclick = ev => {
         ev.stopPropagation();
-        if (c.dataset.cev) eventoForm(S().get("agendaEventos", c.dataset.cev), draw);
-        else if (c.dataset.cruta) U.router.go(c.dataset.cruta);
+        const day = c.closest(".agc-day");
+        if (day && day.dataset.iso) { selIso = day.dataset.iso; showProx = false; draw(); }
       });
       const nev = document.getElementById("agc-newev"); if (nev) nev.onclick = () => eventoForm(null, () => { selIso = null; draw(); });
       const addDay = () => eventoForm(null, () => draw(), selIso);
