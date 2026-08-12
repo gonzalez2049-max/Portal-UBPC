@@ -354,14 +354,23 @@
 
     items.sort((a, b) => a.p - b.p);
     if (!items.length) return `<div class="badge badge--ok">Sin brechas activas · las buenas prácticas están dentro de meta.</div>`;
-    const P = ["Prioridad alta", "Prioridad media", "Seguimiento"];
-    const K = ["danger", "warn", "info"];
-    return `<ul class="feed">${items.slice(0, 8).map(it => `<li>
-      <span class="feed__ico">${it.p === 0 ? "🔴" : it.p === 1 ? "🟠" : "🟡"}</span>
-      <div style="flex:1"><div><span class="tag">${u.esc(it.tag)}</span> <strong>${u.esc(it.titulo)}</strong></div>
-        <div class="feed__meta">${u.esc(it.detalle)}</div></div>
-      <a class="btn btn--ghost btn--sm" href="${it.ref}">Ir</a></li>`).join("")}</ul>
-      <p class="kpi__sub" style="margin-top:.5rem">${items.length} brecha(s) detectada(s) · orden por prioridad.</p>`;
+    const K = ["alta", "media", "seg"];
+    const cnt = [0, 0, 0]; items.forEach(i => cnt[i.p]++);
+    const summary = `<div class="brecha-sum">
+      <span class="brecha-sum__chip brecha-sum__chip--alta">🔴 ${cnt[0]} alta${cnt[0] === 1 ? "" : "s"}</span>
+      <span class="brecha-sum__chip brecha-sum__chip--media">🟠 ${cnt[1]} media${cnt[1] === 1 ? "" : "s"}</span>
+      <span class="brecha-sum__chip brecha-sum__chip--seg">🟡 ${cnt[2]} en seguimiento</span>
+      <span class="kpi__sub" style="margin-left:auto">${items.length} brecha(s) · orden por prioridad</span>
+    </div>`;
+    const grid = `<div class="brecha-grid">${items.slice(0, 9).map(it => `
+      <a class="brecha-card brecha-card--${K[it.p]}" href="${it.ref}" title="${u.esc(it.titulo)} — ${u.esc(it.detalle)}">
+        <span class="brecha-card__tag">${u.esc(it.tag)}</span>
+        <strong class="brecha-card__t">${u.esc(it.titulo)}</strong>
+        <span class="brecha-card__meta">${u.esc(it.detalle)}</span>
+        <span class="brecha-card__go">Ir →</span>
+      </a>`).join("")}</div>`;
+    const more = items.length > 9 ? `<p class="kpi__sub" style="margin-top:.6rem">Mostrando las 9 de mayor prioridad. Entra a cada módulo para ver el resto.</p>` : "";
+    return summary + grid + more;
   }
   function currentInd(ind) {
     const seg = (ind.seguimientos || []).filter(s => s.valor !== "" && s.valor != null);

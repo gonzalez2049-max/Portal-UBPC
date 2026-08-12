@@ -888,6 +888,27 @@ body.night .profile-card__name{ color:#eaf5ef; }
 body.night .orient-card{ background:rgba(18,28,34,.82); border-color:rgba(255,255,255,.08); }
 body.night .orient-card__title{ color:#eaf3f1; }
 
+/* Brechas priorizadas — resumen + grilla compacta */
+.brecha-sum{ display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.75rem; }
+.brecha-sum__chip{ font-size:.8rem; font-weight:800; padding:.2rem .6rem; border-radius:999px; border:1px solid transparent; }
+.brecha-sum__chip--alta{ color:var(--danger); background:var(--danger-bg); border-color:#f2c2c6; }
+.brecha-sum__chip--media{ color:var(--warn); background:var(--warn-bg); border-color:#f0dca8; }
+.brecha-sum__chip--seg{ color:var(--info); background:var(--info-bg); border-color:#bcd6f4; }
+.brecha-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(255px,1fr)); gap:.6rem; }
+.brecha-card{ position:relative; display:flex; flex-direction:column; gap:.12rem; padding:.55rem .8rem .6rem 1rem;
+  border:1px solid var(--border); border-radius:12px; background:var(--surface); text-decoration:none; color:inherit;
+  border-left:4px solid var(--nc,var(--neutral)); transition:transform .15s, box-shadow .15s; }
+.brecha-card:hover{ transform:translateY(-2px); box-shadow:0 8px 20px -12px rgba(18,90,80,.4); }
+.brecha-card--alta{ --nc:var(--danger); }
+.brecha-card--media{ --nc:var(--warn); }
+.brecha-card--seg{ --nc:var(--info); }
+.brecha-card__tag{ font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--nc); }
+.brecha-card__t{ font-size:.92rem; line-height:1.2; color:var(--text); }
+.brecha-card__meta{ font-size:.76rem; color:var(--text-muted); line-height:1.3; }
+.brecha-card__go{ position:absolute; top:.5rem; right:.7rem; font-size:.72rem; font-weight:800; color:var(--nc); opacity:0; transition:opacity .15s; }
+.brecha-card:hover .brecha-card__go{ opacity:1; }
+body.night .brecha-card{ background:rgba(18,28,34,.82); border-color:rgba(255,255,255,.08); }
+
 /* Detalle de orientación en modal */
 .orient-detail{ display:flex; flex-direction:column; gap:.9rem; }
 .orient-list{ margin:0; padding-left:1.2rem; list-style:none; }
@@ -1628,21 +1649,30 @@ body.night .doc-page{ background:#fff; }
 /* ============================================================
    AGENDA — calendario mensual + lista de eventos
    ============================================================ */
-.agc-cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem; }
-.agc-cal-head strong{ font-family:var(--font-disp); font-size:1.1rem; }
-.agc-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
-.agc-dow{ margin-bottom:4px; }
-.agc-dow__c{ text-align:center; font-size:11px; font-weight:800; color:var(--text-muted); padding:.2rem 0; }
-.agc-day{ position:relative; min-height:96px; border:1px solid transparent; border-radius:10px; background:var(--surface-2);
+.agc-cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.7rem;
+  background:linear-gradient(100deg, color-mix(in srgb,var(--c-turquesa) 16%, transparent), color-mix(in srgb,var(--morado) 13%, transparent));
+  border:1px solid color-mix(in srgb,var(--c-turquesa) 22%, var(--border)); border-radius:12px; padding:.35rem .6rem; }
+.agc-cal-head strong{ font-family:var(--font-disp); font-size:1.35rem; color:var(--text); letter-spacing:-.01em; }
+.agc-cal-head .btn-icon{ background:var(--surface); border:1px solid var(--border); }
+.agc-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+.agc-dow{ margin-bottom:5px; }
+.agc-dow__c{ text-align:center; font-size:11px; font-weight:800; color:var(--c-azul); padding:.3rem 0; border-radius:7px;
+  background:color-mix(in srgb, var(--c-turquesa) 10%, transparent); text-transform:uppercase; letter-spacing:.06em; }
+/* Fondo tenue tras la grilla para que los casilleros resalten */
+.agc-cal-card .agc-grid--big{ background:color-mix(in srgb, var(--c-turquesa) 6%, transparent); padding:6px; border-radius:12px; }
+.agc-day{ position:relative; min-height:96px; border:1px solid var(--border); border-radius:10px; background:var(--surface);
   cursor:pointer; padding:.28rem .28rem .3rem; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
-  font: inherit; color:var(--text-2); transition:background .15s, transform .15s, box-shadow .15s; overflow:hidden; }
-.agc-day--blank{ background:transparent; border:none; cursor:default; }
-.agc-day__n{ font-size:12.5px; font-weight:700; align-self:flex-start; padding:0 .1rem; }
-.agc-day.has-ev{ background:var(--surface); border-color:var(--border); }
-.agc-day:not(.agc-day--blank):hover{ box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--c-turquesa) 40%, transparent); }
-.agc-day.is-today{ background:var(--azul-50); border-color:var(--c-celeste); }
-.agc-day.is-today .agc-day__n{ color:var(--c-azul); }
-.agc-day.is-sel{ outline:2px solid var(--c-celeste); outline-offset:1px; }
+  font: inherit; color:var(--text-2); box-shadow:0 1px 3px rgba(18,90,80,.06); transition:background .15s, transform .15s, box-shadow .15s; overflow:hidden; }
+.agc-day--blank{ background:transparent; border:none; box-shadow:none; cursor:default; }
+.agc-day__n{ font-size:13px; font-weight:800; align-self:flex-start; padding:0 .15rem; color:var(--text-2); }
+.agc-day.has-ev{ border-color:color-mix(in srgb, var(--c-turquesa) 28%, var(--border)); }
+/* Columnas de fin de semana con un tinte cálido sutil */
+.agc-grid--big > .agc-day:nth-child(7n-1):not(.agc-day--blank),
+.agc-grid--big > .agc-day:nth-child(7n):not(.agc-day--blank){ background:color-mix(in srgb, var(--naranjo) 7%, var(--surface)); }
+.agc-day:not(.agc-day--blank):hover{ transform:translateY(-1px); box-shadow:0 5px 14px -6px rgba(18,90,80,.35); border-color:var(--c-turquesa); }
+.agc-day.is-today{ background:color-mix(in srgb, var(--c-turquesa) 18%, var(--surface)); border-color:var(--c-turquesa); box-shadow:0 0 0 2px color-mix(in srgb,var(--c-turquesa) 35%, transparent); }
+.agc-day.is-today .agc-day__n{ color:#fff; background:var(--c-turquesa); border-radius:50%; width:1.5em; height:1.5em; display:inline-flex; align-items:center; justify-content:center; }
+.agc-day.is-sel{ outline:2px solid var(--morado); outline-offset:1px; }
 .agc-day.is-over .agc-day__n{ color:var(--danger); }
 /* Bloques de evento estilo Outlook */
 .agc-day__evs{ display:flex; flex-direction:column; gap:2px; margin-top:2px; min-width:0; }
