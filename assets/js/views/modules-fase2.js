@@ -216,6 +216,17 @@
     });
   }
 
+  // Color propio por tipo documental (para diferenciarlos en la tabla)
+  const TIPO_DOC_COLOR = {
+    "Protocolo": "#12b5a5", "Guía": "#37a04a", "Norma": "#1554b8", "Procedimiento": "#e0912f",
+    "Manual": "#7a5cd0", "Instructivo": "#0891b2", "Flujograma": "#e0559c", "Otro": "#5f7d76"
+  };
+  function tipoDocChip(tipo, u) {
+    const t = tipo || "—";
+    const c = TIPO_DOC_COLOR[t] || "#5f7d76";
+    return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}55">${u.esc(t)}</span>`;
+  }
+
   // KPIs de productividad documental (encima de la tabla)
   function documentosKPIs(el) {
     if (!el) return;
@@ -267,7 +278,7 @@
       columns: [
         { key: "codigo", label: "Código", mono: true, width: "150px" },
         { key: "nombre", label: "Documento" },
-        { key: "tipo", label: "Tipo", render: (r, u) => `<span class="tag">${u.esc(r.tipo || "—")}</span>` },
+        { key: "tipo", label: "Tipo", render: (r, u) => tipoDocChip(r.tipo, u) },
         { key: "version", label: "Versión", render: (r, u) => `v${u.esc(r.version || "1")}` },
         { key: "estado", label: "Estado", badge: true },
         { key: "revisadoUBP", label: "V°B° UBPC", center: true,
