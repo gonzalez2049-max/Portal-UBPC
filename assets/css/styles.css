@@ -889,6 +889,29 @@ body.night .profile-card__name{ color:#eaf5ef; }
 body.night .orient-card{ background:rgba(18,28,34,.82); border-color:rgba(255,255,255,.08); }
 body.night .orient-card__title{ color:#eaf3f1; }
 
+/* Dashboard RNAO — banda resumen (hero) */
+.rnao-hero{ border-radius:18px; padding:1.25rem 1.5rem; color:#eafff9; box-shadow:var(--shadow);
+  background:radial-gradient(120% 140% at 0% 0%, rgba(18,181,165,.35), transparent 55%), linear-gradient(120deg,#0e3b46,#123f4d 48%,#1b2e4a);
+  display:flex; flex-wrap:wrap; align-items:center; gap:1.2rem 2rem; }
+.rnao-hero__eyebrow{ font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#8fe6d6; }
+.rnao-hero__row{ display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; margin:.15rem 0; }
+.rnao-hero__big{ font-family:var(--font-disp); font-size:3.1rem; font-weight:800; line-height:1; color:#fff; }
+.rnao-hero__verdict{ font-weight:800; font-size:.85rem; padding:.25rem .7rem; border-radius:999px; }
+.rnao-hero__verdict.is-ok{ background:rgba(55,198,160,.25); color:#c6ffe9; }
+.rnao-hero__verdict.is-warn{ background:rgba(224,145,47,.28); color:#ffe0b3; }
+.rnao-hero__note{ font-size:.8rem; color:#a8d8ce; }
+.rnao-hero__stats{ display:flex; flex-wrap:wrap; gap:1rem 1.6rem; margin-left:auto; }
+.rnao-hero__stat{ display:flex; flex-direction:column; min-width:74px; }
+.rnao-hero__lab{ font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#8fbdb5; }
+.rnao-hero__stat b{ font-size:1.5rem; font-weight:800; color:#fff; line-height:1.1; }
+.rnao-hero__sub{ font-size:.72rem; color:#a8d8ce; }
+/* Detalle plegable de indicadores bajo meta */
+.rnao-det{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.8rem 1rem; box-shadow:var(--shadow); }
+.rnao-det > summary{ cursor:pointer; font-weight:800; color:var(--text-2); list-style:none; }
+.rnao-det > summary::-webkit-details-marker{ display:none; }
+.rnao-det[open] > summary{ margin-bottom:.2rem; }
+body.night .rnao-det{ background:rgba(18,28,34,.82); border-color:rgba(255,255,255,.08); }
+
 /* Dashboard RNAO — lista "Dónde enfocar" */
 .foco-list{ display:flex; flex-direction:column; gap:.45rem; }
 .foco-item{ display:flex; align-items:center; gap:.7rem; padding:.55rem .7rem; border:1px solid var(--border); border-radius:11px;

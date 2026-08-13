@@ -311,47 +311,47 @@
     if (accVenc.length) focos.push(focoItem("⏰", accVenc.length + " acción(es) de mejora vencida(s)", "Revisa y actualiza los plazos", "var(--danger)", "#/coord/m3?tab=planes"));
     if (!focos.length) focos.push(`<div class="badge badge--ok" style="margin:.4rem">✅ Todo dentro de meta · sin focos críticos.</div>`);
 
-    box.innerHTML = `
-      <p class="section__hint" style="margin:-.2rem 0 .8rem">Vista institucional del Programa RNAO: <strong>dónde estás</strong>, <strong>dónde enfocar</strong> y <strong>qué viene</strong>.</p>
+    const ok = instituc != null && instituc >= metaI;
+    const hstat = (lab, val, sub, danger) => `<div class="rnao-hero__stat"><span class="rnao-hero__lab">${lab}</span><b${danger ? ' style="color:#ffd0d6"' : ""}>${val}</b><span class="rnao-hero__sub">${u.esc(sub || "")}</span></div>`;
 
-      <div class="grid grid--2" style="align-items:stretch">
-        <div class="card center" style="border-top:4px solid ${sem(instituc)}">
-          <h3 class="card__title">Cumplimiento institucional</h3>
-          <div style="display:flex;justify-content:center">${U.charts.gauge(instituc || 0, { meta: metaI, label: "Institucional", size: 168 })}</div>
-          <p class="kpi__sub">${instituc != null && instituc >= metaI ? "✅ Dentro de la meta" : "⚠️ Bajo la meta"} institucional (${metaI}%) · promedio de ${globals.length} evaluación(es).</p>
+    box.innerHTML = `
+      <div class="rnao-hero">
+        <div class="rnao-hero__main">
+          <div class="rnao-hero__eyebrow">Cumplimiento institucional · Programa RNAO</div>
+          <div class="rnao-hero__row"><span class="rnao-hero__big">${instituc != null ? instituc + "%" : "—"}</span>
+            <span class="rnao-hero__verdict ${ok ? "is-ok" : "is-warn"}">${ok ? "✅ Dentro de la meta" : "⚠️ Bajo la meta"} (${metaI}%)</span></div>
+          <div class="rnao-hero__note">Promedio de ${globals.length} evaluación(es)</div>
         </div>
+        <div class="rnao-hero__stats">
+          ${hstat("Guías", guiasEval.size, "evaluadas")}
+          ${hstat("Unidades", unidadesImpl.size, "implementadoras")}
+          ${hstat("Seguimientos", seguimientos.length, seguimientos.length ? "posteriores" : "solo T0")}
+          ${hstat("Acciones", accPend.length, accVenc.length ? accVenc.length + " vencidas" : "pendientes", accVenc.length)}
+          ${hstat("Próx. medición", prox ? u.fechaCL(prox.proximaMedicion) : "—", prox ? (prox.guia || "") : "sin programar")}
+        </div>
+      </div>
+
+      <div class="grid grid--2" style="margin-top:1rem;align-items:start">
         <div class="card">
           <h3 class="card__title">🎯 Dónde enfocar ahora</h3>
-          <p class="kpi__sub" style="margin:-.3rem 0 .5rem">Ordenado por prioridad. Toca para ir a la evaluación o al plan.</p>
+          <p class="kpi__sub" style="margin:-.3rem 0 .6rem">Lo prioritario primero. Toca para ir a la evaluación o al plan.</p>
           <div class="foco-list">${focos.join("")}</div>
+        </div>
+        <div class="card">
+          <h3 class="card__title">📊 Comparativa · meta ${metaI}%</h3>
+          <p class="kpi__sub" style="margin:-.3rem 0 .5rem">De menor a mayor cumplimiento.</p>
+          <div class="kpi__label" style="margin:.3rem 0 .2rem">Por guía</div>
+          ${porGuia.length ? U.charts.bars(porGuia, { meta: metaI }) : u.empty("Sin datos por guía.")}
+          <div class="kpi__label" style="margin:.9rem 0 .2rem">Por unidad</div>
+          ${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI }) : u.empty("Sin datos por unidad.")}
         </div>
       </div>
 
-      <div class="grid grid--kpi" style="margin-top:1rem">
-        ${kcard("Guías evaluadas", guiasEval.size, "en el programa", "var(--c-celeste)")}
-        ${kcard("Unidades implementadoras", unidadesImpl.size, "con evaluación registrada", "var(--morado)")}
-        ${kcard("Seguimientos", seguimientos.length, seguimientos.length ? "mediciones posteriores" : "aún solo línea base", "var(--c-azul)")}
-        ${kcard("Acciones pendientes", accPend.length, accVenc.length ? accVenc.length + " vencida(s)" : "al día", accVenc.length ? "var(--danger)" : "var(--naranjo)")}
-        ${kcard("Próxima medición", prox ? u.fechaCL(prox.proximaMedicion) : "—", prox ? u.esc(prox.guia || "") : "sin programar", "var(--verde)")}
-      </div>
-
-      <div class="grid grid--2" style="margin-top:1rem">
-        <div class="card"><h3 class="card__title">Comparación por guía</h3>
-          <p class="kpi__sub" style="margin:-.3rem 0 .5rem">De menor a mayor cumplimiento · meta ${metaI}%.</p>
-          ${porGuia.length ? U.charts.bars(porGuia, { meta: metaI }) : u.empty("Sin datos por guía.")}</div>
-        <div class="card"><h3 class="card__title">Comparación por unidad</h3>
-          <p class="kpi__sub" style="margin:-.3rem 0 .5rem">De menor a mayor cumplimiento · meta ${metaI}%.</p>
-          ${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI }) : u.empty("Sin datos por unidad.")}</div>
-      </div>
-
-      <div class="card" style="margin-top:1rem">
-        <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Indicadores bajo meta</h3>
-          <p class="kpi__sub">${bajoMeta.length} de ${allInds.length} indicador(es) bajo la meta ${metaI}%.</p></div>
-          ${bajoMeta.length ? `<a class="btn btn--ghost btn--sm" href="${R}">Ver evaluaciones →</a>` : ""}</div>
-        ${bajoMeta.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Guía · Unidad</th><th class="right">%</th></tr></thead><tbody>
-          ${bajoMeta.slice(0, 8).map(c => `<tr><td>${u.esc(c.nombre)}</td><td>${indTipoChip(c.nombre)}</td><td class="kpi__sub">${u.esc(c.guia || "")} · ${u.esc(c.unidad || "")}</td><td class="num"><strong style="color:${sem(c.pct)}">${c.pct}%</strong></td></tr>`).join("")}
-        </tbody></table></div>` : `<span class="badge badge--ok">✅ Todos los indicadores están en meta.</span>`}
-      </div>`;
+      ${bajoMeta.length ? `<details class="rnao-det" style="margin-top:1rem">
+        <summary>📉 Ver los ${bajoMeta.length} indicador(es) bajo meta</summary>
+        <div class="table-wrap" style="margin-top:.6rem"><table class="tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Guía · Unidad</th><th class="right">%</th></tr></thead><tbody>
+          ${bajoMeta.map(c => `<tr><td>${u.esc(c.nombre)}</td><td>${indTipoChip(c.nombre)}</td><td class="kpi__sub">${u.esc(c.guia || "")} · ${u.esc(c.unidad || "")}</td><td class="num"><strong style="color:${sem(c.pct)}">${c.pct}%</strong></td></tr>`).join("")}
+        </tbody></table></div></details>` : `<div class="card" style="margin-top:1rem"><span class="badge badge--ok">✅ Todos los indicadores están en meta.</span></div>`}`;
   }
 
   /* ===================== PLAN DE INTERVENCIÓN RNAO/BPSO ===================== */
