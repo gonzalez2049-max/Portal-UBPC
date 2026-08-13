@@ -287,51 +287,70 @@
     const dosMenores = allInds.slice(0, 2);
 
     const seguimientos = evals.filter(e => e.tipo === "Seguimiento");
-    const unidadesImpl = new Set(seguimientos.map(e => e.unidad).filter(x => x && x !== "Todas las unidades"));
+    // Unidades implementadoras = unidades con alguna evaluación (no solo seguimientos)
+    const unidadesImpl = new Set(evals.map(e => e.unidad).filter(x => x && x !== "Todas las unidades"));
+    const guiasEval = new Set(evals.map(e => e.guia).filter(Boolean));
     const acciones = S().all("accionesRNAO");
     const accPend = acciones.filter(a => a.estado !== "Completado");
     const accVenc = accPend.filter(a => a.fechaComprometida && new Date(a.fechaComprometida) < new Date());
     const prox = evals.filter(e => e.proximaMedicion && new Date(e.proximaMedicion) >= new Date()).sort((a, b) => new Date(a.proximaMedicion) - new Date(b.proximaMedicion))[0];
+    const bajoMeta = allInds.filter(i => i.pct < i.meta);
 
-    const alertas = [];
-    if (accVenc.length) alertas.push(`${accVenc.length} acción(es) de mejora vencida(s)`);
-    if (guiaAtencion && guiaAtencion.value < 90) alertas.push(`${guiaAtencion.label} bajo la meta (${guiaAtencion.value}%)`);
-    criticos.filter(c => c.pct < c.meta).slice(0, 1).forEach(c => alertas.push(`Indicador crítico: ${c.nombre} (${c.pct}%)`));
+    const sem = v => v == null ? "var(--neutral)" : (v >= metaI ? "var(--verde)" : v >= metaI - 15 ? "var(--naranjo)" : "var(--danger)");
+    const R = "#/coord/m3?tab=evaluaciones";
+    const kcard = (lab, val, sub, color) => `<div class="card kpi" style="border-left-color:${color}"><div class="kpi__label">${lab}</div><div class="kpi__value">${val}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
+    const focoItem = (ic, titulo, detalle, color, ref) => `<a class="foco-item" href="${ref}" style="--fc:${color}">
+      <span class="foco-item__ic">${ic}</span>
+      <div class="foco-item__body"><strong>${u.esc(titulo)}</strong><div class="kpi__sub">${detalle}</div></div>
+      <span class="foco-item__go">Ir →</span></a>`;
+
+    const focos = [];
+    if (guiaAtencion) focos.push(focoItem("🎯", "Guía prioritaria", `${u.esc(guiaAtencion.label)} · <strong style="color:${sem(guiaAtencion.value)}">${guiaAtencion.value}%</strong>`, sem(guiaAtencion.value), R));
+    if (unidadApoyo) focos.push(focoItem("🏥", "Unidad que necesita apoyo", `${u.esc(unidadApoyo.label)} · <strong style="color:${sem(unidadApoyo.value)}">${unidadApoyo.value}%</strong>`, sem(unidadApoyo.value), R));
+    bajoMeta.slice(0, 2).forEach(i => focos.push(focoItem("📉", i.nombre, `${u.esc(i.guia || "")} · ${u.esc(i.unidad || "")} — <strong style="color:var(--danger)">${i.pct}%</strong>`, "var(--danger)", R)));
+    if (accVenc.length) focos.push(focoItem("⏰", accVenc.length + " acción(es) de mejora vencida(s)", "Revisa y actualiza los plazos", "var(--danger)", "#/coord/m3?tab=planes"));
+    if (!focos.length) focos.push(`<div class="badge badge--ok" style="margin:.4rem">✅ Todo dentro de meta · sin focos críticos.</div>`);
 
     box.innerHTML = `
-      <div class="grid grid--2">
-        <div class="card center" style="border-top:4px solid var(--azul-700)">
+      <p class="section__hint" style="margin:-.2rem 0 .8rem">Vista institucional del Programa RNAO: <strong>dónde estás</strong>, <strong>dónde enfocar</strong> y <strong>qué viene</strong>.</p>
+
+      <div class="grid grid--2" style="align-items:stretch">
+        <div class="card center" style="border-top:4px solid ${sem(instituc)}">
           <h3 class="card__title">Cumplimiento institucional</h3>
-          <div style="display:flex;justify-content:center">${U.charts.gauge(instituc || 0, { meta: metaI, label: "Institucional", size: 170 })}</div>
-          <p class="kpi__sub">Promedio de resultados oficiales de ${globals.length} evaluación(es).</p>
+          <div style="display:flex;justify-content:center">${U.charts.gauge(instituc || 0, { meta: metaI, label: "Institucional", size: 168 })}</div>
+          <p class="kpi__sub">${instituc != null && instituc >= metaI ? "✅ Dentro de la meta" : "⚠️ Bajo la meta"} institucional (${metaI}%) · promedio de ${globals.length} evaluación(es).</p>
         </div>
         <div class="card">
-          <h3 class="card__title">Panel de prioridades</h3>
-          <ul class="feed">
-            <li><span class="feed__ico">🎯</span><div><strong>Guía que necesita mayor atención</strong><div class="feed__meta">${guiaAtencion ? u.esc(guiaAtencion.label) + " · " + guiaAtencion.value + "%" : "—"}</div></div></li>
-            <li><span class="feed__ico">🏥</span><div><strong>Unidad que necesita apoyo</strong><div class="feed__meta">${unidadApoyo ? u.esc(unidadApoyo.label) + " · " + unidadApoyo.value + "%" : "—"}</div></div></li>
-            <li><span class="feed__ico">📉</span><div><strong>Dos indicadores con menor cumplimiento</strong><div class="feed__meta">${dosMenores.length ? dosMenores.map(d => u.esc(d.nombre) + " (" + d.pct + "%)").join(" · ") : "—"}</div></div></li>
-            <li><span class="feed__ico">🔁</span><div><strong>Seguimiento posterior</strong><div class="feed__meta">${seguimientos.length ? "Sí · " + seguimientos.length + " seguimiento(s)" : "Aún sin seguimientos"}</div></div></li>
-            <li><span class="feed__ico">🏫</span><div><strong>Unidades implementadoras activas</strong><div class="feed__meta">${unidadesImpl.size || "0"}</div></div></li>
-            <li><span class="feed__ico">📅</span><div><strong>Próxima medición</strong><div class="feed__meta">${prox ? u.fechaCL(prox.proximaMedicion) + " · " + u.esc(prox.guia || "") : "Sin programar"}</div></div></li>
-          </ul>
+          <h3 class="card__title">🎯 Dónde enfocar ahora</h3>
+          <p class="kpi__sub" style="margin:-.3rem 0 .5rem">Ordenado por prioridad. Toca para ir a la evaluación o al plan.</p>
+          <div class="foco-list">${focos.join("")}</div>
         </div>
       </div>
-      <div class="grid grid--2" style="margin-top:1rem">
-        <div class="card"><h3 class="card__title">Comparación por guía</h3>${porGuia.length ? U.charts.bars(porGuia, { meta: metaI }) : u.empty("Sin datos por guía.")}</div>
-        <div class="card"><h3 class="card__title">Comparación por unidad</h3>${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI }) : u.empty("Sin datos por unidad.")}</div>
+
+      <div class="grid grid--kpi" style="margin-top:1rem">
+        ${kcard("Guías evaluadas", guiasEval.size, "en el programa", "var(--c-celeste)")}
+        ${kcard("Unidades implementadoras", unidadesImpl.size, "con evaluación registrada", "var(--morado)")}
+        ${kcard("Seguimientos", seguimientos.length, seguimientos.length ? "mediciones posteriores" : "aún solo línea base", "var(--c-azul)")}
+        ${kcard("Acciones pendientes", accPend.length, accVenc.length ? accVenc.length + " vencida(s)" : "al día", accVenc.length ? "var(--danger)" : "var(--naranjo)")}
+        ${kcard("Próxima medición", prox ? u.fechaCL(prox.proximaMedicion) : "—", prox ? u.esc(prox.guia || "") : "sin programar", "var(--verde)")}
       </div>
+
       <div class="grid grid--2" style="margin-top:1rem">
-        <div class="card"><h3 class="card__title">Indicadores críticos</h3>
-          ${criticos.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Indicador</th><th>Guía · Unidad</th><th class="right">%</th></tr></thead><tbody>
-            ${criticos.map(c => `<tr><td>${u.esc(c.nombre)}</td><td class="kpi__sub">${u.esc(c.guia || "")} · ${u.esc(c.unidad || "")}</td><td class="num"><strong style="color:${c.pct < c.meta ? "var(--danger)" : "var(--verde)"}">${c.pct}%</strong></td></tr>`).join("")}
-          </tbody></table></div>` : u.empty("Sin indicadores registrados.")}
-        </div>
-        <div class="card"><h3 class="card__title">Estado de seguimiento y alertas</h3>
-          <div class="dl"><div><span>Acciones pendientes</span><strong>${accPend.length}</strong></div>
-          <div><span>Acciones vencidas</span><strong style="color:${accVenc.length ? "var(--danger)" : "inherit"}">${accVenc.length}</strong></div></div>
-          <div style="margin-top:.5rem">${alertas.length ? alertas.map(a => `<div class="badge badge--danger" style="margin:.15rem .2rem .15rem 0">${u.esc(a)}</div>`).join("") : `<span class="badge badge--ok">Sin alertas activas</span>`}</div>
-        </div>
+        <div class="card"><h3 class="card__title">Comparación por guía</h3>
+          <p class="kpi__sub" style="margin:-.3rem 0 .5rem">De menor a mayor cumplimiento · meta ${metaI}%.</p>
+          ${porGuia.length ? U.charts.bars(porGuia, { meta: metaI }) : u.empty("Sin datos por guía.")}</div>
+        <div class="card"><h3 class="card__title">Comparación por unidad</h3>
+          <p class="kpi__sub" style="margin:-.3rem 0 .5rem">De menor a mayor cumplimiento · meta ${metaI}%.</p>
+          ${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI }) : u.empty("Sin datos por unidad.")}</div>
+      </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Indicadores bajo meta</h3>
+          <p class="kpi__sub">${bajoMeta.length} de ${allInds.length} indicador(es) bajo la meta ${metaI}%.</p></div>
+          ${bajoMeta.length ? `<a class="btn btn--ghost btn--sm" href="${R}">Ver evaluaciones →</a>` : ""}</div>
+        ${bajoMeta.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Guía · Unidad</th><th class="right">%</th></tr></thead><tbody>
+          ${bajoMeta.slice(0, 8).map(c => `<tr><td>${u.esc(c.nombre)}</td><td>${indTipoChip(c.nombre)}</td><td class="kpi__sub">${u.esc(c.guia || "")} · ${u.esc(c.unidad || "")}</td><td class="num"><strong style="color:${sem(c.pct)}">${c.pct}%</strong></td></tr>`).join("")}
+        </tbody></table></div>` : `<span class="badge badge--ok">✅ Todos los indicadores están en meta.</span>`}
       </div>`;
   }
 
