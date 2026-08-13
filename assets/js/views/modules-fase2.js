@@ -107,6 +107,11 @@
      sistema y mantener coherencia y correlación. Cada código queda registrado. */
   const GEN_FAMILIAS = [
     { key: "documentos", label: "Documento institucional (UBPC-DOC)" },
+    { key: "informesTec", label: "Informe técnico (UBPC-INF)" },
+    { key: "auditorias", label: "Informe de auditoría (UBPC-AUD)" },
+    { key: "recursosEdu", label: "Recurso educativo / capacitación (UBPC-EDU)" },
+    { key: "fichasTec", label: "Ficha técnica / instrumento (UBPC-FIC)" },
+    { key: "presentaciones", label: "Presentación / material (UBPC-PPT)" },
     { key: "protocolosEnf", label: "Protocolo de enfermería · control (UBPC-PRO)" },
     { key: "planesIntervencion", label: "Plan de intervención RNAO (UBPC-PIN)" },
     { key: "reuniones", label: "Acta / Reunión (UBPC-REU)" },

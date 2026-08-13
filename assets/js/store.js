@@ -24,7 +24,9 @@
     solicitudes: "SOL", reuniones: "REU", acuerdos: "ACU",
     documentos: "DOC", edicionesEVI: "EVI", colaboraciones: "COL",
     actividades: "CAP", articulaciones: "ART", accionesRNAO: "ACC",
-    evidenciaSemana: "EVA", docsTrabajo: "DOC", planesIntervencion: "PIN", protocolosEnf: "PRO"
+    evidenciaSemana: "EVA", docsTrabajo: "DOC", planesIntervencion: "PIN", protocolosEnf: "PRO",
+    // Familias del "Generador de código interno" (documentos trabajados fuera del portal)
+    informesTec: "INF", auditorias: "AUD", recursosEdu: "EDU", fichasTec: "FIC", presentaciones: "PPT"
   };
 
   function emptyDB() {
