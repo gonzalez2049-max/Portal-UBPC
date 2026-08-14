@@ -435,12 +435,13 @@
     w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe · Índice de Capacidad Operativa UBPC</title><style>
       @font-face{font-family:'Fraunces';src:url('${fr}') format('woff2');font-weight:100 900;font-display:swap}
       @font-face{font-family:'Nunito Sans';src:url('${ns}') format('woff2');font-weight:200 900;font-display:swap}
-      @page{size:A4;margin:14mm}
+      @page{size:A4;margin:0}
       *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       html,body{margin:0}
       body{font-family:'Nunito Sans',system-ui,Arial,sans-serif;color:#22303a}
+      .sheet{padding:14mm}
       ${ICR_CSS}
-    </style></head><body>${informeICOInner()}</body></html>`);
+    </style></head><body><div class="sheet">${informeICOInner()}</div></body></html>`);
     w.document.close();
     const go = () => { try { w.focus(); w.print(); } catch (e) {} };
     if (w.document.fonts && w.document.fonts.ready) { w.document.fonts.ready.then(() => setTimeout(go, 150)); setTimeout(go, 1400); }

@@ -144,12 +144,19 @@
   // Portada institucional (se agrega automáticamente a cada documento nuevo).
   // Es contenteditable="false": los datos NO se repiten en el membrete y no se
   // pueden alterar por accidente al escribir. El título se sincroniza al guardar.
-  function coverHTML(titulo, label) {
+  // ¿El documento pertenece al Programa RNAO / BPSO? (Plan de Mejora / Plan de Intervención)
+  function esRNAO(rec) {
+    if (!rec) return false;
+    if (rec === true) return true;
+    return rec.plantilla === "planMejora" || rec.plantilla === "planRNAO" || !!rec.planRef;
+  }
+  function coverHTML(titulo, label, programa) {
     const u = ui(), me = U.auth.current();
     return `<div class="doc-cover" contenteditable="false">`
       + `<div class="doc-cover__top">`
       + `<img class="doc-cover__logo" src="assets/img/huap-logo.png" alt="HUAP">`
       + `<div class="doc-cover__org"><div class="doc-cover__unit">Unidad de Buenas Prácticas Clínicas · UBPC</div>`
+      + (programa ? `<div class="doc-cover__prog" style="color:#5b34b0;font-weight:700;font-size:.72rem;letter-spacing:.5px;text-transform:uppercase">Programa RNAO / BPSO</div>` : "")
       + `<div class="doc-cover__hosp">Hospital de Urgencia Asistencia Pública</div></div>`
       + `</div>`
       + `<div class="doc-cover__mid">`
@@ -222,6 +229,7 @@
     return `<div align="center" style="text-align:center;padding:34pt 0">`
       + `<img src="${logoData()}" width="88" height="88" style="display:block;margin:0 auto 8pt"><br>`
       + `<div style="font-family:Georgia,serif;font-weight:700;font-size:14pt;color:#0d5044">Unidad de Buenas Prácticas Clínicas · UBPC</div>`
+      + (esRNAO(rec) ? `<div style="color:#5b34b0;font-weight:700;font-size:9.5pt;letter-spacing:1pt;text-transform:uppercase;margin-top:2pt">Programa RNAO / BPSO</div>` : "")
       + `<div style="color:#5a6b84;font-size:10pt;margin-bottom:20pt">Hospital de Urgencia Asistencia Pública</div>`
       + (label ? `<div style="color:#5b34b0;font-weight:700;font-size:10.5pt;letter-spacing:1pt;text-transform:uppercase;margin-bottom:6pt">${u.esc(label)}</div>` : "")
       + `<div style="font-family:Georgia,serif;color:#17263d;font-size:24pt;font-weight:700;margin:0 40pt 10pt">${u.esc(titulo || "Documento institucional")}</div>`
@@ -238,7 +246,7 @@
     const u = ui(); rec = rec || {};
     return `<div style="border-top:6px solid #12b5a5;height:0;font-size:0;margin:0 0 10pt">&nbsp;</div>`
       + `<table cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:12pt"><tr>`
-      + `<td style="border:none;padding:0;font-size:10.5pt;vertical-align:middle"><b>Unidad de Buenas Prácticas Clínicas · UBPC</b><br><span style="color:#5a6b84;font-size:8.5pt">Hospital de Urgencia Asistencia Pública</span></td>`
+      + `<td style="border:none;padding:0;font-size:10.5pt;vertical-align:middle"><b>Unidad de Buenas Prácticas Clínicas · UBPC</b>${esRNAO(rec) ? `<br><span style="color:#5b34b0;font-weight:700;font-size:8pt;letter-spacing:.5pt">PROGRAMA RNAO / BPSO</span>` : ""}<br><span style="color:#5a6b84;font-size:8.5pt">Hospital de Urgencia Asistencia Pública</span></td>`
       + `<td style="border:none;padding:0;text-align:right;color:#5a6b84;font-size:8.5pt;vertical-align:middle">${u.fechaCL(new Date())}${rec.codigo ? `<br><span style="color:#0d8175;font-weight:700">${u.esc(rec.codigo)}</span> · v${rec.version || 1}` : ""}</td>`
       + `</tr></table>`;
   }
@@ -1031,7 +1039,7 @@
     function contenidoNow() {
       const d = locked ? data : readPlanForm(container);
       const titulo = (d.nombre || p.titulo);
-      return { titulo, html: (locked && current) ? current.contenido : (coverHTML(titulo, p.label) + planToHTML(d)), data: d };
+      return { titulo, html: (locked && current) ? current.contenido : (coverHTML(titulo, p.label, true) + planToHTML(d)), data: d };
     }
     function validar(d) {
       const faltan = [];
@@ -1047,7 +1055,7 @@
       const faltan = validar(d);
       if (faltan.length) { u.toast("Completa los campos obligatorios (Nombre, Guía y Objetivo general)", "danger"); return null; }
       const titulo = d.nombre;
-      const payload = { titulo, plantilla: "planRNAO", contenido: coverHTML(titulo, p.label) + planToHTML(d), planData: d, tamano: sheet };
+      const payload = { titulo, plantilla: "planRNAO", contenido: coverHTML(titulo, p.label, true) + planToHTML(d), planData: d, tamano: sheet };
       if (current) S().update("docsTrabajo", current.id, payload);
       else current = S().insert("docsTrabajo", Object.assign({ estado: "borrador", version: 1 }, payload));
       if (!silent) u.toast("Plan guardado", "ok");
@@ -1099,12 +1107,15 @@
     const body = buildExportBody(titulo, html, me, rec, label);
     w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${u.esc(titulo || "Documento")}</title>
       <style>
-        @page{size:${pageSize};margin:16mm 15mm}
+        /* margin:0 en la página → el navegador NO imprime fecha/URL/nº de página
+           en los bordes; el margen real lo da el padding de .sheet */
+        @page{size:${pageSize};margin:0}
         *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
         html,body{margin:0;padding:0}
         body{font-family:'Nunito Sans',system-ui,Segoe UI,Arial,sans-serif;color:#22303a;line-height:1.55;font-size:11.5pt}
+        .sheet{padding:16mm 15mm}
         img{max-width:100%}
-      </style></head><body>${body}</body></html>`);
+      </style></head><body><div class="sheet">${body}</div></body></html>`);
     w.document.close();
     const go = () => { try { w.focus(); w.print(); } catch (e) {} };
     if (w.document.fonts && w.document.fonts.ready) { w.document.fonts.ready.then(() => setTimeout(go, 150)); setTimeout(go, 1200); }
@@ -1163,7 +1174,7 @@
   // Crea o actualiza el documento vinculado y devuelve su id.
   function syncLinkedPlanDoc(plan) {
     const titulo = "Plan de Mejora · " + (plan.guia || "RNAO") + (plan.unidad ? " · " + plan.unidad : "");
-    const contenido = coverHTML(titulo, PLANTILLAS.planMejora.label) + planMejoraContentFromPlan(plan);
+    const contenido = coverHTML(titulo, PLANTILLAS.planMejora.label, true) + planMejoraContentFromPlan(plan);
     let doc = S().all("docsTrabajo").find(d => d.planRef === plan.id);
     if (doc) {
       if ((doc.estado || "borrador") === "borrador") S().update("docsTrabajo", doc.id, { titulo, contenido });
