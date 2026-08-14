@@ -474,7 +474,7 @@
           <button class="btn btn--primary btn--sm" id="pin-save">💾 Guardar</button>
         </div>
       </div>
-      <div class="doc-linked no-print" style="margin-bottom:1rem">📎 Al guardar, este plan genera y sincroniza su documento <strong>“Plan de Mejora (breve)”</strong> en Gestión Documental. La información se registra una sola vez y no se duplica.${cerrado && data.fechaCierre ? ` · <strong>Cerrado</strong> el ${u.fechaCL(data.fechaCierre)}.` : ""}</div>
+      <div class="doc-linked no-print" style="margin-bottom:1rem">📎 Al guardar, este plan genera y sincroniza su documento <strong>“Plan de Mejora”</strong> en Gestión Documental. La información se registra una sola vez y no se duplica.${cerrado && data.fechaCierre ? ` · <strong>Cerrado</strong> el ${u.fechaCL(data.fechaCierre)}.` : ""}</div>
       ${planFormHTML(data)}`;
 
     document.getElementById("pin-back").onclick = () => planList(box);
@@ -524,7 +524,7 @@
     const u = ui();
     const planes = S().all("planesIntervencion").sort((a, b) => new Date(b.fechaModificacion || b.fechaCreacion || 0) - new Date(a.fechaModificacion || a.fechaCreacion || 0));
     box.innerHTML = `<div class="section__head">
-        <p class="section__hint">Planes de intervención para unidades con baja adherencia, brechas o incumplimiento de indicadores. Cada plan genera su documento “Plan de Mejora (breve)” asociado.</p>
+        <p class="section__hint">Planes de intervención para unidades con baja adherencia, brechas o incumplimiento de indicadores. Cada plan genera su documento “Plan de Mejora” asociado.</p>
         <button class="btn btn--primary btn--sm" id="newPlan">+ Nuevo plan</button>
       </div>
       ${planes.length ? `<div class="grid grid--3">${planes.map(planCard).join("")}</div>`

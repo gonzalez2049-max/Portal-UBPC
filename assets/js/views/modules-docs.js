@@ -36,7 +36,7 @@
         <h2>Recursos necesarios</h2><p>Recursos humanos, materiales y de coordinación requeridos.</p>`
     },
     planMejora: {
-      label: "Plan de Mejora (breve)", ic: "🎯", color: "#e0912f",
+      label: "Plan de Mejora", ic: "🎯", color: "#e0912f",
       titulo: "Plan de Mejora",
       html: `<h2>Problema o brecha detectada</h2><p>Describe brevemente la brecha a intervenir.</p>
         <h2>Objetivo de mejora</h2><p>Resultado esperado de la intervención.</p>
@@ -212,9 +212,10 @@
     root.querySelectorAll("ul,ol").forEach(l => l.setAttribute("style", "margin:5pt 0 5pt 18pt;line-height:1.5"));
     root.querySelectorAll("li").forEach(li => li.setAttribute("style", "margin:2pt 0"));
     root.querySelectorAll("hr").forEach(h => h.setAttribute("style", "border:none;border-top:1px solid #dbe6f2;margin:9pt 0"));
-    root.querySelectorAll("table").forEach(t => { t.setAttribute("style", "border-collapse:collapse;width:100%;margin:7pt 0;font-size:10.5pt"); t.setAttribute("cellspacing", "0"); });
+    root.querySelectorAll("table").forEach(t => { if (!t.classList.contains("doc-kv")) t.setAttribute("style", "border-collapse:collapse;width:100%;margin:7pt 0;font-size:10.5pt"); t.setAttribute("cellspacing", "0"); });
     root.querySelectorAll("th").forEach(c => c.setAttribute("style", "background:#0f8f83;color:#fff;text-align:left;padding:5pt 7pt;border:1px solid #cdd8e2;font-weight:700"));
-    root.querySelectorAll("td").forEach(c => c.setAttribute("style", "padding:5pt 7pt;border:1px solid #e2e9f0;vertical-align:top"));
+    // Las tablas "ficha" (clave/valor) conservan sus estilos en línea; el resto usa el estilo estándar.
+    root.querySelectorAll("td").forEach(c => { if (c.closest("table.doc-kv")) return; c.setAttribute("style", "padding:5pt 7pt;border:1px solid #e2e9f0;vertical-align:top"); });
     // Saltos de hoja
     root.querySelectorAll(".doc-pagebreak").forEach(d => { const br = document.createElement("div"); br.setAttribute("style", "page-break-before:always;height:0;font-size:0;line-height:0;border:none"); br.innerHTML = "&nbsp;"; d.replaceWith(br); });
   }
@@ -503,6 +504,16 @@
   /* ---------- Editor ---------- */
   function openEditor(container, rec, tplKey) {
     const u = ui();
+    // Documento vinculado a un Plan de Intervención y aún en borrador:
+    // se regenera desde el plan (fuente única) para reflejar los últimos cambios.
+    if (rec && rec.planRef && (rec.estado || "borrador") === "borrador") {
+      const plan = S().get("planesIntervencion", rec.planRef);
+      if (plan) {
+        const titulo = "Plan de Mejora · " + (plan.guia || "RNAO") + (plan.unidad ? " · " + plan.unidad : "");
+        const contenido = coverHTML(titulo, PLANTILLAS.planMejora.label, true) + planMejoraContentFromPlan(plan);
+        if (contenido !== rec.contenido || titulo !== rec.titulo) { S().update("docsTrabajo", rec.id, { titulo, contenido }); rec = S().get("docsTrabajo", rec.id); }
+      }
+    }
     const plantilla = rec ? rec.plantilla : tplKey;
     // El Plan RNAO/BPSO usa un formulario guiado en lugar del editor libre.
     if (plantilla === "planRNAO") return openPlanRNAO(container, rec, tplKey);
@@ -1158,17 +1169,43 @@
     const segs = (plan.seguimientos || []).filter(s => (s.descripcion || s.fecha || "").trim());
     const respActs = [...new Set(acts.map(a => a.responsable).filter(Boolean))].join(", ");
     const verif = [...new Set(acc.map(a => a.verificador).filter(Boolean).concat(acts.map(a => a.verificador).filter(Boolean)))].join(", ");
-    const plazo = (plan.plazoInicio || plan.plazoFin) ? (e(plan.plazoInicio) + " → " + e(plan.plazoFin)) : "—";
-    return `<h2>Problema o brecha detectada</h2>
-      <p><strong>Guía BPSO:</strong> ${e(plan.guia)} · <strong>Unidad:</strong> ${e(plan.unidad)} · <strong>Indicador:</strong> ${e(plan.indicador)}<br>
-      <strong>Línea base:</strong> ${pct(plan.lineaBase)} · <strong>Meta:</strong> ${pct(plan.meta)} · <strong>Brecha:</strong> ${e(plan.brecha)}${(plan.brechaPct !== "" && plan.brechaPct != null) ? " (" + pct(plan.brechaPct) + ")" : ""}</p>
-      <p><strong>Recomendación:</strong></p>${par(plan.recomendacion)}
-      <h2>Objetivo de mejora</h2>${par(plan.objetivo)}
-      <h2>Acciones</h2>${acc.length ? `<ol>${acc.map(a => `<li>${u.esc(a.accion)}${a.responsable ? " — " + u.esc(a.responsable) : ""}${a.plazo ? " (" + u.esc(a.plazo) + ")" : ""}</li>`).join("")}</ol>` : "<p>—</p>"}
-      ${acts.length ? `<h2>Actividades</h2><table><thead><tr><th>Actividad</th><th>Responsable</th><th>Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
-      <h2>Responsable y plazo</h2><p><strong>Responsables:</strong> ${respActs || "—"} · <strong>Plazo:</strong> ${plazo}${(plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? " · <strong>Frecuencia de seguimiento:</strong> " + e(plan.frecuenciaSeg) : ""} · <strong>Avance:</strong> ${pct(plan.avance)}</p>
-      ${segs.length ? `<h2>Seguimientos</h2><table><thead><tr><th>Fecha</th><th>Descripción</th><th>% avance</th><th>Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${e(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : ""}
-      <h2>Indicador de éxito</h2><p><strong>Meta:</strong> ${pct(plan.meta)} · <strong>Medios de verificación:</strong> ${verif || "—"}</p>`;
+    // Fila clave/valor para las tablas tipo "ficha" (estilos en línea → idéntico en pantalla, PDF y Word)
+    const kvKS = "padding:5pt 9pt;border:1px solid #dbe6f2;vertical-align:top;background:#eef5f3;color:#233b45;font-weight:700;width:36%";
+    const kvVS = "padding:5pt 9pt;border:1px solid #dbe6f2;vertical-align:top";
+    const kv = (k, v) => `<tr><td style="${kvKS}">${k}</td><td style="${kvVS}">${v}</td></tr>`;
+    const ficha = rows => `<table class="doc-kv" style="border-collapse:collapse;width:100%;margin:7pt 0;font-size:10.5pt"><tbody>${rows.join("")}</tbody></table>`;
+    const brechaTxt = e(plan.brecha) + ((plan.brechaPct !== "" && plan.brechaPct != null && !isNaN(plan.brechaPct)) ? ` <b>(${pct(plan.brechaPct)})</b>` : "");
+
+    return `<h2>1. Identificación de la brecha</h2>
+      ${ficha([
+        kv("Guía BPSO", e(plan.guia)),
+        kv("Unidad implementadora", e(plan.unidad)),
+        kv("Indicador / recomendación", e(plan.indicador)),
+        kv("Línea base (cumplimiento de la guía)", pct(plan.lineaBase)),
+        kv("Meta comprometida", pct(plan.meta)),
+        kv("Brecha a trabajar", brechaTxt)
+      ])}
+      <h2>2. Recomendación abordada</h2>${par(plan.recomendacion)}
+      <h2>3. Objetivo de mejora</h2>${par(plan.objetivo)}
+      <h2>4. Acciones de mejora</h2>
+      ${acc.length
+        ? `<table><thead><tr><th width="6%">N°</th><th>Acción</th><th width="26%">Responsable</th><th width="18%">Plazo</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${e(a.plazo)}</td></tr>`).join("")}</tbody></table>`
+        : `<p style="color:#5a6b84">Sin acciones registradas aún.</p>`}
+      ${acts.length ? `<h2>5. Actividades y responsables</h2><table><thead><tr><th>Actividad</th><th width="26%">Responsable</th><th width="26%">Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
+      <h2>${acts.length ? "6" : "5"}. Plazos y seguimiento</h2>
+      ${ficha([
+        kv("Plazo de inicio", e(plan.plazoInicio)),
+        kv("Plazo de término", e(plan.plazoFin)),
+        kv("Frecuencia de seguimiento", (plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? e(plan.frecuenciaSeg) : "—"),
+        kv("Responsables", respActs || "—"),
+        kv("Avance global", pct(plan.avance))
+      ])}
+      ${segs.length ? `<h2>${acts.length ? "7" : "6"}. Seguimientos registrados</h2><table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${e(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : ""}
+      <h2>${(acts.length ? 1 : 0) + (segs.length ? 1 : 0) + 6}. Indicador de éxito y verificación</h2>
+      ${ficha([
+        kv("Meta de cumplimiento", pct(plan.meta)),
+        kv("Medios de verificación", verif || "—")
+      ])}`;
   }
 
   // Crea o actualiza el documento vinculado y devuelve su id.
