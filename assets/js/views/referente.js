@@ -64,6 +64,17 @@
           <span class="pilar-sep" aria-hidden="true"></span>
           <span class="pilar cu"><span class="ic">💙</span>Cuidado</span>
         </div>
+        <div class="rt-quick">
+          <span class="hh-lbl">Accesos rápidos</span>
+          <div class="rt-quick__grid">
+            <a href="#/ref/evidencia" class="rt-qbtn"><span>🔬</span>Evidencia</a>
+            <a href="#/ref/capacitacion" class="rt-qbtn"><span>🎓</span>Capacitación</a>
+            <a href="#/ref/monitoreo" class="rt-qbtn"><span>📈</span>Monitoreo</a>
+            <a href="#/ref/biblioteca" class="rt-qbtn"><span>📚</span>Biblioteca</a>
+            <a href="#/ref/reunion" class="rt-qbtn"><span>📅</span>Reunión</a>
+            <a href="#/ref/apoyo" class="rt-qbtn"><span>🆘</span>Pedir apoyo</a>
+          </div>
+        </div>
       </div>
       <div class="card rt-ind">
         <span class="hh-lbl">Indicadores personales</span>
