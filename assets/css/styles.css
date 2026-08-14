@@ -703,11 +703,20 @@ body.night .focus-nt{ background:#132621; border-color:rgba(255,255,255,.1); col
 @media (max-width:1024px){ .home-hero{ grid-template-columns:1fr; } }
 
 /* ---- Inicio Referente: piezas bento ---- */
-/* Hero del Referente: 2 columnas balanceadas (bienvenida + indicadores) */
-.home-hero.rt-hero{ grid-template-columns:1.25fr .8fr; align-items:stretch; }
-@media (max-width:1024px){ .home-hero.rt-hero{ grid-template-columns:1fr; } }
-/* Filas de tarjetas del home: alto natural (no se estiran dejando huecos) */
-.rt-row2{ align-items:start; margin-bottom:1.7rem; }
+/* Banner de bienvenida compacto (a lo ancho, sin costados vacíos) */
+.rt-band{ display:flex; justify-content:space-between; align-items:center; gap:1.4rem; flex-wrap:wrap;
+  margin-bottom:1.2rem; padding:1.05rem 1.35rem; border-radius:18px;
+  background:linear-gradient(120deg, var(--azul-50,#e6f7f2), #f3eefc 88%); border:1px solid var(--border,#dde9e5); }
+.rt-band__txt{ min-width:min(100%,300px); }
+.rt-band__txt h1{ font-family:var(--font-disp); font-size:1.9rem; line-height:1.02; margin:.2rem 0 .3rem; color:#153833; }
+.rt-band__txt p{ margin:0; color:var(--text-2,#3f5f58); max-width:54ch; }
+.rt-band .pillars-card{ margin:0; }
+/* Filas de tarjetas del home: todas del mismo alto (sin fondo vacío entre/bajo tarjetas) */
+.rt-cards{ align-items:stretch; margin-bottom:1.2rem; }
+.rt-cards > .card{ height:100%; }
+body.night .rt-band{ background:linear-gradient(120deg, rgba(18,143,131,.18), rgba(91,52,176,.16)); border-color:rgba(255,255,255,.08); }
+body.night .rt-band__txt h1{ color:#eaf5ef; }
+body.night .rt-band__txt p{ color:#a9c4bb; }
 @keyframes pulseDot{ 0%,100%{ box-shadow:0 0 0 0 rgba(224,82,111,.5) } 50%{ box-shadow:0 0 0 9px rgba(224,82,111,0) } }
 .rt-prio{ display:flex; flex-direction:column; gap:.6rem; }
 .rt-prio.has-prio{ background:linear-gradient(160deg,#ffffff,#fff5f7); border-color:#f6d7de; }
@@ -727,6 +736,7 @@ body.night .focus-nt{ background:#132621; border-color:rgba(255,255,255,.1); col
 .rt-all{ font-size:.85rem; font-weight:800; color:#c23a56; text-decoration:none; }
 .rt-prio:not(.has-prio) .rt-all{ color:var(--azul-700); }
 .rt-ind{ display:flex; flex-direction:column; gap:.45rem; }
+.rt-link{ display:flex; flex-direction:column; justify-content:center; }
 .rt-row{ display:flex; align-items:center; gap:.55rem; }
 .rt-row i{ width:.8rem; height:.8rem; border-radius:50%; flex:none; }
 .rt-row .nm{ flex:1; font-size:.9rem; font-weight:700; color:var(--text-2); }

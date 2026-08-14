@@ -61,58 +61,56 @@
     evalItems.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
     return `
-    <section class="home-hero rt-hero">
-      <div class="hh-welcome">
+    <section class="rt-band">
+      <div class="rt-band__txt">
         <div class="hh-eb">Espacio de trabajo · Referente Técnico</div>
         <h1>Hola, ${firstName}</h1>
         <p>${u.esc(me.cargo)} — tus solicitudes, avances y evidencia clínica en un solo lugar.</p>
-        <div class="hh-frase">"Adaptar la evidencia a cada unidad: lesiones por presión, accesos vasculares y dolor."</div>
-        <div class="pillars-card" style="margin-top:.75rem">
-          <span class="pilar"><span class="ic">🛡️</span>Seguridad</span>
-          <span class="pilar-sep" aria-hidden="true"></span>
-          <span class="pilar ev"><span class="ic">🔬</span>Evidencia</span>
-          <span class="pilar-sep" aria-hidden="true"></span>
-          <span class="pilar cu"><span class="ic">💙</span>Cuidado</span>
-        </div>
       </div>
-      <div class="hh-side">
-        <div class="card rt-ind">
-          <span class="hh-lbl">Indicadores personales</span>
-          <div class="rt-row"><i style="background:#e0526f"></i><span class="nm">Solicitudes en gestión</span><b>${sols.length}</b></div>
-          <div class="rt-row"><i style="background:#e0912f"></i><span class="nm">Pendientes</span><b>${pend.length}</b></div>
-          <div class="rt-row"><i style="background:#12b5a5"></i><span class="nm">Reuniones programadas</span><b>${reuniones.length}</b></div>
-          <div class="rt-row"><i style="background:#7a5cd0"></i><span class="nm">Notificaciones sin leer</span><b>${noLeidas}</b></div>
-        </div>
-        <div class="card rt-eval">
-          <span class="hh-lbl">🗓️ Próxima evaluación / auditoría</span>
-          ${evalItems.length
-            ? `<ul class="feed" style="margin-top:.2rem">${evalItems.slice(0, 3).map(ev => {
-                const venc = new Date(ev.fecha) < hoy0;
-                return `<li><span class="feed__ico">${venc ? "🔴" : "🗓️"}</span><div><strong>${u.esc(ev.titulo)}</strong><div class="feed__meta">${u.fechaCL(ev.fecha)} · ${u.esc(ev.tipo)}</div></div></li>`;
-              }).join("")}</ul>`
-            : u.empty("Sin evaluaciones programadas.", "Agenda la próxima en Monitoreo (campo “Próxima evaluación / auditoría”).", "🗓️")}
-        </div>
+      <div class="pillars-card">
+        <span class="pilar"><span class="ic">🛡️</span>Seguridad</span>
+        <span class="pilar-sep" aria-hidden="true"></span>
+        <span class="pilar ev"><span class="ic">🔬</span>Evidencia</span>
+        <span class="pilar-sep" aria-hidden="true"></span>
+        <span class="pilar cu"><span class="ic">💙</span>Cuidado</span>
       </div>
     </section>
 
-    <div class="grid grid--2 rt-row2">
+    <div class="grid grid--3 rt-cards">
+      <div class="card rt-ind">
+        <span class="hh-lbl">Indicadores personales</span>
+        <div class="rt-row"><i style="background:#e0526f"></i><span class="nm">Solicitudes en gestión</span><b>${sols.length}</b></div>
+        <div class="rt-row"><i style="background:#e0912f"></i><span class="nm">Pendientes</span><b>${pend.length}</b></div>
+        <div class="rt-row"><i style="background:#12b5a5"></i><span class="nm">Reuniones programadas</span><b>${reuniones.length}</b></div>
+        <div class="rt-row"><i style="background:#7a5cd0"></i><span class="nm">Notificaciones sin leer</span><b>${noLeidas}</b></div>
+      </div>
+      <div class="card rt-eval">
+        <span class="hh-lbl">🗓️ Próxima evaluación / auditoría</span>
+        ${evalItems.length
+          ? `<ul class="feed" style="margin-top:.2rem">${evalItems.slice(0, 3).map(ev => {
+              const venc = new Date(ev.fecha) < hoy0;
+              return `<li><span class="feed__ico">${venc ? "🔴" : "🗓️"}</span><div><strong>${u.esc(ev.titulo)}</strong><div class="feed__meta">${u.fechaCL(ev.fecha)} · ${u.esc(ev.tipo)}</div></div></li>`;
+            }).join("")}</ul>`
+          : u.empty("Sin evaluaciones programadas.", "Agenda la próxima en Monitoreo.", "🗓️")}
+      </div>
+      <div class="card rt-reun">
+        <span class="hh-lbl">📅 Próximas reuniones</span>
+        ${reuniones.length ? `<ul class="feed" style="margin-top:.2rem">${reuniones.slice(0, 3).map(r => `<li><span class="feed__ico">📅</span><div><strong>${u.esc(r.tema || "Reunión")}</strong><div class="feed__meta">${u.fechaCL(r.fecha)}</div></div></li>`).join("")}</ul>`
+          : u.empty("Sin reuniones programadas.", "", "📅")}
+      </div>
+    </div>
+
+    <div class="grid grid--2 rt-cards">
       <div class="card rt-prio ${prioritarias.length ? "has-prio" : ""}">
         <div class="rt-prio__head"><span class="rt-live"></span><span class="hh-lbl">Solicitudes prioritarias</span>
           <span class="rt-count">${prioritarias.length}</span></div>
         <div class="rt-prio__list">${prioHTML}</div>
         <a class="rt-all" href="#/ref/solicitudesRecibidas">Ver todas las solicitudes →</a>
       </div>
-      <div class="hh-side">
-        <div class="card rt-reun">
-          <span class="hh-lbl">Próximas reuniones</span>
-          ${reuniones.length ? `<ul class="feed" style="margin-top:.2rem">${reuniones.slice(0, 2).map(r => `<li><span class="feed__ico">📅</span><div><strong>${u.esc(r.tema || "Reunión")}</strong><div class="feed__meta">${u.fechaCL(r.fecha)}</div></div></li>`).join("")}</ul>`
-            : u.empty("Sin reuniones programadas.", "", "📅")}
-        </div>
-        <div class="card rt-link">
-          <span class="hh-lbl">Enlace directo con Coordinación</span>
-          <p class="kpi__sub" style="margin:.25rem 0 .55rem">¿Necesitas apoyo, validación o una decisión? Escríbele directo al Coordinador/a UBPC.</p>
-          <button class="btn btn--primary btn--sm btn--block" id="rtApoyo">🆘 Solicitar apoyo al Coordinador</button>
-        </div>
+      <div class="card rt-link">
+        <span class="hh-lbl">🤝 Enlace directo con Coordinación</span>
+        <p class="kpi__sub" style="margin:.35rem 0 .7rem">¿Necesitas apoyo, validación o una decisión? Escríbele directo al Coordinador/a UBPC y queda registrado.</p>
+        <button class="btn btn--primary btn--sm btn--block" id="rtApoyo">🆘 Solicitar apoyo al Coordinador</button>
       </div>
     </div>
 
