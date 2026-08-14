@@ -75,7 +75,7 @@
 
     // Actividad operativa (colección compartida)
     const act = [
-      ["🔬", "Evidencia y recomendación", S().all("evidenciaRef").length, "#/ref/evidencia"],
+      ["🔬", "Evidencia y recomendación", S().all("evidenciaSemana").length, "#/ref/evidencia"],
       ["📈", "Monitoreo e implementación", S().all("monitoreoRef").length, "#/ref/monitoreo"],
       ["🎓", "Capacitación por turno", S().all("capacitacionRef").length, "#/ref/capacitacion"],
       ["📚", "Bitácora Biblioteca", S().all("bibliotecaBitacora").length, "#/ref/biblioteca"]

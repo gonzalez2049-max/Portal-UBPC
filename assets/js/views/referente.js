@@ -48,6 +48,8 @@
           <span class="rt-ps__badge">Alta</span></div>`).join("")
       : u.empty("Sin solicitudes prioritarias.", "Las solicitudes urgentes de Coordinación aparecerán aquí.", "📨");
 
+    const ultimaEvi = S().all("evidenciaSemana").sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
+
     return `
     <section class="home-hero rt-hero">
       <div class="hh-welcome">
@@ -63,6 +65,16 @@
           <span class="pilar cu"><span class="ic">💙</span>Cuidado</span>
         </div>
       </div>
+      <div class="card rt-ind">
+        <span class="hh-lbl">Indicadores personales</span>
+        <div class="rt-row"><i style="background:#e0526f"></i><span class="nm">Solicitudes en gestión</span><b>${sols.length}</b></div>
+        <div class="rt-row"><i style="background:#e0912f"></i><span class="nm">Pendientes</span><b>${pend.length}</b></div>
+        <div class="rt-row"><i style="background:#12b5a5"></i><span class="nm">Reuniones programadas</span><b>${reuniones.length}</b></div>
+        <div class="rt-row"><i style="background:#7a5cd0"></i><span class="nm">Notificaciones sin leer</span><b>${noLeidas}</b></div>
+      </div>
+    </section>
+
+    <div class="grid grid--2 rt-row2">
       <div class="card rt-prio ${prioritarias.length ? "has-prio" : ""}">
         <div class="rt-prio__head"><span class="rt-live"></span><span class="hh-lbl">Solicitudes prioritarias</span>
           <span class="rt-count">${prioritarias.length}</span></div>
@@ -70,13 +82,6 @@
         <a class="rt-all" href="#/ref/solicitudesRecibidas">Ver todas las solicitudes →</a>
       </div>
       <div class="hh-side">
-        <div class="card rt-ind">
-          <span class="hh-lbl">Indicadores personales</span>
-          <div class="rt-row"><i style="background:#e0526f"></i><span class="nm">Solicitudes en gestión</span><b>${sols.length}</b></div>
-          <div class="rt-row"><i style="background:#e0912f"></i><span class="nm">Pendientes</span><b>${pend.length}</b></div>
-          <div class="rt-row"><i style="background:#12b5a5"></i><span class="nm">Reuniones programadas</span><b>${reuniones.length}</b></div>
-          <div class="rt-row"><i style="background:#7a5cd0"></i><span class="nm">Notificaciones sin leer</span><b>${noLeidas}</b></div>
-        </div>
         <div class="card rt-reun">
           <span class="hh-lbl">Próximas reuniones</span>
           ${reuniones.length ? `<ul class="feed" style="margin-top:.2rem">${reuniones.slice(0, 2).map(r => `<li><span class="feed__ico">📅</span><div><strong>${u.esc(r.tema || "Reunión")}</strong><div class="feed__meta">${u.fechaCL(r.fecha)}</div></div></li>`).join("")}</ul>`
@@ -88,7 +93,7 @@
           <button class="btn btn--primary btn--sm btn--block" id="rtApoyo">🆘 Solicitar apoyo al Coordinador</button>
         </div>
       </div>
-    </section>
+    </div>
 
     <div class="section">
       <div class="section__head"><div><h2 class="section__title">Mi tablero Kanban</h2>
@@ -96,16 +101,25 @@
       <div id="refKanban"></div>
     </div>
 
-    <div class="grid grid--2">
-      <div class="section">
+    <div class="grid grid--2 rt-row2">
+      <div class="section" style="margin:0">
         <div class="section__head"><h2 class="section__title">Resultados recientes</h2></div>
         <div class="card">${resultadosRecientes()}</div>
       </div>
-      <div class="section">
-        <div class="section__head"><h2 class="section__title">Evidencia y recomendación</h2></div>
+      <div class="section" style="margin:0">
+        <div class="section__head"><div><h2 class="section__title">Evidencia y recomendación</h2>
+          <p class="section__hint">Conectada con Coordinación.</p></div>
+          <a class="btn btn--ghost btn--sm" href="#/ref/evidencia">Ver todo →</a></div>
         <div class="card rt-evi">
-          <div><p class="narrativo" style="margin-top:0">Busca, analiza y registra evidencia científica para apoyar decisiones clínicas y actualizar buenas prácticas.</p>
-          <a class="btn btn--primary btn--sm" href="#/ref/evidencia">Abrir evidencia y recomendación</a></div>
+          <div>
+            ${ultimaEvi
+              ? `<div class="hh-lbl" style="color:#0d8175">Última evidencia</div>
+                 <h3 style="margin:.15rem 0 .1rem">${u.esc(ultimaEvi.titulo)}</h3>
+                 <div class="kpi__sub">${u.esc(ultimaEvi.fuente || "")}${ultimaEvi.fecha ? " · " + u.fechaCL(ultimaEvi.fecha) : ""}</div>
+                 <p style="margin:.45rem 0 .55rem"><strong>Recomendación:</strong> ${u.esc((ultimaEvi.recomendacion || ultimaEvi.resumen || "—")).slice(0, 150)}</p>`
+              : `<p class="narrativo" style="margin-top:0">Aquí verás la evidencia que registra Coordinación para apoyar decisiones clínicas. También puedes aportar la tuya.</p>`}
+            <a class="btn btn--primary btn--sm" href="#/ref/evidencia">Abrir evidencia y recomendación</a>
+          </div>
           <img class="evi-img" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
         </div>
       </div>

@@ -252,10 +252,14 @@
       { fecha: iso(40), icono: "🏆", modulo: "Fortalecimiento", titulo: "Reconocimiento a UTI", descripcion: "Buena práctica del mes por reducción de LPP." },
       { fecha: iso(10), icono: "📈", modulo: "RNAO", titulo: "Seguimiento 2026-S1", descripcion: "Mejora del cumplimiento global a 78%." }
     ], { silent: true });
+    // Evidencia COMPARTIDA entre Coordinación y Referente (una sola colección)
     add("evidenciaSemana", [
       { titulo: "Reposicionamiento cada 2 h reduce LPP", fuente: "Revisión sistemática · JBI 2025", fecha: iso(3),
         resumen: "El reposicionamiento programado disminuye significativamente la incidencia de lesiones por presión en pacientes críticos.",
-        recomendacion: "Estandarizar el registro de cambios de posición en UTI y UCI Valech.", enlace: "" }
+        recomendacion: "Estandarizar el registro de cambios de posición en UTI y UCI Valech.", enlace: "" },
+      { tema: "Vigilancia diaria del sitio de inserción", fuente: "Guía práctica RNAO", autores: "RNAO", anio: "2024", fecha: iso(9),
+        nivelTipo: "Guía de práctica clínica", hallazgo: "La inspección diaria del sitio reduce complicaciones de accesos vasculares.",
+        aplicabilidad: "Aplicable a UCI Valech y UTI.", recomendacion: "Checklist diario de accesos vasculares por turno.", enlace: "", guia: "Accesos vasculares" }
     ], { withCode: true, silent: true });
 
     const kb = (owner, titulo, columna, prioridad, resp, dias, orden) =>
@@ -290,9 +294,6 @@
     add("capacitacionRef", [
       { fecha: iso(15), turno: "Noche", tema: "Prevención de LPP", unidad: "UTI", estamento: "Enfermería", participantes: 8, guia: "Lesiones por presión", observaciones: "" },
       { fecha: iso(6), turno: "Largo", tema: "Vigilancia de accesos", unidad: "UCI Valech", estamento: "TENS", participantes: 6, guia: "Accesos vasculares", observaciones: "" }
-    ], { silent: true });
-    add("evidenciaRef", [
-      { tema: "Vigilancia diaria del sitio de inserción", fuente: "Guía práctica RNAO", autores: "RNAO", anio: "2024", nivelTipo: "Guía de práctica clínica", hallazgo: "La inspección diaria reduce complicaciones.", aplicabilidad: "Aplicable a UCI Valech y UTI.", recomendacion: "Checklist diario de accesos.", enlace: "", guia: "Accesos vasculares" }
     ], { silent: true });
     add("monitoreoRef", [
       { fecha: iso(12), tipoRegistro: "Auditoría clínica", unidad: "UTI", guia: "Lesiones por presión", descripcion: "Auditoría de fichas.", resultado: "71% de cumplimiento.", brecha: "Superficie de alivio.", intervencion: "Gestión de colchones.", medioVerificacion: "Planilla de auditoría", estado: "En curso" },

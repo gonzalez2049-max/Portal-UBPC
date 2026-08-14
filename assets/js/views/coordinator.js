@@ -401,9 +401,9 @@
     const cuerpo = !e ? ui().empty("Aún no hay evidencia de la semana.", "Agrega la primera evidencia para comenzar.", "🔬")
       : `<div class="evi">
           <div>
-            <h3 style="margin:.1rem 0">${ui().esc(e.titulo)}</h3>
-            <div class="kpi__sub">${ui().esc(e.fuente || "")} · ${ui().fechaCL(e.fecha)}</div>
-            <p class="narrativo" style="margin:.5rem 0 .3rem">${ui().esc(e.resumen || "")}</p>
+            <h3 style="margin:.1rem 0">${ui().esc(e.titulo || e.tema || "Evidencia")}</h3>
+            <div class="kpi__sub">${ui().esc(e.fuente || "")}${e.fecha ? " · " + ui().fechaCL(e.fecha) : (e.anio ? " · " + ui().esc(e.anio) : "")}</div>
+            <p class="narrativo" style="margin:.5rem 0 .3rem">${ui().esc(e.resumen || e.hallazgo || "")}</p>
             <p style="margin:.2rem 0"><strong>Recomendación para la práctica:</strong> ${ui().esc(e.recomendacion || "—")}</p>
             ${e.enlace ? `<a href="${ui().esc(e.enlace)}" target="_blank" rel="noopener">Ver fuente ↗</a>` : ""}
           </div>

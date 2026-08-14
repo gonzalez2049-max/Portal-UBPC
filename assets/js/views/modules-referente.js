@@ -81,13 +81,13 @@
   }
   function evidenciaBind() {
     R().mount(document.getElementById("ref-evi"), {
-      collection: "evidenciaRef", title: "Evidencia y recomendación", icon: "🔬",
-      hint: "Evidencia analizada con su aplicabilidad institucional y recomendación técnica.",
+      collection: "evidenciaSemana", title: "Evidencia y recomendación", icon: "🔬",
+      hint: "Evidencia compartida con Coordinación: lo que registra Coordinación aparece aquí y viceversa.",
       newLabel: "Nueva evidencia", emptyMsg: "Aún no hay evidencia registrada.",
       columns: [
-        { key: "tema", label: "Tema" },
+        { key: "tema", label: "Tema", render: (r, u) => u.esc(r.tema || r.titulo || "—") },
         { key: "fuente", label: "Fuente" },
-        { key: "anio", label: "Año" },
+        { key: "anio", label: "Año", render: (r, u) => u.esc(r.anio || (r.fecha ? new Date(r.fecha).getFullYear() : "—")) },
         { key: "nivelTipo", label: "Nivel / tipo", render: (r, u) => `<span class="tag">${u.esc(r.nivelTipo || "—")}</span>` },
         { key: "guia", label: "Guía" }
       ],
@@ -105,12 +105,12 @@
       ],
       detail: (rec) => {
         const u = ui();
-        u.modal({ title: "Evidencia · " + (rec.tema || ""), wide: true,
+        u.modal({ title: "Evidencia · " + (rec.tema || rec.titulo || ""), wide: true,
           body: `<div class="dl"><div><span>Fuente</span><strong>${u.esc(rec.fuente || "—")}</strong></div>
             <div><span>Autores</span><strong>${u.esc(rec.autores || "—")}</strong></div>
-            <div><span>Año</span><strong>${u.esc(rec.anio || "—")}</strong></div>
+            <div><span>Año</span><strong>${u.esc(rec.anio || (rec.fecha ? new Date(rec.fecha).getFullYear() : "—"))}</strong></div>
             <div><span>Nivel / tipo</span><strong>${u.esc(rec.nivelTipo || "—")}</strong></div></div>
-            <div><span class="muted" style="font-size:12px;font-weight:600">Hallazgo</span><p class="narrativo">${u.esc(rec.hallazgo || "—")}</p></div>
+            <div><span class="muted" style="font-size:12px;font-weight:600">Hallazgo</span><p class="narrativo">${u.esc(rec.hallazgo || rec.resumen || "—")}</p></div>
             <div><span class="muted" style="font-size:12px;font-weight:600">Aplicabilidad institucional</span><p class="narrativo">${u.esc(rec.aplicabilidad || "—")}</p></div>
             <div><span class="muted" style="font-size:12px;font-weight:600">Recomendación técnica</span><p class="narrativo">${u.esc(rec.recomendacion || "—")}</p></div>
             ${rec.enlace ? `<a href="${u.esc(rec.enlace)}" target="_blank" rel="noopener">Ver fuente ↗</a>` : ""}`,
@@ -195,7 +195,7 @@
     const counts = [
       ["📚", "Biblioteca Digital", S().all("bibliotecaBitacora").length, "biblioteca"],
       ["🎓", "Capacitación por turno", S().all("capacitacionRef").length, "capacitacion"],
-      ["🔬", "Evidencia y recomendación", S().all("evidenciaRef").length, "evidencia"],
+      ["🔬", "Evidencia y recomendación", S().all("evidenciaSemana").length, "evidencia"],
       ["📅", "Reuniones de seguimiento", S().all("reuniones").length, "reunion"],
       ["📈", "Monitoreo e implementación", S().all("monitoreoRef").length, "monitoreo"]
     ];

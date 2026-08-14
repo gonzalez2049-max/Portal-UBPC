@@ -703,6 +703,11 @@ body.night .focus-nt{ background:#132621; border-color:rgba(255,255,255,.1); col
 @media (max-width:1024px){ .home-hero{ grid-template-columns:1fr; } }
 
 /* ---- Inicio Referente: piezas bento ---- */
+/* Hero del Referente: 2 columnas balanceadas (bienvenida + indicadores) */
+.home-hero.rt-hero{ grid-template-columns:1.25fr .8fr; align-items:stretch; }
+@media (max-width:1024px){ .home-hero.rt-hero{ grid-template-columns:1fr; } }
+/* Filas de tarjetas del home: alto natural (no se estiran dejando huecos) */
+.rt-row2{ align-items:start; margin-bottom:1.7rem; }
 @keyframes pulseDot{ 0%,100%{ box-shadow:0 0 0 0 rgba(224,82,111,.5) } 50%{ box-shadow:0 0 0 9px rgba(224,82,111,0) } }
 .rt-prio{ display:flex; flex-direction:column; gap:.6rem; }
 .rt-prio.has-prio{ background:linear-gradient(160deg,#ffffff,#fff5f7); border-color:#f6d7de; }
