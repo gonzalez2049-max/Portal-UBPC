@@ -74,15 +74,14 @@
           <span class="pilar-sep" aria-hidden="true"></span>
           <span class="pilar cu"><span class="ic">💙</span>Cuidado</span>
         </div>
-        <div class="rt-quick">
-          <span class="hh-lbl">Accesos rápidos</span>
-          <div class="rt-quick__grid">
-            <a href="#/ref/monitoreo" class="rt-qbtn"><span>📈</span>Monitoreo</a>
-            <a href="#/ref/capacitacion" class="rt-qbtn"><span>🎓</span>Capacitación</a>
-            <a href="#/ref/biblioteca" class="rt-qbtn"><span>📚</span>Biblioteca</a>
-            <a href="#/ref/gestion" class="rt-qbtn"><span>🗂️</span>Mi gestión</a>
-            <a href="#/ref/seguimiento" class="rt-qbtn"><span>📌</span>Mi seguimiento</a>
-          </div>
+        <div class="card rt-eval" style="margin-top:1rem">
+          <span class="hh-lbl">🗓️ Próxima evaluación / auditoría</span>
+          ${evalItems.length
+            ? `<ul class="feed" style="margin-top:.2rem">${evalItems.slice(0, 3).map(ev => {
+                const venc = new Date(ev.fecha) < hoy0;
+                return `<li><span class="feed__ico">${venc ? "🔴" : "🗓️"}</span><div><strong>${u.esc(ev.titulo)}</strong><div class="feed__meta">${u.fechaCL(ev.fecha)} · ${u.esc(ev.tipo)}</div></div></li>`;
+              }).join("")}</ul>`
+            : u.empty("Sin evaluaciones programadas.", "Agenda la próxima en Monitoreo (campo “Próxima evaluación / auditoría”).", "🗓️")}
         </div>
       </div>
       <div class="card rt-ind">
@@ -102,15 +101,6 @@
         <a class="rt-all" href="#/ref/solicitudesRecibidas">Ver todas las solicitudes →</a>
       </div>
       <div class="hh-side">
-        <div class="card rt-eval">
-          <span class="hh-lbl">🗓️ Próxima evaluación / auditoría</span>
-          ${evalItems.length
-            ? `<ul class="feed" style="margin-top:.2rem">${evalItems.slice(0, 3).map(ev => {
-                const venc = new Date(ev.fecha) < hoy0;
-                return `<li><span class="feed__ico">${venc ? "🔴" : "🗓️"}</span><div><strong>${u.esc(ev.titulo)}</strong><div class="feed__meta">${u.fechaCL(ev.fecha)} · ${u.esc(ev.tipo)}</div></div></li>`;
-              }).join("")}</ul>`
-            : u.empty("Sin evaluaciones programadas.", "Agenda la próxima en Monitoreo (campo “Próxima evaluación / auditoría”).", "🗓️")}
-        </div>
         <div class="card rt-reun">
           <span class="hh-lbl">Próximas reuniones</span>
           ${reuniones.length ? `<ul class="feed" style="margin-top:.2rem">${reuniones.slice(0, 2).map(r => `<li><span class="feed__ico">📅</span><div><strong>${u.esc(r.tema || "Reunión")}</strong><div class="feed__meta">${u.fechaCL(r.fecha)}</div></div></li>`).join("")}</ul>`
