@@ -401,9 +401,10 @@
           ${pinFld("guia", "Guía BPSO", "Guía de buenas prácticas de referencia.", { value: data.guia, type: "select", options: CAT().guiasArea, req: true })}
           ${pinFld("indicador", "Indicador / recomendación", "Indicador o recomendación que origina la brecha.", { value: data.indicador, full: true })}
           ${pinFld("recomendacion", "Recomendación abordada", "Recomendación específica de la guía que se trabaja.", { value: data.recomendacion, type: "textarea", full: true })}
-          ${pinFld("lineaBase", "Línea base (%)", "Cumplimiento inicial medido.", { value: data.lineaBase, type: "number" })}
+          ${pinFld("lineaBase", "Línea base (%)", "Cumplimiento total de la guía (medición inicial).", { value: data.lineaBase, type: "number" })}
           ${pinFld("meta", "Meta (%)", "Meta de cumplimiento comprometida.", { value: data.meta, type: "number" })}
-          ${pinFld("brecha", "Brecha", "Diferencia respecto a la meta.", { value: data.brecha, full: true })}
+          ${pinFld("brecha", "Brecha a trabajar", "Nombre de la brecha o recomendación con menor cumplimiento.", { value: data.brecha, full: true })}
+          ${pinFld("brechaPct", "% de la brecha", "Cumplimiento que tuvo esa brecha.", { value: data.brechaPct, type: "number" })}
         </div></section>
       <section class="pf-section">${pinSecH(2, "Objetivo, actividades y responsables")}
         ${pinFld("objetivo", "Objetivo de la intervención", "Qué se busca lograr con el plan.", { value: data.objetivo, type: "textarea", req: true, full: true })}
@@ -507,7 +508,7 @@
       <div class="card__head"><div><span class="tag">${u.esc(pl.guia || "Guía")}</span> <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(pl.unidad || "—")}</span></div>
         <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span></div>
       <h4 class="doc-card__title" style="margin:.4rem 0 .2rem">${u.esc(pl.indicador || pl.objetivo || "Plan de intervención")}</h4>
-      <div class="kpi__sub">Línea base ${pinPct(pl.lineaBase)} · Meta ${pinPct(pl.meta)}${pl.brecha ? " · Brecha " + u.esc(pl.brecha) : ""}</div>
+      <div class="kpi__sub">Línea base ${pinPct(pl.lineaBase)} · Meta ${pinPct(pl.meta)}${pl.brecha ? " · Brecha: " + u.esc(pl.brecha) + (pl.brechaPct !== "" && pl.brechaPct != null ? " (" + pinPct(pl.brechaPct) + ")" : "") : ""}</div>
       <div class="pin-prog"><div class="pin-prog__bar" style="width:${av != null ? Math.min(100, Math.max(0, av)) : 0}%;background:${color}"></div></div>
       <div class="kpi__sub">Avance ${av != null ? av + "%" : "—"} · ${(pl.acciones || []).length} acción(es) · ${(pl.seguimientos || []).length} seguimiento(s)</div>
       <div class="btn-row" style="margin-top:.6rem;flex-wrap:wrap">
@@ -551,10 +552,9 @@
 
   // Generar un plan desde un indicador bajo meta (deja la brecha precargada)
   function crearPlanDesde(e, ind, meta) {
-    const brecha = meta - ind.pct;
     const plan = S().insert("planesIntervencion", {
       unidad: e.unidad || "—", guia: e.guia || "", indicador: ind.nombre, recomendacion: "",
-      lineaBase: ind.pct, meta: meta, brecha: brecha > 0 ? brecha + " pts" : "0",
+      lineaBase: ind.pct, meta: meta, brecha: ind.nombre, brechaPct: ind.pct,
       objetivo: "", actividades: [], seguimientos: [], acciones: [],
       plazoInicio: "", plazoFin: "", avance: "", estadoCierre: "Abierto",
       coordinador: (U.auth.current() || {}).nombre, fechaCreacion: new Date().toISOString()

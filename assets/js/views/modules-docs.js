@@ -1150,7 +1150,7 @@
     const plazo = (plan.plazoInicio || plan.plazoFin) ? (e(plan.plazoInicio) + " → " + e(plan.plazoFin)) : "—";
     return `<h2>Problema o brecha detectada</h2>
       <p><strong>Guía BPSO:</strong> ${e(plan.guia)} · <strong>Unidad:</strong> ${e(plan.unidad)} · <strong>Indicador:</strong> ${e(plan.indicador)}<br>
-      <strong>Línea base:</strong> ${pct(plan.lineaBase)} · <strong>Meta:</strong> ${pct(plan.meta)} · <strong>Brecha:</strong> ${e(plan.brecha)}</p>
+      <strong>Línea base:</strong> ${pct(plan.lineaBase)} · <strong>Meta:</strong> ${pct(plan.meta)} · <strong>Brecha:</strong> ${e(plan.brecha)}${(plan.brechaPct !== "" && plan.brechaPct != null) ? " (" + pct(plan.brechaPct) + ")" : ""}</p>
       <p><strong>Recomendación:</strong></p>${par(plan.recomendacion)}
       <h2>Objetivo de mejora</h2>${par(plan.objetivo)}
       <h2>Acciones</h2>${acc.length ? `<ol>${acc.map(a => `<li>${u.esc(a.accion)}${a.responsable ? " — " + u.esc(a.responsable) : ""}${a.plazo ? " (" + u.esc(a.plazo) + ")" : ""}</li>`).join("")}</ol>` : "<p>—</p>"}
