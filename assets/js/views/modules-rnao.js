@@ -414,6 +414,7 @@
         <div class="pf-grid">
           ${pinFld("plazoInicio", "Plazo · inicio", "", { value: data.plazoInicio, type: "date" })}
           ${pinFld("plazoFin", "Plazo · término", "Fecha comprometida de término.", { value: data.plazoFin, type: "date" })}
+          ${pinFld("frecuenciaSeg", "Frecuencia de seguimiento", "Cada cuánto se revisa el plan.", { value: data.frecuenciaSeg, type: "select", options: ["—", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"] })}
           ${pinFld("avance", "Avance global (%)", "Estimación del avance total del plan.", { value: data.avance, type: "number" })}
           ${pinFld("motivoCierre", "Motivo de cierre / reapertura", "Se conserva al cerrar o reabrir el plan.", { value: data.motivoCierre, full: true })}
         </div>
@@ -510,7 +511,7 @@
       <h4 class="doc-card__title" style="margin:.4rem 0 .2rem">${u.esc(pl.indicador || pl.objetivo || "Plan de intervención")}</h4>
       <div class="kpi__sub">Línea base ${pinPct(pl.lineaBase)} · Meta ${pinPct(pl.meta)}${pl.brecha ? " · Brecha: " + u.esc(pl.brecha) + (pl.brechaPct !== "" && pl.brechaPct != null ? " (" + pinPct(pl.brechaPct) + ")" : "") : ""}</div>
       <div class="pin-prog"><div class="pin-prog__bar" style="width:${av != null ? Math.min(100, Math.max(0, av)) : 0}%;background:${color}"></div></div>
-      <div class="kpi__sub">Avance ${av != null ? av + "%" : "—"} · ${(pl.acciones || []).length} acción(es) · ${(pl.seguimientos || []).length} seguimiento(s)</div>
+      <div class="kpi__sub">Avance ${av != null ? av + "%" : "—"} · ${(pl.acciones || []).length} acción(es) · ${(pl.seguimientos || []).length} seguimiento(s)${(pl.frecuenciaSeg && pl.frecuenciaSeg !== "—") ? " · Seguim. " + u.esc(pl.frecuenciaSeg).toLowerCase() : ""}</div>
       <div class="btn-row" style="margin-top:.6rem;flex-wrap:wrap">
         <button class="btn btn--primary btn--sm" data-plopen="${pl.id}">Abrir</button>
         <button class="btn btn--ghost btn--sm" data-pldoc="${pl.id}" title="Documento Plan de Mejora vinculado">📄 Documento</button>

@@ -1155,7 +1155,7 @@
       <h2>Objetivo de mejora</h2>${par(plan.objetivo)}
       <h2>Acciones</h2>${acc.length ? `<ol>${acc.map(a => `<li>${u.esc(a.accion)}${a.responsable ? " — " + u.esc(a.responsable) : ""}${a.plazo ? " (" + u.esc(a.plazo) + ")" : ""}</li>`).join("")}</ol>` : "<p>—</p>"}
       ${acts.length ? `<h2>Actividades</h2><table><thead><tr><th>Actividad</th><th>Responsable</th><th>Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
-      <h2>Responsable y plazo</h2><p><strong>Responsables:</strong> ${respActs || "—"} · <strong>Plazo:</strong> ${plazo} · <strong>Avance:</strong> ${pct(plan.avance)}</p>
+      <h2>Responsable y plazo</h2><p><strong>Responsables:</strong> ${respActs || "—"} · <strong>Plazo:</strong> ${plazo}${(plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? " · <strong>Frecuencia de seguimiento:</strong> " + e(plan.frecuenciaSeg) : ""} · <strong>Avance:</strong> ${pct(plan.avance)}</p>
       ${segs.length ? `<h2>Seguimientos</h2><table><thead><tr><th>Fecha</th><th>Descripción</th><th>% avance</th><th>Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${e(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : ""}
       <h2>Indicador de éxito</h2><p><strong>Meta:</strong> ${pct(plan.meta)} · <strong>Medios de verificación:</strong> ${verif || "—"}</p>`;
   }
