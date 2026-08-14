@@ -179,6 +179,57 @@
     };
   }
 
+  function repNT234() {
+    const meds = S().all("nt234");
+    const NT = U.ntUtil || {};
+    const meta = Number(S().getConfig("nt234.meta", 90)) || 90;
+    const inst = NT.institNT ? NT.institNT() : { pct: null, unidades: 0 };
+    const rows = meds.slice()
+      .sort((a, b) => (a.unidad || "").localeCompare(b.unidad || "") || (a.periodo || "").localeCompare(b.periodo || ""))
+      .map(m => { const g = NT.globalNT ? NT.globalNT(m) : null;
+        return [esc(m.unidad || ""), esc(m.jefatura || ""), esc(m.periodo || ""), `<strong>${pctFmt(g)}</strong>`, meta + "%", esc(m.enviadoUnidad || "—")]; });
+    const planes = S().all("planesNT234");
+    const planPend = planes.filter(p => !/entreg|complet|cerr/i.test((p.estado || "") + " " + (p.subestado || "")));
+    const planRows = planes.map(p => [esc(p.unidad || ""), esc((p.estado || "") + (p.subestado ? " · " + p.subestado : "")),
+      ui().fechaCL(p.plazo), esc(p.responsable || ""), esc(p.indicadores || "")]);
+    const responsable = S().getConfig("nt234.responsable", "");
+    const resolucion = S().getConfig("nt234.resolucion", "");
+    return {
+      titulo: "Reporte Norma Técnica 234 · Prevención de LPP", periodo: periodoActual(),
+      filtros: resolucion ? "Resolución: " + resolucion : "",
+      body: kpiRow([
+        { v: pctFmt(inst.pct), l: "Cumplimiento institucional" }, { v: inst.unidades || 0, l: "Unidades medidas" },
+        { v: meta + "%", l: "Meta institucional" }, { v: planPend.length, l: "Planes de mejora pendientes" }
+      ]) + (responsable ? `<p class="muted" style="margin:.3rem 0">Responsable NT 234: <strong>${esc(responsable)}</strong></p>` : "")
+        + `<h3>Cumplimiento por unidad y período</h3>` + table(["Unidad", "Jefatura", "Período", "Cumplimiento", "Meta", "Enviado a la unidad"], rows)
+        + `<h3>Planes de mejora NT 234</h3>` + table(["Unidad", "Estado", "Plazo", "Responsable", "Indicadores"], planRows),
+      excel: { headers: ["Unidad", "Jefatura", "Período", "Cumplimiento", "Meta", "Enviado"],
+        rows: meds.map(m => ({ Unidad: m.unidad, Jefatura: m.jefatura, "Período": m.periodo,
+          Cumplimiento: pctFmt(NT.globalNT ? NT.globalNT(m) : null), Meta: meta + "%", Enviado: m.enviadoUnidad })) }
+    };
+  }
+
+  function repDocumental() {
+    const docs = S().all("documentos").slice().sort((a, b) => (a.codigo || "").localeCompare(b.codigo || ""));
+    const total = docs.length;
+    const vigentes = docs.filter(d => /vigente/i.test(d.estado || "")).length;
+    const revisados = docs.filter(d => /s[íi]/i.test(d.revisadoUBP || "")).length;
+    const pctRev = total ? Math.round(revisados / total * 100) : 0;
+    const enProceso = docs.filter(d => /borrador|revisi|enviado/i.test(d.estado || "")).length;
+    const rows = docs.map(d => [`<span class="mono">${esc(d.codigo || "")}</span>`, esc(d.nombre || ""), esc(d.tipo || ""),
+      "v" + (d.version || "1"), esc(d.estado || ""), /s[íi]/i.test(d.revisadoUBP || "") ? "✔ Sí" : "—", ui().fechaCL(d.fecha)]);
+    return {
+      titulo: "Reporte de Gestión Documental", periodo: periodoActual(),
+      body: kpiRow([
+        { v: total, l: "Documentos" }, { v: vigentes, l: "Vigentes" },
+        { v: enProceso, l: "En proceso" }, { v: revisados + " · " + pctRev + "%", l: "Con V°B° UBPC" }
+      ]) + `<h3>Inventario documental</h3>` + table(["Código", "Documento", "Tipo", "Versión", "Estado", "V°B° UBPC", "Fecha"], rows),
+      excel: { headers: ["Código", "Documento", "Tipo", "Versión", "Estado", "V°B° UBPC", "Fecha"],
+        rows: docs.map(d => ({ "Código": d.codigo, Documento: d.nombre, Tipo: d.tipo, "Versión": "v" + (d.version || "1"),
+          Estado: d.estado, "V°B° UBPC": /s[íi]/i.test(d.revisadoUBP || "") ? "Sí" : "No", Fecha: ui().fechaCL(d.fecha) })) }
+    };
+  }
+
   function periodoActual() {
     const y = new Date().getFullYear();
     return y + (new Date().getMonth() < 6 ? "-S1" : "-S2");
@@ -187,8 +238,10 @@
   const REPORTS = [
     { key: "consolidado", title: "Consolidado institucional", icon: "🏛️", desc: "Resumen ejecutivo de todos los programas de la UBPC.", build: repConsolidado },
     { key: "rnao", title: "Programa RNAO", icon: "🧭", desc: "Cumplimiento, evaluaciones y acciones de mejora.", build: repRNAO },
+    { key: "nt234", title: "Norma Técnica 234", icon: "🛡️", desc: "Prevención de LPP: cumplimiento por unidad y planes de mejora.", build: repNT234 },
     { key: "capacitacion", title: "Capacitación y cobertura", icon: "🎓", desc: "Actividades, personas capacitadas y cobertura.", build: repCapacitacion },
     { key: "indicadores", title: "Indicadores UBPC", icon: "📏", desc: "Semáforo, cumplimiento, tendencias y alertas por indicador.", build: repIndicadores },
+    { key: "documental", title: "Gestión Documental", icon: "🗂️", desc: "Inventario de documentos, versiones, estado y V°B° UBPC.", build: repDocumental },
     { key: "colaboracion", title: "Red de Colaboración", icon: "🌐", desc: "Colaboraciones institucionales y participación.", build: repColaboracion }
   ];
 
@@ -222,40 +275,13 @@
         </div>
       </div>
       <div class="reporte" id="rep-doc"><div class="franja" style="border-radius:3px"></div>${full}</div>`;
-    box.querySelector("[data-print]").onclick = () => printDoc(rep.titulo, full);
+    // Impresión WYSIWYG: se imprime la misma vista en pantalla (idéntica al preview)
+    box.querySelector("[data-print]").onclick = () => { try { window.print(); } catch (e) {} };
     box.querySelector("[data-word]").onclick = () => ui().exportWord("reporte-" + key + "-ubpc", rep.titulo, full);
     box.querySelector("[data-excel]").onclick = () => rep.excel
       ? ui().exportExcel("reporte-" + key + "-ubpc", rep.excel.rows, rep.excel.headers, rep.titulo)
       : ui().toast("Este reporte no tiene tabla exportable", "danger");
     box.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function printDoc(titulo, innerHTML) {
-    const w = window.open("", "_blank");
-    if (!w) { ui().toast("Permite las ventanas emergentes para imprimir", "danger"); return; }
-    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(titulo)}</title>
-      <style>
-        @page{size:A4;margin:14mm} *{box-sizing:border-box}
-        body{font-family:'Segoe UI',Arial,sans-serif;color:#17263d;margin:0;padding:6mm}
-        h1,h2,h3{font-family:Georgia,serif;color:#0d5044;margin:.6em 0 .3em}
-        .franja{height:6px;border-radius:3px;margin-bottom:10px;background:linear-gradient(90deg,#1554b8,#1e9fe0,#0fb5ad,#37a04a,#f2c53d,#f07f2e,#7d4bcf,#e0538a)}
-        .rep-hd{display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid #dbe6f2;padding-bottom:10px;margin-bottom:14px}
-        .rep-hd__brand{display:flex;gap:10px;align-items:center}
-        .rep-logo{width:52px;height:52px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;padding:2px}
-        .rep-logo img{width:100%;height:100%;object-fit:contain;display:block}
-        .rep-hd__title{font-family:Georgia,serif;font-size:16px;font-weight:700;color:#0d5044}
-        .rep-hd__meta{text-align:right;font-size:12px} .muted{color:#5a6b84}
-        .rep-kpis{display:flex;gap:10px;margin:12px 0}
-        .rep-kpi{flex:1;border:1px solid #dbe6f2;border-radius:8px;padding:8px 10px;border-left:4px solid #12b5a5}
-        .rep-kpi__v{font-family:Georgia,serif;font-size:20px;font-weight:700} .rep-kpi__l{font-size:11px;color:#5a6b84}
-        table{border-collapse:collapse;width:100%;font-size:11px;margin:6px 0 12px}
-        th{background:#0f8f83;color:#fff;text-align:left;padding:6px;border:1px solid #bbb}
-        td{padding:5px;border:1px solid #ddd}
-        .rep-firma{display:flex;justify-content:flex-end;margin-top:40px}
-        .rep-firma__box{text-align:center;min-width:240px} .rep-firma__line{border-top:1px solid #17263d;padding-top:4px}
-      </style></head><body><div class="franja"></div>${innerHTML}</body></html>`);
-    w.document.close();
-    setTimeout(() => { w.focus(); w.print(); }, 350);
   }
 
   function reportesBind() {
