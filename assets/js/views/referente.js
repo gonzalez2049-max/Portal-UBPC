@@ -74,7 +74,16 @@
           <span class="pilar-sep" aria-hidden="true"></span>
           <span class="pilar cu"><span class="ic">💙</span>Cuidado</span>
         </div>
-        <div class="card rt-eval" style="margin-top:1rem">
+      </div>
+      <div class="hh-side">
+        <div class="card rt-ind">
+          <span class="hh-lbl">Indicadores personales</span>
+          <div class="rt-row"><i style="background:#e0526f"></i><span class="nm">Solicitudes en gestión</span><b>${sols.length}</b></div>
+          <div class="rt-row"><i style="background:#e0912f"></i><span class="nm">Pendientes</span><b>${pend.length}</b></div>
+          <div class="rt-row"><i style="background:#12b5a5"></i><span class="nm">Reuniones programadas</span><b>${reuniones.length}</b></div>
+          <div class="rt-row"><i style="background:#7a5cd0"></i><span class="nm">Notificaciones sin leer</span><b>${noLeidas}</b></div>
+        </div>
+        <div class="card rt-eval">
           <span class="hh-lbl">🗓️ Próxima evaluación / auditoría</span>
           ${evalItems.length
             ? `<ul class="feed" style="margin-top:.2rem">${evalItems.slice(0, 3).map(ev => {
@@ -83,13 +92,6 @@
               }).join("")}</ul>`
             : u.empty("Sin evaluaciones programadas.", "Agenda la próxima en Monitoreo (campo “Próxima evaluación / auditoría”).", "🗓️")}
         </div>
-      </div>
-      <div class="card rt-ind">
-        <span class="hh-lbl">Indicadores personales</span>
-        <div class="rt-row"><i style="background:#e0526f"></i><span class="nm">Solicitudes en gestión</span><b>${sols.length}</b></div>
-        <div class="rt-row"><i style="background:#e0912f"></i><span class="nm">Pendientes</span><b>${pend.length}</b></div>
-        <div class="rt-row"><i style="background:#12b5a5"></i><span class="nm">Reuniones programadas</span><b>${reuniones.length}</b></div>
-        <div class="rt-row"><i style="background:#7a5cd0"></i><span class="nm">Notificaciones sin leer</span><b>${noLeidas}</b></div>
       </div>
     </section>
 
