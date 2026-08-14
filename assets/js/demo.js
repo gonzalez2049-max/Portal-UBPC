@@ -296,8 +296,8 @@
       { fecha: iso(6), turno: "Largo", tema: "Vigilancia de accesos", unidad: "UCI Valech", estamento: "TENS", participantes: 6, guia: "Accesos vasculares", observaciones: "" }
     ], { silent: true });
     add("monitoreoRef", [
-      { fecha: iso(12), tipoRegistro: "Auditoría clínica", unidad: "UTI", guia: "Lesiones por presión", descripcion: "Auditoría de fichas.", resultado: "71% de cumplimiento.", brecha: "Superficie de alivio.", intervencion: "Gestión de colchones.", medioVerificacion: "Planilla de auditoría", estado: "En curso" },
-      { fecha: iso(5), tipoRegistro: "Indicador", unidad: "UCI Valech", guia: "Accesos vasculares", descripcion: "Medición de vigilancia.", resultado: "86%.", brecha: "Evaluación diaria.", intervencion: "Refuerzo en turno noche.", medioVerificacion: "", estado: "Completado" }
+      { fecha: iso(12), tipoRegistro: "Auditoría clínica", unidad: "UTI", guia: "Lesiones por presión", descripcion: "Auditoría de fichas.", resultado: "71% de cumplimiento.", brecha: "Superficie de alivio.", intervencion: "Gestión de colchones.", medioVerificacion: "Planilla de auditoría", proximaFecha: isoIn(21), estado: "En curso" },
+      { fecha: iso(5), tipoRegistro: "Indicador", unidad: "UCI Valech", guia: "Accesos vasculares", descripcion: "Medición de vigilancia.", resultado: "86%.", brecha: "Evaluación diaria.", intervencion: "Refuerzo en turno noche.", medioVerificacion: "", proximaFecha: isoIn(9), estado: "Completado" }
     ], { silent: true });
 
     /* ---------- Notificaciones ---------- */

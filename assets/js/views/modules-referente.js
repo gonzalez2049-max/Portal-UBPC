@@ -85,11 +85,11 @@
       hint: "Evidencia compartida con Coordinación: lo que registra Coordinación aparece aquí y viceversa.",
       newLabel: "Nueva evidencia", emptyMsg: "Aún no hay evidencia registrada.",
       columns: [
-        { key: "tema", label: "Tema", render: (r, u) => u.esc(r.tema || r.titulo || "—") },
-        { key: "fuente", label: "Fuente" },
-        { key: "anio", label: "Año", render: (r, u) => u.esc(r.anio || (r.fecha ? new Date(r.fecha).getFullYear() : "—")) },
-        { key: "nivelTipo", label: "Nivel / tipo", render: (r, u) => `<span class="tag">${u.esc(r.nivelTipo || "—")}</span>` },
-        { key: "guia", label: "Guía" }
+        { key: "tema", label: "Tema / estudio", render: (r, u) => u.esc(r.tema || r.titulo || "—") },
+        { key: "aplicabilidad", label: "Cómo se aplica (aplicabilidad)", render: (r, u) => { const t = r.aplicabilidad || r.resumen || "—"; return `<span title="${u.esc(t)}">${u.esc(t.length > 95 ? t.slice(0, 95) + "…" : t)}</span>`; } },
+        { key: "recomendacion", label: "Recomendación para la práctica", render: (r, u) => { const t = r.recomendacion || "—"; return `<span title="${u.esc(t)}">${u.esc(t.length > 95 ? t.slice(0, 95) + "…" : t)}</span>`; } },
+        { key: "guia", label: "Guía", render: (r, u) => u.esc(r.guia || "—") },
+        { key: "nivelTipo", label: "Nivel / tipo", render: (r, u) => `<span class="tag">${u.esc(r.nivelTipo || "—")}</span>` }
       ],
       fields: [
         { name: "tema", label: "Tema", required: true, full: true },
@@ -170,7 +170,7 @@
         { key: "tipoRegistro", label: "Tipo", render: (r, u) => `<span class="tag">${u.esc(r.tipoRegistro || "—")}</span>` },
         { key: "unidad", label: "Unidad" },
         { key: "guia", label: "Guía" },
-        { key: "resultado", label: "Resultado" },
+        { key: "proximaFecha", label: "Próxima evaluación", date: true },
         { key: "estado", label: "Estado", badge: true }
       ],
       fields: [
@@ -183,6 +183,7 @@
         { name: "brecha", label: "Brecha detectada", type: "textarea", full: true },
         { name: "intervencion", label: "Intervención propuesta", type: "textarea", full: true },
         { name: "medioVerificacion", label: "Medio de verificación", full: true },
+        { name: "proximaFecha", label: "Próxima evaluación / auditoría", type: "date", hint: "Fecha en que toca volver a evaluar o auditar." },
         { name: "estado", label: "Estado", type: "select", options: ["Pendiente", "En curso", "Completado"] }
       ],
       defaults: () => ({ fecha: ui().hoyISO(), estado: "En curso" })

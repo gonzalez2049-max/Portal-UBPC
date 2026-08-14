@@ -50,6 +50,16 @@
 
     const ultimaEvi = S().all("evidenciaSemana").sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
 
+    // Próximas evaluaciones / auditorías que le tocan al referente
+    const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+    const evalItems = [];
+    S().all("monitoreoRef").forEach(m => { if (m.proximaFecha && new Date(m.proximaFecha) >= hoy0) evalItems.push({ fecha: m.proximaFecha, titulo: (m.tipoRegistro || "Auditoría") + (m.unidad ? " · " + m.unidad : ""), tipo: "Auditoría / monitoreo" }); });
+    S().all("evaluacionesRNAO").forEach(e => { if (e.proximaMedicion && new Date(e.proximaMedicion) >= hoy0) evalItems.push({ fecha: e.proximaMedicion, titulo: (e.guia || "Medición RNAO") + (e.unidad ? " · " + e.unidad : ""), tipo: "Medición RNAO" }); });
+    if (U.indicadoresUtil && U.indicadoresUtil.proximaMedicion) {
+      S().all("indicadores").forEach(r => { const pm = U.indicadoresUtil.proximaMedicion(r); if (pm && new Date(pm) >= hoy0) evalItems.push({ fecha: pm, titulo: (r.nombre || r.indicador || "Indicador") + (r.unidad ? " · " + r.unidad : ""), tipo: "Indicador" }); });
+    }
+    evalItems.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
     return `
     <section class="home-hero rt-hero">
       <div class="hh-welcome">
@@ -67,12 +77,11 @@
         <div class="rt-quick">
           <span class="hh-lbl">Accesos rápidos</span>
           <div class="rt-quick__grid">
-            <a href="#/ref/evidencia" class="rt-qbtn"><span>🔬</span>Evidencia</a>
-            <a href="#/ref/capacitacion" class="rt-qbtn"><span>🎓</span>Capacitación</a>
             <a href="#/ref/monitoreo" class="rt-qbtn"><span>📈</span>Monitoreo</a>
+            <a href="#/ref/capacitacion" class="rt-qbtn"><span>🎓</span>Capacitación</a>
             <a href="#/ref/biblioteca" class="rt-qbtn"><span>📚</span>Biblioteca</a>
-            <a href="#/ref/reunion" class="rt-qbtn"><span>📅</span>Reunión</a>
-            <a href="#/ref/apoyo" class="rt-qbtn"><span>🆘</span>Pedir apoyo</a>
+            <a href="#/ref/gestion" class="rt-qbtn"><span>🗂️</span>Mi gestión</a>
+            <a href="#/ref/seguimiento" class="rt-qbtn"><span>📌</span>Mi seguimiento</a>
           </div>
         </div>
       </div>
@@ -93,6 +102,15 @@
         <a class="rt-all" href="#/ref/solicitudesRecibidas">Ver todas las solicitudes →</a>
       </div>
       <div class="hh-side">
+        <div class="card rt-eval">
+          <span class="hh-lbl">🗓️ Próxima evaluación / auditoría</span>
+          ${evalItems.length
+            ? `<ul class="feed" style="margin-top:.2rem">${evalItems.slice(0, 3).map(ev => {
+                const venc = new Date(ev.fecha) < hoy0;
+                return `<li><span class="feed__ico">${venc ? "🔴" : "🗓️"}</span><div><strong>${u.esc(ev.titulo)}</strong><div class="feed__meta">${u.fechaCL(ev.fecha)} · ${u.esc(ev.tipo)}</div></div></li>`;
+              }).join("")}</ul>`
+            : u.empty("Sin evaluaciones programadas.", "Agenda la próxima en Monitoreo (campo “Próxima evaluación / auditoría”).", "🗓️")}
+        </div>
         <div class="card rt-reun">
           <span class="hh-lbl">Próximas reuniones</span>
           ${reuniones.length ? `<ul class="feed" style="margin-top:.2rem">${reuniones.slice(0, 2).map(r => `<li><span class="feed__ico">📅</span><div><strong>${u.esc(r.tema || "Reunión")}</strong><div class="feed__meta">${u.fechaCL(r.fecha)}</div></div></li>`).join("")}</ul>`
