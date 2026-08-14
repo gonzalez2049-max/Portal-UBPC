@@ -13,7 +13,7 @@
     const me = U.auth.current();
     return `<div class="rep-hd">
       <div class="rep-hd__brand"><div class="rep-logo"><img src="${LOGO}" alt="HUAP"></div>
-        <div><strong>Unidad de Buenas Prácticas Clínicas – UBPC</strong>
+        <div><strong>Unidad de Buenas Prácticas Clínicas</strong>
         <div class="muted">Hospital de Urgencia Asistencia Pública</div></div></div>
       <div class="rep-hd__meta">
         <div class="rep-hd__title">${esc(titulo)}</div>

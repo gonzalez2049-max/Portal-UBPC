@@ -391,10 +391,12 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 @media print {
   .app__side, .app__header, .no-print, .franja--top, .page-head { display: none !important; }
   .app { display: block; }
-  .app__main { padding: 0; }
   body { background:#fff; font-size: 12px; }
   .card, .table-wrap { box-shadow: none; }
-  @page { size: A4; margin: 14mm; }
+  /* Margen 0 en la página: así el navegador NO dibuja fecha/URL/nº de página
+     en los bordes. El margen real lo damos por dentro del contenido. */
+  @page { size: A4; margin: 0; }
+  .app__main { padding: 14mm !important; }
   /* El reporte se imprime tal cual la vista previa, como documento limpio */
   .reporte { border:none !important; box-shadow:none !important; border-radius:0 !important; background:#fff !important; padding:0 !important; margin:0 !important; }
   .reporte, .reporte * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }

@@ -128,7 +128,7 @@
           <div class="brand-mini__logo"><img src="assets/img/huap-logo.png" alt="Hospital de Urgencia Asistencia Pública"></div>
           <div class="brand-mini__txt">
             <strong>Portal de Gestión Operativa</strong>
-            <span>Unidad de Buenas Prácticas Clínicas – UBPC</span>
+            <span>Unidad de Buenas Prácticas Clínicas</span>
           </div>
         </div>
         <div class="header__spacer"></div>
