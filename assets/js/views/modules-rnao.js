@@ -427,7 +427,7 @@
           ${pinFld("brechaPct", "% de la brecha", "Cumplimiento que tuvo esa brecha.", { value: data.brechaPct, type: "number" })}
         </div></section>
       <section class="pf-section">${pinSecH(2, "Objetivo de la intervención")}
-        ${pinFld("objetivo", "Objetivo de la intervención", "Qué se busca lograr con el plan.", { value: data.objetivo, type: "textarea", req: true, full: true })}
+        ${pinFld("objetivo", "Objetivo de la intervención", "Qué se busca lograr con el plan.", { value: data.objetivo, type: "textarea", req: true, full: true })}</section>
       <section class="pf-section">${pinSecH(3, "Plazos, seguimiento y cierre")}
         <div class="pf-grid">
           ${pinFld("plazoInicio", "Plazo · inicio", "", { value: data.plazoInicio, type: "date" })}
