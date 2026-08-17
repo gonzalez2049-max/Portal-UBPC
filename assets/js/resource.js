@@ -8,10 +8,12 @@
   const S = () => U.store, ui = () => U.ui;
 
   /* Barra de sub-pestañas para módulos con submódulos */
+  const TAB_COLORS = ["#12b5a5", "#7a5cd0", "#e0912f", "#e0526f", "#1e9fe0", "#37a04a", "#0d6ea8", "#b8355a"];
   function tabsBar(portal, moduleKey, tabs, active) {
-    return `<div class="tabs no-print">${tabs.map(t =>
-      `<a class="tab ${t.key === active ? "active" : ""}" href="#/${portal}/${moduleKey}?tab=${t.key}">${ui().esc(t.label)}</a>`
-    ).join("")}</div>`;
+    return `<div class="tabs no-print">${tabs.map((t, i) => {
+      const c = t.color || TAB_COLORS[i % TAB_COLORS.length];
+      return `<a class="tab ${t.key === active ? "active" : ""}" style="--tab-c:${c}" href="#/${portal}/${moduleKey}?tab=${t.key}"><span class="tab__dot"></span>${ui().esc(t.label)}</a>`;
+    }).join("")}</div>`;
   }
 
   /* Valor de celda según definición de columna.

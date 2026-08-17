@@ -345,8 +345,11 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tabs { display:flex; gap:.3rem; flex-wrap:wrap; border-bottom:2px solid var(--border); margin-bottom:1rem; }
 .tab { padding:.5rem .9rem; font-size:14px; font-weight:700; color:var(--text-2); text-decoration:none;
   border-bottom:3px solid transparent; margin-bottom:-2px; border-radius:8px 8px 0 0; }
-.tab:hover { background: var(--surface-2); }
-.tab.active { color: var(--azul-700); border-bottom-color: var(--azul-700); background: var(--azul-50); }
+.tab__dot { display:inline-block; width:.5rem; height:.5rem; border-radius:50%; background:var(--tab-c,#94a3b8); margin-right:.4rem; vertical-align:middle; opacity:.55; transition:opacity .15s; }
+.tab:hover .tab__dot { opacity:.85; }
+.tab.active .tab__dot { opacity:1; }
+.tab:hover { background: color-mix(in srgb, var(--tab-c,#12b5a5) 8%, var(--surface-2)); }
+.tab.active { color: var(--tab-c,var(--azul-700)); border-bottom-color: var(--tab-c,var(--azul-700)); background: color-mix(in srgb, var(--tab-c,#12b5a5) 12%, transparent); }
 
 /* Trazabilidad */
 .traza { margin-top:1rem; border-top:1px dashed var(--border-2); padding-top:.6rem; font-size:13px; }
@@ -863,7 +866,7 @@ body.night .tag{ background:rgba(18,181,165,.15); color:#7fe0d0; border-color:rg
 body.night .tabs{ border-bottom-color:rgba(255,255,255,.1); }
 body.night .tab{ color:#a9c4bb; }
 body.night .tab:hover{ background:rgba(255,255,255,.05); }
-body.night .tab.active{ color:#7fe0d0; background:rgba(18,181,165,.12); border-bottom-color:#12b5a5; }
+body.night .tab.active{ color:var(--tab-c,#7fe0d0); background:color-mix(in srgb, var(--tab-c,#12b5a5) 20%, transparent); border-bottom-color:var(--tab-c,#12b5a5); }
 body.night .traza,body.night .dl div span{ color:#8fa89e; }
 body.night .feed li{ border-bottom-color:rgba(255,255,255,.06); }
 body.night .feed__ico{ background:rgba(18,181,165,.14); }
@@ -1651,8 +1654,9 @@ body.night .reco-corona__msg strong span{ color:#f2c53d; }
 .doc-tpl{ display:flex; flex-direction:column; gap:.2rem; align-items:flex-start; text-align:left; cursor:pointer;
   border:1px solid var(--border); border-top:4px solid var(--tc,#12b5a5); border-radius:14px; padding:.9rem;
   background:rgba(255,255,255,.85); box-shadow:var(--shadow); transition:transform .2s, box-shadow .2s; }
-.doc-tpl:hover{ transform:translateY(-4px); box-shadow:0 20px 40px -20px rgba(18,90,80,.4); }
-.doc-tpl__ic{ font-size:1.7rem; }
+.doc-tpl:hover{ transform:translateY(-4px); box-shadow:0 18px 36px -20px color-mix(in srgb, var(--tc,#12b5a5) 75%, transparent); border-color:var(--tc,#12b5a5); }
+.doc-tpl__ic{ font-size:1.4rem; width:2.5rem; height:2.5rem; display:flex; align-items:center; justify-content:center; border-radius:12px; margin-bottom:.15rem;
+  background:color-mix(in srgb, var(--tc,#12b5a5) 16%, transparent); }
 .doc-tpl__lab{ font-family:var(--font-disp); font-weight:700; font-size:1.02rem; }
 .doc-tpl__new{ font-size:12px; font-weight:800; color:var(--tc,#12b5a5); }
 .doc-card{ border:1px solid var(--border); border-left:4px solid var(--tc,#12b5a5); border-radius:14px; padding:.9rem;
