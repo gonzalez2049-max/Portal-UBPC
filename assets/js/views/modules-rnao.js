@@ -356,10 +356,11 @@
 
   /* ===================== PLAN DE INTERVENCIÓN RNAO/BPSO ===================== */
   const EST_SEG = ["Pendiente", "En curso", "Completado", "Retrasado"];
+  const FREC_ACC = ["—", "Puntual", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"];
   const PIN_COLS = {
     actividades: [{ f: "actividad", label: "Actividad" }, { f: "responsable", label: "Responsable" }, { f: "verificador", label: "Verificador" }],
     seguimientos: [{ f: "fecha", label: "Fecha", type: "date" }, { f: "descripcion", label: "Descripción / avance" }, { f: "avance", label: "% avance", type: "number" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }],
-    acciones: [{ f: "accion", label: "Acción de mejora" }, { f: "responsable", label: "Responsable" }, { f: "plazo", label: "Plazo", type: "date" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }, { f: "verificador", label: "Verificador" }]
+    acciones: [{ f: "accion", label: "Acción de mejora" }, { f: "responsable", label: "Responsable" }, { f: "regularidad", label: "Regularidad", type: "select", options: FREC_ACC }, { f: "plazo", label: "Plazo", type: "date" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }, { f: "verificador", label: "Verificador" }]
   };
   const PIN_ADD = { actividades: "Agregar actividad", seguimientos: "Agregar seguimiento", acciones: "Agregar acción" };
   const pinNum = v => (v === "" || v == null || isNaN(v)) ? null : Number(v);

@@ -1282,7 +1282,7 @@
       <h2>3. Objetivo de mejora</h2>${par(plan.objetivo)}
       <h2>4. Acciones de mejora</h2>
       ${acc.length
-        ? `<table><thead><tr><th width="5%">N°</th><th>Acción</th><th width="22%">Responsable</th><th width="13%">Plazo</th><th width="22%">Verificador</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${e(a.plazo)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>`
+        ? `<table><thead><tr><th width="5%">N°</th><th>Acción</th><th width="20%">Responsable</th><th width="12%">Regularidad</th><th width="12%">Plazo</th><th width="20%">Verificador</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${(a.regularidad && a.regularidad !== "—") ? e(a.regularidad) : "—"}</td><td>${e(a.plazo)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>`
         : `<p style="color:#5a6b84">Sin acciones registradas aún.</p>`}
       ${acts.length ? `<h2>5. Actividades y responsables</h2><table><thead><tr><th>Actividad</th><th width="26%">Responsable</th><th width="26%">Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
       <h2>${acts.length ? "6" : "5"}. Plazos y seguimiento</h2>
