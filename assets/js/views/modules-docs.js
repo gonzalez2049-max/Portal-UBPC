@@ -212,10 +212,10 @@
     root.querySelectorAll("ul,ol").forEach(l => l.setAttribute("style", "margin:5pt 0 5pt 18pt;line-height:1.5"));
     root.querySelectorAll("li").forEach(li => li.setAttribute("style", "margin:2pt 0"));
     root.querySelectorAll("hr").forEach(h => h.setAttribute("style", "border:none;border-top:1px solid #dbe6f2;margin:9pt 0"));
-    root.querySelectorAll("table").forEach(t => { if (!t.classList.contains("doc-kv")) t.setAttribute("style", "border-collapse:collapse;width:100%;margin:7pt 0;font-size:10.5pt"); t.setAttribute("cellspacing", "0"); });
-    root.querySelectorAll("th").forEach(c => c.setAttribute("style", "background:#0f8f83;color:#fff;text-align:left;padding:5pt 7pt;border:1px solid #cdd8e2;font-weight:700"));
-    // Las tablas "ficha" (clave/valor) conservan sus estilos en línea; el resto usa el estilo estándar.
-    root.querySelectorAll("td").forEach(c => { if (c.closest("table.doc-kv")) return; c.setAttribute("style", "padding:5pt 7pt;border:1px solid #e2e9f0;vertical-align:top"); });
+    root.querySelectorAll("table").forEach(t => { if (!t.classList.contains("doc-kv") && !t.classList.contains("doc-bpso")) t.setAttribute("style", "border-collapse:collapse;width:100%;margin:7pt 0;font-size:10.5pt"); t.setAttribute("cellspacing", "0"); });
+    root.querySelectorAll("th").forEach(c => { if (c.closest("table.doc-bpso")) return; c.setAttribute("style", "background:#0f8f83;color:#fff;text-align:left;padding:5pt 7pt;border:1px solid #cdd8e2;font-weight:700"); });
+    // Las tablas "ficha" (clave/valor) y el anexo BPSO conservan sus estilos en línea; el resto usa el estilo estándar.
+    root.querySelectorAll("td").forEach(c => { if (c.closest("table.doc-kv") || c.closest("table.doc-bpso")) return; c.setAttribute("style", "padding:5pt 7pt;border:1px solid #e2e9f0;vertical-align:top"); });
     // Saltos de hoja
     root.querySelectorAll(".doc-pagebreak").forEach(d => { const br = document.createElement("div"); br.setAttribute("style", "page-break-before:always;height:0;font-size:0;line-height:0;border:none"); br.innerHTML = "&nbsp;"; d.replaceWith(br); });
   }
@@ -1196,6 +1196,36 @@
     const ficha = rows => `<table class="doc-kv" style="border-collapse:collapse;width:100%;margin:7pt 0;font-size:10.5pt"><tbody>${rows.join("")}</tbody></table>`;
     const brechaTxt = e(plan.brecha) + ((plan.brechaPct !== "" && plan.brechaPct != null && !isNaN(plan.brechaPct)) ? ` <b>(${pct(plan.brechaPct)})</b>` : "");
 
+    // ---- Anexo: Plantilla de Plan de Implementación (orientaciones BPSO/MINSAL) ----
+    const respBPSO = [].concat(
+      acc.map(a => a.accion ? u.esc(a.accion) + (a.responsable ? " — <b>" + u.esc(a.responsable) + "</b>" : "") : ""),
+      acts.map(a => a.actividad ? u.esc(a.actividad) + (a.responsable ? " — <b>" + u.esc(a.responsable) + "</b>" : "") : "")
+    ).filter(Boolean).join("<br>") || "—";
+    const cronBPSO = (plan.plazoInicio || plan.plazoFin)
+      ? (e(plan.plazoInicio) + " → " + e(plan.plazoFin)) + ((plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? "<br><span style='color:#5a6b84'>Seguimiento: " + e(plan.frecuenciaSeg) + "</span>" : "")
+      : "—";
+    const comBPSO = [plan.comunicacionInvolucrados, plan.comunicacionForma].filter(x => x && String(x).trim()).map(x => u.esc(x)).join("<br>") || "—";
+    const bpsoTh = "background:#5b34b0;color:#fff;text-align:left;padding:5pt 6pt;border:1px solid #cdd8e2;font-weight:700;font-size:9pt";
+    const bpsoTd = "padding:5pt 6pt;border:1px solid #e2e9f0;vertical-align:top;font-size:9pt";
+    const anexoBPSO = `<div class="doc-pagebreak" contenteditable="false">Salto de hoja</div>
+      <h2>Anexo · Plan de Implementación (Orientaciones Técnicas BPSO)</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.2rem 0 .5rem">Estructura conforme a la plantilla de Plan de Implementación de las Orientaciones Técnicas BPSO (MINSAL).</p>
+      <table class="doc-bpso" style="border-collapse:collapse;width:100%;table-layout:fixed"><thead><tr>
+        <th style="${bpsoTh};width:16%">Recomendación<br>(del análisis de brechas)</th>
+        <th style="${bpsoTh};width:22%">Responsabilidades<br>(¿Qué? / ¿Quién?)</th>
+        <th style="${bpsoTh};width:14%">Cronología<br>(¿Para cuándo?)</th>
+        <th style="${bpsoTh};width:14%">Recursos<br>(¿disponibles? / ¿se necesitan?)</th>
+        <th style="${bpsoTh};width:16%">Barreras y facilitadores</th>
+        <th style="${bpsoTh};width:18%">Plan de comunicación<br>(¿quiénes? / ¿cómo? / ¿frecuencia?)</th>
+      </tr></thead><tbody><tr>
+        <td style="${bpsoTd}">${e(plan.recomendacion || plan.indicador || plan.brecha)}</td>
+        <td style="${bpsoTd}">${respBPSO}</td>
+        <td style="${bpsoTd}">${cronBPSO}</td>
+        <td style="${bpsoTd}">${e(plan.recursos)}</td>
+        <td style="${bpsoTd}">${e(plan.barrerasFacilitadores)}</td>
+        <td style="${bpsoTd}">${comBPSO}</td>
+      </tr></tbody></table>`;
+
     return `<h2>1. Identificación de la brecha</h2>
       ${ficha([
         kv("Guía BPSO", e(plan.guia)),
@@ -1225,7 +1255,8 @@
       ${ficha([
         kv("Meta de cumplimiento", pct(plan.meta)),
         kv("Medios de verificación", (acc.length || acts.length) ? "Según el verificador indicado en cada acción y actividad (secciones anteriores)." : listCell(verifList))
-      ])}`;
+      ])}
+      ${anexoBPSO}`;
   }
 
   // Crea o actualiza el documento vinculado y devuelve su id.

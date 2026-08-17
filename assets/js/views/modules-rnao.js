@@ -423,6 +423,14 @@
       <section class="pf-section">${pinSecH(4, "Acciones de mejora a implementar")}
         <div class="pf-rep-lbl">Acciones <span class="pf-help">Acciones concretas para cerrar la brecha, con responsable, plazo, estado y verificador.</span></div>
         ${pinRepTable("acciones", data.acciones)}</section>
+      <section class="pf-section">${pinSecH(5, "Plan de Implementación (orientaciones BPSO / MINSAL)")}
+        <p class="pf-help" style="margin:.1rem 0 .6rem">Completa los campos que pide la plantilla de Plan de Implementación de las Orientaciones Técnicas BPSO. Con esto el documento arma la tabla oficial.</p>
+        <div class="pf-grid">
+          ${pinFld("recursos", "Recursos", "¿Hay recursos disponibles? ¿Se necesitan recursos?", { value: data.recursos, type: "textarea", full: true })}
+          ${pinFld("barrerasFacilitadores", "Barreras y facilitadores", "Barreras y facilitadores para el uso del conocimiento.", { value: data.barrerasFacilitadores, type: "textarea", full: true })}
+          ${pinFld("comunicacionInvolucrados", "Plan de comunicación · ¿Quiénes están involucrados?", "Personas o equipos involucrados en el cambio.", { value: data.comunicacionInvolucrados, type: "textarea", full: true })}
+          ${pinFld("comunicacionForma", "Plan de comunicación · ¿Cómo y con qué frecuencia?", "Cómo se enmarcará el cambio y con qué frecuencia se comunica.", { value: data.comunicacionForma, type: "textarea", full: true })}
+        </div></section>
     </div>`;
   }
 
