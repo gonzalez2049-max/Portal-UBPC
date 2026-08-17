@@ -119,6 +119,76 @@
     });
   }
 
+  /* ---------- Seguimiento de Planes de Mejora RNAO (Referente completa → Coordinador) ---------- */
+  const EST_SEG_REF = ["Pendiente", "En curso", "Completado", "Retrasado"];
+  function planesSeg() {
+    return `<div class="page-head"><h1>Seguimiento de Planes de Mejora (RNAO)</h1>
+      <p>Registra el <strong>avance y los seguimientos</strong> de los planes de intervención. Lo que completes aquí queda en el plan del Coordinador para el seguimiento (dato compartido).</p></div>
+      <div id="ref-planes"></div>`;
+  }
+  function planesSegBind() {
+    const box = document.getElementById("ref-planes");
+    const u = ui();
+    const render = () => {
+      const planes = S().all("planesIntervencion").sort((a, b) => new Date(b.fechaModificacion || b.fechaCreacion || 0) - new Date(a.fechaModificacion || a.fechaCreacion || 0));
+      if (!planes.length) { box.innerHTML = u.empty("Aún no hay planes de intervención.", "El Coordinador crea el plan en Programa RNAO; aquí registras su seguimiento.", "🧭"); return; }
+      box.innerHTML = planes.map(p => {
+        const av = (p.avance !== "" && p.avance != null && !isNaN(p.avance)) ? Number(p.avance) : null;
+        const cerrado = (p.estadoCierre || "Abierto") === "Cerrado";
+        const color = cerrado ? "var(--verde)" : (av != null && av >= 70 ? "var(--verde)" : av != null && av >= 40 ? "var(--naranjo)" : "var(--danger)");
+        const segs = (p.seguimientos || []).filter(s => s && (s.fecha || s.descripcion));
+        const segList = segs.length
+          ? `<ul class="feed" style="margin:.4rem 0">${segs.slice(-3).reverse().map(s => `<li><span class="feed__ico">📌</span><div><strong>${u.esc(s.descripcion || "Seguimiento")}</strong><div class="feed__meta">${s.fecha ? u.fechaCL(s.fecha) : ""}${s.avance !== "" && s.avance != null ? " · " + u.esc(s.avance) + "%" : ""}${s.estado ? " · " + u.esc(s.estado) : ""}</div></div></li>`).join("")}</ul>`
+          : `<p class="kpi__sub" style="margin:.3rem 0">Sin seguimientos registrados aún.</p>`;
+        return `<div class="card" style="border-left:4px solid ${color};margin-bottom:1rem">
+          <div class="flex" style="justify-content:space-between;align-items:flex-start">
+            <div><span class="tag">${u.esc(p.guia || "Guía")}</span> <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(p.unidad || "—")}</span>
+              <h4 class="doc-card__title" style="margin:.4rem 0 .1rem">${u.esc(p.indicador || p.objetivo || "Plan de intervención")}</h4></div>
+            <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span>
+          </div>
+          <div class="kpi__sub">Plazo: ${p.plazoInicio ? u.fechaCL(p.plazoInicio) : "—"} → ${p.plazoFin ? u.fechaCL(p.plazoFin) : "—"} · Frecuencia: ${u.esc(p.frecuenciaSeg && p.frecuenciaSeg !== "—" ? p.frecuenciaSeg : "—")} · Avance: ${av != null ? av + "%" : "—"}</div>
+          <div class="pin-prog" style="margin:.4rem 0"><div class="pin-prog__bar" style="width:${av != null ? Math.min(100, Math.max(0, av)) : 0}%;background:${color}"></div></div>
+          ${segList}
+          <button class="btn btn--primary btn--sm" data-seg="${p.id}">+ Registrar seguimiento / avance</button>
+        </div>`;
+      }).join("");
+      box.querySelectorAll("[data-seg]").forEach(b => b.onclick = () => segForm(S().get("planesIntervencion", b.dataset.seg), render));
+    };
+    render();
+  }
+  function segForm(plan, done) {
+    const u = ui(); if (!plan) return;
+    const fields = [
+      { name: "fecha", label: "Fecha del seguimiento", type: "date", value: u.hoyISO() },
+      { name: "descripcion", label: "Descripción / avance realizado", type: "textarea", full: true },
+      { name: "avance", label: "% de avance a la fecha", type: "number", value: plan.avance != null ? plan.avance : "" },
+      { name: "estado", label: "Estado del seguimiento", type: "select", options: EST_SEG_REF, value: "En curso" },
+      { name: "plazoInicio", label: "Plazo · inicio (del plan)", type: "date", value: plan.plazoInicio ? u.isoDay(plan.plazoInicio) : "" },
+      { name: "plazoFin", label: "Plazo · término (del plan)", type: "date", value: plan.plazoFin ? u.isoDay(plan.plazoFin) : "" },
+      { name: "frecuenciaSeg", label: "Frecuencia de seguimiento", type: "select", options: ["—", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"], value: plan.frecuenciaSeg || "—" }
+    ];
+    u.modal({
+      title: "Registrar seguimiento del plan", wide: true,
+      body: `<p class="card__hint" style="margin:0 0 .6rem">Se agrega un seguimiento y se actualizan el avance y los plazos del plan. Queda visible para el Coordinador.</p>` + u.formHTML(fields, {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar seguimiento</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          const patch = { plazoInicio: d.plazoInicio || plan.plazoInicio || "", plazoFin: d.plazoFin || plan.plazoFin || "", frecuenciaSeg: d.frecuenciaSeg || plan.frecuenciaSeg || "—" };
+          if (d.avance !== "" && d.avance != null) patch.avance = d.avance;
+          if ((d.fecha && String(d.fecha).trim()) || (d.descripcion && String(d.descripcion).trim())) {
+            const seg = { fecha: d.fecha || "", descripcion: d.descripcion || "", avance: d.avance || "", estado: d.estado || "" };
+            patch.seguimientos = (plan.seguimientos || []).concat([seg]);
+          } else if (!d.avance && !d.plazoInicio && !d.plazoFin) {
+            u.toast("Registra al menos una descripción, fecha o avance", "danger"); return;
+          }
+          S().update("planesIntervencion", plan.id, patch);
+          u.closeModal(); u.toast("Seguimiento registrado y enviado al plan del Coordinador", "ok"); done();
+        };
+      }
+    });
+  }
+
   /* ---------- Solicitud de apoyo (Referente → Coordinador) ---------- */
   function apoyo() {
     return `<div class="page-head"><h1>Solicitud de apoyo técnico</h1>
@@ -225,9 +295,9 @@
       </div>`;
   }
 
-  Object.assign(U.ref.views, { biblioteca, capacitacion, evidencia, apoyo, reunion, monitoreo, gestion, seguimiento });
+  Object.assign(U.ref.views, { biblioteca, capacitacion, evidencia, apoyo, reunion, monitoreo, gestion, seguimiento, planesSeg });
   Object.assign(U.ref.binders, {
     biblioteca: bibliotecaBind, capacitacion: capacitacionBind, evidencia: evidenciaBind,
-    apoyo: apoyoBind, reunion: reunionBind, monitoreo: monitoreoBind
+    apoyo: apoyoBind, reunion: reunionBind, monitoreo: monitoreoBind, planesSeg: planesSegBind
   });
 })();
