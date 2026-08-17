@@ -481,6 +481,12 @@
     .nt-inf__tbl th{ background:#0f8f83;color:#fff;padding:7px 9px;border:1px solid #cdd8e2;text-align:center }
     .nt-inf__tbl td{ padding:6px 9px;border:1px solid #e2e9f0;text-align:center }
     .nt-inf__tbl .l{ text-align:left }
+    .nt-inf__kpis--3{ grid-template-columns:repeat(3,1fr);max-width:520px }
+    .nt-inf__epi-h{ max-width:640px;margin:22px auto 2px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px }
+    .nt-inf__epi-h::before,.nt-inf__epi-h::after{ content:"";flex:1;max-width:120px;height:1px;background:linear-gradient(90deg,transparent,#bfe0d9) }
+    .nt-inf__epi-h::after{ background:linear-gradient(90deg,#bfe0d9,transparent) }
+    .nt-inf__epi-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0d6b62;font-size:1.12rem;white-space:nowrap }
+    .nt-inf__epi-per{ font-size:.82rem;font-weight:700;color:#0f8f83;background:#e6f4f1;border-radius:999px;padding:2px 10px;white-space:nowrap }
     .nt-inf__obs{ max-width:640px;margin:18px auto 0;text-align:left }
     .nt-inf__obs-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0f8f83;font-size:1rem;margin-bottom:4px }
     .nt-inf__obs-box{ border:1px solid #dbe6f2;border-radius:8px;min-height:70px;padding:10px 12px;color:#22303a;font-size:.88rem;line-height:1.5 }
@@ -513,8 +519,8 @@
       const c = epiCalc(r);
       return `<tr><td class="l"><strong>${u.esc(r.unidad)}</strong></td><td>${c.evaluados != null ? c.evaluados : "—"}</td><td>${c.lppIntra != null ? c.lppIntra : "—"}</td><td><strong>${pct1(c.incidencia)}</strong></td><td>${pct1(c.prevalencia)}</td><td>${pct1(c.libres)}</td></tr>`;
     }).join("");
-    return `<div style="text-align:left;font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0d6b62;font-size:1.05rem;margin:1.4rem 0 .5rem">Epidemiología de LPP · ${u.esc(periodoNT(per))}</div>
-      <div class="nt-inf__kpis">
+    return `<div class="nt-inf__epi-h"><span class="nt-inf__epi-t">Epidemiología de LPP</span><span class="nt-inf__epi-per">${u.esc(periodoNT(per))}</span></div>
+      <div class="nt-inf__kpis nt-inf__kpis--3">
         <div class="nt-inf__kpi is-danger"><span class="nt-inf__k-lab">Incidencia intrahospitalaria</span><span class="nt-inf__k-val">${pct1(inc)}</span><span class="nt-inf__k-sub">LPP intra / ingresan sin LPP</span></div>
         <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">Prevalencia</span><span class="nt-inf__k-val">${pct1(prev)}</span><span class="nt-inf__k-sub">con ≥1 LPP / evaluados</span></div>
         <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">Pacientes libres de LPP intra</span><span class="nt-inf__k-val">${pct1(libres)}</span><span class="nt-inf__k-sub">100 − incidencia</span></div>
