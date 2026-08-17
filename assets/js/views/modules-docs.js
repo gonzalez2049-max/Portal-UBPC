@@ -1167,8 +1167,14 @@
     const acc = (plan.acciones || []).filter(a => (a.accion || "").trim());
     const acts = (plan.actividades || []).filter(a => (a.actividad || "").trim());
     const segs = (plan.seguimientos || []).filter(s => (s.descripcion || s.fecha || "").trim());
-    const respActs = [...new Set(acts.map(a => a.responsable).filter(Boolean))].join(", ");
-    const verif = [...new Set(acc.map(a => a.verificador).filter(Boolean).concat(acts.map(a => a.verificador).filter(Boolean)))].join(", ");
+    // Responsables y medios de verificación: se consolidan SIN repetir y se
+    // presentan como lista con viñetas (documento formal, legible).
+    const uniq = arr => [...new Set(arr.map(s => (s || "").trim()).filter(Boolean))];
+    const respList = uniq([].concat(acc.map(a => a.responsable), acts.map(a => a.responsable)));
+    const verifList = uniq([].concat(acc.map(a => a.verificador), acts.map(a => a.verificador)));
+    const listCell = arr => !arr.length ? "—"
+      : (arr.length === 1 ? u.esc(arr[0])
+        : `<ul style="margin:0;padding-left:1.1em">${arr.map(x => `<li style="margin:2px 0">${u.esc(x)}</li>`).join("")}</ul>`);
     // Fila clave/valor para las tablas tipo "ficha" (estilos en línea → idéntico en pantalla, PDF y Word)
     const kvKS = "padding:5pt 9pt;border:1px solid #dbe6f2;vertical-align:top;background:#eef5f3;color:#233b45;font-weight:700;width:36%";
     const kvVS = "padding:5pt 9pt;border:1px solid #dbe6f2;vertical-align:top";
@@ -1189,7 +1195,7 @@
       <h2>3. Objetivo de mejora</h2>${par(plan.objetivo)}
       <h2>4. Acciones de mejora</h2>
       ${acc.length
-        ? `<table><thead><tr><th width="6%">N°</th><th>Acción</th><th width="26%">Responsable</th><th width="18%">Plazo</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${e(a.plazo)}</td></tr>`).join("")}</tbody></table>`
+        ? `<table><thead><tr><th width="5%">N°</th><th>Acción</th><th width="22%">Responsable</th><th width="13%">Plazo</th><th width="22%">Verificador</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${e(a.plazo)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>`
         : `<p style="color:#5a6b84">Sin acciones registradas aún.</p>`}
       ${acts.length ? `<h2>5. Actividades y responsables</h2><table><thead><tr><th>Actividad</th><th width="26%">Responsable</th><th width="26%">Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
       <h2>${acts.length ? "6" : "5"}. Plazos y seguimiento</h2>
@@ -1197,14 +1203,14 @@
         kv("Plazo de inicio", e(plan.plazoInicio)),
         kv("Plazo de término", e(plan.plazoFin)),
         kv("Frecuencia de seguimiento", (plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? e(plan.frecuenciaSeg) : "—"),
-        kv("Responsables", respActs || "—"),
+        kv("Responsables", listCell(respList)),
         kv("Avance global", pct(plan.avance))
       ])}
       ${segs.length ? `<h2>${acts.length ? "7" : "6"}. Seguimientos registrados</h2><table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${e(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : ""}
       <h2>${(acts.length ? 1 : 0) + (segs.length ? 1 : 0) + 6}. Indicador de éxito y verificación</h2>
       ${ficha([
         kv("Meta de cumplimiento", pct(plan.meta)),
-        kv("Medios de verificación", verif || "—")
+        kv("Medios de verificación", listCell(verifList))
       ])}`;
   }
 

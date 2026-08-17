@@ -123,7 +123,7 @@
     <div class="grid grid--2 rt-row2">
       <div class="section" style="margin:0">
         <div class="section__head"><h2 class="section__title">Resultados recientes</h2></div>
-        <div class="card">${resultadosRecientes()}</div>
+        <div class="card rt-res">${resultadosRecientes()}</div>
       </div>
       <div class="section" style="margin:0">
         <div class="section__head"><div><h2 class="section__title">Evidencia y recomendación</h2>
