@@ -500,6 +500,29 @@
     return { delta: a - b, prevPer: ps[ps.length - 2] };
   }
 
+  // Bloque de Epidemiología LPP para el informe (mismo período)
+  function informeEpiBlock(per) {
+    const u = ui();
+    const recs = S().all("epiLPP").filter(r => r.periodo === per);
+    if (!recs.length) return "";
+    const t = recs.reduce((a, r) => { const c = epiCalc(r); a.ev += c.evaluados || 0; a.sin += c.sinLPP || 0; a.intra += c.lppIntra || 0; a.con += c.conLPP || 0; return a; }, { ev: 0, sin: 0, intra: 0, con: 0 });
+    const inc = t.sin > 0 ? t.intra / t.sin * 100 : null;
+    const prev = t.ev > 0 ? t.con / t.ev * 100 : null;
+    const libres = inc != null ? 100 - inc : null;
+    const filas = recs.slice().sort((a, b) => String(a.unidad || "").localeCompare(String(b.unidad || ""))).map(r => {
+      const c = epiCalc(r);
+      return `<tr><td class="l"><strong>${u.esc(r.unidad)}</strong></td><td>${c.evaluados != null ? c.evaluados : "—"}</td><td>${c.lppIntra != null ? c.lppIntra : "—"}</td><td><strong>${pct1(c.incidencia)}</strong></td><td>${pct1(c.prevalencia)}</td><td>${pct1(c.libres)}</td></tr>`;
+    }).join("");
+    return `<div style="text-align:left;font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0d6b62;font-size:1.05rem;margin:1.4rem 0 .5rem">Epidemiología de LPP · ${u.esc(periodoNT(per))}</div>
+      <div class="nt-inf__kpis">
+        <div class="nt-inf__kpi is-danger"><span class="nt-inf__k-lab">Incidencia intrahospitalaria</span><span class="nt-inf__k-val">${pct1(inc)}</span><span class="nt-inf__k-sub">LPP intra / ingresan sin LPP</span></div>
+        <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">Prevalencia</span><span class="nt-inf__k-val">${pct1(prev)}</span><span class="nt-inf__k-sub">con ≥1 LPP / evaluados</span></div>
+        <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">Pacientes libres de LPP intra</span><span class="nt-inf__k-val">${pct1(libres)}</span><span class="nt-inf__k-sub">100 − incidencia</span></div>
+      </div>
+      <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Evaluados</th><th>LPP intrahosp.</th><th>Incidencia</th><th>Prevalencia</th><th>% libres</th></tr></thead>
+        <tbody>${filas}</tbody></table>`;
+  }
+
   function informeInner() {
     const u = ui();
     const { per, list } = medsUltimoPeriodo();
@@ -537,6 +560,7 @@
       <div class="nt-inf__varline">Variación del cumplimiento global: ${varTxt}</div>
       <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th>Cumplimiento</th><th>Estado</th></tr></thead>
         <tbody>${filas}</tbody></table>
+      ${informeEpiBlock(per)}
       <div class="nt-inf__obs">
         <div class="nt-inf__obs-t">Observaciones <span class="no-print" style="font-weight:400;color:#8a94a6;font-size:.78rem">(escribe directamente aquí)</span></div>
         <div class="nt-inf__obs-box" id="nt-obs" contenteditable="true" data-ph="Escribe aquí las observaciones del periodo…">${obs ? u.esc(obs).replace(/\n/g, "<br>") : ""}</div>
