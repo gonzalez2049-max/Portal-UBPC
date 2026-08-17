@@ -1224,7 +1224,7 @@
       <h2>${(acts.length ? 1 : 0) + (segs.length ? 1 : 0) + 6}. Indicador de éxito y verificación</h2>
       ${ficha([
         kv("Meta de cumplimiento", pct(plan.meta)),
-        kv("Medios de verificación", listCell(verifList))
+        kv("Medios de verificación", (acc.length || acts.length) ? "Según el verificador indicado en cada acción y actividad (secciones anteriores)." : listCell(verifList))
       ])}`;
   }
 
