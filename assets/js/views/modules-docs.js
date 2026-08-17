@@ -135,6 +135,49 @@
         <p>Cuerpo del mensaje. Redacta aquí el contenido de la comunicación interna.</p>
         <p>Sin otro particular, saluda atentamente,</p>
         <p>—<br>Coordinación · Unidad de Buenas Prácticas Clínicas</p>`
+    },
+    informeBPSO: {
+      label: "Informe Anual BPSO", ic: "🏅", color: "#0d6ea8",
+      titulo: "Informe Anual BPSO",
+      html: `<h2>Informe Anual BPSO</h2>
+        <p><strong>Nombre de la Organización:</strong> Hospital de Urgencia Asistencia Pública (HUAP)</p>
+        <h2>1. Información general del BPSO</h2>
+        <table><tbody>
+          <tr><td width="45%"><b>Estatus de designación</b></td><td>Pre-Designación / Designado</td></tr>
+          <tr><td><b>Cohorte (año)</b></td><td>—</td></tr>
+          <tr><td><b>Número de sitios de implementación</b></td><td>—</td></tr>
+          <tr><td><b>Nombre del Líder de la organización (SDGC)</b></td><td>—</td></tr>
+          <tr><td><b>Correo electrónico del líder (SDGC)</b></td><td>—</td></tr>
+          <tr><td><b>Nombre y cargo de quien reporta</b></td><td>—</td></tr>
+          <tr><td><b>Correo electrónico de quien reporta</b></td><td>—</td></tr>
+          <tr><td><b>Tiempo semanal asignado a la iniciativa BPSO</b></td><td>—</td></tr>
+        </tbody></table>
+        <h2>2. Resumen del progreso</h2>
+        <h3>a) Champions / Líderes de Mejores Prácticas</h3>
+        <p>Incorporación de una masa crítica de al menos el 15% del personal de enfermería como Líderes de Buenas Prácticas de la RNAO.</p>
+        <p><strong>Objetivos de desarrollo de líderes:</strong></p>
+        <ul><li>Año 1: 6%</li><li>Año 2: 6% adicional (totalizando 12%)</li><li>Año 3: 3% adicional (totalizando 15%)</li></ul>
+        <p><strong>% a la fecha:</strong> — &nbsp; <em>(N° total de personas con el curso realizado y aprobado (Dotación SDGC) / N° total dotación de RRHH asignado a la SDGC × 100)</em></p>
+        <h3>b) Otros profesionales capacitados como Champions</h3>
+        <p>Número y profesión: —</p>
+        <h3>c) Actividades destacadas del año coordinadas con la iniciativa BPSO</h3>
+        <p>Nombre y descripción breve: —</p>
+        <h2>3. Guías implementadas a la fecha</h2>
+        <table><thead><tr><th>Guía</th><th width="30%">Edición</th></tr></thead><tbody><tr><td>—</td><td>—</td></tr><tr><td>—</td><td>—</td></tr></tbody></table>
+        <h2>4. Indicadores medidos y fecha de inicio de medición</h2>
+        <table><thead><tr><th>Indicador</th><th width="35%">Fecha inicio medición</th></tr></thead><tbody><tr><td>—</td><td>—</td></tr><tr><td>—</td><td>—</td></tr></tbody></table>
+        <div class="doc-pagebreak" contenteditable="false">Salto de hoja</div>
+        <h2>Avances en BPG #1 (Progress on BPG #1)</h2>
+        <p><em>Máximo 1 página por guía (BPG). Copia este bloque para cada guía implementada.</em></p>
+        <p><strong>Nombre de la guía:</strong> —</p>
+        <h3>Capacitación (Training)</h3>
+        <p>Cursos / metodología / número de personas capacitadas / horas certificadas / otros: —</p>
+        <h3>Implementación (Implementation)</h3>
+        <p>Estrategias de implementación, gestión de recursos y coordinaciones realizadas: —</p>
+        <h3>NQuIRE</h3>
+        <p>Resultados globales en porcentaje para cada indicador y su variación respecto al período anterior (caracterización del resultado): —</p>
+        <h3>Otros (Other)</h3>
+        <p>—</p>`
     }
   };
 
