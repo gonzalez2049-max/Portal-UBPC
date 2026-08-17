@@ -356,7 +356,7 @@
 
   /* ===================== PLAN DE INTERVENCIÓN RNAO/BPSO ===================== */
   const EST_SEG = ["Pendiente", "En curso", "Completado", "Retrasado"];
-  const FREC_ACC = ["—", "Puntual", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"];
+  const FREC_ACC = ["—", "Diario", "Cada turno", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual", "Según hallazgos"];
   const PIN_COLS = {
     actividades: [{ f: "actividad", label: "Actividad" }, { f: "responsable", label: "Responsable" }, { f: "verificador", label: "Verificador" }],
     seguimientos: [{ f: "fecha", label: "Fecha", type: "date" }, { f: "descripcion", label: "Descripción / avance" }, { f: "avance", label: "% avance", type: "number" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }],
