@@ -587,7 +587,7 @@
             </div>
           </div>
           ${wf || locked ? `<div class="doc-wf">${wf}${locked ? `<span class="doc-wf__lock">🔒 Documento bloqueado (solo lectura)</span>` : ""}</div>` : ""}
-          ${rec && rec.planRef ? `<div class="doc-linked">📎 Documento vinculado al <strong>Plan de Intervención RNAO/BPSO</strong>. Se genera y sincroniza desde el plan; edita el plan para cambiar el contenido, y valídalo aquí (Aprobar → Finalizar). <a href="#/coord/m3?tab=planes&plan=${u.esc(rec.planRef)}">Abrir el plan →</a></div>` : ""}
+          ${rec && rec.planRef ? `<div class="doc-linked">📎 Documento vinculado al <strong>Plan de Intervención RNAO/BPSO</strong>. Se genera y sincroniza desde el plan; edita el plan para cambiar el contenido, y valídalo aquí (Aprobar → Finalizar). <a href="#/coord/m3?tab=planes&plan=${u.esc(rec.planRef)}">Abrir el plan →</a> <button class="btn btn--ghost btn--sm" id="doc-regen" type="button" style="margin-left:.4rem">🔄 Actualizar al formato nuevo</button></div>` : ""}
           ${locked ? "" : `<div class="doc-tb">${toolbar}</div>`}
         </div>
         <div class="doc-page ${hasCover ? "doc-page--cover" : ""}" id="doc-page">
@@ -792,6 +792,20 @@
     document.getElementById("doc-print").onclick = () => printDoc(titleEl.value, bodyEl.innerHTML, me, sheet, current || { plantilla });
     document.getElementById("doc-word").onclick = () =>
       exportWordDoc(titleEl.value || p.titulo, bodyEl.innerHTML, me, current || { plantilla }, "documento-ubpc");
+    // Regenera el documento vinculado desde el plan (aplica el formato actual),
+    // conservando código y versión si ya los tiene (revisado/finalizado).
+    const regenBtn = document.getElementById("doc-regen");
+    if (regenBtn) regenBtn.onclick = () => {
+      if (!current || !current.planRef) return;
+      const plan = S().get("planesIntervencion", current.planRef);
+      if (!plan) { u.toast("No se encontró el plan vinculado", "danger"); return; }
+      const t = "Plan de Mejora · " + (plan.guia || "RNAO") + (plan.unidad ? " · " + plan.unidad : "");
+      let contenido = coverHTML(t, PLANTILLAS.planMejora.label, true) + planMejoraContentFromPlan(plan);
+      if (current.codigo) contenido = stampCover(contenido, current.codigo, current.version);
+      S().update("docsTrabajo", current.id, { titulo: t, contenido });
+      u.toast("Documento actualizado al formato nuevo", "ok");
+      reopen(container, current.id);
+    };
   }
 
   /* ============================================================
