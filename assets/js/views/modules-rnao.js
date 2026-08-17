@@ -358,11 +358,10 @@
   const EST_SEG = ["Pendiente", "En curso", "Completado", "Retrasado"];
   const FREC_ACC = ["—", "Diario", "Cada turno", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual", "Según hallazgos"];
   const PIN_COLS = {
-    actividades: [{ f: "actividad", label: "Actividad" }, { f: "responsable", label: "Responsable" }, { f: "verificador", label: "Verificador" }],
     seguimientos: [{ f: "fecha", label: "Fecha", type: "date" }, { f: "descripcion", label: "Descripción / avance" }, { f: "avance", label: "% avance", type: "number" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }],
-    acciones: [{ f: "accion", label: "Acción de mejora" }, { f: "responsable", label: "Responsable" }, { f: "regularidad", label: "Regularidad", type: "select", options: FREC_ACC }, { f: "plazo", label: "Plazo", type: "date" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }, { f: "verificador", label: "Verificador" }]
+    acciones: [{ f: "accion", label: "Acción / actividad de mejora" }, { f: "responsable", label: "Responsable" }, { f: "regularidad", label: "Regularidad", type: "select", options: FREC_ACC }, { f: "plazo", label: "Plazo", type: "date" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }, { f: "verificador", label: "Verificador" }]
   };
-  const PIN_ADD = { actividades: "Agregar actividad", seguimientos: "Agregar seguimiento", acciones: "Agregar acción" };
+  const PIN_ADD = { seguimientos: "Agregar seguimiento", acciones: "Agregar acción / actividad" };
   const pinNum = v => (v === "" || v == null || isNaN(v)) ? null : Number(v);
   const pinPct = v => (v != null && String(v).trim() !== "" && !isNaN(v)) ? v + "%" : "—";
 
@@ -427,10 +426,8 @@
           ${pinFld("brecha", "Brecha a trabajar", "Nombre de la brecha o recomendación con menor cumplimiento.", { value: data.brecha, full: true })}
           ${pinFld("brechaPct", "% de la brecha", "Cumplimiento que tuvo esa brecha.", { value: data.brechaPct, type: "number" })}
         </div></section>
-      <section class="pf-section">${pinSecH(2, "Objetivo, actividades y responsables")}
+      <section class="pf-section">${pinSecH(2, "Objetivo de la intervención")}
         ${pinFld("objetivo", "Objetivo de la intervención", "Qué se busca lograr con el plan.", { value: data.objetivo, type: "textarea", req: true, full: true })}
-        <div class="pf-rep-lbl">Actividades y responsables <span class="pf-help">Agrega todas las actividades necesarias, con responsable y verificador.</span></div>
-        ${pinRepTable("actividades", data.actividades)}</section>
       <section class="pf-section">${pinSecH(3, "Plazos, seguimiento y cierre")}
         <div class="pf-grid">
           ${pinFld("plazoInicio", "Plazo · inicio", "", { value: data.plazoInicio, type: "date" })}
@@ -442,8 +439,8 @@
         <div class="pf-duracion" id="pf-duracion" style="grid-column:1/-1;margin:.2rem 0 .2rem;padding:.5rem .75rem;border-radius:10px;background:var(--surface-2);font-size:.9rem">${duracionLbl(data.plazoInicio, data.plazoFin)}</div>
         <div class="pf-rep-lbl">Seguimientos cronológicos <span class="pf-help">Registra cada revisión con fecha, avance y estado.</span></div>
         ${pinRepTable("seguimientos", data.seguimientos)}</section>
-      <section class="pf-section">${pinSecH(4, "Acciones de mejora a implementar")}
-        <div class="pf-rep-lbl">Acciones <span class="pf-help">Acciones concretas para cerrar la brecha, con responsable, plazo, estado y verificador.</span></div>
+      <section class="pf-section">${pinSecH(4, "Acciones / actividades de mejora a implementar")}
+        <div class="pf-rep-lbl">Acciones y actividades <span class="pf-help">Cada tarea concreta para cerrar la brecha, con responsable, regularidad, plazo, estado y verificador.</span></div>
         ${pinRepTable("acciones", data.acciones)}</section>
       <section class="pf-section">${pinSecH(5, "Plan de Implementación (orientaciones BPSO / MINSAL)")}
         <p class="pf-help" style="margin:.1rem 0 .6rem">Completa los campos que pide la plantilla de Plan de Implementación de las Orientaciones Técnicas BPSO. Con esto el documento arma la tabla oficial.</p>
@@ -490,7 +487,13 @@
 
   function openPlanEditor(box, plan) {
     const u = ui();
-    const data = plan || { actividades: [], seguimientos: [], acciones: [], estadoCierre: "Abierto", coordinador: (U.auth.current() || {}).nombre };
+    // Migración: las "actividades" antiguas se fusionan en "acciones" (sección unificada).
+    if (plan && Array.isArray(plan.actividades) && plan.actividades.length) {
+      const mig = plan.actividades.filter(a => a && (a.actividad || "").trim())
+        .map(a => ({ accion: a.actividad, responsable: a.responsable || "", regularidad: "—", plazo: "", estado: "Pendiente", verificador: a.verificador || "" }));
+      if (mig.length) { S().update("planesIntervencion", plan.id, { acciones: (plan.acciones || []).concat(mig), actividades: [] }); plan = S().get("planesIntervencion", plan.id); }
+    }
+    const data = plan || { seguimientos: [], acciones: [], estadoCierre: "Abierto", coordinador: (U.auth.current() || {}).nombre };
     let current = plan;
     const cerrado = data.estadoCierre === "Cerrado";
     box.innerHTML = `
