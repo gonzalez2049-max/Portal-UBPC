@@ -411,4 +411,7 @@
 
   U.coord.views.guia = guia;
   U.coord.binders.guia = guiaBind;
+
+  // Se expone la caja de herramientas para reutilizarla en otros perfiles (Referente).
+  U.guiaToolkit = { RNAO_TOOLKIT, NT_TOOLKIT, tkGrid, openToolkit };
 })();

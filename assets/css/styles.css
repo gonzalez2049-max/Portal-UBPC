@@ -705,6 +705,19 @@ body.night .focus-nt{ background:#132621; border-color:rgba(255,255,255,.1); col
 .hh-venc{ margin-top:auto; font-size:.82rem; font-weight:700; color:#c23a56; background:#fbe6ea; border-radius:9px; padding:.35rem .6rem; }
 @media (max-width:1024px){ .home-hero{ grid-template-columns:1fr; } }
 
+/* ---- Funciones del rol (Referente): grupos temáticos con color ---- */
+.func-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:1rem; align-items:start; }
+.func-cat{ border-top:4px solid var(--fc,#12b5a5); }
+.func-cat__h{ display:flex; align-items:center; gap:.6rem; margin-bottom:.7rem; }
+.func-cat__ic{ width:2.4rem; height:2.4rem; flex:none; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem;
+  background:color-mix(in srgb, var(--fc,#12b5a5) 16%, transparent); }
+.func-cat__h h3{ margin:0; font-size:1rem; color:var(--fc,#12b5a5); font-family:var(--font-disp); line-height:1.15; flex:1; }
+.func-cat__count{ flex:none; font-size:.72rem; font-weight:800; color:var(--fc,#12b5a5); background:color-mix(in srgb, var(--fc,#12b5a5) 14%, transparent); border-radius:999px; padding:.15rem .55rem; }
+.func-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.55rem; }
+.func-list li{ display:flex; gap:.6rem; align-items:flex-start; font-size:.92rem; line-height:1.4; color:var(--text-2); }
+.func-num{ flex:none; width:1.55rem; height:1.55rem; border-radius:50%; background:var(--fc,#12b5a5); color:#fff; font-size:.75rem; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:.05rem; }
+body.night .func-list li{ color:#c3d4cd; }
+
 /* ---- Inicio Referente: piezas bento ---- */
 /* Banner de bienvenida compacto (a lo ancho, sin costados vacíos) */
 .rt-band{ display:flex; justify-content:space-between; align-items:center; gap:1.4rem; flex-wrap:wrap;

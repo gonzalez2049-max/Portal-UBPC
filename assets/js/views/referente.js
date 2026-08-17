@@ -18,6 +18,7 @@
       { key: "capacitacion", label: "Capacitación por turno", ico: "🎓" },
       { key: "evidencia", label: "Evidencia y recomendación", ico: "🔬" },
       { key: "planesSeg", label: "Seguimiento de Planes RNAO", ico: "🧭" },
+      { key: "herramientas", label: "Caja de Herramientas", ico: "🧰" },
       { key: "apoyo", label: "Solicitud de apoyo", ico: "🆘" },
       { key: "reunion", label: "Reunión de seguimiento", ico: "📅" },
       { key: "monitoreo", label: "Monitoreo e implementación", ico: "📈" }
@@ -173,27 +174,44 @@
 
   /* ---------- Funciones del rol ---------- */
   function funciones() {
-    const funcs = [
-      "Adaptar e implementar recomendaciones basadas en evidencia en cada unidad clínica.",
-      "Trabajar las áreas de lesiones por presión, accesos vasculares y dolor.",
-      "Desarrollar y actualizar protocolos, flujos clínicos y herramientas operativas.",
-      "Coordinar capacitaciones clínicas.",
-      "Supervisar escalas, criterios clínicos y prácticas estandarizadas.",
-      "Monitorear indicadores.",
-      "Realizar auditorías clínicas.",
-      "Entregar retroalimentación a equipos asistenciales.",
-      "Analizar brechas y oportunidades de mejora.",
-      "Proponer intervenciones técnicas focalizadas.",
-      "Acompañar a las unidades clínicas.",
-      "Validar técnicamente protocolos y procedimientos con el Coordinador UBPC.",
-      "Apoyar los planes de mejora.",
-      "Colaborar en capacitación continua y feedback clínico.",
-      "Reportar resultados, barreras y brechas al Coordinador UBPC."
+    const u = ui();
+    const GRUPOS = [
+      { t: "Implementación basada en evidencia", ic: "🔬", c: "#12b5a5", items: [
+        "Adaptar e implementar recomendaciones basadas en evidencia en cada unidad clínica.",
+        "Trabajar las áreas de lesiones por presión, accesos vasculares y dolor.",
+        "Desarrollar y actualizar protocolos, flujos clínicos y herramientas operativas."
+      ]},
+      { t: "Capacitación y acompañamiento", ic: "🎓", c: "#7a5cd0", items: [
+        "Coordinar capacitaciones clínicas.",
+        "Acompañar a las unidades clínicas.",
+        "Colaborar en capacitación continua y feedback clínico."
+      ]},
+      { t: "Supervisión, monitoreo y auditoría", ic: "📊", c: "#1e9fe0", items: [
+        "Supervisar escalas, criterios clínicos y prácticas estandarizadas.",
+        "Monitorear indicadores.",
+        "Realizar auditorías clínicas.",
+        "Entregar retroalimentación a equipos asistenciales."
+      ]},
+      { t: "Análisis de brechas y mejora", ic: "🎯", c: "#e0912f", items: [
+        "Analizar brechas y oportunidades de mejora.",
+        "Proponer intervenciones técnicas focalizadas.",
+        "Apoyar los planes de mejora."
+      ]},
+      { t: "Validación y reporte al Coordinador", ic: "🤝", c: "#e0526f", items: [
+        "Validar técnicamente protocolos y procedimientos con el Coordinador UBPC.",
+        "Reportar resultados, barreras y brechas al Coordinador UBPC."
+      ]}
     ];
-    return `<div class="page-head"><h1>Funciones del rol</h1><p>Guía de las funciones del Referente Técnico de Buenas Prácticas Clínicas.</p></div>
-      <div class="grid grid--3">${funcs.map((f, i) => `<div class="card" style="border-top:4px solid var(--c-turquesa)">
-        <div class="flex" style="align-items:flex-start"><div class="avatar" style="width:30px;height:30px;font-size:13px;background:var(--c-turquesa)">${i + 1}</div>
-        <p class="narrativo mb0">${ui().esc(f)}</p></div></div>`).join("")}</div>`;
+    let n = 0;
+    const cards = GRUPOS.map(g => {
+      const lis = g.items.map(it => { n++; return `<li><span class="func-num">${n}</span><span>${u.esc(it)}</span></li>`; }).join("");
+      return `<div class="card func-cat" style="--fc:${g.c}">
+        <div class="func-cat__h"><span class="func-cat__ic">${g.ic}</span><h3>${u.esc(g.t)}</h3><span class="func-cat__count">${g.items.length}</span></div>
+        <ul class="func-list">${lis}</ul>
+      </div>`;
+    }).join("");
+    return `<div class="page-head"><h1>Funciones del rol</h1><p>Funciones del Referente Técnico de Buenas Prácticas Clínicas, agrupadas por ámbito de trabajo.</p></div>
+      <div class="func-grid">${cards}</div>`;
   }
 
   /* ---------- Configuración (perfil propio) ---------- */
