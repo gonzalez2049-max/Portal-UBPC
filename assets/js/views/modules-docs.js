@@ -1289,6 +1289,17 @@
       ${ficha([
         kv("Plazo de inicio", e(plan.plazoInicio)),
         kv("Plazo de término", e(plan.plazoFin)),
+        kv("Duración estimada", (() => {
+          const ini = plan.plazoInicio, fin = plan.plazoFin;
+          if (!ini || !fin) return "—";
+          const a = new Date(String(ini).slice(0, 10) + "T12:00:00"), b = new Date(String(fin).slice(0, 10) + "T12:00:00");
+          if (isNaN(a) || isNaN(b)) return "—";
+          const days = Math.round((b - a) / 86400000);
+          if (days < 0) return "Revisar fechas";
+          if (days === 0) return "Mismo día";
+          const sem = Math.round(days / 7), mes = Math.floor(days / 30);
+          return days <= 21 ? (days + (days === 1 ? " día" : " días")) : days < 75 ? (sem + " semanas (" + days + " días)") : (mes + " meses aprox. (" + days + " días)");
+        })()),
         kv("Frecuencia de seguimiento", (plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? e(plan.frecuenciaSeg) : "—"),
         kv("Responsables", listCell(respList)),
         kv("Avance global", pct(plan.avance))

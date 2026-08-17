@@ -394,6 +394,26 @@
       <button type="button" class="btn btn--ghost btn--sm" data-repadd="${rep}">+ ${u.esc(PIN_ADD[rep])}</button></div>`;
   }
 
+  // Plazo estimado (duración) a partir de las fechas inicio → término
+  function duracionPlan(ini, fin) {
+    if (!ini || !fin) return null;
+    const a = new Date(String(ini).slice(0, 10) + "T12:00:00");
+    const b = new Date(String(fin).slice(0, 10) + "T12:00:00");
+    if (isNaN(a) || isNaN(b)) return null;
+    const days = Math.round((b - a) / 86400000);
+    if (days < 0) return { days, txt: "revisar fechas (el término es anterior al inicio)" };
+    if (days === 0) return { days, txt: "mismo día" };
+    const sem = Math.round(days / 7), mes = Math.floor(days / 30);
+    let txt;
+    if (days <= 21) txt = days + (days === 1 ? " día" : " días") + (days >= 7 ? " (~" + sem + " sem)" : "");
+    else if (days < 75) txt = sem + " semanas (" + days + " días)";
+    else txt = mes + " meses aprox. (" + days + " días)";
+    return { days, txt };
+  }
+  function duracionLbl(ini, fin) {
+    const d = duracionPlan(ini, fin);
+    return d ? "⏱️ Plazo estimado: <strong>" + d.txt + "</strong>" : "⏱️ Plazo estimado: define inicio y término para calcularlo.";
+  }
   function planFormHTML(data) {
     return `<div class="plan-form">
       <section class="pf-section">${pinSecH(1, "Guía, recomendación o brecha")}
@@ -419,6 +439,7 @@
           ${pinFld("avance", "Avance global (%)", "Estimación del avance total del plan.", { value: data.avance, type: "number" })}
           ${pinFld("motivoCierre", "Motivo de cierre / reapertura", "Se conserva al cerrar o reabrir el plan.", { value: data.motivoCierre, full: true })}
         </div>
+        <div class="pf-duracion" id="pf-duracion" style="grid-column:1/-1;margin:.2rem 0 .2rem;padding:.5rem .75rem;border-radius:10px;background:var(--surface-2);font-size:.9rem">${duracionLbl(data.plazoInicio, data.plazoFin)}</div>
         <div class="pf-rep-lbl">Seguimientos cronológicos <span class="pf-help">Registra cada revisión con fecha, avance y estado.</span></div>
         ${pinRepTable("seguimientos", data.seguimientos)}</section>
       <section class="pf-section">${pinSecH(4, "Acciones de mejora a implementar")}
@@ -495,6 +516,15 @@
     });
     bindRm();
 
+    // Plazo estimado en vivo al cambiar las fechas
+    const updDur = () => {
+      const ini = (box.querySelector('[data-pf="plazoInicio"]') || {}).value;
+      const fin = (box.querySelector('[data-pf="plazoFin"]') || {}).value;
+      const el = box.querySelector("#pf-duracion");
+      if (el) el.innerHTML = duracionLbl(ini, fin);
+    };
+    ["plazoInicio", "plazoFin"].forEach(n => { const el = box.querySelector(`[data-pf="${n}"]`); if (el) el.addEventListener("input", updDur); });
+
     document.getElementById("pin-save").onclick = () => { const s = savePlan(box, current); if (s) { current = s; openPlanEditor(box, s); } };
     document.getElementById("pin-doc").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.router.go("#/coord/m1?tab=docs&doc=" + s.docId); };
     document.getElementById("pin-pdf").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.docsEditor.printDocById(s.docId); };
@@ -521,6 +551,7 @@
       <div class="kpi__sub">Línea base ${pinPct(pl.lineaBase)} · Meta ${pinPct(pl.meta)}${pl.brecha ? " · Brecha: " + u.esc(pl.brecha) + (pl.brechaPct !== "" && pl.brechaPct != null ? " (" + pinPct(pl.brechaPct) + ")" : "") : ""}</div>
       <div class="pin-prog"><div class="pin-prog__bar" style="width:${av != null ? Math.min(100, Math.max(0, av)) : 0}%;background:${color}"></div></div>
       <div class="kpi__sub">Avance ${av != null ? av + "%" : "—"} · ${(pl.acciones || []).length} acción(es) · ${(pl.seguimientos || []).length} seguimiento(s)${(pl.frecuenciaSeg && pl.frecuenciaSeg !== "—") ? " · Seguim. " + u.esc(pl.frecuenciaSeg).toLowerCase() : ""}</div>
+      ${(() => { const d = duracionPlan(pl.plazoInicio, pl.plazoFin); return d ? `<div class="kpi__sub">⏱️ Plazo estimado: ${u.esc(d.txt)}${pl.plazoInicio && pl.plazoFin ? " · " + u.fechaCL(pl.plazoInicio) + " → " + u.fechaCL(pl.plazoFin) : ""}</div>` : ""; })()}
       <div class="btn-row" style="margin-top:.6rem;flex-wrap:wrap">
         <button class="btn btn--primary btn--sm" data-plopen="${pl.id}">Abrir</button>
         <button class="btn btn--ghost btn--sm" data-pldoc="${pl.id}" title="Documento Plan de Mejora vinculado">📄 Documento</button>
