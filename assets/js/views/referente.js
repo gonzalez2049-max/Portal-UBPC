@@ -18,7 +18,6 @@
       { key: "capacitacion", label: "Capacitación por turno", ico: "🎓" },
       { key: "evidencia", label: "Evidencia y recomendación", ico: "🔬" },
       { key: "planesSeg", label: "Seguimiento de Planes RNAO", ico: "🧭" },
-      { key: "herramientas", label: "Caja de Herramientas", ico: "🧰" },
       { key: "apoyo", label: "Solicitud de apoyo", ico: "🆘" },
       { key: "reunion", label: "Reunión de seguimiento", ico: "📅" },
       { key: "monitoreo", label: "Monitoreo e implementación", ico: "📈" }
@@ -210,8 +209,30 @@
         <ul class="func-list">${lis}</ul>
       </div>`;
     }).join("");
-    return `<div class="page-head"><h1>Funciones del rol</h1><p>Funciones del Referente Técnico de Buenas Prácticas Clínicas, agrupadas por ámbito de trabajo.</p></div>
-      <div class="func-grid">${cards}</div>`;
+    const T = U.guiaToolkit;
+    const toolkit = T ? `
+      <div class="section tk-box" style="margin-top:1.6rem">
+        <div class="tk-box__eyebrow">Caja de herramientas del Referente Técnico</div>
+        <h2 class="tk-box__title">Cómo implementar, movilizar y sostener el Programa RNAO / BPSO</h2>
+        <p class="tk-box__sub">Ruta práctica del programa RNAO traducida al contexto operativo de un hospital público. Toca cada guía para ver un ejemplo.</p>
+        ${T.tkGrid(T.RNAO_TOOLKIT, "rnao")}
+      </div>
+      <div class="section tk-box tk-box--nt">
+        <div class="tk-box__eyebrow">Caja de herramientas del Referente Técnico</div>
+        <h2 class="tk-box__title">Cómo implementar y monitorear la Norma Técnica 234</h2>
+        <p class="tk-box__sub">Ruta práctica para la prevención de lesiones por presión y el cumplimiento de la NT 234. Toca cada guía para ver un ejemplo.</p>
+        ${T.tkGrid(T.NT_TOOLKIT, "nt")}
+      </div>` : "";
+    return `<div class="page-head"><h1>Funciones del rol</h1><p>Funciones del Referente Técnico de Buenas Prácticas Clínicas, agrupadas por ámbito de trabajo. Más abajo, la caja de herramientas para llevarlas a la práctica.</p></div>
+      <div class="func-grid">${cards}</div>
+      ${toolkit}`;
+  }
+  function funcionesBind() {
+    const T = U.guiaToolkit; if (!T) return;
+    document.querySelectorAll("[data-tkset]").forEach(b => b.onclick = () => {
+      const data = b.dataset.tkset === "nt" ? T.NT_TOOLKIT : T.RNAO_TOOLKIT;
+      T.openToolkit(data[+b.dataset.tki]);
+    });
   }
 
   /* ---------- Configuración (perfil propio) ---------- */
@@ -285,6 +306,6 @@
       solicitudesRecibidas,
       config
     },
-    binders: { inicio: inicioBind, config: configBind, solicitudesRecibidas: solicitudesRecibidasBind }
+    binders: { inicio: inicioBind, config: configBind, solicitudesRecibidas: solicitudesRecibidasBind, funciones: funcionesBind }
   };
 })();

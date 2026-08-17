@@ -189,33 +189,6 @@
     });
   }
 
-  /* ---------- Caja de Herramientas (RNAO/BPSO + NT 234), reutilizada del Coordinador ---------- */
-  function herramientas() {
-    const T = U.guiaToolkit;
-    if (!T) return `<div class="page-head"><h1>Caja de Herramientas</h1></div>${ui().empty("Herramientas no disponibles.", "", "🧰")}`;
-    return `<div class="page-head"><h1>Caja de Herramientas</h1>
-      <p>Ruta práctica del Programa RNAO/BPSO y de la Norma Técnica 234 para implementar, movilizar y sostener las buenas prácticas.</p></div>
-      <div class="section tk-box">
-        <div class="tk-box__eyebrow">Caja de herramientas del Referente Técnico</div>
-        <h2 class="tk-box__title">Cómo implementar, movilizar y sostener el Programa RNAO / BPSO</h2>
-        <p class="tk-box__sub">Ruta práctica del programa RNAO traducida al contexto operativo de un hospital público. Toca cada guía para ver un ejemplo.</p>
-        ${T.tkGrid(T.RNAO_TOOLKIT, "rnao")}
-      </div>
-      <div class="section tk-box tk-box--nt">
-        <div class="tk-box__eyebrow">Caja de herramientas del Referente Técnico</div>
-        <h2 class="tk-box__title">Cómo implementar y monitorear la Norma Técnica 234</h2>
-        <p class="tk-box__sub">Ruta práctica para la prevención de lesiones por presión y el cumplimiento de la NT 234. Toca cada guía para ver un ejemplo.</p>
-        ${T.tkGrid(T.NT_TOOLKIT, "nt")}
-      </div>`;
-  }
-  function herramientasBind() {
-    const T = U.guiaToolkit; if (!T) return;
-    document.querySelectorAll("[data-tkset]").forEach(b => b.onclick = () => {
-      const data = b.dataset.tkset === "nt" ? T.NT_TOOLKIT : T.RNAO_TOOLKIT;
-      T.openToolkit(data[+b.dataset.tki]);
-    });
-  }
-
   /* ---------- Solicitud de apoyo (Referente → Coordinador) ---------- */
   function apoyo() {
     return `<div class="page-head"><h1>Solicitud de apoyo técnico</h1>
@@ -322,9 +295,9 @@
       </div>`;
   }
 
-  Object.assign(U.ref.views, { biblioteca, capacitacion, evidencia, apoyo, reunion, monitoreo, gestion, seguimiento, planesSeg, herramientas });
+  Object.assign(U.ref.views, { biblioteca, capacitacion, evidencia, apoyo, reunion, monitoreo, gestion, seguimiento, planesSeg });
   Object.assign(U.ref.binders, {
     biblioteca: bibliotecaBind, capacitacion: capacitacionBind, evidencia: evidenciaBind,
-    apoyo: apoyoBind, reunion: reunionBind, monitoreo: monitoreoBind, planesSeg: planesSegBind, herramientas: herramientasBind
+    apoyo: apoyoBind, reunion: reunionBind, monitoreo: monitoreoBind, planesSeg: planesSegBind
   });
 })();
