@@ -142,7 +142,7 @@
           : `<p class="kpi__sub" style="margin:.3rem 0">Sin seguimientos registrados aún.</p>`;
         return `<div class="card" style="border-left:4px solid ${color};margin-bottom:1rem">
           <div class="flex" style="justify-content:space-between;align-items:flex-start">
-            <div><span class="tag">${u.esc(p.guia || "Guía")}</span> <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(p.unidad || "—")}</span>
+            <div><span class="tag">${u.esc(p.guia || "Guía")}</span> ${(() => { const c = (U.data.unidadColor ? U.data.unidadColor(p.unidad) : "#8a97a8"); return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}55">${u.esc(p.unidad || "—")}</span>`; })()}
               <h4 class="doc-card__title" style="margin:.4rem 0 .1rem">${u.esc(p.indicador || p.objetivo || "Plan de intervención")}</h4></div>
             <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span>
           </div>

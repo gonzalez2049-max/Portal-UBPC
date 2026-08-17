@@ -152,6 +152,17 @@
     return GUIA_PALETTE[h % GUIA_PALETTE.length];
   }
 
+  // Color por UNIDAD (consistente) para reconocer planes/registros por unidad.
+  const UNIDAD_PALETTE = ["#1554b8", "#0f8f83", "#7a5cd0", "#e0912f", "#e0526f", "#37a04a", "#0d6ea8", "#b8355a", "#c86a1f", "#2f9d57", "#8a44c9", "#0d8175"];
+  function unidadColor(nombre) {
+    const n = (nombre || "").trim();
+    if (!n) return "#8a97a8";
+    const idx = CAT.unidades.indexOf(n);               // color por posición → distinto entre unidades conocidas
+    if (idx >= 0) return UNIDAD_PALETTE[idx % UNIDAD_PALETTE.length];
+    let h = 0; for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0;
+    return UNIDAD_PALETTE[h % UNIDAD_PALETTE.length];
+  }
+
   window.UBPC = window.UBPC || {};
-  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, INDICADOR_TIPO, TIPO_DONABEDIAN, indicadorTipo };
+  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, INDICADOR_TIPO, TIPO_DONABEDIAN, indicadorTipo };
 })();

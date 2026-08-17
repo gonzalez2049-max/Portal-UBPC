@@ -539,13 +539,18 @@
     };
   }
 
+  // Etiqueta de unidad con color propio (para reconocer planes por unidad)
+  function uniTag(unidad) {
+    const u = ui(); const c = (U.data.unidadColor ? U.data.unidadColor(unidad) : "#8a97a8");
+    return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}55">${u.esc(unidad || "—")}</span>`;
+  }
   function planCard(pl) {
     const u = ui();
     const cerrado = pl.estadoCierre === "Cerrado";
     const av = pinNum(pl.avance);
     const color = cerrado ? "var(--verde)" : (av != null && av >= 70 ? "var(--verde)" : av != null && av >= 40 ? "var(--naranjo)" : "var(--danger)");
     return `<div class="card" style="border-top:4px solid ${color}">
-      <div class="card__head"><div><span class="tag">${u.esc(pl.guia || "Guía")}</span> <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(pl.unidad || "—")}</span></div>
+      <div class="card__head"><div><span class="tag">${u.esc(pl.guia || "Guía")}</span> ${uniTag(pl.unidad)}</div>
         <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span></div>
       <h4 class="doc-card__title" style="margin:.4rem 0 .2rem">${u.esc(pl.indicador || pl.objetivo || "Plan de intervención")}</h4>
       <div class="kpi__sub">Línea base ${pinPct(pl.lineaBase)} · Meta ${pinPct(pl.meta)}${pl.brecha ? " · Brecha: " + u.esc(pl.brecha) + (pl.brechaPct !== "" && pl.brechaPct != null ? " (" + pinPct(pl.brechaPct) + ")" : "") : ""}</div>
