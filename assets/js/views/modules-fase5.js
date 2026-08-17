@@ -463,38 +463,38 @@
   // Estilos del informe NT 234 (compartidos por pantalla e impresión)
   const NT_INF_CSS = `
     .nt-inf{ text-align:center; max-width:720px; margin:0 auto; }
-    .nt-inf__franja{ height:7px;border-radius:4px;margin-bottom:14px;
+    .nt-inf__franja{ height:6px;border-radius:4px;margin-bottom:9px;
       background:linear-gradient(90deg,#1554b8,#1e9fe0,#0fb5ad,#37a04a,#f2c53d,#f07f2e,#7d4bcf,#e0538a); }
-    .nt-inf__logo{ width:58px;height:58px;object-fit:contain;margin-bottom:6px; }
-    .nt-inf__ttl{ font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:1.35rem;color:#0d5044;line-height:1.15; }
-    .nt-inf__sub{ color:#5a6b84;font-size:.82rem;margin-top:2px; }
-    .nt-inf__meta{ color:#40536f;font-size:.82rem;margin-top:8px; }
-    .nt-inf__kpis{ display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px auto 6px;max-width:640px; }
-    .nt-inf__kpi{ border:1px solid #e2e9f0;border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px; }
+    .nt-inf__logo{ width:46px;height:46px;object-fit:contain;margin-bottom:3px; }
+    .nt-inf__ttl{ font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:1.2rem;color:#0d5044;line-height:1.12; }
+    .nt-inf__sub{ color:#5a6b84;font-size:.78rem;margin-top:1px; }
+    .nt-inf__meta{ color:#40536f;font-size:.78rem;margin-top:4px; }
+    .nt-inf__kpis{ display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:9px auto 4px;max-width:640px; }
+    .nt-inf__kpi{ border:1px solid #e2e9f0;border-radius:10px;padding:6px 6px;display:flex;flex-direction:column;align-items:center;gap:1px; }
     .nt-inf__kpi.is-ok{ background:#e4f6ec;border-color:#bfe6cd } .nt-inf__kpi.is-warn{ background:#fbf1de;border-color:#f0dcb4 } .nt-inf__kpi.is-danger{ background:#fbe6ea;border-color:#f2c9d1 }
-    .nt-inf__k-lab{ font-size:.72rem;font-weight:700;color:#40536f;text-transform:uppercase;letter-spacing:.03em }
-    .nt-inf__k-val{ font-family:'Fraunces',Georgia,serif;font-weight:800;font-size:1.55rem;color:#17263d;line-height:1 }
-    .nt-inf__k-sub{ font-size:.72rem;color:#5a6b84 }
-    .nt-inf__varline{ margin:6px auto 14px;font-size:.9rem;color:#40536f }
+    .nt-inf__k-lab{ font-size:.68rem;font-weight:700;color:#40536f;text-transform:uppercase;letter-spacing:.03em;line-height:1.1 }
+    .nt-inf__k-val{ font-family:'Fraunces',Georgia,serif;font-weight:800;font-size:1.3rem;color:#17263d;line-height:1 }
+    .nt-inf__k-sub{ font-size:.66rem;color:#5a6b84;line-height:1.1 }
+    .nt-inf__varline{ margin:3px auto 7px;font-size:.84rem;color:#40536f }
     .nt-inf__var{ font-weight:800 } .nt-inf__var--up{ color:#1f9d57 } .nt-inf__var--down{ color:#c62f3b } .nt-inf__var--eq{ color:#8a94a6 }
-    .nt-inf__tbl{ border-collapse:collapse;width:100%;max-width:640px;margin:6px auto;font-size:.86rem }
-    .nt-inf__tbl th{ background:#0f8f83;color:#fff;padding:7px 9px;border:1px solid #cdd8e2;text-align:center }
-    .nt-inf__tbl td{ padding:6px 9px;border:1px solid #e2e9f0;text-align:center }
+    .nt-inf__tbl{ border-collapse:collapse;width:100%;max-width:640px;margin:4px auto;font-size:.8rem }
+    .nt-inf__tbl th{ background:#0f8f83;color:#fff;padding:4px 8px;border:1px solid #cdd8e2;text-align:center }
+    .nt-inf__tbl td{ padding:3px 8px;border:1px solid #e2e9f0;text-align:center }
     .nt-inf__tbl .l{ text-align:left }
-    .nt-inf__kpis--3{ grid-template-columns:repeat(3,1fr);max-width:520px }
-    .nt-inf__epi-h{ max-width:640px;margin:22px auto 2px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px }
-    .nt-inf__epi-h::before,.nt-inf__epi-h::after{ content:"";flex:1;max-width:120px;height:1px;background:linear-gradient(90deg,transparent,#bfe0d9) }
+    .nt-inf__kpis--3{ grid-template-columns:repeat(3,1fr);max-width:500px }
+    .nt-inf__epi-h{ max-width:640px;margin:11px auto 2px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px }
+    .nt-inf__epi-h::before,.nt-inf__epi-h::after{ content:"";flex:1;max-width:110px;height:1px;background:linear-gradient(90deg,transparent,#bfe0d9) }
     .nt-inf__epi-h::after{ background:linear-gradient(90deg,#bfe0d9,transparent) }
-    .nt-inf__epi-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0d6b62;font-size:1.12rem;white-space:nowrap }
-    .nt-inf__epi-per{ font-size:.82rem;font-weight:700;color:#0f8f83;background:#e6f4f1;border-radius:999px;padding:2px 10px;white-space:nowrap }
-    .nt-inf__obs{ max-width:640px;margin:18px auto 0;text-align:left }
-    .nt-inf__obs-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0f8f83;font-size:1rem;margin-bottom:4px }
-    .nt-inf__obs-box{ border:1px solid #dbe6f2;border-radius:8px;min-height:70px;padding:10px 12px;color:#22303a;font-size:.88rem;line-height:1.5 }
-    .nt-inf__firmas{ display:flex;justify-content:center;gap:60px;margin-top:46px;flex-wrap:wrap }
-    .nt-inf__firma{ text-align:center;min-width:240px }
-    .nt-inf__line{ width:230px;border-top:1px solid #17263d;margin:26px auto 6px }
+    .nt-inf__epi-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0d6b62;font-size:1.02rem;white-space:nowrap }
+    .nt-inf__epi-per{ font-size:.78rem;font-weight:700;color:#0f8f83;background:#e6f4f1;border-radius:999px;padding:1px 9px;white-space:nowrap }
+    .nt-inf__obs{ max-width:640px;margin:10px auto 0;text-align:left }
+    .nt-inf__obs-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0f8f83;font-size:.94rem;margin-bottom:3px }
+    .nt-inf__obs-box{ border:1px solid #dbe6f2;border-radius:8px;min-height:42px;padding:6px 10px;color:#22303a;font-size:.84rem;line-height:1.4 }
+    .nt-inf__firmas{ display:flex;justify-content:center;gap:60px;margin-top:22px;flex-wrap:wrap }
+    .nt-inf__firma{ text-align:center;min-width:230px }
+    .nt-inf__line{ width:220px;border-top:1px solid #17263d;margin:14px auto 5px }
     .nt-inf__name{ font-weight:700;color:#17263d }
-    .nt-inf__role{ color:#5a6b84;font-size:.8rem;margin-top:2px }`;
+    .nt-inf__role{ color:#5a6b84;font-size:.78rem;margin-top:1px }`;
 
   // Variación del cumplimiento global respecto al mes anterior
   function variacionNT() {
