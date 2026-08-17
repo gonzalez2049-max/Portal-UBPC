@@ -9,6 +9,7 @@
   /* ===================== MÓDULO 6 — NORMA TÉCNICA 234 ===================== */
   const M6_TABS = [
     { key: "seguimiento", label: "Seguimiento NT 234" },
+    { key: "epi", label: "Epidemiología LPP" },
     { key: "alertas", label: "Mapa de Alertas NT 234" },
     { key: "planes", label: "Plan de Mejora" },
     { key: "informe", label: "Informe A4" }
@@ -60,7 +61,141 @@
   function m6Bind(main, params) {
     const tab = (params && params.tab) || "seguimiento";
     const box = document.getElementById("m6-body");
-    ({ seguimiento: seguimiento234, alertas: alertas234, planes: planes234, informe: informe234 }[tab] || seguimiento234)(box);
+    ({ seguimiento: seguimiento234, epi: epidemiologia234, alertas: alertas234, planes: planes234, informe: informe234 }[tab] || seguimiento234)(box);
+  }
+
+  /* ---------- Tab: Epidemiología LPP (incidencia / prevalencia / % libres) ---------- */
+  // Cuenta PACIENTES (no lesiones) y diferencia LPP al ingreso de LPP intrahospitalaria.
+  function epiNum(v) { return (v !== "" && v != null && !isNaN(v)) ? Number(v) : null; }
+  function epiCalc(r) {
+    const evaluados = epiNum(r.evaluados), lppIng = epiNum(r.lppIngreso), lppIntra = epiNum(r.lppIntra);
+    const sinLPP = (evaluados != null && lppIng != null) ? Math.max(0, evaluados - lppIng) : null;      // ingresaron sin LPP
+    const incidencia = (sinLPP != null && sinLPP > 0 && lppIntra != null) ? (lppIntra / sinLPP * 100) : null;
+    const conLPP = (lppIng != null && lppIntra != null) ? (lppIng + lppIntra) : null;                   // al menos una LPP
+    const prevalencia = (evaluados != null && evaluados > 0 && conLPP != null) ? (conLPP / evaluados * 100) : null;
+    const libres = incidencia != null ? (100 - incidencia) : null;
+    return { evaluados, lppIng, lppIntra, sinLPP, incidencia, conLPP, prevalencia, libres };
+  }
+  const pct1 = v => v == null ? "—" : (Math.round(v * 10) / 10) + "%";
+
+  function epidemiologia234(box) {
+    const u = ui();
+    let filtro = "Todas";
+    const render = () => {
+      const recs = S().all("epiLPP");
+      const periodos = [...new Set(recs.map(r => r.periodo).filter(Boolean))].sort();
+      const unidades = [...new Set(recs.map(r => r.unidad).filter(Boolean))];
+      const inFilter = r => filtro === "Todas" || r.unidad === filtro;
+
+      // Serie de tendencia (a partir de conteos sumados del período → indicador correcto)
+      const serieInc = [], seriePrev = [];
+      periodos.forEach(pr => {
+        const l = recs.filter(r => r.periodo === pr && inFilter(r));
+        const t = l.reduce((a, r) => { const c = epiCalc(r); a.ev += c.evaluados || 0; a.sin += c.sinLPP || 0; a.intra += c.lppIntra || 0; a.con += c.conLPP || 0; return a; }, { ev: 0, sin: 0, intra: 0, con: 0 });
+        serieInc.push(t.sin > 0 ? Math.round(t.intra / t.sin * 1000) / 10 : 0);
+        seriePrev.push(t.ev > 0 ? Math.round(t.con / t.ev * 1000) / 10 : 0);
+      });
+      const labels = periodos.map(periodoNTshort);
+      const trend = periodos.length
+        ? U.charts.lineChart({ labels, series: [
+            { name: "Incidencia intrahospitalaria", color: "var(--danger)", values: serieInc },
+            { name: "Prevalencia", color: "#7a5cd0", values: seriePrev }
+          ] })
+        : `<p class="muted">Registra datos para ver la tendencia.</p>`;
+
+      // Acumulado (institucional o de la unidad filtrada) con todos los períodos
+      const acc = recs.filter(inFilter).reduce((a, r) => { const c = epiCalc(r); a.ev += c.evaluados || 0; a.ing += c.lppIng || 0; a.sin += c.sinLPP || 0; a.intra += c.lppIntra || 0; a.con += c.conLPP || 0; return a; }, { ev: 0, ing: 0, sin: 0, intra: 0, con: 0 });
+      const accInc = acc.sin > 0 ? acc.intra / acc.sin * 100 : null;
+      const accPrev = acc.ev > 0 ? acc.con / acc.ev * 100 : null;
+      const accLibres = accInc != null ? 100 - accInc : null;
+
+      // Historial por período y unidad
+      let rows = "";
+      periodos.slice().reverse().forEach(pr => {
+        const l = recs.filter(r => r.periodo === pr && inFilter(r));
+        if (!l.length) return;
+        rows += `<tr class="nt-h-group"><td colspan="9"><span class="nt-h-plabel">Periodo evaluado</span> ${u.esc(periodoNT(pr))}</td></tr>`;
+        l.forEach(r => {
+          const c = epiCalc(r);
+          const eInc = estadoNT(c.incidencia == null ? null : 100 - c.incidencia); // menos incidencia = mejor
+          rows += `<tr>
+            <td><strong>${u.esc(r.unidad || "—")}</strong></td>
+            <td class="num">${c.evaluados != null ? c.evaluados : "—"}</td>
+            <td class="num">${c.lppIng != null ? c.lppIng : "—"}</td>
+            <td class="num">${c.sinLPP != null ? c.sinLPP : "—"}</td>
+            <td class="num">${c.lppIntra != null ? c.lppIntra : "—"}</td>
+            <td class="num"><span class="badge badge--${eInc.badge}">${pct1(c.incidencia)}</span></td>
+            <td class="num">${pct1(c.prevalencia)}</td>
+            <td class="num">${pct1(c.libres)}</td>
+            <td class="nowrap"><button class="btn btn--ghost btn--sm" data-eedit="${r.id}">Editar</button> <button class="btn btn--ghost btn--sm" data-edel="${r.id}">Eliminar</button></td></tr>`;
+        });
+      });
+      const hist = recs.length
+        ? `<div style="overflow-x:auto"><table class="tbl nt-hist"><thead><tr>
+            <th>Unidad</th><th class="num">Evaluados</th><th class="num">LPP ingreso</th><th class="num">Ingresan sin LPP</th>
+            <th class="num">LPP intrahosp.</th><th class="num">Incidencia</th><th class="num">Prevalencia</th><th class="num">% libres</th><th>Acciones</th></tr></thead>
+            <tbody>${rows}</tbody></table></div>`
+        : u.empty("Sin datos epidemiológicos.", "Agrega el primer registro de pacientes por unidad y mes.", "🩹");
+
+      box.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--danger)">
+          <p class="card__hint" style="margin:0 0 .5rem">Cuenta <strong>pacientes</strong> (no lesiones). Se diferencia la LPP presente <strong>al ingreso</strong> de la <strong>intrahospitalaria</strong>. Los indicadores se calculan solos.</p>
+          <div class="grid grid--kpi">
+            ${kpiA("Incidencia intrahosp. (acumulada)", pct1(accInc), accInc != null && accInc <= 5 ? "ok" : accInc != null && accInc <= 10 ? "warn" : "danger", "LPP intra / ingresan sin LPP")}
+            ${kpiA("Prevalencia (acumulada)", pct1(accPrev), "info", "con ≥1 LPP / evaluados")}
+            ${kpiA("Pacientes libres de LPP intra", pct1(accLibres), "ok", "100 − incidencia")}
+            ${kpiA("Pacientes evaluados (total)", acc.ev || 0, "info", filtro === "Todas" ? "Institucional" : u.esc(filtro))}
+          </div>
+        </div>
+        <div class="card" style="margin-top:1rem">
+          <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Tendencia mensual</h3>
+            <p class="card__hint" style="margin:0">Incidencia intrahospitalaria y prevalencia por mes</p></div>
+            <select class="select" id="epi-filtro" style="max-width:230px"><option>Todas</option>${unidades.map(x => `<option ${x === filtro ? "selected" : ""}>${u.esc(x)}</option>`).join("")}</select></div>
+          ${trend}
+        </div>
+        <div class="section__head" style="margin-top:1.1rem"><div><h3 class="section__title" style="margin:0">Resultado mensual por unidad</h3><p class="section__hint">Cálculo automático de incidencia, prevalencia y % libres</p></div>
+          <button class="btn btn--primary btn--sm" id="epi-new">+ Agregar registro</button></div>
+        ${hist}`;
+
+      document.getElementById("epi-filtro").onchange = e => { filtro = e.target.value; render(); };
+      document.getElementById("epi-new").onclick = () => formEpi(null, render);
+      box.querySelectorAll("[data-eedit]").forEach(b => b.onclick = () => formEpi(S().get("epiLPP", b.dataset.eedit), render));
+      box.querySelectorAll("[data-edel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este registro epidemiológico?", () => { S().remove("epiLPP", b.dataset.edel); render(); }));
+    };
+    render();
+  }
+
+  function formEpi(rec, done) {
+    const u = ui();
+    const fields = [
+      { name: "periodo", label: "Periodo (mes)", type: "month", required: true, value: rec ? rec.periodo : "" },
+      { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, required: true, placeholder: "Seleccionar…", value: rec ? rec.unidad : "" },
+      { name: "evaluados", label: "Pacientes evaluados (total)", type: "number", value: rec ? rec.evaluados : "" },
+      { name: "lppIngreso", label: "Pacientes con LPP al ingreso", type: "number", value: rec ? rec.lppIngreso : "" },
+      { name: "lppIntra", label: "Pacientes que desarrollaron LPP intrahospitalaria", type: "number", value: rec ? rec.lppIntra : "" },
+      { name: "observaciones", label: "Observaciones", type: "textarea", full: true, value: rec ? rec.observaciones : "" }
+    ];
+    u.modal({
+      title: rec ? "Editar registro epidemiológico LPP" : "Nuevo registro epidemiológico LPP", wide: true,
+      body: `<p class="card__hint" style="margin:0 0 .6rem">Ingresa <strong>número de pacientes</strong>. La incidencia usa como base a quienes ingresaron sin LPP (evaluados − LPP al ingreso); la prevalencia usa a quienes tienen al menos una LPP.</p>`
+        + u.formHTML(fields, {})
+        + `<div class="card" style="margin-top:.5rem;background:var(--surface-2)"><div id="epi-preview" class="kpi__sub" style="font-size:13px">Completa los campos para ver el cálculo.</div></div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
+      onMount(m) {
+        const upd = () => {
+          const d = u.readForm(m); const c = epiCalc(d);
+          const pv = m.querySelector("#epi-preview");
+          if (pv) pv.innerHTML = `Ingresan sin LPP: <strong>${c.sinLPP != null ? c.sinLPP : "—"}</strong> · Incidencia intrahosp.: <strong>${pct1(c.incidencia)}</strong> · Prevalencia: <strong>${pct1(c.prevalencia)}</strong> · Libres: <strong>${pct1(c.libres)}</strong>`;
+        };
+        m.addEventListener("input", upd); upd();
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.periodo || !d.unidad) { u.toast("Completa periodo y unidad", "danger"); return; }
+          if (rec) S().update("epiLPP", rec.id, d); else S().insert("epiLPP", d);
+          u.closeModal(); u.toast("Registro guardado", "ok"); done();
+        };
+      }
+    });
   }
 
   /* ---------- Tab 1: Seguimiento (tendencia + historial editable) ---------- */

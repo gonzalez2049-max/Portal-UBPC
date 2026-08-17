@@ -16,7 +16,7 @@
     "planesNT234", "colaboraciones", "notificaciones", "hitos", "kanban",
     "bibliotecaBitacora", "evidenciaRef", "capacitacionRef", "monitoreoRef",
     "indicadores", "capacidadOperativa", "planesIntervencion", "protocolosEnf", "evidenciaSemana", "actividadReciente", "docsTrabajo", "agendaEventos", "recursosGuia",
-    "participacionChampion", "convocatoriaChampion", "codigosInternos", "config"
+    "participacionChampion", "convocatoriaChampion", "codigosInternos", "epiLPP", "config"
   ];
 
   // Prefijos de códigos automáticos por colección
