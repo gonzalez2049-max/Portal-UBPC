@@ -81,16 +81,17 @@
         <h2>7. Referencias</h2><ul><li>Guía / norma de referencia</li></ul>`
     },
     planCapacitacion: {
-      label: "Plan de Capacitación", ic: "🎓", color: "#37a04a",
-      titulo: "Plan de Capacitación · UBPC",
-      html: `<h2>Fundamentación</h2><p>Necesidad formativa detectada y su relación con la calidad del cuidado.</p>
-        <h2>Objetivos de aprendizaje</h2><ul><li>Objetivo 1</li><li>Objetivo 2</li></ul>
-        <h2>Población objetivo</h2><p>Estamentos y unidades a capacitar.</p>
-        <h2>Contenidos</h2><ol><li>Contenido 1</li><li>Contenido 2</li></ol>
-        <h2>Cronograma</h2>
-        <table><thead><tr><th>Actividad</th><th>Fecha</th><th>Modalidad</th><th>Responsable</th></tr></thead>
-        <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
-        <h2>Evaluación</h2><p>Forma de evaluar el aprendizaje y la cobertura.</p>`
+      label: "Plan de Entrenamiento · Transferencia del Conocimiento", ic: "🎓", color: "#37a04a",
+      titulo: "Plan de Entrenamiento · Transferencia del Conocimiento",
+      html: `<h2>1. Brecha de conocimiento y fundamentación</h2><p>Brecha de conocimiento o práctica detectada (a partir de la guía BPSO) y su relación con la calidad y seguridad del cuidado. Programa RNAO · Knowledge-to-Action.</p>
+        <h2>2. Guía BPSO y objetivos de transferencia</h2><p><strong>Guía BPSO:</strong> — · <strong>Unidad(es):</strong> —</p>
+        <ul><li>Objetivo de transferencia 1</li><li>Objetivo de transferencia 2</li></ul>
+        <h2>3. Población objetivo</h2><p>Estamentos, turnos y unidades a entrenar.</p>
+        <h2>4. Contenidos, competencias y metodología</h2><ol><li>Contenido / competencia 1 — metodología (cápsula, taller, simulación, etc.)</li><li>Contenido / competencia 2 — metodología</li></ol>
+        <h2>5. Cronograma y cobertura</h2>
+        <table><thead><tr><th>Actividad</th><th>Fecha</th><th>Modalidad</th><th>Estamento</th><th>Responsable</th></tr></thead>
+        <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+        <h2>6. Evaluación de la transferencia</h2><p>Cómo se verifica que el conocimiento se transfirió a la práctica: evaluación del aprendizaje, cobertura por estamento y auditoría de la conducta clínica en el turno.</p>`
     },
     fichaBP: {
       label: "Ficha de Buena Práctica", ic: "🌟", color: "#e0a12f",
