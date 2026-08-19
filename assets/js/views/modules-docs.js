@@ -96,32 +96,43 @@
     fichaBP: {
       label: "Boletín Clínico · Buena Práctica", ic: "📰", color: "#e0912f", sinPortada: true,
       titulo: "Boletín Clínico · Buenas Prácticas",
-      html: `<div style="background:linear-gradient(120deg,#0d6b62,#12b5a5);color:#fff;border-radius:12px;padding:16px 20px;margin:0 0 14px">
-          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.92;font-weight:700">Boletín Clínico · Unidad de Buenas Prácticas Clínicas</div>
-          <div style="font-family:Georgia,serif;font-size:22px;font-weight:800;margin:2px 0 3px">Título del boletín / buena práctica</div>
-          <div style="font-size:13px;opacity:.92">Edición N° — · Fecha — · Unidad / guía —</div>
+      html: `<div style="background:linear-gradient(125deg,#0d6b62 0%,#12b5a5 55%,#37a04a 100%);color:#fff;border-radius:18px;padding:24px 26px;margin:0 0 16px;box-shadow:0 12px 30px -14px rgba(13,107,98,.55)">
+          <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:800;opacity:.95">📰 Boletín Clínico</div>
+          <div style="font-family:Georgia,serif;font-size:27px;font-weight:800;line-height:1.08;margin:7px 0 10px">Título del boletín / buena práctica</div>
+          <div style="margin:0 0 10px">
+            <span style="display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;margin:0 6px 4px 0">Edición N° —</span>
+            <span style="display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;margin:0 6px 4px 0">📅 Fecha —</span>
+            <span style="display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;margin:0 6px 4px 0">🏥 Unidad / guía —</span>
+          </div>
+          <div style="font-size:12.5px;opacity:.92">Unidad de Buenas Prácticas Clínicas · Hospital de Urgencia Asistencia Pública</div>
         </div>
-        <div style="border-left:4px solid #7a5cd0;background:#f4f0fc;border-radius:10px;padding:10px 14px;margin:12px 0">
-          <div style="font-weight:800;color:#5b34b0;text-transform:uppercase;letter-spacing:.5px;font-size:12px">📌 En esta edición</div>
+        <div style="text-align:center;margin:14px 0;padding:15px 20px;background:linear-gradient(120deg,#f4f0fc,#eef6ff);border-radius:14px;border:1px solid #e2dbf5">
+          <div style="font-family:Georgia,serif;font-style:italic;font-size:16.5px;color:#5b34b0;line-height:1.45">“La evidencia cobra valor cuando transforma la práctica y mejora el cuidado.”</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e7dccb;border-left:6px solid #7a5cd0;border-radius:16px;padding:15px 18px;margin:14px 0;box-shadow:0 8px 20px -14px rgba(91,52,176,.45)">
+          <div style="margin-bottom:7px"><span style="display:inline-block;width:36px;height:36px;border-radius:11px;background:#efe9fb;text-align:center;line-height:36px;font-size:18px;vertical-align:middle">📌</span> <span style="font-weight:800;color:#5b34b0;font-size:15.5px;vertical-align:middle;margin-left:6px">En esta edición</span></div>
           <p>Resumen breve de lo que trata este boletín (2–3 líneas).</p></div>
-        <div style="border-left:4px solid #e0912f;background:#fdf3e3;border-radius:10px;padding:10px 14px;margin:12px 0">
-          <div style="font-weight:800;color:#b56b12;text-transform:uppercase;letter-spacing:.5px;font-size:12px">⭐ Buena práctica destacada</div>
+        <div style="background:#fff;border:1px solid #f0dcb4;border-left:6px solid #e0912f;border-radius:16px;padding:15px 18px;margin:14px 0;box-shadow:0 8px 20px -14px rgba(224,145,47,.45)">
+          <div style="margin-bottom:7px"><span style="display:inline-block;width:36px;height:36px;border-radius:11px;background:#fdeecf;text-align:center;line-height:36px;font-size:18px;vertical-align:middle">⭐</span> <span style="font-weight:800;color:#b56b12;font-size:15.5px;vertical-align:middle;margin-left:6px">Buena práctica destacada</span></div>
           <p>Describe la práctica: qué es, en qué unidad y por quién se aplica.</p></div>
-        <div style="border-left:4px solid #0f8f83;background:#e9f6f3;border-radius:10px;padding:10px 14px;margin:12px 0">
-          <div style="font-weight:800;color:#0d6b62;text-transform:uppercase;letter-spacing:.5px;font-size:12px">🔬 ¿Por qué importa? · Evidencia</div>
+        <div style="background:#fff;border:1px solid #bfe6df;border-left:6px solid #0f8f83;border-radius:16px;padding:15px 18px;margin:14px 0;box-shadow:0 8px 20px -14px rgba(15,143,131,.45)">
+          <div style="margin-bottom:7px"><span style="display:inline-block;width:36px;height:36px;border-radius:11px;background:#e2f3ef;text-align:center;line-height:36px;font-size:18px;vertical-align:middle">🔬</span> <span style="font-weight:800;color:#0d6b62;font-size:15.5px;vertical-align:middle;margin-left:6px">¿Por qué importa? · Evidencia</span></div>
           <p>Evidencia o justificación clínica que respalda la práctica.</p></div>
-        <div style="border-left:4px solid #1e9fe0;background:#e8f4fc;border-radius:10px;padding:10px 14px;margin:12px 0">
-          <div style="font-weight:800;color:#1370a8;text-transform:uppercase;letter-spacing:.5px;font-size:12px">✅ Cómo aplicarla</div>
+        <div style="background:#fff;border:1px solid #bfe0f2;border-left:6px solid #1e9fe0;border-radius:16px;padding:15px 18px;margin:14px 0;box-shadow:0 8px 20px -14px rgba(30,159,224,.45)">
+          <div style="margin-bottom:7px"><span style="display:inline-block;width:36px;height:36px;border-radius:11px;background:#e3f1fb;text-align:center;line-height:36px;font-size:18px;vertical-align:middle">✅</span> <span style="font-weight:800;color:#1370a8;font-size:15.5px;vertical-align:middle;margin-left:6px">Cómo aplicarla</span></div>
           <ol><li>Paso 1</li><li>Paso 2</li><li>Paso 3</li></ol></div>
-        <div style="border-left:4px solid #37a04a;background:#eaf6ec;border-radius:10px;padding:10px 14px;margin:12px 0">
-          <div style="font-weight:800;color:#2b7d3a;text-transform:uppercase;letter-spacing:.5px;font-size:12px">📊 Resultados / impacto</div>
+        <div style="background:#fff;border:1px solid #c3e6cb;border-left:6px solid #37a04a;border-radius:16px;padding:15px 18px;margin:14px 0;box-shadow:0 8px 20px -14px rgba(55,160,74,.45)">
+          <div style="margin-bottom:7px"><span style="display:inline-block;width:36px;height:36px;border-radius:11px;background:#e6f4e9;text-align:center;line-height:36px;font-size:18px;vertical-align:middle">📊</span> <span style="font-weight:800;color:#2b7d3a;font-size:15.5px;vertical-align:middle;margin-left:6px">Resultados / impacto</span></div>
           <p>Datos, indicadores o resultados obtenidos con la práctica.</p></div>
-        <div style="background:#fff8e6;border:1px dashed #e0b23a;border-radius:10px;padding:12px 14px;margin:12px 0">
-          <div style="font-weight:800;color:#a9791a;font-size:13px">💡 Recomendaciones clave</div>
+        <div style="background:linear-gradient(120deg,#fff8e6,#fff3d6);border:1px dashed #e0b23a;border-radius:16px;padding:16px 18px;margin:14px 0">
+          <div style="margin-bottom:6px"><span style="font-size:18px;vertical-align:middle">💡</span> <span style="font-weight:800;color:#a9791a;font-size:15.5px;vertical-align:middle;margin-left:6px">Recomendaciones clave</span></div>
           <ul><li>Recomendación 1</li><li>Recomendación 2</li></ul></div>
-        <div style="border-left:4px solid #5f7d76;background:#f1f4f3;border-radius:10px;padding:10px 14px;margin:12px 0">
-          <div style="font-weight:800;color:#4a615b;text-transform:uppercase;letter-spacing:.5px;font-size:12px">📚 Referencias y contacto</div>
-          <p>Fuentes, guía BPSO relacionada y a quién contactar en la Unidad.</p></div>`
+        <div style="background:#fff;border:1px solid #d8e0dd;border-left:6px solid #5f7d76;border-radius:16px;padding:15px 18px;margin:14px 0">
+          <div style="margin-bottom:7px"><span style="display:inline-block;width:36px;height:36px;border-radius:11px;background:#eef2f0;text-align:center;line-height:36px;font-size:18px;vertical-align:middle">📚</span> <span style="font-weight:800;color:#4a615b;font-size:15.5px;vertical-align:middle;margin-left:6px">Referencias y contacto</span></div>
+          <p>Fuentes, guía BPSO relacionada y a quién contactar en la Unidad.</p></div>
+        <div style="text-align:center;margin:18px 0 2px;padding:12px;border-top:2px solid #e6eeeb;color:#5a6b84;font-size:12.5px">
+          <strong style="color:#0d6b62">Fortaleciendo el cuidado con evidencia</strong> · Unidad de Buenas Prácticas Clínicas · UBPC
+        </div>`
     },
     planRNAO: {
       label: "Plan RNAO / BPSO", ic: "🧭", color: "#12b5a5",
