@@ -94,15 +94,34 @@
         <h2>6. Evaluación de la transferencia</h2><p>Cómo se verifica que el conocimiento se transfirió a la práctica: evaluación del aprendizaje, cobertura por estamento y auditoría de la conducta clínica en el turno.</p>`
     },
     fichaBP: {
-      label: "Ficha de Buena Práctica", ic: "🌟", color: "#e0a12f",
-      titulo: "Ficha de Buena Práctica · UBPC",
-      html: `<h2>Nombre de la buena práctica</h2><p>—</p>
-        <h2>Unidad y contexto</h2><p>Unidad, equipo y contexto en que se implementa.</p>
-        <h2>Problema abordado</h2><p>Brecha o necesidad que motivó la práctica.</p>
-        <h2>Intervención implementada</h2><p>Descripción de la práctica realizada.</p>
-        <h2>Resultados obtenidos</h2><ul><li>Resultado 1</li><li>Resultado 2</li></ul>
-        <h2>Evidencia que la respalda</h2><p>Referencia a la evidencia científica o datos locales.</p>
-        <h2>Lecciones aprendidas</h2><p>Aprendizajes y condiciones para replicarla.</p>`
+      label: "Boletín Clínico · Buena Práctica", ic: "📰", color: "#e0912f", sinPortada: true,
+      titulo: "Boletín Clínico · Buenas Prácticas",
+      html: `<div style="background:linear-gradient(120deg,#0d6b62,#12b5a5);color:#fff;border-radius:12px;padding:16px 20px;margin:0 0 14px">
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.92;font-weight:700">Boletín Clínico · Unidad de Buenas Prácticas Clínicas</div>
+          <div style="font-family:Georgia,serif;font-size:22px;font-weight:800;margin:2px 0 3px">Título del boletín / buena práctica</div>
+          <div style="font-size:13px;opacity:.92">Edición N° — · Fecha — · Unidad / guía —</div>
+        </div>
+        <div style="border-left:4px solid #7a5cd0;background:#f4f0fc;border-radius:10px;padding:10px 14px;margin:12px 0">
+          <div style="font-weight:800;color:#5b34b0;text-transform:uppercase;letter-spacing:.5px;font-size:12px">📌 En esta edición</div>
+          <p>Resumen breve de lo que trata este boletín (2–3 líneas).</p></div>
+        <div style="border-left:4px solid #e0912f;background:#fdf3e3;border-radius:10px;padding:10px 14px;margin:12px 0">
+          <div style="font-weight:800;color:#b56b12;text-transform:uppercase;letter-spacing:.5px;font-size:12px">⭐ Buena práctica destacada</div>
+          <p>Describe la práctica: qué es, en qué unidad y por quién se aplica.</p></div>
+        <div style="border-left:4px solid #0f8f83;background:#e9f6f3;border-radius:10px;padding:10px 14px;margin:12px 0">
+          <div style="font-weight:800;color:#0d6b62;text-transform:uppercase;letter-spacing:.5px;font-size:12px">🔬 ¿Por qué importa? · Evidencia</div>
+          <p>Evidencia o justificación clínica que respalda la práctica.</p></div>
+        <div style="border-left:4px solid #1e9fe0;background:#e8f4fc;border-radius:10px;padding:10px 14px;margin:12px 0">
+          <div style="font-weight:800;color:#1370a8;text-transform:uppercase;letter-spacing:.5px;font-size:12px">✅ Cómo aplicarla</div>
+          <ol><li>Paso 1</li><li>Paso 2</li><li>Paso 3</li></ol></div>
+        <div style="border-left:4px solid #37a04a;background:#eaf6ec;border-radius:10px;padding:10px 14px;margin:12px 0">
+          <div style="font-weight:800;color:#2b7d3a;text-transform:uppercase;letter-spacing:.5px;font-size:12px">📊 Resultados / impacto</div>
+          <p>Datos, indicadores o resultados obtenidos con la práctica.</p></div>
+        <div style="background:#fff8e6;border:1px dashed #e0b23a;border-radius:10px;padding:12px 14px;margin:12px 0">
+          <div style="font-weight:800;color:#a9791a;font-size:13px">💡 Recomendaciones clave</div>
+          <ul><li>Recomendación 1</li><li>Recomendación 2</li></ul></div>
+        <div style="border-left:4px solid #5f7d76;background:#f1f4f3;border-radius:10px;padding:10px 14px;margin:12px 0">
+          <div style="font-weight:800;color:#4a615b;text-transform:uppercase;letter-spacing:.5px;font-size:12px">📚 Referencias y contacto</div>
+          <p>Fuentes, guía BPSO relacionada y a quién contactar en la Unidad.</p></div>`
     },
     planRNAO: {
       label: "Plan RNAO / BPSO", ic: "🧭", color: "#12b5a5",
@@ -317,7 +336,8 @@
     let out = "";
     if (hasCover) out += coverInline(titulo, label, me, rec);
     out += membreteInline(me, rec) + anulado;
-    if (!hasCover) out += `<h1 style="font-family:Georgia,serif;color:#0d5044;font-size:21pt;font-weight:700;margin:0 0 6pt">${u.esc(titulo || "Documento")}</h1>`;
+    const sinPortada = rec.plantilla && PLANTILLAS[rec.plantilla] && PLANTILLAS[rec.plantilla].sinPortada;
+    if (!hasCover && !sinPortada) out += `<h1 style="font-family:Georgia,serif;color:#0d5044;font-size:21pt;font-weight:700;margin:0 0 6pt">${u.esc(titulo || "Documento")}</h1>`;
     out += tmp.innerHTML + firma;
     return out;
   }
@@ -565,7 +585,7 @@
     const me = U.auth.current();
     const titulo = rec ? (rec.titulo || p.titulo) : p.titulo;
     // Documento nuevo: incluye portada institucional automáticamente.
-    const contenido = rec ? (rec.contenido || tplContenido(p)) : (coverHTML(p.titulo, p.label) + tplContenido(p));
+    const contenido = rec ? (rec.contenido || tplContenido(p)) : ((p.sinPortada ? "" : coverHTML(p.titulo, p.label)) + tplContenido(p));
 
     const estado = (rec && rec.estado) || "borrador";
     const est = ESTADOS[estado] || ESTADOS.borrador;
