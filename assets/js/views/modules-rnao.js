@@ -357,9 +357,11 @@
   /* ===================== PLAN DE INTERVENCIÓN RNAO/BPSO ===================== */
   const EST_SEG = ["Pendiente", "En curso", "Completado", "Retrasado"];
   const FREC_ACC = ["—", "Diario", "Cada turno", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual", "Según hallazgos"];
+  // Medios de verificación sugeridos (se pueden elegir o escribir uno propio)
+  const VERIF_OPTS = ["Auditoría clínica", "Registro en ficha clínica", "Hoja de enfermería", "Lista de verificación / checklist", "Registro de asistencia", "Supervisión en terreno", "Reporte de indicador", "Planilla de monitoreo", "Acta o documento", "Fotografía / registro visual", "Feedback al equipo"];
   const PIN_COLS = {
     seguimientos: [{ f: "fecha", label: "Fecha", type: "date" }, { f: "descripcion", label: "Descripción / avance" }, { f: "avance", label: "% avance", type: "number" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }],
-    acciones: [{ f: "accion", label: "Acción / actividad de mejora" }, { f: "responsable", label: "Responsable" }, { f: "regularidad", label: "Regularidad", type: "select", options: FREC_ACC }, { f: "plazo", label: "Plazo", type: "date" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }, { f: "verificador", label: "Verificador" }]
+    acciones: [{ f: "accion", label: "Acción / actividad de mejora" }, { f: "responsable", label: "Responsable" }, { f: "regularidad", label: "Regularidad", type: "select", options: FREC_ACC }, { f: "plazo", label: "Plazo", type: "date" }, { f: "estado", label: "Estado", type: "select", options: EST_SEG }, { f: "verificador", label: "Verificador", type: "datalist", options: VERIF_OPTS }]
   };
   const PIN_ADD = { seguimientos: "Agregar seguimiento", acciones: "Agregar acción / actividad" };
   const pinNum = v => (v === "" || v == null || isNaN(v)) ? null : Number(v);
@@ -382,6 +384,7 @@
       const v = values[c.f] == null ? "" : values[c.f];
       let ctrl;
       if (c.type === "select") ctrl = `<select class="input input--sm" data-f="${c.f}">${c.options.map(o => `<option ${String(o) === String(v) ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select>`;
+      else if (c.type === "datalist") { const dlId = "dl-" + rep + "-" + c.f; ctrl = `<input class="input input--sm" data-f="${c.f}" list="${dlId}" value="${u.esc(v)}" placeholder="Elige o escribe…"><datalist id="${dlId}">${(c.options || []).map(o => `<option value="${u.esc(o)}"></option>`).join("")}</datalist>`; }
       else ctrl = `<input class="input input--sm" data-f="${c.f}" type="${c.type || "text"}" value="${u.esc(v)}">`;
       return `<td>${ctrl}</td>`;
     }).join("")}<td class="pf-rep__x"><button type="button" class="btn-icon" data-reprm title="Quitar fila">🗑️</button></td></tr>`;

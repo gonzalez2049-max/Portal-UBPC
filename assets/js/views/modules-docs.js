@@ -1251,6 +1251,7 @@
   function planMejoraContentFromPlan(plan) {
     const u = ui();
     const e = v => u.esc(v != null && String(v).trim() !== "" ? v : "—");
+    const fdate = v => (v && String(v).trim()) ? u.fechaCL(String(v).slice(0, 10) + "T12:00:00") : "—";
     const pct = v => (v != null && String(v).trim() !== "" && !isNaN(v)) ? v + "%" : "—";
     const par = t => (t && String(t).trim()) ? `<p>${u.esc(t).replace(/\r?\n/g, "<br>")}</p>` : "<p>—</p>";
     const acc = (plan.acciones || []).filter(a => (a.accion || "").trim());
@@ -1272,12 +1273,13 @@
     const brechaTxt = e(plan.brecha) + ((plan.brechaPct !== "" && plan.brechaPct != null && !isNaN(plan.brechaPct)) ? ` <b>(${pct(plan.brechaPct)})</b>` : "");
 
     // ---- Anexo: Plantilla de Plan de Implementación (orientaciones BPSO/MINSAL) ----
-    const respBPSO = [].concat(
-      acc.map(a => a.accion ? u.esc(a.accion) + (a.responsable ? " — <b>" + u.esc(a.responsable) + "</b>" : "") : ""),
-      acts.map(a => a.actividad ? u.esc(a.actividad) + (a.responsable ? " — <b>" + u.esc(a.responsable) + "</b>" : "") : "")
-    ).filter(Boolean).join("<br>") || "—";
+    // Responsables consolidados (sin repetir el detalle de las acciones, que ya va en la sección 4).
+    const respBPSO = respList.length
+      ? (respList.length === 1 ? u.esc(respList[0]) : "<b>" + respList.map(x => u.esc(x)).join("</b><br><b>") + "</b>")
+        + "<br><span style='color:#5a6b84;font-size:8pt'>Detalle de tareas en la sección «Acciones a implementar».</span>"
+      : "—";
     const cronBPSO = (plan.plazoInicio || plan.plazoFin)
-      ? (e(plan.plazoInicio) + " → " + e(plan.plazoFin)) + ((plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? "<br><span style='color:#5a6b84'>Seguimiento: " + e(plan.frecuenciaSeg) + "</span>" : "")
+      ? (fdate(plan.plazoInicio) + " → " + fdate(plan.plazoFin)) + ((plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? "<br><span style='color:#5a6b84'>Seguimiento: " + e(plan.frecuenciaSeg) + "</span>" : "")
       : "—";
     const comBPSO = [plan.comunicacionInvolucrados, plan.comunicacionForma].filter(x => x && String(x).trim()).map(x => u.esc(x)).join("<br>") || "—";
     const bpsoTh = "background:#5b34b0;color:#fff;text-align:left;padding:5pt 6pt;border:1px solid #cdd8e2;font-weight:700;font-size:9pt";
@@ -1311,16 +1313,16 @@
         kv("Brecha a trabajar", brechaTxt)
       ])}
       <h2>2. Recomendación abordada</h2>${par(plan.recomendacion)}
-      <h2>3. Objetivo de mejora</h2>${par(plan.objetivo)}
-      <h2>4. Acciones de mejora</h2>
+      <h2>3. Objetivo del plan</h2>${par(plan.objetivo)}
+      <h2>4. Acciones a implementar</h2>
       ${acc.length
-        ? `<table><thead><tr><th width="5%">N°</th><th>Acción</th><th width="20%">Responsable</th><th width="12%">Regularidad</th><th width="12%">Plazo</th><th width="20%">Verificador</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${(a.regularidad && a.regularidad !== "—") ? e(a.regularidad) : "—"}</td><td>${e(a.plazo)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>`
+        ? `<table><thead><tr><th width="5%">N°</th><th>Acción</th><th width="20%">Responsable</th><th width="12%">Regularidad</th><th width="12%">Plazo</th><th width="20%">Verificador</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${(a.regularidad && a.regularidad !== "—") ? e(a.regularidad) : "—"}</td><td>${fdate(a.plazo)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>`
         : `<p style="color:#5a6b84">Sin acciones registradas aún.</p>`}
       ${acts.length ? `<h2>5. Actividades y responsables</h2><table><thead><tr><th>Actividad</th><th width="26%">Responsable</th><th width="26%">Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
       <h2>${acts.length ? "6" : "5"}. Plazos y seguimiento</h2>
       ${ficha([
-        kv("Plazo de inicio", e(plan.plazoInicio)),
-        kv("Plazo de término", e(plan.plazoFin)),
+        kv("Plazo de inicio", fdate(plan.plazoInicio)),
+        kv("Plazo de término", fdate(plan.plazoFin)),
         kv("Duración estimada", (() => {
           const ini = plan.plazoInicio, fin = plan.plazoFin;
           if (!ini || !fin) return "—";
@@ -1336,7 +1338,7 @@
         kv("Responsables", listCell(respList)),
         kv("Avance global", pct(plan.avance))
       ])}
-      ${segs.length ? `<h2>${acts.length ? "7" : "6"}. Seguimientos registrados</h2><table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${e(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : ""}
+      ${segs.length ? `<h2>${acts.length ? "7" : "6"}. Seguimientos registrados</h2><table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${fdate(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : ""}
       <h2>${(acts.length ? 1 : 0) + (segs.length ? 1 : 0) + 6}. Indicador de éxito y verificación</h2>
       ${ficha([
         kv("Meta de cumplimiento", pct(plan.meta)),
