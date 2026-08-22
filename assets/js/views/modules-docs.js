@@ -1272,38 +1272,31 @@
     const ficha = rows => `<table class="doc-kv" style="border-collapse:collapse;width:100%;margin:7pt 0;font-size:10.5pt"><tbody>${rows.join("")}</tbody></table>`;
     const brechaTxt = e(plan.brecha) + ((plan.brechaPct !== "" && plan.brechaPct != null && !isNaN(plan.brechaPct)) ? ` <b>(${pct(plan.brechaPct)})</b>` : "");
 
-    // ---- Anexo: Plantilla de Plan de Implementación (orientaciones BPSO/MINSAL) ----
-    // Responsables consolidados (sin repetir el detalle de las acciones, que ya va en la sección 4).
-    const respBPSO = respList.length
-      ? (respList.length === 1 ? u.esc(respList[0]) : "<b>" + respList.map(x => u.esc(x)).join("</b><br><b>") + "</b>")
-        + "<br><span style='color:#5a6b84;font-size:8pt'>Detalle de tareas en la sección «Acciones a implementar».</span>"
-      : "—";
-    const cronBPSO = (plan.plazoInicio || plan.plazoFin)
-      ? (fdate(plan.plazoInicio) + " → " + fdate(plan.plazoFin)) + ((plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? "<br><span style='color:#5a6b84'>Seguimiento: " + e(plan.frecuenciaSeg) + "</span>" : "")
-      : "—";
-    const comBPSO = [plan.comunicacionInvolucrados, plan.comunicacionForma].filter(x => x && String(x).trim()).map(x => u.esc(x)).join("<br>") || "—";
-    const bpsoTh = "background:#5b34b0;color:#fff;text-align:left;padding:5pt 6pt;border:1px solid #cdd8e2;font-weight:700;font-size:9pt";
-    const bpsoTd = "padding:5pt 6pt;border:1px solid #e2e9f0;vertical-align:top;font-size:9pt";
-    const anexoBPSO = `<div class="doc-pagebreak" contenteditable="false">Salto de hoja</div>
-      <h2>Anexo · Plan de Implementación (Orientaciones Técnicas BPSO)</h2>
-      <p style="color:#5a6b84;font-size:9.5pt;margin:.2rem 0 .5rem">Estructura conforme a la plantilla de Plan de Implementación de las Orientaciones Técnicas BPSO (MINSAL).</p>
-      <table class="doc-bpso" style="border-collapse:collapse;width:100%;table-layout:fixed"><thead><tr>
-        <th style="${bpsoTh};width:16%">Recomendación<br>(del análisis de brechas)</th>
-        <th style="${bpsoTh};width:22%">Responsabilidades<br>(¿Qué? / ¿Quién?)</th>
-        <th style="${bpsoTh};width:14%">Cronología<br>(¿Para cuándo?)</th>
-        <th style="${bpsoTh};width:14%">Recursos<br>(¿disponibles? / ¿se necesitan?)</th>
-        <th style="${bpsoTh};width:16%">Barreras y facilitadores</th>
-        <th style="${bpsoTh};width:18%">Plan de comunicación<br>(¿quiénes? / ¿cómo? / ¿frecuencia?)</th>
-      </tr></thead><tbody><tr>
-        <td style="${bpsoTd}">${e(plan.recomendacion || plan.indicador || plan.brecha)}</td>
-        <td style="${bpsoTd}">${respBPSO}</td>
-        <td style="${bpsoTd}">${cronBPSO}</td>
-        <td style="${bpsoTd}">${e(plan.recursos)}</td>
-        <td style="${bpsoTd}">${e(plan.barrerasFacilitadores)}</td>
-        <td style="${bpsoTd}">${comBPSO}</td>
-      </tr></tbody></table>`;
+    // Helpers para el cuerpo por fases (ciclo Conocimiento a la Acción · OO.TT BPSO/MINSAL)
+    const multi = t => (t && String(t).trim()) ? u.esc(t).replace(/\r?\n/g, "<br>") : "—";
+    // Plan de comunicación (OO.TT): ¿quiénes? / ¿cómo y con qué frecuencia?
+    const comCell = [
+      (plan.comunicacionInvolucrados && String(plan.comunicacionInvolucrados).trim()) ? "<b>¿Quiénes?</b> " + multi(plan.comunicacionInvolucrados) : "",
+      (plan.comunicacionForma && String(plan.comunicacionForma).trim()) ? "<b>¿Cómo y con qué frecuencia?</b> " + multi(plan.comunicacionForma) : ""
+    ].filter(Boolean).join("<br>") || "—";
+    // Cronología (¿Para cuándo?): duración estimada a partir de las fechas
+    const durTxt = (() => {
+      const ini = plan.plazoInicio, fin = plan.plazoFin;
+      if (!ini || !fin) return "—";
+      const a = new Date(String(ini).slice(0, 10) + "T12:00:00"), b = new Date(String(fin).slice(0, 10) + "T12:00:00");
+      if (isNaN(a) || isNaN(b)) return "—";
+      const days = Math.round((b - a) / 86400000);
+      if (days < 0) return "Revisar fechas";
+      if (days === 0) return "Mismo día";
+      const sem = Math.round(days / 7), mes = Math.floor(days / 30);
+      return days <= 21 ? (days + (days === 1 ? " día" : " días")) : days < 75 ? (sem + " semanas (" + days + " días)") : (mes + " meses aprox. (" + days + " días)");
+    })();
 
-    return `<h2>1. Identificación de la brecha</h2>
+    // Estructura por fases del ciclo Conocimiento a la Acción (KTA) — OO.TT del Programa BPSO (MINSAL).
+    return `<p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .7rem">Plan estructurado según las Orientaciones Técnicas del Programa BPSO (MINSAL), siguiendo el ciclo <b>Conocimiento a la Acción</b> (RNAO).</p>
+
+      <h2>Fase 1 · Identificación de la brecha</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Análisis de la situación local: dónde está la brecha entre la práctica y la recomendación.</p>
       ${ficha([
         kv("Guía BPSO", e(plan.guia)),
         kv("Unidad implementadora", e(plan.unidad)),
@@ -1312,39 +1305,50 @@
         kv("Meta comprometida", pct(plan.meta)),
         kv("Brecha a trabajar", brechaTxt)
       ])}
-      <h2>2. Recomendación abordada</h2>${par(plan.recomendacion)}
-      <h2>3. Objetivo del plan</h2>${par(plan.objetivo)}
-      <h2>4. Acciones a implementar</h2>
-      ${acc.length
-        ? `<table><thead><tr><th width="5%">N°</th><th>Acción</th><th width="20%">Responsable</th><th width="12%">Regularidad</th><th width="12%">Plazo</th><th width="20%">Verificador</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${(a.regularidad && a.regularidad !== "—") ? e(a.regularidad) : "—"}</td><td>${fdate(a.plazo)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>`
-        : `<p style="color:#5a6b84">Sin acciones registradas aún.</p>`}
-      ${acts.length ? `<h2>5. Actividades y responsables</h2><table><thead><tr><th>Actividad</th><th width="26%">Responsable</th><th width="26%">Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
-      <h2>${acts.length ? "6" : "5"}. Plazos y seguimiento</h2>
+
+      <h2>Fase 2 · Recomendación a implementar</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Adaptación de la recomendación de la guía al contexto local y objetivo del plan.</p>
       ${ficha([
-        kv("Plazo de inicio", fdate(plan.plazoInicio)),
-        kv("Plazo de término", fdate(plan.plazoFin)),
-        kv("Duración estimada", (() => {
-          const ini = plan.plazoInicio, fin = plan.plazoFin;
-          if (!ini || !fin) return "—";
-          const a = new Date(String(ini).slice(0, 10) + "T12:00:00"), b = new Date(String(fin).slice(0, 10) + "T12:00:00");
-          if (isNaN(a) || isNaN(b)) return "—";
-          const days = Math.round((b - a) / 86400000);
-          if (days < 0) return "Revisar fechas";
-          if (days === 0) return "Mismo día";
-          const sem = Math.round(days / 7), mes = Math.floor(days / 30);
-          return days <= 21 ? (days + (days === 1 ? " día" : " días")) : days < 75 ? (sem + " semanas (" + days + " días)") : (mes + " meses aprox. (" + days + " días)");
-        })()),
-        kv("Frecuencia de seguimiento", (plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? e(plan.frecuenciaSeg) : "—"),
-        kv("Responsables", listCell(respList)),
-        kv("Avance global", pct(plan.avance))
+        kv("Recomendación abordada", multi(plan.recomendacion)),
+        kv("Objetivo del plan", multi(plan.objetivo))
       ])}
-      ${segs.length ? `<h2>${acts.length ? "7" : "6"}. Seguimientos registrados</h2><table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${fdate(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : ""}
-      <h2>${(acts.length ? 1 : 0) + (segs.length ? 1 : 0) + 6}. Indicador de éxito y verificación</h2>
+
+      <h2>Fase 3 · Barreras y facilitadores</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Condiciones que dificultan o favorecen el uso de la recomendación, y recursos requeridos.</p>
+      ${ficha([
+        kv("Barreras y facilitadores", multi(plan.barrerasFacilitadores)),
+        kv("Recursos (disponibles / necesarios)", multi(plan.recursos))
+      ])}
+
+      <h2>Fase 4 · Plan de Implementación</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .4rem">Selección de intervenciones: ¿Qué? · ¿Quién? · ¿Para cuándo?</p>
+      ${acc.length
+        ? `<table><thead><tr><th width="5%">N°</th><th>Acción <span style="font-weight:400">(¿Qué?)</span></th><th width="18%">Responsable <span style="font-weight:400">(¿Quién?)</span></th><th width="12%">Regularidad</th><th width="13%">Plazo <span style="font-weight:400">(¿Cuándo?)</span></th><th width="18%">Verificador</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${(a.regularidad && a.regularidad !== "—") ? e(a.regularidad) : "—"}</td><td>${fdate(a.plazo)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>`
+        : `<p style="color:#5a6b84">Sin acciones registradas aún.</p>`}
+      ${acts.length ? `<table style="margin-top:6pt"><thead><tr><th>Actividad</th><th width="26%">Responsable</th><th width="26%">Verificador</th></tr></thead><tbody>${acts.map(a => `<tr><td>${e(a.actividad)}</td><td>${e(a.responsable)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>` : ""}
+      ${ficha([
+        kv("Cronología · inicio", fdate(plan.plazoInicio)),
+        kv("Cronología · término", fdate(plan.plazoFin)),
+        kv("Duración estimada", durTxt),
+        kv("Plan de comunicación", comCell)
+      ])}
+
+      <h2>Fase 5 · Monitoreo del uso del conocimiento</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Seguimiento periódico de la adopción de la recomendación.</p>
+      ${ficha([
+        kv("Frecuencia de seguimiento", (plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? e(plan.frecuenciaSeg) : "—"),
+        kv("Avance global", pct(plan.avance)),
+        kv("Responsables", listCell(respList))
+      ])}
+      ${segs.length ? `<table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${fdate(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : `<p style="color:#5a6b84">Sin seguimientos registrados aún.</p>`}
+
+      <h2>Fase 6 · Evaluación de resultados</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Resultado del cierre de la brecha y medios de verificación.</p>
       ${ficha([
         kv("Meta de cumplimiento", pct(plan.meta)),
-        kv("Medios de verificación", (acc.length || acts.length) ? "Según el verificador indicado en cada acción y actividad (secciones anteriores)." : listCell(verifList))
-      ])}
-      ${anexoBPSO}`;
+        kv("Indicador de éxito", e(plan.indicador)),
+        kv("Medios de verificación", (acc.length || acts.length) ? "Según el verificador indicado en cada acción (Fase 4)." : listCell(verifList))
+      ])}`;
   }
 
   // Crea o actualiza el documento vinculado y devuelve su id.

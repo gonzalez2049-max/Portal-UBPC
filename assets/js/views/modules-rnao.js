@@ -418,41 +418,54 @@
   }
   function planFormHTML(data) {
     return `<div class="plan-form">
-      <section class="pf-section">${pinSecH(1, "Guía, recomendación o brecha")}
+      <p class="pf-help" style="margin:.1rem 0 .7rem">Estructura basada en las Orientaciones Técnicas del Programa BPSO (MINSAL) — ciclo <b>Conocimiento a la Acción</b> (RNAO).</p>
+      <section class="pf-section">${pinSecH(1, "Identificación de la brecha")}
+        <p class="pf-help" style="margin:.1rem 0 .6rem">Análisis de la situación local: dónde está la brecha entre la práctica y la recomendación.</p>
         <div class="pf-grid">
           ${pinFld("unidad", "Unidad", "Unidad con baja adherencia, brecha o incumplimiento.", { value: data.unidad, type: "select", options: ["—"].concat(CAT().unidades), req: true })}
           ${pinFld("guia", "Guía BPSO", "Guía de buenas prácticas de referencia.", { value: data.guia, type: "select", options: CAT().guiasArea, req: true })}
           ${pinFld("indicador", "Indicador / recomendación", "Indicador o recomendación que origina la brecha.", { value: data.indicador, full: true })}
-          ${pinFld("recomendacion", "Recomendación abordada", "Recomendación específica de la guía que se trabaja.", { value: data.recomendacion, type: "textarea", full: true })}
           ${pinFld("lineaBase", "Línea base (%)", "Cumplimiento total de la guía (medición inicial).", { value: data.lineaBase, type: "number" })}
           ${pinFld("meta", "Meta (%)", "Meta de cumplimiento comprometida.", { value: data.meta, type: "number" })}
           ${pinFld("brecha", "Brecha a trabajar", "Nombre de la brecha o recomendación con menor cumplimiento.", { value: data.brecha, full: true })}
           ${pinFld("brechaPct", "% de la brecha", "Cumplimiento que tuvo esa brecha.", { value: data.brechaPct, type: "number" })}
         </div></section>
-      <section class="pf-section">${pinSecH(2, "Objetivo de la intervención")}
-        ${pinFld("objetivo", "Objetivo de la intervención", "Qué se busca lograr con el plan.", { value: data.objetivo, type: "textarea", req: true, full: true })}</section>
-      <section class="pf-section">${pinSecH(3, "Plazos, seguimiento y cierre")}
+      <section class="pf-section">${pinSecH(2, "Recomendación a implementar")}
+        <p class="pf-help" style="margin:.1rem 0 .6rem">Adaptación de la recomendación de la guía al contexto local y objetivo del plan.</p>
         <div class="pf-grid">
-          ${pinFld("plazoInicio", "Plazo · inicio", "", { value: data.plazoInicio, type: "date" })}
-          ${pinFld("plazoFin", "Plazo · término", "Fecha comprometida de término.", { value: data.plazoFin, type: "date" })}
+          ${pinFld("recomendacion", "Recomendación abordada", "Recomendación específica de la guía que se adapta al contexto local.", { value: data.recomendacion, type: "textarea", full: true })}
+          ${pinFld("objetivo", "Objetivo del plan", "Qué se busca lograr con el plan.", { value: data.objetivo, type: "textarea", req: true, full: true })}
+        </div></section>
+      <section class="pf-section">${pinSecH(3, "Barreras y facilitadores")}
+        <p class="pf-help" style="margin:.1rem 0 .6rem">Condiciones que dificultan o favorecen el uso de la recomendación, y recursos requeridos.</p>
+        <div class="pf-grid">
+          ${pinFld("barrerasFacilitadores", "Barreras y facilitadores", "Barreras y facilitadores para el uso del conocimiento.", { value: data.barrerasFacilitadores, type: "textarea", full: true })}
+          ${pinFld("recursos", "Recursos (disponibles / necesarios)", "¿Hay recursos disponibles? ¿Se necesitan recursos?", { value: data.recursos, type: "textarea", full: true })}
+        </div></section>
+      <section class="pf-section">${pinSecH(4, "Plan de Implementación")}
+        <p class="pf-help" style="margin:.1rem 0 .6rem">Selección de intervenciones: ¿Qué? · ¿Quién? · ¿Para cuándo?, más la cronología y el plan de comunicación.</p>
+        <div class="pf-rep-lbl">Acciones a implementar <span class="pf-help">Cada tarea concreta para cerrar la brecha, con responsable, regularidad, plazo, estado y verificador.</span></div>
+        ${pinRepTable("acciones", data.acciones)}
+        <div class="pf-grid" style="margin-top:.6rem">
+          ${pinFld("plazoInicio", "Cronología · inicio", "", { value: data.plazoInicio, type: "date" })}
+          ${pinFld("plazoFin", "Cronología · término", "Fecha comprometida de término.", { value: data.plazoFin, type: "date" })}
+        </div>
+        <div class="pf-duracion" id="pf-duracion" style="grid-column:1/-1;margin:.2rem 0 .5rem;padding:.5rem .75rem;border-radius:10px;background:var(--surface-2);font-size:.9rem">${duracionLbl(data.plazoInicio, data.plazoFin)}</div>
+        <div class="pf-grid">
+          ${pinFld("comunicacionInvolucrados", "Plan de comunicación · ¿Quiénes?", "Personas o equipos involucrados en el cambio.", { value: data.comunicacionInvolucrados, type: "textarea", full: true })}
+          ${pinFld("comunicacionForma", "Plan de comunicación · ¿Cómo y con qué frecuencia?", "Cómo se comunica el cambio y con qué frecuencia.", { value: data.comunicacionForma, type: "textarea", full: true })}
+        </div></section>
+      <section class="pf-section">${pinSecH(5, "Monitoreo del uso del conocimiento")}
+        <p class="pf-help" style="margin:.1rem 0 .6rem">Seguimiento periódico de la adopción de la recomendación.</p>
+        <div class="pf-grid">
           ${pinFld("frecuenciaSeg", "Frecuencia de seguimiento", "Cada cuánto se revisa el plan.", { value: data.frecuenciaSeg, type: "select", options: ["—", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"] })}
           ${pinFld("avance", "Avance global (%)", "Estimación del avance total del plan.", { value: data.avance, type: "number" })}
-          ${pinFld("motivoCierre", "Motivo de cierre / reapertura", "Se conserva al cerrar o reabrir el plan.", { value: data.motivoCierre, full: true })}
         </div>
-        <div class="pf-duracion" id="pf-duracion" style="grid-column:1/-1;margin:.2rem 0 .2rem;padding:.5rem .75rem;border-radius:10px;background:var(--surface-2);font-size:.9rem">${duracionLbl(data.plazoInicio, data.plazoFin)}</div>
         <div class="pf-rep-lbl">Seguimientos cronológicos <span class="pf-help">Registra cada revisión con fecha, avance y estado.</span></div>
         ${pinRepTable("seguimientos", data.seguimientos)}</section>
-      <section class="pf-section">${pinSecH(4, "Acciones / actividades de mejora a implementar")}
-        <div class="pf-rep-lbl">Acciones y actividades <span class="pf-help">Cada tarea concreta para cerrar la brecha, con responsable, regularidad, plazo, estado y verificador.</span></div>
-        ${pinRepTable("acciones", data.acciones)}</section>
-      <section class="pf-section">${pinSecH(5, "Plan de Implementación (orientaciones BPSO / MINSAL)")}
-        <p class="pf-help" style="margin:.1rem 0 .6rem">Completa los campos que pide la plantilla de Plan de Implementación de las Orientaciones Técnicas BPSO. Con esto el documento arma la tabla oficial.</p>
-        <div class="pf-grid">
-          ${pinFld("recursos", "Recursos", "¿Hay recursos disponibles? ¿Se necesitan recursos?", { value: data.recursos, type: "textarea", full: true })}
-          ${pinFld("barrerasFacilitadores", "Barreras y facilitadores", "Barreras y facilitadores para el uso del conocimiento.", { value: data.barrerasFacilitadores, type: "textarea", full: true })}
-          ${pinFld("comunicacionInvolucrados", "Plan de comunicación · ¿Quiénes están involucrados?", "Personas o equipos involucrados en el cambio.", { value: data.comunicacionInvolucrados, type: "textarea", full: true })}
-          ${pinFld("comunicacionForma", "Plan de comunicación · ¿Cómo y con qué frecuencia?", "Cómo se enmarcará el cambio y con qué frecuencia se comunica.", { value: data.comunicacionForma, type: "textarea", full: true })}
-        </div></section>
+      <section class="pf-section">${pinSecH(6, "Evaluación de resultados y cierre")}
+        <p class="pf-help" style="margin:.1rem 0 .6rem">Resultado del cierre de la brecha; el motivo se conserva al cerrar o reabrir el plan.</p>
+        ${pinFld("motivoCierre", "Motivo de cierre / reapertura", "Se conserva al cerrar o reabrir el plan.", { value: data.motivoCierre, full: true })}</section>
     </div>`;
   }
 
