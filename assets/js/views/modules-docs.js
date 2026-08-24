@@ -173,14 +173,21 @@
         <h2>5. Seguimiento</h2><p>Cómo y cuándo se evaluará el fortalecimiento.</p>`
     },
     memo: {
-      label: "Memorándum", ic: "✉️", color: "#5f7d76",
-      titulo: "Memorándum · UBPC",
-      html: `<h2>MEMORÁNDUM</h2>
-        <p><strong>Para:</strong> —<br><strong>De:</strong> Coordinación UBPC<br><strong>Fecha:</strong> —<br><strong>Asunto:</strong> —</p>
-        <hr>
-        <p>Cuerpo del mensaje. Redacta aquí el contenido de la comunicación interna.</p>
-        <p>Sin otro particular, saluda atentamente,</p>
-        <p>—<br>Coordinación · Unidad de Buenas Prácticas Clínicas</p>`
+      label: "Manual o Guía de Estudio", ic: "📚", color: "#1554b8",
+      titulo: "Manual o Guía de Estudio · UBPC",
+      html: `<h2>1. Identificación</h2>
+        <p><strong>Título del manual / guía:</strong> — · <strong>Tema / área clínica:</strong> —<br>
+        <strong>Dirigido a:</strong> — · <strong>Autor(es):</strong> — · <strong>Unidad:</strong> UBPC · <strong>Fecha / versión:</strong> —</p>
+        <h2>2. Introducción</h2><p>Presentación del tema, su importancia clínica y para qué sirve esta guía de estudio.</p>
+        <h2>3. Objetivos de aprendizaje</h2><ul><li>Al finalizar, el lector será capaz de… (objetivo 1)</li><li>Objetivo 2</li><li>Objetivo 3</li></ul>
+        <h2>4. Contenidos</h2><ol><li>Unidad 1 — —</li><li>Unidad 2 — —</li><li>Unidad 3 — —</li></ol>
+        <h2>5. Desarrollo de los contenidos</h2>
+        <h3>Unidad 1 — —</h3><p>Desarrollo del contenido, conceptos clave y ejemplos aplicados a la práctica.</p>
+        <h3>Unidad 2 — —</h3><p>Desarrollo del contenido.</p>
+        <h2>6. Puntos clave para recordar</h2><ul><li>Idea clave 1</li><li>Idea clave 2</li></ul>
+        <h2>7. Actividades y autoevaluación</h2><p>Preguntas o ejercicios de repaso para reforzar el aprendizaje.</p>
+        <h2>8. Glosario</h2><p><strong>Término:</strong> definición.</p>
+        <h2>9. Referencias bibliográficas</h2><ul><li>Referencia / guía / norma utilizada.</li></ul>`
     },
     informeBPSO: {
       label: "Informe Anual BPSO", ic: "🏅", color: "#0d6ea8",
