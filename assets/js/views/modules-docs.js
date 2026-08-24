@@ -764,13 +764,46 @@
       }
     });
 
-    // ---- Pegar como texto limpio: evita traer estilos y "cosas copiadas" raras ----
-    bodyEl.addEventListener("paste", e => {
-      const cd = e.clipboardData || window.clipboardData; if (!cd) return;
-      e.preventDefault();
+    // ---- Pegar conservando estructura útil (tablas, listas, negritas) ----
+    // Si el portapapeles trae HTML (Word, Excel, web) se limpia de estilos y
+    // etiquetas basura pero se conservan las tablas y el formato básico. Si solo
+    // hay texto plano, se pega respetando los saltos de línea.
+    const ALLOWED_TAGS = new Set(["P", "BR", "H1", "H2", "H3", "H4", "H5", "H6", "STRONG", "B", "EM", "I", "U", "S", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD", "A", "SPAN", "DIV", "HR", "BLOCKQUOTE", "PRE", "CODE", "SUB", "SUP", "CAPTION", "COLGROUP", "COL"]);
+    const ALLOWED_ATTRS = { A: ["href"], TD: ["colspan", "rowspan"], TH: ["colspan", "rowspan"], COL: ["span"] };
+    function cleanPastedHTML(html) {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      tmp.querySelectorAll("script,style,meta,link,title").forEach(el => el.remove());
+      // Elimina comentarios (Word inserta <!--StartFragment--> y similares)
+      const cw = document.createTreeWalker(tmp, NodeFilter.SHOW_COMMENT, null);
+      const cs = []; while (cw.nextNode()) cs.push(cw.currentNode);
+      cs.forEach(c => c.remove());
+      // Desenvuelve etiquetas no permitidas y limpia atributos de las permitidas
+      [...tmp.querySelectorAll("*")].forEach(el => {
+        const tag = el.tagName;
+        if (!ALLOWED_TAGS.has(tag)) { el.replaceWith(...el.childNodes); return; }
+        const keep = ALLOWED_ATTRS[tag] || [];
+        [...el.attributes].forEach(a => { if (!keep.includes(a.name.toLowerCase())) el.removeAttribute(a.name); });
+        if (tag === "A" && /^\s*javascript:/i.test(el.getAttribute("href") || "")) el.removeAttribute("href");
+      });
+      return tmp.innerHTML;
+    }
+    function pastePlain(cd) {
       const text = cd.getData("text/plain") || "";
       const html = text.split(/\r?\n/).map(l => l.trim() === "" ? "<br>" : u.esc(l)).join("<br>");
       try { document.execCommand("insertHTML", false, html); } catch (err) { try { document.execCommand("insertText", false, text); } catch (e2) {} }
+    }
+    bodyEl.addEventListener("paste", e => {
+      const cd = e.clipboardData || window.clipboardData; if (!cd) return;
+      e.preventDefault();
+      const rawHtml = cd.getData("text/html");
+      if (rawHtml && rawHtml.trim()) {
+        const clean = cleanPastedHTML(rawHtml);
+        if (clean && clean.trim()) { try { document.execCommand("insertHTML", false, clean); } catch (err) { pastePlain(cd); } }
+        else pastePlain(cd);
+      } else {
+        pastePlain(cd);
+      }
       saveSel();
     });
 
