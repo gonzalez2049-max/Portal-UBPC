@@ -644,36 +644,67 @@
       <td><select class="input input--sm" data-f="unidad"><option value="">Seleccionar…</option>${opts.map(o => `<option ${String(o) === String(r.unidad || "") ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select></td>
       <td><input class="input input--sm" data-f="jefatura" value="${u.esc(r.jefatura || "")}" placeholder="Jefatura de la unidad"></td>
       <td><input class="input input--sm" data-f="lider" value="${u.esc(r.lider || "")}" placeholder="Líder de Buenas Prácticas"></td>
+      <td><input class="input input--sm" data-f="colider" value="${u.esc(r.colider || "")}" placeholder="Co-líder de guía"></td>
       <td class="pf-rep__x"><button type="button" class="btn-icon" data-urm title="Quitar unidad">🗑️</button></td></tr>`;
   }
   function guiaUnidadesHTML(rows) {
     rows = (rows && rows.length) ? rows : [{}];
     return `<div class="field" style="grid-column:1/-1">
       <label>Unidades implementadoras</label>
-      <div class="kpi__sub" style="margin-bottom:.35rem">Agrega una o más unidades, cada una con su jefatura y su líder de Buenas Prácticas.</div>
+      <div class="kpi__sub" style="margin-bottom:.35rem">Agrega una o más unidades, cada una con su jefatura, su líder de Buenas Prácticas y su co-líder de guía.</div>
       <div class="pf-rep" id="guia-units"><div class="table-wrap"><table class="tbl pf-rep__t"><thead><tr>
-        <th>Unidad</th><th>Jefatura</th><th>Líder de Buenas Prácticas</th><th></th></tr></thead>
+        <th>Unidad</th><th>Jefatura</th><th>Líder de Buenas Prácticas</th><th>Co-líder de guía</th><th></th></tr></thead>
         <tbody>${rows.map(guiaUnitRow).join("")}</tbody></table></div>
         <button type="button" class="btn btn--ghost btn--sm" id="guia-addunit">+ Agregar unidad</button></div></div>`;
+  }
+  /* ---- Comité implementador: tabla separada (nombre, cargo, unidad, funciones) ---- */
+  function guiaComite(rec) {
+    return (rec && Array.isArray(rec.comite) && rec.comite.length) ? rec.comite : [];
+  }
+  function guiaComiteRow(r) {
+    const u = ui(); r = r || {};
+    const opts = CAT().unidades;
+    return `<tr data-crow>
+      <td><input class="input input--sm" data-cf="nombre" value="${u.esc(r.nombre || "")}" placeholder="Nombre"></td>
+      <td><input class="input input--sm" data-cf="cargo" value="${u.esc(r.cargo || "")}" placeholder="Cargo"></td>
+      <td><select class="input input--sm" data-cf="unidad"><option value="">—</option>${opts.map(o => `<option ${String(o) === String(r.unidad || "") ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select></td>
+      <td><input class="input input--sm" data-cf="funciones" value="${u.esc(r.funciones || "")}" placeholder="Funciones en el comité"></td>
+      <td class="pf-rep__x"><button type="button" class="btn-icon" data-crm title="Quitar integrante">🗑️</button></td></tr>`;
+  }
+  function guiaComiteHTML(rows) {
+    rows = (rows && rows.length) ? rows : [{}];
+    return `<div class="field" style="grid-column:1/-1">
+      <label>Comité implementador</label>
+      <div class="kpi__sub" style="margin-bottom:.35rem">Integrantes del comité: nombre, cargo, unidad y funciones.</div>
+      <div class="pf-rep" id="guia-comite"><div class="table-wrap"><table class="tbl pf-rep__t"><thead><tr>
+        <th>Nombre</th><th>Cargo</th><th>Unidad</th><th>Funciones</th><th></th></tr></thead>
+        <tbody>${rows.map(guiaComiteRow).join("")}</tbody></table></div>
+        <button type="button" class="btn btn--ghost btn--sm" id="guia-addcom">+ Agregar integrante</button></div></div>`;
   }
   function guiaDetalle(rec) {
     const u = ui();
     const arr = guiaUnidades(rec);
     const rows = arr.length
-      ? arr.map(x => `<tr><td>${u.esc(x.unidad || "—")}</td><td>${u.esc(x.jefatura || "—")}</td><td>${u.esc(x.lider || "—")}</td></tr>`).join("")
-      : `<tr><td colspan="3" class="muted">Sin unidades registradas.</td></tr>`;
+      ? arr.map(x => `<tr><td>${u.esc(x.unidad || "—")}</td><td>${u.esc(x.jefatura || "—")}</td><td>${u.esc(x.lider || "—")}</td><td>${u.esc(x.colider || "—")}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="muted">Sin unidades registradas.</td></tr>`;
+    const com = guiaComite(rec);
+    const comRows = com.length
+      ? com.map(x => `<tr><td>${u.esc(x.nombre || "—")}</td><td>${u.esc(x.cargo || "—")}</td><td>${u.esc(x.unidad || "—")}</td><td>${u.esc(x.funciones || "—")}</td></tr>`).join("")
+      : "";
+    const liderTxt = u.esc(rec.liderGuia || "—") + (rec.liderUnidad && rec.liderUnidad !== "—" ? " · " + u.esc(rec.liderUnidad) : "");
     u.modal({
       title: "Guía · " + (rec.nombre || ""), wide: true,
       body: `<div class="dl"><div><span>Área</span><strong>${u.esc(rec.area || "—")}</strong></div>
           <div><span>Estado</span><strong>${u.esc(rec.estado || "—")}</strong></div>
           <div><span>Unidades</span><strong>${arr.length}</strong></div>
-          <div><span>Líder de guía</span><strong>${u.esc(rec.liderGuia || "—")}</strong></div>
-          <div><span>Co-líder de guía</span><strong>${u.esc(rec.coliderGuia || "—")}${rec.coliderUnidad && rec.coliderUnidad !== "—" ? " · " + u.esc(rec.coliderUnidad) : ""}</strong></div>
+          <div><span>Líder de guía</span><strong>${liderTxt}</strong></div>
           <div><span>Resolución asignada</span><strong>${u.esc(rec.resolucion || "—")}</strong></div></div>
-        ${rec.comiteImplementador ? `<h4 style="margin:.7rem 0 .3rem">Comité implementador</h4><p class="narrativo">${u.esc(rec.comiteImplementador).replace(/\r?\n/g, "<br>")}</p>` : ""}
-        ${rec.participantes ? `<h4 style="margin:.7rem 0 .3rem">Participantes</h4><p class="narrativo">${u.esc(rec.participantes).replace(/\r?\n/g, "<br>")}</p>` : ""}
-        <h4 style="margin:.7rem 0 .3rem">Unidades implementadoras</h4>
-        <div class="table-wrap"><table class="tbl"><thead><tr><th>Unidad</th><th>Jefatura</th><th>Líder de Buenas Prácticas</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+        <h4 style="margin:.7rem 0 .3rem">Unidades implementadoras y co-líderes</h4>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Unidad</th><th>Jefatura</th><th>Líder de Buenas Prácticas</th><th>Co-líder de guía</th></tr></thead><tbody>${rows}</tbody></table></div>
+        ${comRows ? `<h4 style="margin:.7rem 0 .3rem">Comité implementador</h4>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Cargo</th><th>Unidad</th><th>Funciones</th></tr></thead><tbody>${comRows}</tbody></table></div>`
+        : (rec.comiteImplementador ? `<h4 style="margin:.7rem 0 .3rem">Comité implementador</h4><p class="narrativo">${u.esc(rec.comiteImplementador).replace(/\r?\n/g, "<br>")}</p>` : "")}
+        ${rec.participantes ? `<h4 style="margin:.7rem 0 .3rem">Participantes</h4><p class="narrativo">${u.esc(rec.participantes).replace(/\r?\n/g, "<br>")}</p>` : ""}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
     });
   }
@@ -687,12 +718,12 @@
         { key: "nombre", label: "Guía" },
         { key: "area", label: "Área", render: (r, u) => `<span class="tag">${u.esc(r.area || "—")}</span>` },
         { key: "estado", label: "Estado", badge: true },
-        { key: "unidades", label: "Unidades implementadoras", exportVal: r => guiaUnidades(r).map(x => x.unidad + (x.jefatura ? " (jef: " + x.jefatura + ")" : "") + (x.lider ? " (líder: " + x.lider + ")" : "")).join(" · "),
+        { key: "unidades", label: "Unidades implementadoras", exportVal: r => guiaUnidades(r).map(x => x.unidad + (x.jefatura ? " (jef: " + x.jefatura + ")" : "") + (x.lider ? " (líder: " + x.lider + ")" : "") + (x.colider ? " (co-líder: " + x.colider + ")" : "")).join(" · "),
           render: (r, u) => {
             const a = guiaUnidades(r);
             if (!a.length) return `<span class="muted">—</span>`;
             return `<div class="guia-units-cell">${a.map(x => {
-              const tip = [x.jefatura ? "Jefatura: " + x.jefatura : "", x.lider ? "Líder BP: " + x.lider : ""].filter(Boolean).join(" · ");
+              const tip = [x.jefatura ? "Jefatura: " + x.jefatura : "", x.lider ? "Líder BP: " + x.lider : "", x.colider ? "Co-líder: " + x.colider : ""].filter(Boolean).join(" · ");
               return `<span class="tag" ${tip ? `title="${u.esc(tip)}"` : ""}>${u.esc(x.unidad || "—")}</span>`;
             }).join("")}</div>`;
           } }
@@ -701,10 +732,8 @@
         { name: "nombre", label: "Nombre de la guía", required: true, full: true },
         { name: "area", label: "Área", type: "select", options: CAT().guiasArea },
         { name: "estado", label: "Estado", type: "select", options: ["Activa", "En preparación", "Inactiva"] },
-        { name: "liderGuia", label: "Líder de guía", full: true },
-        { name: "coliderGuia", label: "Co-líder de guía" },
-        { name: "coliderUnidad", label: "Unidad del co-líder", type: "select", options: ["—"].concat(CAT().unidades) },
-        { name: "comiteImplementador", label: "Comité implementador", type: "textarea", full: true, hint: "Integrantes del comité implementador de la guía." },
+        { name: "liderGuia", label: "Líder de guía" },
+        { name: "liderUnidad", label: "Unidad del líder de guía", type: "select", options: ["—"].concat(CAT().unidades) },
         { name: "participantes", label: "Participantes", type: "textarea", full: true, hint: "Profesionales que participan en la implementación." },
         { name: "resolucion", label: "Resolución asignada (si hay)", full: true, hint: "N.º o referencia de la resolución, si existe." }
       ],
@@ -712,7 +741,7 @@
       detail: guiaDetalle,
       onFormMount(m, rec) {
         const grid = m.querySelector(".form-grid");
-        grid.insertAdjacentHTML("afterend", guiaUnidadesHTML(guiaUnidades(rec)));
+        grid.insertAdjacentHTML("afterend", guiaUnidadesHTML(guiaUnidades(rec)) + guiaComiteHTML(guiaComite(rec)));
         const wrap = m.querySelector("#guia-units");
         const bindRm = () => wrap.querySelectorAll("[data-urm]").forEach(b => b.onclick = () => {
           if (wrap.querySelectorAll("[data-urow]").length > 1) b.closest("tr").remove();
@@ -720,15 +749,27 @@
         });
         m.querySelector("#guia-addunit").onclick = () => { wrap.querySelector("tbody").insertAdjacentHTML("beforeend", guiaUnitRow({})); bindRm(); };
         bindRm();
+        const cwrap = m.querySelector("#guia-comite");
+        const bindCrm = () => cwrap.querySelectorAll("[data-crm]").forEach(b => b.onclick = () => b.closest("tr").remove());
+        m.querySelector("#guia-addcom").onclick = () => { cwrap.querySelector("tbody").insertAdjacentHTML("beforeend", guiaComiteRow({})); bindCrm(); };
+        bindCrm();
       },
       onBeforeSave(data, rec, m) {
         const rows = [...m.querySelectorAll("#guia-units [data-urow]")].map(tr => ({
           unidad: (tr.querySelector('[data-f="unidad"]').value || "").trim(),
           jefatura: (tr.querySelector('[data-f="jefatura"]').value || "").trim(),
-          lider: (tr.querySelector('[data-f="lider"]').value || "").trim()
-        })).filter(r => r.unidad || r.jefatura || r.lider);
+          lider: (tr.querySelector('[data-f="lider"]').value || "").trim(),
+          colider: (tr.querySelector('[data-f="colider"]').value || "").trim()
+        })).filter(r => r.unidad || r.jefatura || r.lider || r.colider);
         data.unidades = rows;
         data.unidadesImplementadoras = rows.map(r => r.unidad).filter(Boolean).join(", ");
+        const com = [...m.querySelectorAll("#guia-comite [data-crow]")].map(tr => ({
+          nombre: (tr.querySelector('[data-cf="nombre"]').value || "").trim(),
+          cargo: (tr.querySelector('[data-cf="cargo"]').value || "").trim(),
+          unidad: (tr.querySelector('[data-cf="unidad"]').value || "").trim(),
+          funciones: (tr.querySelector('[data-cf="funciones"]').value || "").trim()
+        })).filter(r => r.nombre || r.cargo || r.unidad || r.funciones);
+        data.comite = com;
         return data;
       }
     });
