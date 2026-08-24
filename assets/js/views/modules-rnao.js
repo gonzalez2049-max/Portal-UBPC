@@ -666,7 +666,12 @@
       title: "Guía · " + (rec.nombre || ""), wide: true,
       body: `<div class="dl"><div><span>Área</span><strong>${u.esc(rec.area || "—")}</strong></div>
           <div><span>Estado</span><strong>${u.esc(rec.estado || "—")}</strong></div>
-          <div><span>Unidades</span><strong>${arr.length}</strong></div></div>
+          <div><span>Unidades</span><strong>${arr.length}</strong></div>
+          <div><span>Líder de guía</span><strong>${u.esc(rec.liderGuia || "—")}</strong></div>
+          <div><span>Co-líder de guía</span><strong>${u.esc(rec.coliderGuia || "—")}${rec.coliderUnidad && rec.coliderUnidad !== "—" ? " · " + u.esc(rec.coliderUnidad) : ""}</strong></div>
+          <div><span>Resolución asignada</span><strong>${u.esc(rec.resolucion || "—")}</strong></div></div>
+        ${rec.comiteImplementador ? `<h4 style="margin:.7rem 0 .3rem">Comité implementador</h4><p class="narrativo">${u.esc(rec.comiteImplementador).replace(/\r?\n/g, "<br>")}</p>` : ""}
+        ${rec.participantes ? `<h4 style="margin:.7rem 0 .3rem">Participantes</h4><p class="narrativo">${u.esc(rec.participantes).replace(/\r?\n/g, "<br>")}</p>` : ""}
         <h4 style="margin:.7rem 0 .3rem">Unidades implementadoras</h4>
         <div class="table-wrap"><table class="tbl"><thead><tr><th>Unidad</th><th>Jefatura</th><th>Líder de Buenas Prácticas</th></tr></thead><tbody>${rows}</tbody></table></div>`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
@@ -695,7 +700,13 @@
       fields: [
         { name: "nombre", label: "Nombre de la guía", required: true, full: true },
         { name: "area", label: "Área", type: "select", options: CAT().guiasArea },
-        { name: "estado", label: "Estado", type: "select", options: ["Activa", "En preparación", "Inactiva"] }
+        { name: "estado", label: "Estado", type: "select", options: ["Activa", "En preparación", "Inactiva"] },
+        { name: "liderGuia", label: "Líder de guía", full: true },
+        { name: "coliderGuia", label: "Co-líder de guía" },
+        { name: "coliderUnidad", label: "Unidad del co-líder", type: "select", options: ["—"].concat(CAT().unidades) },
+        { name: "comiteImplementador", label: "Comité implementador", type: "textarea", full: true, hint: "Integrantes del comité implementador de la guía." },
+        { name: "participantes", label: "Participantes", type: "textarea", full: true, hint: "Profesionales que participan en la implementación." },
+        { name: "resolucion", label: "Resolución asignada (si hay)", full: true, hint: "N.º o referencia de la resolución, si existe." }
       ],
       defaults: () => ({ estado: "Activa" }),
       detail: guiaDetalle,
