@@ -472,13 +472,12 @@
     { key: "acuerdos", label: "Acuerdos y acciones" },
     { key: "colaboraciones", label: "Colaboraciones y red" },
     { key: "articulacion", label: "Articulación y posicionamiento" },
-    { key: "solicitudes", label: "Solicitudes de apoyo técnico" },
     { key: "respaldos", label: "Documentos y respaldos" }
   ];
   function m5(params) {
     const tab = (params && params.tab) || "reuniones";
     return `<div class="page-head"><h1>Articulación y Respaldo Institucional</h1>
-      <p>Reuniones, acuerdos, colaboraciones, articulación institucional, solicitudes de apoyo técnico y documentos de respaldo, en un solo lugar.</p></div>
+      <p>Reuniones, acuerdos, colaboraciones, articulación institucional y documentos de respaldo, en un solo lugar.</p></div>
       ${R().tabsBar("coord", "m5", M5_TABS, tab)}
       <div id="m5-body"></div>`;
   }
@@ -489,7 +488,6 @@
     if (tab === "respaldos") return m5Respaldos(box);
     if (tab === "acuerdos") return m5Acuerdos(box);
     if (tab === "articulacion") return m5Articulacion(box);
-    if (tab === "solicitudes") return U.solicitudes.coordPanel(box);
     if (tab === "colaboraciones") return U.coord.colabPanel && U.coord.colabPanel(box);
   }
   function m5Reuniones(box) {
