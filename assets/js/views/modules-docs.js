@@ -25,15 +25,20 @@
       build: buildInformeAnual
     },
     planTrabajo: {
-      label: "Plan de Trabajo", ic: "🗺️", color: "#1e9fe0",
-      titulo: "Plan de Trabajo · UBPC",
-      html: `<h2>Objetivo general</h2><p>Propósito general del plan de trabajo.</p>
-        <h2>Objetivos específicos</h2><ul><li>Objetivo específico 1</li><li>Objetivo específico 2</li></ul>
-        <h2>Actividades planificadas</h2>
-        <table><thead><tr><th>Actividad</th><th>Responsable</th><th>Plazo</th><th>Estado</th></tr></thead>
-        <tbody><tr><td>Actividad 1</td><td>—</td><td>—</td><td>Pendiente</td></tr>
-        <tr><td>Actividad 2</td><td>—</td><td>—</td><td>Pendiente</td></tr></tbody></table>
-        <h2>Recursos necesarios</h2><p>Recursos humanos, materiales y de coordinación requeridos.</p>`
+      label: "Plan de Capacitación Programa RNAO / BPSO", ic: "🏅", color: "#1e9fe0",
+      titulo: "Plan de Capacitación de Champions · Programa RNAO / BPSO",
+      html: `<h2>1. Objetivo de la capacitación</h2><p>Formar a los Champions (Red Champion) para liderar la implementación de las guías de buenas prácticas del Programa RNAO / BPSO en sus unidades.</p>
+        <h2>2. Dirigido a</h2><p>Champions clínicos de las unidades participantes. <strong>N.º de participantes:</strong> — · <strong>Unidades:</strong> —</p>
+        <h2>3. Competencias a desarrollar</h2><ul><li>Conocer la guía BPSO y sus recomendaciones clave.</li><li>Liderar el cambio de práctica en el equipo (rol de Champion).</li><li>Aplicar el ciclo Conocimiento a la Acción y monitorear indicadores.</li></ul>
+        <h2>4. Contenidos / módulos</h2><ul><li>Módulo 1 — Programa RNAO / BPSO y rol del Champion.</li><li>Módulo 2 — Guía de buenas prácticas y recomendaciones.</li><li>Módulo 3 — Implementación, barreras y facilitadores.</li><li>Módulo 4 — Monitoreo, indicadores y evaluación.</li></ul>
+        <h2>5. Metodología</h2><p>Talleres presenciales, sesiones prácticas y acompañamiento en terreno.</p>
+        <h2>6. Cronograma de sesiones</h2>
+        <table><thead><tr><th>Sesión / tema</th><th>Fecha</th><th>Relator</th><th>Modalidad</th><th>Horas</th></tr></thead>
+        <tbody><tr><td>Sesión 1 — —</td><td>—</td><td>—</td><td>Presencial</td><td>—</td></tr>
+        <tr><td>Sesión 2 — —</td><td>—</td><td>—</td><td>Presencial</td><td>—</td></tr></tbody></table>
+        <h2>7. Evaluación y certificación</h2><p>Modalidad de evaluación (asistencia, prueba, práctica observada) y certificación de los Champions.</p>
+        <h2>8. Recursos necesarios</h2><p>Relatores, material educativo, sala/plataforma y coordinación requerida.</p>
+        <h2>9. Seguimiento post-capacitación</h2><p>Acompañamiento a los Champions y verificación de la transferencia a la práctica clínica.</p>`
     },
     planMejora: {
       label: "Plan de Mejora", ic: "🎯", color: "#e0912f",
