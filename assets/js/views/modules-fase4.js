@@ -194,11 +194,8 @@
       ${e.mensajeClave ? `<div class="narrativo" style="font-size:13px;background:var(--surface-2);border-radius:9px;padding:.5rem .6rem;margin-bottom:.45rem"><strong>Mensaje clave:</strong> ${u.esc(e.mensajeClave)}</div>` : ""}
       ${e.evidenciaOrigen ? `<div class="kpi__sub" style="margin-bottom:.2rem"><strong>Evidencia de origen:</strong> ${u.esc(e.evidenciaOrigen)}</div>` : ""}
       ${e.publico ? `<div class="kpi__sub" style="margin-bottom:.2rem"><strong>Público objetivo:</strong> ${u.esc(e.publico)}</div>` : ""}
-      ${(e.enlaceBoletin || e.enlaceEvidencia) ? `<div class="btn-row" style="margin-top:.5rem;flex-wrap:wrap;gap:.3rem">
-        ${e.enlaceBoletin ? `<a class="btn btn--ghost btn--sm" href="${u.esc(e.enlaceBoletin)}" target="_blank" rel="noopener">📄 Ver boletín ↗</a>` : ""}
-        ${e.enlaceEvidencia ? `<a class="btn btn--ghost btn--sm" href="${u.esc(e.enlaceEvidencia)}" target="_blank" rel="noopener">🔬 Evidencia original ↗</a>` : ""}
-      </div>` : ""}
-      <div class="btn-row" style="margin-top:.4rem">
+      ${e.responsable ? `<div class="kpi__sub" style="margin-bottom:.2rem"><strong>Responsable del envío:</strong> ${u.esc(e.responsable)}</div>` : ""}
+      <div class="btn-row" style="margin-top:.5rem">
         <button class="btn btn--ghost btn--sm" data-cedit="${e.id}">✏️ Editar</button>
         <button class="btn-icon" data-cdel="${e.id}" title="Eliminar">🗑️</button>
       </div></div>`;
@@ -216,8 +213,7 @@
       { name: "evidenciaOrigen", label: "Evidencia científica de origen", type: "textarea", rows: 2, value: rec.evidenciaOrigen || "", full: true },
       { name: "mensajeClave", label: "Mensaje clave", type: "textarea", rows: 2, value: rec.mensajeClave || "", full: true },
       { name: "publico", label: "Público objetivo", value: rec.publico || "", full: true },
-      { name: "enlaceBoletin", label: "Archivo PDF o enlace al boletín", value: rec.enlaceBoletin || "", hint: "Pega el enlace al PDF o al boletín publicado.", full: true },
-      { name: "enlaceEvidencia", label: "Enlace a la evidencia original", value: rec.enlaceEvidencia || "", full: true }
+      { name: "responsable", label: "Responsable del envío", value: rec.responsable || "", hint: "Quién difunde el boletín a los equipos clínicos.", full: true }
     ], {});
     u.modal({
       title: (isNew ? "Nuevo" : "Editar") + " boletín EVI Clínico", wide: true,
