@@ -19,8 +19,7 @@
 
   /* ===================== MÓDULO 1 — APOYO Y MEJORA CONTINUA ===================== */
   const M1_TABS = [
-    { key: "procesos", label: "Procesos de apoyo" },
-    { key: "docs", label: "Documentos de trabajo" }
+    { key: "procesos", label: "Procesos de apoyo" }
   ];
   function m1(params) {
     const tab = (params && params.tab) || "procesos";
@@ -31,7 +30,6 @@
   function m1Bind(main, params) {
     const tab = (params && params.tab) || "procesos";
     const box = document.getElementById("m1-tab");
-    if (tab === "docs") { U.docsEditor.mount(box, params); return; }
     box.innerHTML = `<div id="m1-kpi"></div><div id="m1-body"></div>`;
     procesosApoyo();
   }
@@ -84,6 +82,7 @@
   const M2_TABS = [
     { key: "documentos", label: "Documentos institucionales" },
     { key: "protocolos", label: "Control de protocolos de enfermería" },
+    { key: "docs", label: "Documentos de trabajo" },
     { key: "generador", label: "Generador de código" }
   ];
   function m2(params) {
@@ -96,6 +95,7 @@
   function m2Bind(main, params) {
     const tab = (params && params.tab) || "documentos";
     const box = document.getElementById("m2-body");
+    if (tab === "docs") { U.docsEditor.mount(box, params); return; }
     if (tab === "protocolos") protocolosTab(box);
     else if (tab === "generador") generadorTab(box);
     else documentosTab(box);
@@ -543,14 +543,14 @@
         <td><span class="doc-estado doc-estado--sm" style="--ec:${est.color}">${est.ic} ${u.esc(est.label)}</span></td>
         <td>${u.esc(responsable(d))}</td>
         <td>${u.esc(ultimaAccion(d))}</td>
-        <td class="acciones"><a class="btn btn--ghost btn--sm" href="#/coord/m1?tab=docs&doc=${d.id}">Abrir ↗</a></td>
+        <td class="acciones"><a class="btn btn--ghost btn--sm" href="#/coord/m2?tab=docs&doc=${d.id}">Abrir ↗</a></td>
       </tr>`;
     }).join("");
     const finalizados = docs.filter(d => d.estado === "finalizado").length;
     cont.innerHTML = `
       <div class="section__head"><div><h3 class="section__title">Registro maestro · Documentos UBPC</h3>
         <p class="section__hint">Vinculado automáticamente a la estación de Documentos (Apoyo y Mejora). ${docs.length} documento(s), ${finalizados} finalizado(s).</p></div>
-        <a class="btn btn--primary btn--sm" href="#/coord/m1?tab=docs">+ Nuevo documento</a></div>
+        <a class="btn btn--primary btn--sm" href="#/coord/m2?tab=docs">+ Nuevo documento</a></div>
       ${docs.length ? `<div class="table-wrap"><table class="tbl"><thead><tr>
         <th>Código</th><th>Documento</th><th>Versión</th><th>Estado</th><th>Responsable</th><th>Última acción</th><th></th>
         </tr></thead><tbody>${filas}</tbody></table></div>`

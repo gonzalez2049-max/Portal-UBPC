@@ -545,7 +545,7 @@
     ["plazoInicio", "plazoFin"].forEach(n => { const el = box.querySelector(`[data-pf="${n}"]`); if (el) el.addEventListener("input", updDur); });
 
     document.getElementById("pin-save").onclick = () => { const s = savePlan(box, current); if (s) { current = s; openPlanEditor(box, s); } };
-    document.getElementById("pin-doc").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.router.go("#/coord/m1?tab=docs&doc=" + s.docId); };
+    document.getElementById("pin-doc").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.router.go("#/coord/m2?tab=docs&doc=" + s.docId); };
     document.getElementById("pin-pdf").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.docsEditor.printDocById(s.docId); };
     document.getElementById("pin-cierre").onclick = () => {
       const s = savePlan(box, current, { silent: true }); if (!s) return;
@@ -597,7 +597,7 @@
     box.querySelectorAll("[data-plopen]").forEach(b => b.onclick = () => openPlanEditor(box, S().get("planesIntervencion", b.dataset.plopen)));
     box.querySelectorAll("[data-pldoc]").forEach(b => b.onclick = () => {
       const pl = S().get("planesIntervencion", b.dataset.pldoc); const docId = U.docsEditor.syncLinkedPlanDoc(pl);
-      S().update("planesIntervencion", pl.id, { docId }); U.router.go("#/coord/m1?tab=docs&doc=" + docId);
+      S().update("planesIntervencion", pl.id, { docId }); U.router.go("#/coord/m2?tab=docs&doc=" + docId);
     });
     box.querySelectorAll("[data-plpdf]").forEach(b => b.onclick = () => {
       const pl = S().get("planesIntervencion", b.dataset.plpdf); const docId = U.docsEditor.syncLinkedPlanDoc(pl);

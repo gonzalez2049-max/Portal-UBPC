@@ -11,7 +11,7 @@
   const SRC = [
     { col: "documentos", ic: "📄", mod: "Gestión Documental", route: "#/coord/m2" },
     { col: "apoyoMejora", ic: "🤝", mod: "Apoyo y Mejora", route: "#/coord/m1" },
-    { col: "docsTrabajo", ic: "📝", mod: "Documentos de trabajo", route: "#/coord/m1?tab=docs" },
+    { col: "docsTrabajo", ic: "📝", mod: "Documentos de trabajo", route: "#/coord/m2?tab=docs" },
     { col: "evaluacionesRNAO", ic: "🧭", mod: "Programa RNAO", route: "#/coord/m3" },
     { col: "accionesRNAO", ic: "🎯", mod: "Acciones de mejora RNAO", route: "#/coord/m3" },
     { col: "guiasBPSO", ic: "📗", mod: "Guías BPSO", route: "#/coord/m3" },
