@@ -50,13 +50,13 @@
       "Monitorea con indicadores y auditorías periódicas; actúa ante cada semáforo amarillo/rojo.",
       "Institucionaliza: acuerdos, responsables y periodicidad definida." ],
       ej: "Define una revisión semestral de cada protocolo y una auditoría trimestral; ante un semáforo rojo, abre un plan de mejora.",
-      link: { label: "Ir a Norma Técnica 234", route: "#/coord/m6" } },
+      link: { label: "Ir a Norma Técnica 234", route: "#/coord/m1?tab=nt234" } },
     { ic: "🎯", c: "#e0912f", t: "Priorizar según las brechas del portal", p: [
       "El portal detecta automáticamente indicadores bajo meta, acciones vencidas y planes pendientes.",
       "Concentra el esfuerzo en la guía y la unidad con mayor brecha (ver panel de prioridades arriba).",
       "Traduce cada brecha en una acción de mejora con responsable y plazo." ],
       ej: "Toma la unidad con menor cumplimiento del mapa de alertas y crea un plan de mejora con 3 acciones y plazo a 45 días.",
-      link: { label: "Ver mapa de alertas", route: "#/coord/m6?tab=alertas" } },
+      link: { label: "Ver mapa de alertas", route: "#/coord/m1?tab=nt234&sub=alertas" } },
     { ic: "🌐", c: "#7d4bcf", t: "Trabajar en red con otras unidades e instituciones", p: [
       "Comparte y recibe buenas prácticas con otras unidades y hospitales de la red.",
       "Registra asesorías, visitas técnicas y cursos en el Módulo de Red de Colaboración.",
@@ -343,7 +343,7 @@
     });
     // Planes NT 234 pendientes
     S().all("planesNT234").filter(p => p.estado !== "Completado").forEach(p => {
-      items.push({ p: 2, tag: "NT 234", titulo: "Plan de mejora · " + (p.unidad || ""), detalle: `${p.indicadores || ""} — ${p.porcentaje != null ? p.porcentaje + "%" : ""} · ${p.estado}`, ref: "#/coord/m6?tab=planes" });
+      items.push({ p: 2, tag: "NT 234", titulo: "Plan de mejora · " + (p.unidad || ""), detalle: `${p.indicadores || ""} — ${p.porcentaje != null ? p.porcentaje + "%" : ""} · ${p.estado}`, ref: "#/coord/m1?tab=nt234&sub=planes" });
     });
     // Solicitudes en gestión
     const sol = S().all("solicitudes").filter(x => (x.direccion || "coord-a-ref") === "coord-a-ref" && x.estado && x.estado !== "Cerrada por coordinación");

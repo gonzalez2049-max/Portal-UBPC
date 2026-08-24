@@ -19,7 +19,8 @@
 
   /* ===================== MÓDULO 1 — APOYO Y MEJORA CONTINUA ===================== */
   const M1_TABS = [
-    { key: "procesos", label: "Procesos de apoyo" }
+    { key: "procesos", label: "Procesos de apoyo" },
+    { key: "nt234", label: "Norma Técnica 234" }
   ];
   function m1(params) {
     const tab = (params && params.tab) || "procesos";
@@ -30,6 +31,7 @@
   function m1Bind(main, params) {
     const tab = (params && params.tab) || "procesos";
     const box = document.getElementById("m1-tab");
+    if (tab === "nt234") { U.nt234Embed(box, params); return; }
     box.innerHTML = `<div id="m1-kpi"></div><div id="m1-body"></div>`;
     procesosApoyo();
   }

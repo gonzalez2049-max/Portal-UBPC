@@ -19,7 +19,6 @@
       { key: "m3", label: "Programa RNAO", ico: "🧭" },
       { key: "m4", label: "Fortalecimiento", ico: "💪" },
       { key: "m5", label: "Articulación y Respaldo Institucional", ico: "🤝" },
-      { key: "m6", label: "Norma Técnica 234", ico: "📊" },
       { key: "indicadores", label: "Indicadores UBPC", ico: "📏" }
     ]},
     { label: "Administración", items: [
@@ -161,7 +160,7 @@
     if (U.ntUtil && U.ntUtil.institNT) {
       const nt = U.ntUtil.institNT();
       if (nt.pct != null) {
-        ntChip = `<a class="focus-nt focus-nt--${nt.estado.badge}" href="#/coord/m6">
+        ntChip = `<a class="focus-nt focus-nt--${nt.estado.badge}" href="#/coord/m1?tab=nt234">
           <span class="focus-nt__lbl">NT 234 institucional</span>
           <span class="focus-nt__pct">${nt.pct}%</span>
           <span class="focus-nt__st">${u.esc(nt.estado.label)}</span></a>`;

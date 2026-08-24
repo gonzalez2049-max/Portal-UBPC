@@ -64,6 +64,18 @@
     ({ seguimiento: seguimiento234, epi: epidemiologia234, alertas: alertas234, planes: planes234, informe: informe234 }[tab] || seguimiento234)(box);
   }
 
+  // Versión embebida dentro de «Apoyo y Mejora Continua» (m1?tab=nt234). Usa
+  // sub-pestañas ruteadas con &sub= para conservar navegación y enlaces directos.
+  const NT_SUB_COLORS = ["#0f8f83", "#e0912f", "#d64550", "#1e9fe0", "#7a5cd0"];
+  function nt234Embed(box, params) {
+    const u = ui();
+    const sub = (params && params.sub) || "seguimiento";
+    box.innerHTML = `<div class="tabs no-print" style="margin-bottom:1rem">${M6_TABS.map((t, i) =>
+      `<a class="tab ${t.key === sub ? "active" : ""}" style="--tab-c:${NT_SUB_COLORS[i % NT_SUB_COLORS.length]}" href="#/coord/m1?tab=nt234&sub=${t.key}"><span class="tab__dot"></span>${u.esc(t.label)}</a>`).join("")}</div><div id="m6-body"></div>`;
+    const inner = box.querySelector("#m6-body");
+    ({ seguimiento: seguimiento234, epi: epidemiologia234, alertas: alertas234, planes: planes234, informe: informe234 }[sub] || seguimiento234)(inner);
+  }
+
   /* ---------- Tab: Epidemiología LPP (incidencia / prevalencia / % libres) ---------- */
   // Cuenta PACIENTES (no lesiones) y diferencia LPP al ingreso de LPP intrahospitalaria.
   function epiNum(v) { return (v !== "" && v != null && !isNaN(v)) ? Number(v) : null; }
@@ -786,6 +798,7 @@
   Object.assign(U.coord.views, { m6, m7 });
   Object.assign(U.coord.binders, { m6: m6Bind, m7: m7Bind });
   U.coord.colabPanel = colabPanel;
+  U.nt234Embed = nt234Embed;
 
   // Utilidad reutilizable por el Home: cumplimiento institucional NT 234 (último período por unidad)
   function institNT() {
