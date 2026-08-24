@@ -20,7 +20,7 @@
       "Delega con responsables y fechas (usa el tablero Kanban y las solicitudes técnicas).",
       "Comunica avances y reconoce logros; cierra los ciclos de mejora que inicias." ],
       ej: "Cada lunes revisa el tablero de seguimiento: mueve 3 tareas y define responsable y fecha para las nuevas prioridades de la semana.",
-      link: { label: "Ir a la Agenda", route: "#/coord/agenda" } },
+      link: { label: "Ir a la Agenda", route: "#/coord/guia?tab=agenda" } },
     { ic: "🤝", c: "#12b5a5", t: "Trabajar con referentes, líderes de guía y Champions", p: [
       "Define roles: el Referente Técnico ejecuta y responde solicitudes; los Champions dan sostén en cada unidad.",
       "Reúnete periódicamente (Reuniones de seguimiento) y deja acuerdos con plazos.",
@@ -184,10 +184,8 @@
     });
   }
 
-  function guia() {
-    return `<div class="page-head"><h1>Guía para el Coordinador/a</h1>
-      <p>Orientaciones prácticas para conducir la UBPC, con la evidencia y las brechas del portal como apoyo.</p></div>
-      <div class="section">
+  function guiaSections() {
+    return `<div class="section">
         <div class="section__head"><h2 class="section__title">Prioriza según las brechas detectadas</h2>
           <p class="section__hint">Generado automáticamente con los datos del portal.</p></div>
         <div class="card" id="guia-brechas"></div>
@@ -386,7 +384,7 @@
     return { cur, sem };
   }
 
-  function guiaBind() {
+  function guiaContentBind() {
     document.getElementById("guia-brechas").innerHTML = brechas();
     document.getElementById("guia-evi").innerHTML = eviHTML();
     const add = document.getElementById("guia-addevi");
@@ -405,8 +403,28 @@
     if (addRec) addRec.onclick = () => recursoForm(null);
     document.querySelectorAll("[data-recedit]").forEach(b => b.onclick = () => recursoForm(S().get("recursosGuia", b.dataset.recedit)));
     document.querySelectorAll("[data-recdel]").forEach(b => b.onclick = () => {
-      ui().confirmDelete("¿Eliminar este enlace?", () => { S().remove("recursosGuia", b.dataset.recdel); guiaBind(); });
+      ui().confirmDelete("¿Eliminar este enlace?", () => { S().remove("recursosGuia", b.dataset.recdel); guiaContentBind(); });
     });
+  }
+
+  /* ---------- Centro del Coordinador: Agenda (operativa) + Guía (consulta) ---------- */
+  const HUB_TABS = [
+    { key: "agenda", label: "Agenda" },
+    { key: "guia", label: "Guía del Coordinador" }
+  ];
+  function guia(params) {
+    const tab = (params && params.tab) || "agenda";
+    return `<div class="page-head"><h1>Centro del Coordinador</h1>
+      <p>Tu agenda operativa y la guía práctica para conducir la UBPC, en un solo lugar.</p></div>
+      ${U.components.resource.tabsBar("coord", "guia", HUB_TABS, tab)}<div id="coord-hub-body"></div>`;
+  }
+  function guiaBind(main, params) {
+    const tab = (params && params.tab) || "agenda";
+    const box = document.getElementById("coord-hub-body");
+    if (!box) return;
+    if (tab === "guia") { box.innerHTML = guiaSections(); guiaContentBind(); return; }
+    box.innerHTML = `<div id="agenda-body"></div>`;
+    if (U.coord.binders.agenda) U.coord.binders.agenda(main, params);
   }
 
   U.coord.views.guia = guia;

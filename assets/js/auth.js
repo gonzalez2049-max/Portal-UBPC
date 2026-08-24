@@ -58,12 +58,12 @@
           if (e.done || !e.d) return;
           if (e.deadline && e.d < today) {
             items.push({ id: "live-v-" + e.tipo + "-" + (e.rid || e.iso), live: true, titulo: "Vencido · " + e.titulo,
-              modulo: "Agenda", prioridad: "alta", ref: "#/coord/agenda?focus=vencidos", fecha: e.d.toISOString() });
+              modulo: "Agenda", prioridad: "alta", ref: "#/coord/guia?tab=agenda&focus=vencidos", fecha: e.d.toISOString() });
           } else if (e.d >= today && e.d <= in3) {
             const dias = Math.round((e.d - today) / 86400000);
             const cuando = dias === 0 ? "Hoy" : dias === 1 ? "Mañana" : "En " + dias + " días";
             items.push({ id: "live-p-" + e.tipo + "-" + (e.rid || e.iso), live: true, titulo: cuando + " · " + e.titulo,
-              modulo: "Agenda", prioridad: dias === 0 ? "media" : "normal", ref: "#/coord/agenda", fecha: e.d.toISOString() });
+              modulo: "Agenda", prioridad: dias === 0 ? "media" : "normal", ref: "#/coord/guia?tab=agenda", fecha: e.d.toISOString() });
           }
         });
         const rank = p => p === "alta" ? 0 : p === "media" ? 1 : 2;
