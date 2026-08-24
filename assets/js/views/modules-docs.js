@@ -27,18 +27,28 @@
     planTrabajo: {
       label: "Plan de Capacitación Programa RNAO / BPSO", ic: "🏅", color: "#1e9fe0",
       titulo: "Plan de Capacitación de Champions · Programa RNAO / BPSO",
-      html: `<h2>1. Objetivo de la capacitación</h2><p>Formar a los Champions (Red Champion) para liderar la implementación de las guías de buenas prácticas del Programa RNAO / BPSO en sus unidades.</p>
-        <h2>2. Dirigido a</h2><p>Champions clínicos de las unidades participantes. <strong>N.º de participantes:</strong> — · <strong>Unidades:</strong> —</p>
-        <h2>3. Competencias a desarrollar</h2><ul><li>Conocer la guía BPSO y sus recomendaciones clave.</li><li>Liderar el cambio de práctica en el equipo (rol de Champion).</li><li>Aplicar el ciclo Conocimiento a la Acción y monitorear indicadores.</li></ul>
-        <h2>4. Contenidos / módulos</h2><ul><li>Módulo 1 — Programa RNAO / BPSO y rol del Champion.</li><li>Módulo 2 — Guía de buenas prácticas y recomendaciones.</li><li>Módulo 3 — Implementación, barreras y facilitadores.</li><li>Módulo 4 — Monitoreo, indicadores y evaluación.</li></ul>
-        <h2>5. Metodología</h2><p>Talleres presenciales, sesiones prácticas y acompañamiento en terreno.</p>
-        <h2>6. Cronograma de sesiones</h2>
-        <table><thead><tr><th>Sesión / tema</th><th>Fecha</th><th>Relator</th><th>Modalidad</th><th>Horas</th></tr></thead>
-        <tbody><tr><td>Sesión 1 — —</td><td>—</td><td>—</td><td>Presencial</td><td>—</td></tr>
-        <tr><td>Sesión 2 — —</td><td>—</td><td>—</td><td>Presencial</td><td>—</td></tr></tbody></table>
-        <h2>7. Evaluación y certificación</h2><p>Modalidad de evaluación (asistencia, prueba, práctica observada) y certificación de los Champions.</p>
-        <h2>8. Recursos necesarios</h2><p>Relatores, material educativo, sala/plataforma y coordinación requerida.</p>
-        <h2>9. Seguimiento post-capacitación</h2><p>Acompañamiento a los Champions y verificación de la transferencia a la práctica clínica.</p>`
+      html: `<h2>1. Identificación de la actividad</h2>
+        <p><strong>Nombre de la actividad:</strong> — · <strong>Programa:</strong> RNAO / BPSO<br>
+        <strong>Unidad organizadora:</strong> UBPC · <strong>Responsable:</strong> — · <strong>Fecha / período:</strong> — · <strong>Lugar:</strong> —</p>
+        <h2>2. Fundamentación</h2><p>Justificación de la capacitación: brecha de conocimiento o práctica detectada y su relación con la implementación de las guías de buenas prácticas y la seguridad del cuidado.</p>
+        <h2>3. Objetivos de la formación</h2>
+        <p><strong>Objetivo general:</strong> —</p>
+        <p><strong>Objetivos específicos:</strong></p><ul><li>Objetivo específico 1</li><li>Objetivo específico 2</li></ul>
+        <h2>4. Público objetivo y perfil del Champion</h2><p>Dirigido a los Champions (Red Champion) de las unidades participantes. Perfil esperado: referente clínico con interés en liderar el cambio de práctica basado en evidencia. <strong>N.º de participantes:</strong> — · <strong>Unidades:</strong> —</p>
+        <h2>5. Características y modalidad del curso</h2><p><strong>Modalidad:</strong> Presencial / Semipresencial / E-learning · <strong>Duración total:</strong> — horas · <strong>N.º de sesiones:</strong> — · <strong>Certificación:</strong> —</p>
+        <h2>6. Metodología de enseñanza-aprendizaje</h2><p>Estrategias didácticas: clases expositivas, talleres prácticos, análisis de casos, aprendizaje en el puesto de trabajo y acompañamiento en terreno.</p>
+        <h2>7. Contenidos y estructura formativa</h2><ul><li>Programa RNAO / BPSO y rol del Champion.</li><li>Guía de buenas prácticas y recomendaciones clave.</li><li>Ciclo Conocimiento a la Acción: implementación, barreras y facilitadores.</li><li>Monitoreo, indicadores y evaluación de resultados.</li></ul>
+        <h2>8. Programación de actividades</h2><p>Distribución de los módulos, temas y responsables en el tiempo (ver cronograma).</p>
+        <h3>Cronograma</h3>
+        <table><thead><tr><th>Módulo</th><th>Temas</th><th>Responsable</th></tr></thead>
+        <tbody>
+          <tr><td>Módulo 1</td><td>—</td><td>—</td></tr>
+          <tr><td>Módulo 2</td><td>—</td><td>—</td></tr>
+          <tr><td>Módulo 3</td><td>—</td><td>—</td></tr>
+          <tr><td>Módulo 4</td><td>—</td><td>—</td></tr>
+        </tbody></table>
+        <h2>9. Evaluación y requisitos de aprobación</h2><p>Instrumentos de evaluación (asistencia mínima, prueba de conocimientos, práctica observada) y requisitos para aprobar y certificar la actividad.</p>
+        <h2>10. Seguimiento, acompañamiento y resultados esperados</h2><p>Acompañamiento posterior a los Champions, verificación de la transferencia a la práctica clínica y resultados esperados sobre los indicadores de la guía.</p>`
     },
     planMejora: {
       label: "Plan de Mejora", ic: "🎯", color: "#e0912f",
