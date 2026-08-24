@@ -140,8 +140,21 @@
     });
   }
 
-  /* ---------- EVI — Evidencia que transforma (edición) ---------- */
+  /* ---------- EVI — Evidencia que transforma ---------- */
+  // Dos subpestañas: "Evidencia científica" (contenido original, intacto) y
+  // "EVI Clínico" (boletines breves para transferir evidencia a la práctica).
+  let eviSub = "cientifica";
   function evi(box) {
+    box.innerHTML = `<div class="tabs no-print" style="margin-bottom:1rem">
+        <a class="tab ${eviSub === "cientifica" ? "active" : ""}" style="--tab-c:#7a5cd0" href="#" data-evisub="cientifica"><span class="tab__dot"></span>Evidencia científica</a>
+        <a class="tab ${eviSub === "clinico" ? "active" : ""}" style="--tab-c:#12b5a5" href="#" data-evisub="clinico"><span class="tab__dot"></span>EVI Clínico</a>
+      </div><div id="evi-sub-body"></div>`;
+    box.querySelectorAll("[data-evisub]").forEach(a => a.onclick = ev => { ev.preventDefault(); eviSub = a.dataset.evisub; evi(box); });
+    (eviSub === "clinico" ? eviClinico : eviCientifica)(box.querySelector("#evi-sub-body"));
+  }
+
+  /* ---------- EVI · Evidencia científica (edición) — contenido original ---------- */
+  function eviCientifica(box) {
     const u = ui();
     const list = S().all("edicionesEVI").sort((a, b) => (b.numeroEdicion || 0) - (a.numeroEdicion || 0));
     box.innerHTML = `<div class="section__head">
@@ -149,9 +162,81 @@
         <button class="btn btn--primary btn--sm" id="newEvi">+ Nueva edición</button></div>
       ${list.length ? `<div class="grid grid--2" id="evi-list">${list.map(ediCard).join("")}</div>`
         : u.empty("Aún no hay ediciones EVI.", "Crea la primera edición para comenzar.", "🦉")}`;
-    document.getElementById("newEvi").onclick = () => ediForm(null, () => evi(box));
-    box.querySelectorAll("[data-eviedit]").forEach(b => b.onclick = () => ediForm(S().get("edicionesEVI", b.dataset.eviedit), () => evi(box)));
-    box.querySelectorAll("[data-evidel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar esta edición EVI?", () => { S().remove("edicionesEVI", b.dataset.evidel); evi(box); }));
+    document.getElementById("newEvi").onclick = () => ediForm(null, () => eviCientifica(box));
+    box.querySelectorAll("[data-eviedit]").forEach(b => b.onclick = () => ediForm(S().get("edicionesEVI", b.dataset.eviedit), () => eviCientifica(box)));
+    box.querySelectorAll("[data-evidel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar esta edición EVI?", () => { S().remove("edicionesEVI", b.dataset.evidel); eviCientifica(box); }));
+  }
+
+  /* ---------- EVI Clínico · boletines breves para la práctica ---------- */
+  function eviClinico(box) {
+    const u = ui();
+    const list = S().all("edicionesEVIClinico").sort((a, b) => (b.numeroEdicion || 0) - (a.numeroEdicion || 0));
+    box.innerHTML = `<div class="section__head" style="align-items:flex-start">
+        <div>
+          <div class="card__title" style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap"><span>🩺</span>EVI Clínico <span style="color:var(--text-muted);font-weight:500">| De la evidencia al cuidado</span></div>
+          <p class="section__hint" style="margin-top:.25rem">Boletines breves que transforman evidencia reciente en acciones concretas para la práctica clínica. Código UBPC-EVIC-AAAA-000.</p>
+        </div>
+        <button class="btn btn--primary btn--sm" id="newEvic">+ Nuevo boletín</button></div>
+      ${list.length ? `<div class="grid grid--2" id="evic-list">${list.map(evicCard).join("")}</div>`
+        : u.empty("Aún no hay boletines EVI Clínico.", "Crea el primer boletín para difundir evidencia a la práctica.", "🩺")}`;
+    document.getElementById("newEvic").onclick = () => evicForm(null, () => eviClinico(box));
+    box.querySelectorAll("[data-cedit]").forEach(b => b.onclick = () => evicForm(S().get("edicionesEVIClinico", b.dataset.cedit), () => eviClinico(box)));
+    box.querySelectorAll("[data-cdel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este boletín EVI Clínico?", () => { S().remove("edicionesEVIClinico", b.dataset.cdel); eviClinico(box); }));
+  }
+  function evicCard(e) {
+    const u = ui();
+    return `<div class="card" style="border-top:4px solid #12b5a5">
+      <div class="card__head"><div><span class="mono">${u.esc(e.codigo || "")}</span>
+        <div class="card__title">Boletín N.º ${u.esc(e.numeroEdicion || "—")}</div></div>
+        <span class="kpi__sub">${u.fechaCL(e.fecha)}</span></div>
+      ${e.tema ? `<span class="tag">${u.esc(e.tema)}</span>` : ""}
+      <div style="font-size:14px;font-weight:700;margin:.45rem 0 .3rem">${u.esc(e.titulo || "Sin título")}</div>
+      ${e.mensajeClave ? `<div class="narrativo" style="font-size:13px;background:var(--surface-2);border-radius:9px;padding:.5rem .6rem;margin-bottom:.45rem"><strong>Mensaje clave:</strong> ${u.esc(e.mensajeClave)}</div>` : ""}
+      ${e.evidenciaOrigen ? `<div class="kpi__sub" style="margin-bottom:.2rem"><strong>Evidencia de origen:</strong> ${u.esc(e.evidenciaOrigen)}</div>` : ""}
+      ${e.publico ? `<div class="kpi__sub" style="margin-bottom:.2rem"><strong>Público objetivo:</strong> ${u.esc(e.publico)}</div>` : ""}
+      ${(e.enlaceBoletin || e.enlaceEvidencia) ? `<div class="btn-row" style="margin-top:.5rem;flex-wrap:wrap;gap:.3rem">
+        ${e.enlaceBoletin ? `<a class="btn btn--ghost btn--sm" href="${u.esc(e.enlaceBoletin)}" target="_blank" rel="noopener">📄 Ver boletín ↗</a>` : ""}
+        ${e.enlaceEvidencia ? `<a class="btn btn--ghost btn--sm" href="${u.esc(e.enlaceEvidencia)}" target="_blank" rel="noopener">🔬 Evidencia original ↗</a>` : ""}
+      </div>` : ""}
+      <div class="btn-row" style="margin-top:.4rem">
+        <button class="btn btn--ghost btn--sm" data-cedit="${e.id}">✏️ Editar</button>
+        <button class="btn-icon" data-cdel="${e.id}" title="Eliminar">🗑️</button>
+      </div></div>`;
+  }
+  function evicForm(rec, onDone) {
+    const u = ui();
+    rec = rec || {};
+    const isNew = !rec.id;
+    const codigo = rec.codigo || S().peekCode("edicionesEVIClinico");
+    const cabecera = u.formHTML([
+      { name: "numeroEdicion", label: "N.º de edición", type: "number", value: rec.numeroEdicion || nextEdicionClinico() },
+      { name: "fecha", label: "Fecha", type: "date", value: rec.fecha ? u.isoDay(rec.fecha) : u.hoyISO() },
+      { name: "tema", label: "Tema / área clínica", value: rec.tema || "", full: true },
+      { name: "titulo", label: "Título del boletín", value: rec.titulo || "", required: true, full: true },
+      { name: "evidenciaOrigen", label: "Evidencia científica de origen", type: "textarea", rows: 2, value: rec.evidenciaOrigen || "", full: true },
+      { name: "mensajeClave", label: "Mensaje clave", type: "textarea", rows: 2, value: rec.mensajeClave || "", full: true },
+      { name: "publico", label: "Público objetivo", value: rec.publico || "", full: true },
+      { name: "enlaceBoletin", label: "Archivo PDF o enlace al boletín", value: rec.enlaceBoletin || "", hint: "Pega el enlace al PDF o al boletín publicado.", full: true },
+      { name: "enlaceEvidencia", label: "Enlace a la evidencia original", value: rec.enlaceEvidencia || "", full: true }
+    ], {});
+    u.modal({
+      title: (isNew ? "Nuevo" : "Editar") + " boletín EVI Clínico", wide: true,
+      body: `<p class="card__hint">Código automático: <span class="mono">${u.esc(codigo || "UBPC-EVIC-…")}</span></p>${cabecera}`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar boletín</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.titulo) { u.toast("Ingresa el título del boletín", "danger"); return; }
+          if (d.fecha) d.fecha = new Date(d.fecha).toISOString();
+          if (rec.id) S().update("edicionesEVIClinico", rec.id, d); else S().insert("edicionesEVIClinico", d, { withCode: true });
+          u.closeModal(); u.toast("Boletín EVI Clínico guardado", "ok"); if (onDone) onDone();
+        };
+      }
+    });
+  }
+  function nextEdicionClinico() {
+    const list = S().all("edicionesEVIClinico");
+    return list.length ? Math.max(...list.map(e => Number(e.numeroEdicion) || 0)) + 1 : 1;
   }
   function ediCard(e) {
     const u = ui();

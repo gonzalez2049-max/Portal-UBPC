@@ -11,7 +11,7 @@
   // Colecciones del portal. Agregar nuevas NO borra las existentes.
   const COLLECTIONS = [
     "usuarios", "apoyoMejora", "documentos", "guiasBPSO", "evaluacionesRNAO",
-    "accionesRNAO", "redChampion", "actividades", "edicionesEVI", "reconocimientos",
+    "accionesRNAO", "redChampion", "actividades", "edicionesEVI", "edicionesEVIClinico", "reconocimientos",
     "reuniones", "acuerdos", "articulaciones", "respaldos", "solicitudes", "nt234",
     "planesNT234", "colaboraciones", "notificaciones", "hitos", "kanban",
     "bibliotecaBitacora", "evidenciaRef", "capacitacionRef", "monitoreoRef",
@@ -22,7 +22,7 @@
   // Prefijos de códigos automáticos por colección
   const CODE_PREFIX = {
     solicitudes: "SOL", reuniones: "REU", acuerdos: "ACU",
-    documentos: "DOC", edicionesEVI: "EVI", colaboraciones: "COL",
+    documentos: "DOC", edicionesEVI: "EVI", edicionesEVIClinico: "EVIC", colaboraciones: "COL",
     actividades: "CAP", articulaciones: "ART", accionesRNAO: "ACC",
     evidenciaSemana: "EVA", docsTrabajo: "DOC", planesIntervencion: "PIN", protocolosEnf: "PRO",
     // Familias del "Generador de código interno" (documentos trabajados fuera del portal)
