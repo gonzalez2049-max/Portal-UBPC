@@ -668,16 +668,15 @@
       <td><input class="input input--sm" data-cf="nombre" value="${u.esc(r.nombre || "")}" placeholder="Nombre"></td>
       <td><input class="input input--sm" data-cf="cargo" value="${u.esc(r.cargo || "")}" placeholder="Cargo"></td>
       <td><select class="input input--sm" data-cf="unidad"><option value="">—</option>${opts.map(o => `<option ${String(o) === String(r.unidad || "") ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select></td>
-      <td><input class="input input--sm" data-cf="funciones" value="${u.esc(r.funciones || "")}" placeholder="Funciones en el comité"></td>
       <td class="pf-rep__x"><button type="button" class="btn-icon" data-crm title="Quitar integrante">🗑️</button></td></tr>`;
   }
   function guiaComiteHTML(rows) {
     rows = (rows && rows.length) ? rows : [{}];
     return `<div class="field" style="grid-column:1/-1">
       <label>Comité implementador</label>
-      <div class="kpi__sub" style="margin-bottom:.35rem">Integrantes del comité: nombre, cargo, unidad y funciones.</div>
+      <div class="kpi__sub" style="margin-bottom:.35rem">Comité por el que pasa la elección de las guías de buenas prácticas. Integrantes: nombre, cargo y unidad.</div>
       <div class="pf-rep" id="guia-comite"><div class="table-wrap"><table class="tbl pf-rep__t"><thead><tr>
-        <th>Nombre</th><th>Cargo</th><th>Unidad</th><th>Funciones</th><th></th></tr></thead>
+        <th>Nombre</th><th>Cargo</th><th>Unidad</th><th></th></tr></thead>
         <tbody>${rows.map(guiaComiteRow).join("")}</tbody></table></div>
         <button type="button" class="btn btn--ghost btn--sm" id="guia-addcom">+ Agregar integrante</button></div></div>`;
   }
@@ -686,21 +685,22 @@
     const arr = guiaUnidades(rec);
     const com = guiaComite(rec);
     const liderUni = rec.liderUnidad && rec.liderUnidad !== "—" ? u.esc(rec.liderUnidad) : "";
+    // Co-líderes de guía: se toman de cada unidad implementadora que tenga uno.
+    const coliders = arr.filter(x => x.colider && String(x.colider).trim() && x.colider !== "—")
+      .map(x => ({ name: x.colider, unit: x.unidad || "" }));
     const unitCards = arr.length ? arr.map(x => `
       <div class="gd-card gd-card--unit">
         <div class="gd-card__title">🏥 ${u.esc(x.unidad || "—")}</div>
         <div class="gd-row"><span>Jefatura</span><b>${u.esc(x.jefatura || "—")}</b></div>
         <div class="gd-row"><span>Líder de Buenas Prácticas</span><b>${u.esc(x.lider || "—")}</b></div>
-        <div class="gd-row gd-row--co"><span>Co-líder de guía</span><b>${u.esc(x.colider || "—")}</b></div>
       </div>`).join("") : `<div class="gd-empty">Sin unidades registradas.</div>`;
     const comiteBlock = com.length ? `
-      <h4 class="gd-h">Comité implementador</h4>
+      <h4 class="gd-h">Comité implementador <span class="gd-h__hint">· por el comité pasa la elección de las guías de buenas prácticas</span></h4>
       <div class="gd-grid">${com.map(x => `
         <div class="gd-card gd-card--com">
           <div class="gd-card__title">👤 ${u.esc(x.nombre || "—")}</div>
           <div class="gd-row"><span>Cargo</span><b>${u.esc(x.cargo || "—")}</b></div>
           <div class="gd-row"><span>Unidad</span><b>${u.esc(x.unidad || "—")}</b></div>
-          <div class="gd-row"><span>Funciones</span><b>${u.esc(x.funciones || "—")}</b></div>
         </div>`).join("")}</div>`
       : (rec.comiteImplementador ? `<h4 class="gd-h">Comité implementador</h4><p class="narrativo">${u.esc(rec.comiteImplementador).replace(/\r?\n/g, "<br>")}</p>` : "");
     const partBlock = rec.participantes ? `<h4 class="gd-h">Participantes</h4><p class="narrativo">${u.esc(rec.participantes).replace(/\r?\n/g, "<br>")}</p>` : "";
@@ -708,12 +708,16 @@
       .gd{font-size:13.5px}
       .gd-head{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.9rem}
       .gd-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.22rem .65rem;border-radius:999px;background:var(--surface-2);font-size:12.5px;font-weight:600;color:var(--text)}
-      .gd-lead{display:flex;flex-wrap:wrap;gap:1.2rem;padding:.85rem 1rem;border-radius:12px;background:linear-gradient(135deg,rgba(18,181,165,.12),rgba(30,159,224,.10));border:1px solid var(--border);margin-bottom:1rem}
-      .gd-lead__item{min-width:180px}
+      .gd-lead{padding:.85rem 1rem;border-radius:12px;background:linear-gradient(135deg,rgba(18,181,165,.12),rgba(30,159,224,.10));border:1px solid var(--border);margin-bottom:1rem}
       .gd-lead__lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);font-weight:700}
-      .gd-lead__val{font-size:15px;font-weight:700;color:var(--text);margin-top:.1rem}
-      .gd-lead__sub{font-size:12.5px;color:var(--text-muted);margin-top:.1rem}
+      .gd-lead__val{font-size:16px;font-weight:700;color:var(--text);margin-top:.1rem}
+      .gd-lead__sub{font-size:12.5px;color:var(--text-muted);margin-top:.05rem}
+      .gd-lead__colbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);font-weight:700;margin-top:.7rem;padding-top:.6rem;border-top:1px dashed var(--border)}
+      .gd-lead__co{display:flex;justify-content:space-between;gap:.7rem;font-size:13px;padding:.2rem 0}
+      .gd-lead__co b{color:var(--text)}
+      .gd-lead__co span{color:var(--text-muted)}
       .gd-h{margin:1.1rem 0 .55rem;font-size:14px;color:var(--text)}
+      .gd-h__hint{font-weight:400;font-size:11.5px;color:var(--text-muted)}
       .gd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.7rem}
       .gd-card{border:1px solid var(--border);border-radius:11px;padding:.7rem .85rem;background:var(--surface)}
       .gd-card--unit{border-top:3px solid var(--verde,#12b5a5)}
@@ -723,7 +727,6 @@
       .gd-row:first-of-type{border-top:none}
       .gd-row span{color:var(--text-muted);white-space:nowrap}
       .gd-row b{text-align:right;color:var(--text)}
-      .gd-row--co b{color:var(--verde,#0d5044)}
       .gd-empty{color:var(--text-muted);padding:.5rem}
     </style>`;
     u.modal({
@@ -736,13 +739,13 @@
           ${rec.resolucion ? `<span class="gd-chip">📄 ${u.esc(rec.resolucion)}</span>` : ""}
         </div>
         <div class="gd-lead">
-          <div class="gd-lead__item">
-            <div class="gd-lead__lbl">⭐ Líder de guía</div>
-            <div class="gd-lead__val">${u.esc(rec.liderGuia || "—")}</div>
-            ${liderUni ? `<div class="gd-lead__sub">Unidad: ${liderUni}</div>` : ""}
-          </div>
+          <div class="gd-lead__lbl">⭐ Líder de guía</div>
+          <div class="gd-lead__val">${u.esc(rec.liderGuia || "—")}</div>
+          ${liderUni ? `<div class="gd-lead__sub">Unidad: ${liderUni}</div>` : ""}
+          ${coliders.length ? `<div class="gd-lead__colbl">Co-líderes de guía</div>
+            ${coliders.map(c => `<div class="gd-lead__co"><b>${u.esc(c.name)}</b>${c.unit ? `<span>${u.esc(c.unit)}</span>` : ""}</div>`).join("")}` : ""}
         </div>
-        <h4 class="gd-h">Unidades implementadoras · líder y co-líder</h4>
+        <h4 class="gd-h">Unidades implementadoras</h4>
         <div class="gd-grid">${unitCards}</div>
         ${comiteBlock}
         ${partBlock}
@@ -808,9 +811,8 @@
         const com = [...m.querySelectorAll("#guia-comite [data-crow]")].map(tr => ({
           nombre: (tr.querySelector('[data-cf="nombre"]').value || "").trim(),
           cargo: (tr.querySelector('[data-cf="cargo"]').value || "").trim(),
-          unidad: (tr.querySelector('[data-cf="unidad"]').value || "").trim(),
-          funciones: (tr.querySelector('[data-cf="funciones"]').value || "").trim()
-        })).filter(r => r.nombre || r.cargo || r.unidad || r.funciones);
+          unidad: (tr.querySelector('[data-cf="unidad"]').value || "").trim()
+        })).filter(r => r.nombre || r.cargo || r.unidad);
         data.comite = com;
         return data;
       }
