@@ -688,8 +688,9 @@
     // Co-líderes de guía: se toman de cada unidad implementadora que tenga uno.
     const coliders = arr.filter(x => x.colider && String(x.colider).trim() && x.colider !== "—")
       .map(x => ({ name: x.colider, unit: x.unidad || "" }));
+    const uColor = un => (U.data.unidadColor ? U.data.unidadColor(un || "") : "#12b5a5");
     const unitCards = arr.length ? arr.map(x => `
-      <div class="gd-card gd-card--unit">
+      <div class="gd-card gd-card--unit" style="border-top:3px solid ${uColor(x.unidad)}">
         <div class="gd-card__title">🏥 ${u.esc(x.unidad || "—")}</div>
         <div class="gd-row"><span>Jefatura</span><b>${u.esc(x.jefatura || "—")}</b></div>
         <div class="gd-row"><span>Líder de Buenas Prácticas</span><b>${u.esc(x.lider || "—")}</b></div>
