@@ -684,27 +684,69 @@
   function guiaDetalle(rec) {
     const u = ui();
     const arr = guiaUnidades(rec);
-    const rows = arr.length
-      ? arr.map(x => `<tr><td>${u.esc(x.unidad || "—")}</td><td>${u.esc(x.jefatura || "—")}</td><td>${u.esc(x.lider || "—")}</td><td>${u.esc(x.colider || "—")}</td></tr>`).join("")
-      : `<tr><td colspan="4" class="muted">Sin unidades registradas.</td></tr>`;
     const com = guiaComite(rec);
-    const comRows = com.length
-      ? com.map(x => `<tr><td>${u.esc(x.nombre || "—")}</td><td>${u.esc(x.cargo || "—")}</td><td>${u.esc(x.unidad || "—")}</td><td>${u.esc(x.funciones || "—")}</td></tr>`).join("")
-      : "";
-    const liderTxt = u.esc(rec.liderGuia || "—") + (rec.liderUnidad && rec.liderUnidad !== "—" ? " · " + u.esc(rec.liderUnidad) : "");
+    const liderUni = rec.liderUnidad && rec.liderUnidad !== "—" ? u.esc(rec.liderUnidad) : "";
+    const unitCards = arr.length ? arr.map(x => `
+      <div class="gd-card gd-card--unit">
+        <div class="gd-card__title">🏥 ${u.esc(x.unidad || "—")}</div>
+        <div class="gd-row"><span>Jefatura</span><b>${u.esc(x.jefatura || "—")}</b></div>
+        <div class="gd-row"><span>Líder de Buenas Prácticas</span><b>${u.esc(x.lider || "—")}</b></div>
+        <div class="gd-row gd-row--co"><span>Co-líder de guía</span><b>${u.esc(x.colider || "—")}</b></div>
+      </div>`).join("") : `<div class="gd-empty">Sin unidades registradas.</div>`;
+    const comiteBlock = com.length ? `
+      <h4 class="gd-h">Comité implementador</h4>
+      <div class="gd-grid">${com.map(x => `
+        <div class="gd-card gd-card--com">
+          <div class="gd-card__title">👤 ${u.esc(x.nombre || "—")}</div>
+          <div class="gd-row"><span>Cargo</span><b>${u.esc(x.cargo || "—")}</b></div>
+          <div class="gd-row"><span>Unidad</span><b>${u.esc(x.unidad || "—")}</b></div>
+          <div class="gd-row"><span>Funciones</span><b>${u.esc(x.funciones || "—")}</b></div>
+        </div>`).join("")}</div>`
+      : (rec.comiteImplementador ? `<h4 class="gd-h">Comité implementador</h4><p class="narrativo">${u.esc(rec.comiteImplementador).replace(/\r?\n/g, "<br>")}</p>` : "");
+    const partBlock = rec.participantes ? `<h4 class="gd-h">Participantes</h4><p class="narrativo">${u.esc(rec.participantes).replace(/\r?\n/g, "<br>")}</p>` : "";
+    const css = `<style>
+      .gd{font-size:13.5px}
+      .gd-head{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.9rem}
+      .gd-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.22rem .65rem;border-radius:999px;background:var(--surface-2);font-size:12.5px;font-weight:600;color:var(--text)}
+      .gd-lead{display:flex;flex-wrap:wrap;gap:1.2rem;padding:.85rem 1rem;border-radius:12px;background:linear-gradient(135deg,rgba(18,181,165,.12),rgba(30,159,224,.10));border:1px solid var(--border);margin-bottom:1rem}
+      .gd-lead__item{min-width:180px}
+      .gd-lead__lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);font-weight:700}
+      .gd-lead__val{font-size:15px;font-weight:700;color:var(--text);margin-top:.1rem}
+      .gd-lead__sub{font-size:12.5px;color:var(--text-muted);margin-top:.1rem}
+      .gd-h{margin:1.1rem 0 .55rem;font-size:14px;color:var(--text)}
+      .gd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.7rem}
+      .gd-card{border:1px solid var(--border);border-radius:11px;padding:.7rem .85rem;background:var(--surface)}
+      .gd-card--unit{border-top:3px solid var(--verde,#12b5a5)}
+      .gd-card--com{border-top:3px solid var(--morado,#7a5cd0)}
+      .gd-card__title{font-weight:700;font-size:13.5px;margin-bottom:.5rem;color:var(--text)}
+      .gd-row{display:flex;justify-content:space-between;gap:.7rem;padding:.28rem 0;border-top:1px dashed var(--border);font-size:12.5px}
+      .gd-row:first-of-type{border-top:none}
+      .gd-row span{color:var(--text-muted);white-space:nowrap}
+      .gd-row b{text-align:right;color:var(--text)}
+      .gd-row--co b{color:var(--verde,#0d5044)}
+      .gd-empty{color:var(--text-muted);padding:.5rem}
+    </style>`;
     u.modal({
       title: "Guía · " + (rec.nombre || ""), wide: true,
-      body: `<div class="dl"><div><span>Área</span><strong>${u.esc(rec.area || "—")}</strong></div>
-          <div><span>Estado</span><strong>${u.esc(rec.estado || "—")}</strong></div>
-          <div><span>Unidades</span><strong>${arr.length}</strong></div>
-          <div><span>Líder de guía</span><strong>${liderTxt}</strong></div>
-          <div><span>Resolución asignada</span><strong>${u.esc(rec.resolucion || "—")}</strong></div></div>
-        <h4 style="margin:.7rem 0 .3rem">Unidades implementadoras y co-líderes</h4>
-        <div class="table-wrap"><table class="tbl"><thead><tr><th>Unidad</th><th>Jefatura</th><th>Líder de Buenas Prácticas</th><th>Co-líder de guía</th></tr></thead><tbody>${rows}</tbody></table></div>
-        ${comRows ? `<h4 style="margin:.7rem 0 .3rem">Comité implementador</h4>
-        <div class="table-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Cargo</th><th>Unidad</th><th>Funciones</th></tr></thead><tbody>${comRows}</tbody></table></div>`
-        : (rec.comiteImplementador ? `<h4 style="margin:.7rem 0 .3rem">Comité implementador</h4><p class="narrativo">${u.esc(rec.comiteImplementador).replace(/\r?\n/g, "<br>")}</p>` : "")}
-        ${rec.participantes ? `<h4 style="margin:.7rem 0 .3rem">Participantes</h4><p class="narrativo">${u.esc(rec.participantes).replace(/\r?\n/g, "<br>")}</p>` : ""}`,
+      body: `${css}<div class="gd">
+        <div class="gd-head">
+          ${rec.area ? `<span class="gd-chip">📚 ${u.esc(rec.area)}</span>` : ""}
+          ${u.estadoBadge(rec.estado)}
+          <span class="gd-chip">🏥 ${arr.length} unidad${arr.length === 1 ? "" : "es"}</span>
+          ${rec.resolucion ? `<span class="gd-chip">📄 ${u.esc(rec.resolucion)}</span>` : ""}
+        </div>
+        <div class="gd-lead">
+          <div class="gd-lead__item">
+            <div class="gd-lead__lbl">⭐ Líder de guía</div>
+            <div class="gd-lead__val">${u.esc(rec.liderGuia || "—")}</div>
+            ${liderUni ? `<div class="gd-lead__sub">Unidad: ${liderUni}</div>` : ""}
+          </div>
+        </div>
+        <h4 class="gd-h">Unidades implementadoras · líder y co-líder</h4>
+        <div class="gd-grid">${unitCards}</div>
+        ${comiteBlock}
+        ${partBlock}
+      </div>`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
     });
   }
