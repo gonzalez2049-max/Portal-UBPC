@@ -929,7 +929,8 @@
         { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
         { name: "guia", label: "Guía", type: "select", options: CAT().guiasArea },
         { name: "fechaNombramiento", label: "Fecha de nombramiento", type: "date" },
-        { name: "contacto", label: "Contacto" },
+        { name: "correo", label: "Correo electrónico", type: "email", attrs: 'placeholder="nombre@correo.cl"' },
+        { name: "contacto", label: "Contacto (teléfono u otro)" },
         { name: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] }
       ],
       defaults: () => ({ estado: "Activo" }),
