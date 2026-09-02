@@ -927,10 +927,13 @@
         { name: "nombre", label: "Nombre", required: true, full: true },
         { name: "estamento", label: "Estamento", type: "select", options: CAT().estamentos },
         { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
+        { name: "turno", label: "Turno", type: "select", options: ["Diurno", "Nocturno", "Rotativo (cuarto turno)", "Largo", "Mañana", "Tarde"], placeholder: "Seleccionar…" },
+        { name: "calidadContractual", label: "Calidad contractual", type: "select", options: ["Titular", "Contrata", "Reemplazo", "Honorarios"], placeholder: "Seleccionar…" },
         { name: "guia", label: "Guía", type: "select", options: CAT().guiasArea },
         { name: "fechaNombramiento", label: "Fecha de nombramiento", type: "date" },
         { name: "correo", label: "Correo electrónico", type: "email", attrs: 'placeholder="nombre@correo.cl"' },
         { name: "contacto", label: "Contacto (teléfono u otro)" },
+        { name: "compromiso", label: "¿Aceptó el compromiso?", type: "select", options: ["Sí", "No"], placeholder: "Seleccionar…" },
         { name: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] }
       ],
       defaults: () => ({ estado: "Activo" }),
