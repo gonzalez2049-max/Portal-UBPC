@@ -842,7 +842,8 @@
   const NIVEL = {
     activo: { label: "Activo", color: "var(--verde)", ic: "🟢" },
     riesgo: { label: "En riesgo", color: "var(--naranjo)", ic: "🟡" },
-    inactivo: { label: "Inactivo", color: "var(--danger)", ic: "🔴" }
+    inactivo: { label: "Inactivo", color: "var(--danger)", ic: "🔴" },
+    sindatos: { label: "Sin actividad aún", color: "var(--neutral)", ic: "⚪" }
   };
   function champStats(champId) {
     const evs = champEventos(champId);
@@ -850,7 +851,9 @@
     const ultima = evs.length ? new Date(evs[0].fecha) : null;
     const dias = ultima ? Math.floor((Date.now() - ultima.getTime()) / 86400000) : null;
     const lidera = evs.filter(e => /lider/i.test(e.rol || "")).length;
-    const nivel = dias == null ? "inactivo" : (dias <= 60 ? "activo" : (dias <= 120 ? "riesgo" : "inactivo"));
+    // Recién agregado (sin participaciones) = "sin actividad aún"; luego se calcula
+    // según los días desde su última participación registrada.
+    const nivel = evs.length === 0 ? "sindatos" : (dias <= 60 ? "activo" : (dias <= 120 ? "riesgo" : "inactivo"));
     return { total: evs.length, horas, ultima, dias, lidera, nivel };
   }
   // Asistencia a convocatorias donde el champion fue convocado
