@@ -12,6 +12,51 @@
   const PERIODICIDAD = ["Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"];
   const SENTIDOS = ["Mayor es mejor", "Menor es mejor"];
   const TIPO_COLOR = { Estructura: "#7a5cd0", Proceso: "#1e9fe0", Resultado: "#12b5a5", Impacto: "#e0912f" };
+  const TIPO_ORDEN = { Estructura: 0, Proceso: 1, Resultado: 2, Impacto: 3 };
+  // Orden legible: por tipo (Estructura → Proceso → Resultado → Impacto) y luego por nombre.
+  function ordenados(list) {
+    return list.slice().sort((a, b) =>
+      (TIPO_ORDEN[a.tipo] != null ? TIPO_ORDEN[a.tipo] : 9) - (TIPO_ORDEN[b.tipo] != null ? TIPO_ORDEN[b.tipo] : 9)
+      || String(a.nombre || "").localeCompare(String(b.nombre || "")));
+  }
+
+  // Indicadores RNAO / BPSO · LPP (Consolidado Nacional NQUIRE). Se cargan una vez.
+  const RNAO_LPP = [
+    { tipo: "Proceso", codigoNquire: "ulcerprev_pro01", nombre: "Valoración de riesgo de LPP al ingreso",
+      formula: "(Usuarios con valoración de riesgo mediante escala validada ≤24 h desde el ingreso / Total de usuarios evaluados en el mes) × 100",
+      numeradorDesc: "N° de usuarios con valoración del riesgo de LPP según escala validada (NSRAS, Braden Q o Braden) antes de las 24 h desde su ingreso",
+      denominadorDesc: "N° total de usuarios evaluados que ingresaron al servicio clínico durante el mes de medición",
+      fuenteDatos: "Ficha clínica / registro de enfermería · Pauta de cotejo", periodicidad: "Mensual", sentido: "Mayor es mejor", meta: 95 },
+    { tipo: "Proceso", codigoNquire: "ulcerprev_pro02", nombre: "Reevaluación de riesgo de LPP",
+      formula: "(Usuarios hospitalizados revalorados según protocolo institucional / Total de usuarios evaluados hospitalizados) × 100",
+      numeradorDesc: "N° de usuarios hospitalizados que fueron revalorados acorde a lo establecido en el protocolo institucional",
+      denominadorDesc: "N° total de usuarios evaluados que están hospitalizados en el servicio clínico",
+      fuenteDatos: "Ficha clínica / registro de enfermería · Pauta de cotejo", periodicidad: "Mensual", sentido: "Mayor es mejor", meta: 95 },
+    { tipo: "Proceso", codigoNquire: "ulcerprev_pro03", nombre: "Prevención de LPP: uso de superficie de manejo de presión",
+      formula: "(Usuarios con riesgo moderado y alto que usan Superficie Especial de Manejo de Presión / Total de usuarios con riesgo moderado y alto evaluados) × 100",
+      numeradorDesc: "N° total de usuarios con riesgo moderado y alto que usan una Superficie Especial de Manejo de Presión",
+      denominadorDesc: "N° total de usuarios con riesgo moderado y alto evaluados",
+      fuenteDatos: "Ficha clínica / registro de enfermería · Pauta de cotejo", periodicidad: "Mensual", sentido: "Mayor es mejor", meta: 90 },
+    { tipo: "Resultado", codigoNquire: "ulcermgt_out01", nombre: "Incidencia de LPP",
+      formula: "(Usuarios que desarrollaron una o más LPP categoría II a IV durante el mes / Total de usuarios que egresaron del servicio clínico en el mes) × 100",
+      numeradorDesc: "N° total de usuarios que desarrollaron una o más Lesiones por Presión categoría II a IV durante el mes de medición",
+      denominadorDesc: "N° total de usuarios que egresaron del servicio clínico durante el mes de medición",
+      fuenteDatos: "Ficha clínica / notificación de LPP intrahospitalaria", periodicidad: "Mensual", sentido: "Menor es mejor", meta: 5 }
+  ];
+  function seedRnaoLPP() {
+    try {
+      if (S().getConfig("seed.rnaoLPP.v1", false)) return;
+      const existentes = new Set(S().all("indicadores").map(i => i.codigoNquire).filter(Boolean));
+      RNAO_LPP.forEach(def => {
+        if (existentes.has(def.codigoNquire)) return;
+        S().insert("indicadores", Object.assign({
+          programa: "RNAO / BPSO", guia: "Lesiones por presión",
+          responsable: "Enf. Coordinador/a UBPC", fichaVersion: 1
+        }, def), { silent: true });
+      });
+      S().setConfig("seed.rnaoLPP.v1", true);
+    } catch (e) {}
+  }
   const SEM = {
     verde: { k: "ok", l: "En meta", c: "var(--verde)" },
     amarillo: { k: "warn", l: "En seguimiento", c: "var(--naranjo)" },
@@ -599,6 +644,7 @@
   function indBind(main, params) {
     _tab = (params && params.tab) || "registrados";
     _box = document.getElementById("ind-body");
+    seedRnaoLPP();
     renderTab();
   }
   function renderTab() {
@@ -615,7 +661,7 @@
       <div class="section__head"><h2 class="section__title">Indicadores registrados</h2>
         <button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button></div>
       <div id="ind-list"></div>`;
-    const list = S().all("indicadores");
+    const list = ordenados(S().all("indicadores"));
     const by = k => list.filter(i => semaforo(i) === k).length;
     document.getElementById("ind-kpi").innerHTML = `<div class="grid grid--kpi" style="margin-bottom:1.1rem">
       ${kpi("Indicadores", list.length, "Registrados en total", "info", "📏")}
@@ -629,7 +675,17 @@
     const lb = document.getElementById("ind-list");
     if (!list.length) { lb.innerHTML = u.empty("Aún no hay indicadores registrados.", "Crea uno o usa las recomendaciones de EVI.", "📏"); }
     else {
-      lb.innerHTML = `<div class="grid grid--3">${list.map(card).join("")}</div>`;
+      const groups = {}; list.forEach(i => { const t = i.tipo || "Otros"; (groups[t] = groups[t] || []).push(i); });
+      lb.innerHTML = TIPOS.concat(["Otros"]).filter(t => groups[t]).map(t => {
+        const c = TIPO_COLOR[t] || "#8a94a6";
+        return `<div style="margin-bottom:1.1rem">
+          <div style="display:flex;align-items:center;gap:.45rem;margin:.2rem 0 .5rem;font-weight:700;color:var(--text)">
+            <span style="width:10px;height:10px;border-radius:3px;background:${c};display:inline-block"></span>
+            Indicadores de ${u.esc(t)} <span class="kpi__sub" style="font-weight:500">· ${groups[t].length}</span>
+          </div>
+          <div class="grid grid--3">${groups[t].map(card).join("")}</div>
+        </div>`;
+      }).join("");
       lb.querySelectorAll("[data-idet]").forEach(b => b.onclick = () => detalle(S().get("indicadores", b.dataset.idet)));
       lb.querySelectorAll("[data-ied]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.ied)));
       lb.querySelectorAll("[data-iseg]").forEach(b => b.onclick = () => addSeguimiento(S().get("indicadores", b.dataset.iseg)));
@@ -706,9 +762,9 @@
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
     });
   }
-  function renderMatriz(box) {
+  function renderMatriz(box) { seedRnaoLPP();
     const u = ui();
-    const list = S().all("indicadores");
+    const list = ordenados(S().all("indicadores"));
     const head = `<div class="section__head"><div><h2 class="section__title">Ficha técnica de indicadores (matriz)</h2>
         <p class="section__hint">Diccionario técnico de cada indicador: fórmula, estándar, fuente, periodicidad, responsable, metodología y versión.</p></div>
         <button class="btn btn--primary btn--sm" id="mtx-new">+ Nuevo indicador</button></div>`;
@@ -739,6 +795,10 @@
     return `<div class="card" style="border-top:4px solid ${TIPO_COLOR[ind.tipo] || "#12b5a5"}">
       <div class="card__head"><span class="tag" style="background:${TIPO_COLOR[ind.tipo]}22;color:${TIPO_COLOR[ind.tipo]}">${u.esc(ind.tipo || "—")}</span>
         <span class="badge badge--${sem.k}">${sem.l}</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.25rem">
+        ${/rnao|bpso/i.test(ind.programa || "") ? `<span class="tag" style="background:#0d6ea81f;color:#0d6ea8;border:1px solid #0d6ea855">🦉 RNAO / BPSO</span>` : ""}
+        ${ind.codigoNquire ? `<span class="mono kpi__sub">${u.esc(ind.codigoNquire)}</span>` : ""}
+      </div>
       <h3 class="card__title" style="font-size:1rem;margin-bottom:.1rem">${u.esc(ind.nombre || "Indicador")}</h3>
       ${ind.formula ? `<div class="kpi__sub" style="margin-bottom:.2rem">ƒ ${u.esc(ind.formula)}</div>` : ""}
       <div class="flex" style="justify-content:space-between;align-items:flex-end;margin:.3rem 0">
