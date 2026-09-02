@@ -100,12 +100,13 @@
             </div>
             ${themebarHTML()}
           </div>
-          <div class="access__panel" style="justify-content:center">
-            <div class="access__intro" style="text-align:center;max-width:660px;margin:0 auto">
-              <h2>Bienvenido/a al<br>Portal de Gestión Operativa</h2>
-              <p class="narrativo">Registra, organiza, monitorea y respalda la gestión de la Unidad de Buenas
-              Prácticas Clínicas, manteniendo trazabilidad de responsables, fechas, estados y resultados.</p>
-              <div class="access__frase">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
+          <div style="display:flex;justify-content:center;padding:.5rem 0 1.2rem">
+            <div class="access__intro" style="max-width:560px;width:100%;border-radius:22px;box-shadow:0 20px 55px rgba(15,60,50,.18);text-align:center;align-items:center;padding:2.4rem 2.2rem">
+              <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC" style="width:190px;margin:0 auto .6rem">
+              <h2 style="font-size:1.7rem">Bienvenido/a al<br>Portal de Gestión Operativa</h2>
+              <p class="narrativo" style="margin:.2rem auto 0;max-width:440px">Registra, organiza, monitorea y respalda la gestión de la Unidad de Buenas
+              Prácticas Clínicas, con trazabilidad de responsables, fechas, estados y resultados.</p>
+              <div class="access__frase" style="text-align:center;border:none;margin:1rem auto">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
               <div class="access__pillars" style="justify-content:center">
                 <span class="access__pillar"><span class="ic">🛡️</span>Seguridad</span>
                 <span class="access__pillar-sep"></span>
@@ -113,9 +114,8 @@
                 <span class="access__pillar-sep"></span>
                 <span class="access__pillar cu"><span class="ic">💙</span>Cuidado</span>
               </div>
-              <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
-              <div style="margin-top:1.3rem">
-                <button class="btn btn--primary" id="enterBtn" style="font-size:1.05rem;padding:.75rem 1.8rem;border-radius:12px">Ingresar al portal →</button>
+              <div style="margin-top:1.5rem">
+                <button class="btn btn--primary btn--block" id="enterBtn" style="font-size:1.08rem;padding:.85rem 1.8rem;border-radius:14px;box-shadow:0 8px 22px rgba(15,143,131,.35)">Ingresar al portal →</button>
               </div>
             </div>
           </div>
