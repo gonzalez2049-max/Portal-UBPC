@@ -1,0 +1,16 @@
+{
+  "name": "Portal de Gestión Operativa · UBPC",
+  "short_name": "UBPC",
+  "description": "Portal de Gestión Operativa de la Unidad de Buenas Prácticas Clínicas · Hospital de Urgencia Asistencia Pública (HUAP).",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f8f83",
+  "theme_color": "#0f8f83",
+  "icons": [
+    { "src": "assets/img/huap-logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/huap-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
