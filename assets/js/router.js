@@ -132,6 +132,7 @@
           </div>
         </div>
         <div class="header__spacer"></div>
+        ${U.cloud && U.cloud.configured() ? `<button class="cloud-chip" id="cloudChip" title="Estado de la sincronización con la nube" style="display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:.25rem .6rem;font-size:12px;font-weight:600;cursor:default">☁️ <span id="cloudChipTxt">Nube</span></button>` : ""}
         ${portal === "coord" ? `<button class="btn-icon" id="searchBtn" title="Buscar en el portal (Ctrl+K)" aria-label="Buscar en el portal">🔎</button>` : ""}
         <button class="theme-switch" id="themeToggle" role="switch" aria-checked="false" title="Cambiar modo claro / oscuro" aria-label="Cambiar modo claro u oscuro">
           <span class="theme-switch__ico theme-switch__ico--sun" aria-hidden="true">☀️</span>
@@ -170,6 +171,30 @@
     const rol = portal === "coord" ? "coordinador" : "referente";
     const logout = el("logoutBtn");
     if (logout) logout.onclick = () => { U.auth.logout(); go("#/acceso"); };
+    // Indicador de estado de la nube (Conectado / Sincronizando / Sin conexión)
+    const chip = el("cloudChip");
+    if (chip && U.cloud) {
+      const txt = el("cloudChipTxt");
+      const paint = (st) => {
+        st = st || (U.cloud.status && U.cloud.status()) || { state: "idle" };
+        const map = {
+          ok: { t: "Conectado", c: "var(--verde)", b: "#12b5a51a", i: "☁️" },
+          syncing: { t: "Sincronizando…", c: "var(--naranjo)", b: "#e0912f1a", i: "🔄" },
+          pending: { t: "Guardando…", c: "var(--naranjo)", b: "#e0912f1a", i: "🔄" },
+          error: { t: "Sin conexión", c: "var(--danger)", b: "#e0526f1a", i: "⚠️" },
+          idle: { t: U.cloud.signedIn && U.cloud.signedIn() ? "Conectado" : "Sin sesión", c: "var(--text-muted)", b: "var(--surface)", i: "☁️" }
+        };
+        const m = map[st.state] || map.idle;
+        if (txt) txt.textContent = m.t;
+        chip.firstChild.textContent = m.i + " ";
+        chip.style.color = m.c; chip.style.background = m.b; chip.style.borderColor = m.c + "55";
+        chip.style.cursor = st.state === "error" ? "pointer" : "default";
+        chip.title = st.state === "error" ? "Sin conexión con la nube · toca para reintentar" : (st.msg || "Estado de la sincronización con la nube");
+      };
+      chip.onclick = () => { if ((U.cloud.status() || {}).state === "error" && U.cloud.syncNow) U.cloud.syncNow(); };
+      U.cloud.onStatus && U.cloud.onStatus(paint);
+      paint();
+    }
     const toggle = el("menuToggle");
     const closeSide = () => { el("sidebar").classList.remove("open"); const o = el("sideOverlay"); if (o) o.classList.remove("show"); };
     if (toggle) toggle.onclick = () => {
