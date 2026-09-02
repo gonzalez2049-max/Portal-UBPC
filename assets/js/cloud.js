@@ -95,14 +95,29 @@
 
   async function refresh() {
     if (!sess || !sess.refresh_token) return false;
-    const res = await api("/auth/v1/token?grant_type=refresh_token", {
-      method: "POST", body: JSON.stringify({ refresh_token: sess.refresh_token })
-    });
+    let res;
+    try { res = await api("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: JSON.stringify({ refresh_token: sess.refresh_token }) }); }
+    catch (e) { return false; } // sin conexión: NO cerrar sesión, se reintenta luego
     const j = await res.json().catch(() => ({}));
-    if (!res.ok || !j.access_token) { sess = null; save(SESS_KEY, null); return false; }
+    // Solo se cierra la sesión si el token de refresco es inválido (400/401).
+    // Otros errores (500, red) no cierran la sesión para no desconectar sin motivo.
+    if (res.status === 400 || res.status === 401) { sess = null; save(SESS_KEY, null); return false; }
+    if (!res.ok || !j.access_token) return false;
     sess = { access_token: j.access_token, refresh_token: j.refresh_token, uid: (j.user && j.user.id) || sess.uid, email: (j.user && j.user.email) || sess.email };
     save(SESS_KEY, sess);
     return true;
+  }
+  // Mantener la conexión viva: renovar el token periódicamente y al volver a la
+  // pestaña o recuperar internet, para no tener que iniciar sesión cada día.
+  let _keepAliveOn = false;
+  function startKeepAlive() {
+    if (_keepAliveOn) return; _keepAliveOn = true;
+    setInterval(() => { if (configured() && signedIn()) refresh(); }, 45 * 60 * 1000);
+    const revive = () => { if (configured() && signedIn()) refresh().then(ok => { if (ok !== false) syncNow(); }).catch(() => {}); };
+    try {
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) revive(); });
+      window.addEventListener("online", revive);
+    } catch (e) {}
   }
 
   async function remoteGet() {
@@ -150,8 +165,12 @@
        suben a la nube (así lo local nunca se pierde y respalda la nube). */
   async function initialSync() {
     if (!configured() || !signedIn()) return { skipped: true };
+    startKeepAlive();
     setStatus("syncing");
     try {
+      // Renueva el token al abrir (si expiró de un día para otro) para reconectar sin re-login.
+      if (sess && sess.refresh_token) { try { await refresh(); } catch (e) {} }
+      if (!signedIn()) { setStatus("error", "Tu sesión en la nube expiró: vuelve a iniciar sesión."); return { error: "session" }; }
       if (localSeedOnly()) {
         const remote = await remoteGet();
         if (remote && remoteHasData(remote.data)) {
