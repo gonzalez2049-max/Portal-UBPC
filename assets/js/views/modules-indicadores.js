@@ -923,23 +923,46 @@
 
   function addSeguimiento(ind) {
     const u = ui();
+    const estructura = ind.tipo === "Estructura";
+    const ym = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); })();
     u.modal({
-      title: "Agregar seguimiento · " + (ind.nombre || ""),
-      body: u.formHTML([
-        { name: "fecha", label: "Fecha de la medición", type: "date", value: u.hoyISO(), hint: "Avanza automáticamente la próxima medición según la periodicidad." },
-        { name: "periodo", label: "Período", value: "", hint: "Ej: 2026-S1" },
-        { name: "valor", label: "Valor (%)", type: "number" }
-      ], {}),
-      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Agregar</button>`,
+      title: "Registrar medición · " + (ind.nombre || ""),
+      body: (estructura ? "" : `<p class="card__hint">Registra los datos que reporta NQUIRE: <strong>numerador</strong> y <strong>denominador</strong> del período. El resultado (%) se calcula solo.</p>`) +
+        u.formHTML([
+          { name: "periodo", label: "Período (mes)", type: "month", value: ym, hint: "Mensual · AAAA-MM (formato NQUIRE)." },
+          { name: "fecha", label: "Fecha de la medición", type: "date", value: u.hoyISO(), hint: "Ancla la próxima medición según la periodicidad." },
+          estructura ? null : { name: "numerador", label: "Numerador", type: "number", full: true, hint: ind.numeradorDesc || "" },
+          estructura ? null : { name: "denominador", label: "Denominador", type: "number", full: true, hint: ind.denominadorDesc || "" },
+          { name: "valor", label: "Resultado (%)", type: "number", hint: estructura ? "" : "Se calcula automáticamente desde numerador / denominador." }
+        ].filter(Boolean), {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar medición</button>`,
       onMount(m) {
+        const numI = m.querySelector('[name="numerador"]'), denI = m.querySelector('[name="denominador"]'), valI = m.querySelector('[name="valor"]');
+        const calc = () => {
+          if (!numI || !denI || !valI) return;
+          const n = Number(numI.value), d = Number(denI.value);
+          if (numI.value !== "" && d > 0) { valI.value = Math.round(n / d * 100); valI.readOnly = true; valI.style.background = "var(--surface-2)"; }
+          else { valI.readOnly = false; valI.style.background = ""; }
+        };
+        if (numI) numI.addEventListener("input", calc);
+        if (denI) denI.addEventListener("input", calc);
+        calc();
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
-          if (d.valor === "") { u.toast("Indica el valor", "danger"); return; }
-          const segs = (ind.seguimientos || []).concat([{ periodo: d.periodo, valor: Number(d.valor), fecha: d.fecha || "" }]);
+          const num = d.numerador !== "" && d.numerador != null ? Number(d.numerador) : null;
+          const den = d.denominador !== "" && d.denominador != null ? Number(d.denominador) : null;
+          let valor = (num != null && den > 0) ? Math.round(num / den * 100) : (d.valor !== "" ? Number(d.valor) : null);
+          if (valor == null) { u.toast(estructura ? "Indica el resultado (%)" : "Indica numerador y denominador (o el %)", "danger"); return; }
+          const entry = { periodo: d.periodo, valor: valor, fecha: d.fecha || "" };
+          if (num != null) entry.numerador = num;
+          if (den != null) entry.denominador = den;
+          const segs = (ind.seguimientos || []).concat([entry]);
           const patch = { seguimientos: segs };
-          if (d.fecha) patch.fechaMedicion = d.fecha; // ancla la próxima medición
+          if (num != null) patch.numerador = num;   // refleja el último período (para el panel RNAO y el semáforo)
+          if (den != null) patch.denominador = den;
+          if (d.fecha) patch.fechaMedicion = d.fecha;
           S().update("indicadores", ind.id, patch);
-          u.closeModal(); renderTab();
+          u.closeModal(); u.toast("Medición registrada", "ok"); renderTab();
         };
       }
     });
@@ -972,6 +995,9 @@
         </div>
         <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Objetivo</span><p class="narrativo">${u.esc(ind.objetivo || "—")}</p></div>
         ${(ind.metodologia || "").trim() ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Metodología de evaluación</span><ol class="mtx-crit">${ind.metodologia.split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(x => `<li>${u.esc(x)}</li>`).join("")}</ol></div>` : ""}
+        ${(ind.seguimientos && ind.seguimientos.length) ? `<h4 style="margin:.6rem 0 .2rem">Mediciones registradas · reporte NQUIRE</h4>
+          <div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th class="right">Numerador</th><th class="right">Denominador</th><th class="right">Resultado</th></tr></thead>
+          <tbody>${ind.seguimientos.slice().reverse().map(s => `<tr><td>${u.esc(s.periodo || "—")}</td><td class="num">${s.numerador != null ? s.numerador : "—"}</td><td class="num">${s.denominador != null ? s.denominador : "—"}</td><td class="num"><strong>${s.valor != null ? s.valor + "%" : "—"}</strong></td></tr>`).join("")}</tbody></table></div>` : ""}
         <h4 style="margin:.6rem 0 .2rem">Tendencia</h4>${chart}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
         <button class="btn btn--primary" data-seg>+ Seguimiento</button>`,
