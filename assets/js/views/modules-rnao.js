@@ -20,7 +20,7 @@
 
   function m3(params) {
     const tab = (params && params.tab) || "dashboard";
-    return `<div class="page-head"><h1>Programa RNAO</h1>
+    return `<div class="page-head"><h1>Programa RNAO / BPSO</h1>
       <p>Implementación de Guías de Buenas Prácticas (BPSO): evaluación, seguimiento y mejora continua.</p></div>
       ${U.components.resource.tabsBar("coord", "m3", TABS, tab)}
       <div id="m3-body"></div>`;

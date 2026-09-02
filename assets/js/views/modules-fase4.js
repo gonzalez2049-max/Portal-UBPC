@@ -17,7 +17,7 @@
 
   function m4(params) {
     const tab = (params && params.tab) || "actividades";
-    return `<div class="page-head"><h1>Programa de Fortalecimiento</h1>
+    return `<div class="page-head"><h1>Programa de Fortalecimiento BP</h1>
       <p>Actividades, capacitación y cobertura; evidencia que transforma (EVI); y reconocimientos.</p></div>
       ${R().tabsBar("coord", "m4", TABS, tab)}<div id="m4-body"></div>`;
   }

@@ -15,8 +15,8 @@
     { label: "Módulos de gestión", items: [
       { key: "m1", label: "Apoyo y Mejora Continua", ico: "🤝" },
       { key: "m2", label: "Gestión Documental", ico: "📄" },
-      { key: "m3", label: "Programa RNAO", ico: "🧭" },
-      { key: "m4", label: "Fortalecimiento", ico: "💪" },
+      { key: "m3", label: "Programa RNAO / BPSO", ico: "🧭" },
+      { key: "m4", label: "Fortalecimiento BP", ico: "💪" },
       { key: "m5", label: "Articulación y Respaldo Institucional", ico: "🤝" },
       { key: "indicadores", label: "Indicadores UBPC", ico: "📏" }
     ]},
