@@ -50,7 +50,12 @@
             el.id = "cloud-banner"; el.className = "cloud-banner no-print";
             document.body.appendChild(el);
           }
-          el.innerHTML = '<span>⚠️ No se está guardando en la nube. Tus cambios están en este equipo, pero no en el respaldo.</span>' +
+          const esc = s => String(s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+          const motivo = /401|token|sesi/i.test(msg || "") ? "Tu sesión en la nube expiró: vuelve a iniciar sesión (correo y contraseña)."
+            : /fetch|network|networkerror|failed to fetch/i.test(msg || "") ? "Sin conexión con la nube (revisa tu internet o la red del hospital)."
+            : (msg ? "Detalle: " + msg : "");
+          el.innerHTML = '<span>⚠️ No se está guardando en la nube. Tus cambios están en este equipo, pero no en el respaldo.' +
+            (motivo ? ' <span style="opacity:.9;font-weight:400">' + esc(motivo) + '</span>' : '') + '</span>' +
             '<button type="button" id="cloud-banner-retry">Reintentar</button>';
           const rb = document.getElementById("cloud-banner-retry");
           if (rb) rb.onclick = function () { syncNow(); };
