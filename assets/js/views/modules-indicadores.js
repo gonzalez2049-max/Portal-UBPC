@@ -824,10 +824,10 @@
     let segs = rec.seguimientos ? JSON.parse(JSON.stringify(rec.seguimientos)) : [];
 
     const commonTop = u.formHTML([
-      { name: "nombre", label: "Nombre del indicador", required: true, full: true, value: rec.nombre || "" },
-      { name: "tipo", label: "Tipo de indicador", type: "select", options: TIPOS, value: tipo },
-      { name: "responsable", label: "Responsable", value: rec.responsable || "Enf. Coordinador/a UBPC" },
-      { name: "objetivo", label: "Objetivo", type: "textarea", full: true, value: rec.objetivo || "" }
+      { name: "nombre", label: "Nombre del indicador", required: true, full: true, value: rec.nombre || "", hint: "Nombre oficial del indicador. Ej: Valoración de riesgo de LPP al ingreso." },
+      { name: "tipo", label: "Tipo de indicador", type: "select", options: TIPOS, value: tipo, hint: "Estructura = si algo existe · Proceso = cómo se hace · Resultado = efecto en el paciente · Impacto = efecto a largo plazo." },
+      { name: "responsable", label: "Responsable", value: rec.responsable || "Enf. Coordinador/a UBPC", hint: "Quién mide y reporta este indicador." },
+      { name: "objetivo", label: "Objetivo", type: "textarea", full: true, value: rec.objetivo || "", hint: "Qué se busca lograr o vigilar con este indicador (en una frase)." }
     ], {});
     const cambioField = rec.id ? u.formHTML([{ name: "cambioFicha", label: "Motivo del cambio (crea una nueva versión de la ficha)", full: true, value: "", hint: "Opcional. Si lo completas, la ficha sube de versión y queda registrado en el historial." }], {}) : "";
 
@@ -857,17 +857,17 @@
           tipo = tipoSel.value;
           const estructura = tipo === "Estructura";
           dyn.innerHTML = (estructura ? "" : `<div class="ind-formula" id="ind-formula"></div>`) + u.formHTML([
-            estructura ? null : { name: "numeradorDesc", label: "Numerador — ¿qué se cuenta?", full: true, value: rec.numeradorDesc || "", hint: "Ej: N° de pacientes con valoración de riesgo realizada." },
-            estructura ? null : { name: "numerador", label: "Numerador (cantidad)", type: "number", value: rec.numerador != null ? rec.numerador : "" },
-            estructura ? null : { name: "denominadorDesc", label: "Denominador — ¿sobre qué total?", full: true, value: rec.denominadorDesc || "", hint: "Ej: Total de pacientes evaluados en el período." },
-            estructura ? null : { name: "denominador", label: "Denominador (cantidad)", type: "number", value: rec.denominador != null ? rec.denominador : "" },
-            { name: "fuenteDatos", label: "Fuente de información", full: true, value: rec.fuenteDatos || "" },
-            { name: "periodicidad", label: "Periodicidad", type: "select", options: PERIODICIDAD, value: rec.periodicidad || "Trimestral" },
+            estructura ? null : { name: "numeradorDesc", label: "Numerador — ¿qué se cuenta?", full: true, value: rec.numeradorDesc || "", hint: "Define QUÉ casos cumplen. Ej: N° de pacientes con valoración de riesgo realizada ≤24 h." },
+            estructura ? null : { name: "numerador", label: "Numerador (cantidad actual)", type: "number", value: rec.numerador != null ? rec.numerador : "", hint: "Se actualiza solo al registrar cada medición mensual. Puedes dejarlo vacío aquí." },
+            estructura ? null : { name: "denominadorDesc", label: "Denominador — ¿sobre qué total?", full: true, value: rec.denominadorDesc || "", hint: "Define el TOTAL sobre el que se mide. Ej: Total de pacientes evaluados en el período." },
+            estructura ? null : { name: "denominador", label: "Denominador (cantidad actual)", type: "number", value: rec.denominador != null ? rec.denominador : "", hint: "Se actualiza solo al registrar cada medición mensual. Puedes dejarlo vacío aquí." },
+            { name: "fuenteDatos", label: "Fuente de información", full: true, value: rec.fuenteDatos || "", hint: "De dónde sale el dato. Ej: ficha clínica, pauta de cotejo, registro de enfermería." },
+            { name: "periodicidad", label: "Periodicidad", type: "select", options: PERIODICIDAD, value: rec.periodicidad || "Trimestral", hint: "Cada cuánto se mide. Para los indicadores LPP de NQUIRE es Mensual." },
             { name: "fechaMedicion", label: "Fecha de la última medición", type: "date", value: rec.fechaMedicion ? ui().isoDay(rec.fechaMedicion) : "", hint: "Se usa para calcular y avisar la próxima medición según la periodicidad." },
-            { name: "sentido", label: "Sentido de la meta", type: "select", options: SENTIDOS, value: rec.sentido || "Mayor es mejor" },
-            { name: "meta", label: "Estándar de cumplimiento / Meta (%)", type: "number", value: rec.meta != null ? rec.meta : "" },
-            { name: "lineaBase", label: "Línea base (%)", type: "number", value: rec.lineaBase != null ? rec.lineaBase : "" },
-            { name: "metodologia", label: "Metodología de evaluación (un criterio por línea)", type: "textarea", full: true, rows: 3, value: rec.metodologia || "", hint: "Enumera los criterios de evaluación; cada línea será un ítem numerado en la ficha." }
+            { name: "sentido", label: "Sentido de la meta", type: "select", options: SENTIDOS, value: rec.sentido || "Mayor es mejor", hint: "«Mayor es mejor» para cumplimiento (ej. valoración) · «Menor es mejor» para daño (ej. incidencia)." },
+            { name: "meta", label: "Estándar de cumplimiento / Meta (%)", type: "number", value: rec.meta != null ? rec.meta : "", hint: "Umbral esperado. Ej: ≥95% en procesos, ≤5% en incidencia de LPP." },
+            { name: "lineaBase", label: "Línea base (%)", type: "number", value: rec.lineaBase != null ? rec.lineaBase : "", hint: "Primer resultado medido, antes de intervenir. Sirve de punto de comparación." },
+            { name: "metodologia", label: "Metodología de evaluación (un criterio por línea)", type: "textarea", full: true, rows: 3, value: rec.metodologia || "", hint: "Escribe un criterio por línea; cada línea será un ítem numerado en la ficha." }
           ].filter(Boolean), {});
           paintFormula();
           ["numeradorDesc", "denominadorDesc", "numerador", "denominador"].forEach(n => { const el = m.querySelector(`[name="${n}"]`); if (el) el.addEventListener("input", paintFormula); });
@@ -877,7 +877,7 @@
         const segBox = m.querySelector("#ind-segs");
         function renderSegs() {
           segBox.innerHTML = segs.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th>Valor (%)</th><th></th></tr></thead><tbody>
-            ${segs.map((s, i) => `<tr><td><input class="input" data-si="${i}" data-sf="periodo" value="${u.esc(s.periodo || "")}" placeholder="2026-S1"></td>
+            ${segs.map((s, i) => `<tr><td><input class="input" data-si="${i}" data-sf="periodo" value="${u.esc(s.periodo || "")}" placeholder="2026-09"></td>
               <td><input class="input" type="number" data-si="${i}" data-sf="valor" value="${s.valor != null ? s.valor : ""}" style="max-width:120px"></td>
               <td class="acciones"><button class="btn-icon" type="button" data-srm="${i}">🗑️</button></td></tr>`).join("")}
           </tbody></table></div>` : `<p class="kpi__sub">Aún sin períodos de seguimiento.</p>`;
@@ -927,13 +927,15 @@
     const ym = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); })();
     u.modal({
       title: "Registrar medición · " + (ind.nombre || ""),
-      body: (estructura ? "" : `<p class="card__hint">Registra los datos que reporta NQUIRE: <strong>numerador</strong> y <strong>denominador</strong> del período. El resultado (%) se calcula solo.</p>`) +
+      body: (estructura
+          ? `<p class="card__hint">Indica el resultado del período para este indicador de estructura.</p>`
+          : `<p class="card__hint">Ingresa los <strong>dos datos que pide NQUIRE</strong>: el <strong>numerador</strong> (los que cumplen) y el <strong>denominador</strong> (el total). El portal calcula el <strong>resultado (%)</strong> automáticamente.</p>`) +
         u.formHTML([
-          { name: "periodo", label: "Período (mes)", type: "month", value: ym, hint: "Mensual · AAAA-MM (formato NQUIRE)." },
-          { name: "fecha", label: "Fecha de la medición", type: "date", value: u.hoyISO(), hint: "Ancla la próxima medición según la periodicidad." },
-          estructura ? null : { name: "numerador", label: "Numerador", type: "number", full: true, hint: ind.numeradorDesc || "" },
-          estructura ? null : { name: "denominador", label: "Denominador", type: "number", full: true, hint: ind.denominadorDesc || "" },
-          { name: "valor", label: "Resultado (%)", type: "number", hint: estructura ? "" : "Se calcula automáticamente desde numerador / denominador." }
+          { name: "periodo", label: "Período (mes que reportas)", type: "month", value: ym, hint: "Mes al que corresponde la medición, en formato AAAA-MM (ej. 2026-09). Es el período que reportas a NQUIRE." },
+          { name: "fecha", label: "Fecha en que registras la medición", type: "date", value: u.hoyISO(), hint: "Día en que ingresas el dato. Se usa para avisar la próxima medición." },
+          estructura ? null : { name: "numerador", label: "Numerador (los que cumplen)", type: "number", full: true, hint: (ind.numeradorDesc ? ind.numeradorDesc + "." : "") + " Cuántos casos cumplen la condición del indicador." },
+          estructura ? null : { name: "denominador", label: "Denominador (el total)", type: "number", full: true, hint: (ind.denominadorDesc ? ind.denominadorDesc + "." : "") + " Total de casos sobre el que se mide." },
+          { name: "valor", label: "Resultado (%)", type: "number", hint: estructura ? "Porcentaje o valor del período." : "Se calcula solo (numerador ÷ denominador × 100). Solo escríbelo a mano si no tienes numerador y denominador." }
         ].filter(Boolean), {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar medición</button>`,
       onMount(m) {
