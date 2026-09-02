@@ -151,8 +151,8 @@
           </div>
 
           <div style="display:flex;justify-content:center;padding:.5rem 0 1.2rem">
-            <div class="access__profiles" style="max-width:640px;width:100%;background:#fff;border-left:none;border-radius:22px;box-shadow:0 20px 55px rgba(6,55,50,.4)">
-              <button class="linklike" id="backEntrance" type="button" style="align-self:flex-start;border:none;background:none;color:#4c6f66;cursor:pointer;font-size:.9rem">← Volver</button>
+            <div class="access__profiles" style="max-width:640px;width:100%;background:#fff;border-left:none;border-top:5px solid var(--ink-brand);border-radius:22px;box-shadow:0 22px 60px rgba(6,55,50,.45);overflow:hidden">
+              <button id="backEntrance" type="button" style="align-self:flex-start;border:1px solid #e6efeb;background:#f3fbf9;color:#0d5044;cursor:pointer;font-size:.85rem;font-weight:700;border-radius:999px;padding:.3rem .8rem">← Volver</button>
               ${needsLogin() ? loginInner() : profilesInner(coord, ref, otros)}
             </div>
           </div>
