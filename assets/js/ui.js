@@ -9,6 +9,12 @@
   function toDate(v) {
     if (!v) return null;
     if (v instanceof Date) return v;
+    // Fechas "solo día" (YYYY-MM-DD) se anclan al mediodía LOCAL para evitar el
+    // corrimiento de un día por zona horaria (new Date("YYYY-MM-DD") es UTC).
+    if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) {
+      const d = new Date(v.trim() + "T12:00:00");
+      return isNaN(d) ? null : d;
+    }
     const d = new Date(v);
     return isNaN(d) ? null : d;
   }
