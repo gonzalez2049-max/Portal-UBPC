@@ -827,7 +827,7 @@
      3) Convocatorias (reuniones/capacitaciones) con lista de asistencia → tasa real.
      Los indicadores (nivel de actividad, % activos, tasa de asistencia) se calculan
      a partir de (2) y (3). */
-  const CH_TIPOS = ["Reunión de la red", "Capacitación dictada", "Capacitación recibida", "Auditoría / ronda", "Difusión / sensibilización", "Otra"];
+  const CH_TIPOS = ["Reunión de la red", "Capacitación dictada", "Capacitación recibida", "Intervención clínica / mejora", "Acompañamiento en terreno", "Auditoría / ronda", "Difusión / sensibilización", "Otra"];
   const CH_ROLES = ["Asistió", "Lideró"];
   const CH_CONV_TIPOS = ["Reunión de la red", "Capacitación", "Auditoría / ronda", "Difusión / sensibilización", "Otra"];
 
