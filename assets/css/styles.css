@@ -257,6 +257,15 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .bell { position: relative; }
 .bell__count { position:absolute; top:-5px; right:-5px; background: var(--rosado); color:#fff;
   font-size: 10.5px; font-weight:800; min-width:17px; height:17px; border-radius:9px; display:grid; place-items:center; padding:0 3px; }
+/* Campana que "suena" cuando hay notificaciones (movimiento breve cada pocos segundos) */
+@keyframes bellRing {
+  0%, 82%, 100% { transform: rotate(0); }
+  85% { transform: rotate(-15deg); } 88% { transform: rotate(13deg); }
+  91% { transform: rotate(-9deg); }  94% { transform: rotate(6deg); }
+  97% { transform: rotate(-3deg); }
+}
+#bellBtn.bell--ring { animation: bellRing 3s ease-in-out infinite; transform-origin: 50% 10%; }
+@media (prefers-reduced-motion: reduce) { #bellBtn.bell--ring { animation: none; } }
 .notif-panel { position:absolute; top: 46px; right: 8px; width: min(380px, 92vw); background:#fff;
   border:1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); z-index: 120; overflow:hidden; }
 .notif-panel__head { padding:.7rem .9rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
@@ -1228,6 +1237,13 @@ body.night .nav-item:focus-visible{ outline-color:#5fd8c4; }
 .access{ position:relative; background: var(--g-login); }
 .access::after{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
   background:url(../img/pattern.svg) center center / cover no-repeat; opacity:.10; filter:brightness(1.7); }
+/* Brillos suaves para dar profundidad al fondo (que los lados no se vean planos) */
+.access::before{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(560px 460px at 10% 16%, rgba(255,255,255,.18), transparent 60%),
+    radial-gradient(620px 560px at 90% 86%, rgba(255,255,255,.13), transparent 62%),
+    radial-gradient(420px 420px at 92% 8%, rgba(255,255,255,.10), transparent 60%),
+    radial-gradient(480px 480px at 6% 88%, rgba(0,0,0,.06), transparent 64%); }
 .access > *{ position:relative; z-index:1; }
 .access__main{ display:flex; align-items:center; justify-content:center; padding:2.2rem 1.2rem; }
 .access__stage{ width:min(1080px,100%); }

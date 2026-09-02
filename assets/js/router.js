@@ -87,6 +87,7 @@
     let c = b.querySelector(".bell__count");
     if (n && !c) { c = document.createElement("span"); c.className = "bell__count"; b.appendChild(c); }
     if (c) { if (n) c.textContent = n; else c.remove(); }
+    b.classList.toggle("bell--ring", !!n);
   }
   function updateNavBadges(config, portal) {
     (config.nav || []).forEach(group => (group.items || []).forEach(it => {
@@ -142,7 +143,7 @@
           </span>
         </button>
         <div class="bell">
-          <button class="btn-icon" id="bellBtn" aria-label="Notificaciones">🔔${unread ? `<span class="bell__count">${unread}</span>` : ""}</button>
+          <button class="btn-icon${unread ? " bell--ring" : ""}" id="bellBtn" aria-label="Notificaciones">🔔${unread ? `<span class="bell__count">${unread}</span>` : ""}</button>
         </div>
         <div class="header__user">
           <div class="avatar">${user.foto ? `<img src="${ui.esc(user.foto)}" alt="">` : ui.initials(user.nombre)}</div>

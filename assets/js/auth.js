@@ -42,8 +42,19 @@
         fecha: new Date().toISOString()
       }, { silent: true });
     },
-    markRead(id) { if (id && String(id).indexOf("live-") === 0) return; store().update("notificaciones", id, { leida: true }); },
-    markAllRead(rol) { Notif.unread(rol).forEach(n => Notif.markRead(n.id)); },
+    // Avisos "vivos" (agenda) descartados por la usuaria (para que el contador baje).
+    _dismissed() { try { return JSON.parse(localStorage.getItem("ubpc:notifDismiss") || "[]"); } catch (e) { return []; } },
+    _saveDismissed(arr) { try { localStorage.setItem("ubpc:notifDismiss", JSON.stringify(arr.slice(-300))); } catch (e) {} },
+    isDismissed(id) { return Notif._dismissed().indexOf(id) >= 0; },
+    dismiss(id) { const a = Notif._dismissed(); if (a.indexOf(id) < 0) { a.push(id); Notif._saveDismissed(a); } },
+    markRead(id) {
+      if (id && String(id).indexOf("live-") === 0) { Notif.dismiss(id); return; }  // aviso vivo: se descarta
+      store().update("notificaciones", id, { leida: true });
+    },
+    markAllRead(rol) {
+      Notif.unread(rol).forEach(n => store().update("notificaciones", n.id, { leida: true }));
+      Notif.attention(rol).forEach(n => Notif.dismiss(n.id));  // también los avisos vivos
+    },
 
     // Notificaciones "vivas": lo vencido y lo próximo, calculado desde la Agenda.
     attention(rol) {
@@ -69,7 +80,7 @@
         const rank = p => p === "alta" ? 0 : p === "media" ? 1 : 2;
         items.sort((a, b) => rank(a.prioridad) - rank(b.prioridad) || new Date(a.fecha) - new Date(b.fecha));
       } catch (e) {}
-      return items;
+      return items.filter(n => !Notif.isDismissed(n.id));  // ocultar los ya descartados
     },
     // Contador de la campana: vencidos + hoy + notificaciones no leídas
     badgeCount(rol) {
