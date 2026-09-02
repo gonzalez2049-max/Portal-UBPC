@@ -56,7 +56,13 @@
 
     // Capacitados por estamento (dónde falta cobertura)
     const porEst = {};
-    acts.forEach(a => { const e = a.estamento || "Sin estamento"; porEst[e] = (porEst[e] || 0) + (parseInt(a.personasCapacitadas) || 0); });
+    acts.forEach(a => {
+      if (a.desglose && typeof a.desglose === "object" && Object.keys(a.desglose).length) {
+        Object.keys(a.desglose).forEach(e => { porEst[e] = (porEst[e] || 0) + (parseInt(a.desglose[e]) || 0); });
+      } else {
+        const e = a.estamento || "Sin estamento"; porEst[e] = (porEst[e] || 0) + (parseInt(a.personasCapacitadas) || 0);
+      }
+    });
     const estItems = Object.keys(porEst).map(k => ({ label: k, value: porEst[k] }))
       .sort((a, b) => b.value - a.value);
     const maxEst = Math.max.apply(0, estItems.map(i => i.value)) || 1;
@@ -126,15 +132,67 @@
         { name: "estamento", label: "Estamento", type: "select", options: CAT().estamentos },
         { name: "personasCapacitadas", label: "Personas capacitadas", type: "number" },
         { name: "poblacionObjetivo", label: "Población objetivo", type: "number" },
-        { name: "cobertura", label: "Cobertura (%)" },
+        { name: "cobertura", label: "Cobertura (%) · automática", hint: "Se calcula solo: capacitados ÷ población objetivo." },
         { name: "guia", label: "Guía BPSO", type: "select", options: ["—"].concat(CAT().guiasArea) },
         { name: "responsable", label: "Responsable" },
         { name: "estado", label: "Estado", type: "select", options: ["Pendiente", "En curso", "Completado"] }
       ],
       defaults: () => ({ estado: "Completado", fecha: ui().hoyISO() }),
-      onBeforeSave: (d) => {
+      onFormMount: (m, rec) => {
+        const u = ui();
+        rec = rec || {};
+        const estSel = m.querySelector('[name="estamento"]');
+        const pcInput = m.querySelector('[name="personasCapacitadas"]');
+        const poInput = m.querySelector('[name="poblacionObjetivo"]');
+        const cobInput = m.querySelector('[name="cobertura"]');
+        if (!estSel || !pcInput || !poInput || !cobInput) return;
+        cobInput.readOnly = true; cobInput.style.background = "var(--surface-2)";
+        // Desglose por estamento (cuando es Multiestamento)
+        const ESTS = CAT().estamentos.filter(e => !/multiestamento/i.test(e));
+        const des = rec.desglose || {};
+        const desHTML = `<div class="field" id="cap-des" style="grid-column:1/-1;display:none">
+          <label>Personas capacitadas por estamento</label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.5rem">
+            ${ESTS.map(e => `<div style="display:flex;flex-direction:column;gap:.15rem">
+              <span class="kpi__sub">${u.esc(e)}</span>
+              <input class="input" type="number" min="0" data-des="${u.esc(e)}" value="${des[e] != null ? des[e] : ""}">
+            </div>`).join("")}
+          </div>
+          <div class="kpi__sub" style="margin-top:.3rem">El total de «Personas capacitadas» se suma automáticamente desde este desglose.</div>
+        </div>`;
+        estSel.closest(".field").insertAdjacentHTML("afterend", desHTML);
+        const desBox = m.querySelector("#cap-des");
+        const isMulti = () => /multiestamento/i.test(estSel.value || "");
+        const recompute = () => {
+          if (isMulti()) {
+            desBox.style.display = "";
+            let sum = 0; desBox.querySelectorAll("[data-des]").forEach(i => sum += Number(i.value) || 0);
+            pcInput.value = sum; pcInput.readOnly = true; pcInput.style.background = "var(--surface-2)";
+          } else {
+            desBox.style.display = "none";
+            pcInput.readOnly = false; pcInput.style.background = "";
+          }
+          const po = Number(poInput.value), pc = Number(pcInput.value);
+          cobInput.value = (po > 0 && pc >= 0) ? Math.round(pc / po * 100) + "%" : "";
+        };
+        estSel.addEventListener("change", recompute);
+        poInput.addEventListener("input", recompute);
+        pcInput.addEventListener("input", recompute);
+        desBox.querySelectorAll("[data-des]").forEach(i => i.addEventListener("input", recompute));
+        recompute();
+      },
+      onBeforeSave: (d, rec, m) => {
+        const estSel = m && m.querySelector('[name="estamento"]');
+        const isMulti = /multiestamento/i.test(estSel ? estSel.value : (d.estamento || ""));
+        if (isMulti && m) {
+          const des = {}; let sum = 0;
+          m.querySelectorAll("#cap-des [data-des]").forEach(i => { const v = Number(i.value) || 0; if (v > 0) { des[i.dataset.des] = v; sum += v; } });
+          d.desglose = des; d.personasCapacitadas = sum;
+        } else {
+          delete d.desglose;
+        }
         const po = Number(d.poblacionObjetivo), pc = Number(d.personasCapacitadas);
-        if (po > 0 && pc >= 0 && !d.cobertura) d.cobertura = Math.round(pc / po * 100) + "%";
+        d.cobertura = (po > 0 && pc >= 0) ? Math.round(pc / po * 100) + "%" : "";
         return d;
       }
     });
