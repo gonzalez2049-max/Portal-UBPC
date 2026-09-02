@@ -261,10 +261,47 @@
   }
 
   /* ===================== DASHBOARD RNAO ===================== */
+  // ---- Indicadores RNAO / BPSO (enlazados desde el módulo Indicadores UBPC) ----
+  const _TIPO_ORD = { Estructura: 0, Proceso: 1, Resultado: 2, Impacto: 3 };
+  function indResultado(i) {
+    if (i.numerador != null && i.numerador !== "" && Number(i.denominador) > 0) return Math.round(Number(i.numerador) / Number(i.denominador) * 100);
+    if (i.valorActual != null && i.valorActual !== "" && !isNaN(i.valorActual)) return Math.round(Number(i.valorActual));
+    return null;
+  }
+  function indSemaforo(i) {
+    const cur = indResultado(i);
+    if (cur == null || i.meta == null || i.meta === "") return { c: "var(--neutral)", l: "Sin datos", k: "neutral" };
+    const meta = Number(i.meta), menor = i.sentido === "Menor es mejor";
+    if (menor ? cur <= meta : cur >= meta) return { c: "var(--verde)", l: "En meta", k: "ok" };
+    if (menor ? cur <= meta + 15 : cur >= meta - 15) return { c: "var(--naranjo)", l: "En seguimiento", k: "warn" };
+    return { c: "var(--danger)", l: "Intervención", k: "danger" };
+  }
+  function rnaoIndPanel() {
+    const u = ui();
+    const inds = S().all("indicadores").filter(i => /rnao|bpso/i.test(i.programa || ""))
+      .sort((a, b) => (_TIPO_ORD[a.tipo] != null ? _TIPO_ORD[a.tipo] : 9) - (_TIPO_ORD[b.tipo] != null ? _TIPO_ORD[b.tipo] : 9) || String(a.nombre || "").localeCompare(String(b.nombre || "")));
+    if (!inds.length) return "";
+    const rows = inds.map(i => {
+      const cur = indResultado(i), s = indSemaforo(i);
+      const est = (i.meta != null && i.meta !== "") ? ((i.sentido === "Menor es mejor" ? "≤ " : "≥ ") + i.meta + "%") : "—";
+      return `<tr><td>${u.esc(i.nombre || "—")}${i.codigoNquire ? `<div class="kpi__sub mono">${u.esc(i.codigoNquire)}</div>` : ""}</td>
+        <td><span class="tag">${u.esc(i.tipo || "—")}</span></td>
+        <td class="num">${est}</td>
+        <td class="num"><strong style="color:${s.c}">${cur == null ? "—" : cur + "%"}</strong></td>
+        <td><span class="badge badge--${s.k}">${s.l}</span></td></tr>`;
+    }).join("");
+    return `<div class="card" style="margin-top:1rem;border-top:4px solid #0d6ea8">
+      <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title">🦉 Indicadores RNAO / BPSO</h3>
+        <p class="kpi__sub">Resultado actual de los indicadores del programa. Registra o edita sus mediciones en Indicadores UBPC.</p></div>
+        <a class="btn btn--ghost btn--sm" href="#/coord/indicadores">Ir a Indicadores →</a></div>
+      <div class="table-wrap"><table class="tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th class="right">Estándar</th><th class="right">Resultado</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div>`;
+  }
+
   function dashboard(box) {
     const u = ui();
     const evals = S().all("evaluacionesRNAO");
-    if (!evals.length) { box.innerHTML = u.empty("Sin datos para el dashboard.", "Registra evaluaciones RNAO para ver el análisis institucional.", "📊"); return; }
+    if (!evals.length) { box.innerHTML = u.empty("Sin evaluaciones aún.", "Registra evaluaciones RNAO para ver el análisis institucional.", "📊") + rnaoIndPanel(); return; }
 
     const globals = evals.map(e => ({ e, g: CS().globalCumplimiento(e) })).filter(x => x.g != null);
     const instituc = globals.length ? Math.round(globals.reduce((a, b) => a + b.g, 0) / globals.length) : null;
@@ -351,7 +388,8 @@
         <summary>📉 Ver los ${bajoMeta.length} indicador(es) bajo meta</summary>
         <div class="table-wrap" style="margin-top:.6rem"><table class="tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Guía · Unidad</th><th class="right">%</th></tr></thead><tbody>
           ${bajoMeta.map(c => `<tr><td>${u.esc(c.nombre)}</td><td>${indTipoChip(c.nombre)}</td><td class="kpi__sub">${u.esc(c.guia || "")} · ${u.esc(c.unidad || "")}</td><td class="num"><strong style="color:${sem(c.pct)}">${c.pct}%</strong></td></tr>`).join("")}
-        </tbody></table></div></details>` : `<div class="card" style="margin-top:1rem"><span class="badge badge--ok">✅ Todos los indicadores están en meta.</span></div>`}`;
+        </tbody></table></div></details>` : `<div class="card" style="margin-top:1rem"><span class="badge badge--ok">✅ Todos los indicadores están en meta.</span></div>`}
+      ${rnaoIndPanel()}`;
   }
 
   /* ===================== PLAN DE INTERVENCIÓN RNAO/BPSO ===================== */
