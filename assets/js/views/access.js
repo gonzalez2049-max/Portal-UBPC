@@ -150,22 +150,9 @@
             ${themebarHTML()}
           </div>
 
-          <div class="access__panel">
-            <div class="access__intro">
-              <h2>Bienvenido/a al<br>Portal de Gestión Operativa</h2>
-              <p class="narrativo">Registra, organiza, monitorea y respalda la gestión de la Unidad de Buenas
-              Prácticas Clínicas, manteniendo trazabilidad de responsables, fechas, estados y resultados.</p>
-              <div class="access__frase">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
-              <div class="access__pillars">
-                <span class="access__pillar"><span class="ic">🛡️</span>Seguridad</span>
-                <span class="access__pillar-sep"></span>
-                <span class="access__pillar ev"><span class="ic">🔬</span>Evidencia</span>
-                <span class="access__pillar-sep"></span>
-                <span class="access__pillar cu"><span class="ic">💙</span>Cuidado</span>
-              </div>
-              <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
-            </div>
-            <div class="access__profiles">
+          <div style="display:flex;justify-content:center;padding:.5rem 0 1.2rem">
+            <div class="access__profiles" style="max-width:640px;width:100%;border-radius:22px;box-shadow:0 20px 55px rgba(15,60,50,.18)">
+              <button class="linklike" id="backEntrance" type="button" style="align-self:flex-start;border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:.9rem">← Volver</button>
               ${needsLogin() ? loginInner() : profilesInner(coord, ref, otros)}
             </div>
           </div>
@@ -183,6 +170,8 @@
     // Botón de la pantalla de entrada → muestra la selección de perfil.
     const enterBtn = root.querySelector("#enterBtn");
     if (enterBtn) enterBtn.onclick = () => { try { sessionStorage.setItem("ubpc:entered", "1"); } catch (e) {} U.router.render(); };
+    const backBtn = root.querySelector("#backEntrance");
+    if (backBtn) backBtn.onclick = () => { try { sessionStorage.removeItem("ubpc:entered"); } catch (e) {} U.router.render(); };
     // Gate de ingreso con correo y contraseña (nube)
     const form = root.querySelector("#accLoginForm");
     if (form) {
