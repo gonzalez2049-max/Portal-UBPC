@@ -954,9 +954,70 @@
         { name: "estado", label: "Estado", type: "select", options: ["Activo", "Inactivo"] }
       ],
       defaults: () => ({ estado: "Activo" }),
+      detail: (rec) => championDetalle(rec, box),
       rowActions: [
         { ico: "📋", title: "Ver / registrar participación", fn: (rec) => bitacoraModal(rec, box) }
       ]
+    });
+  }
+
+  // Ficha del Champion: muestra todos sus datos sin necesidad de editar.
+  function championDetalle(rec, box) {
+    const u = ui();
+    const s = champStats(rec.id), a = champAsistencia(rec.id), n = NIVEL[s.nivel];
+    const g = rec.guia ? U.data.guiaColor(rec.guia) : "#5f7d76";
+    const val = v => (v && String(v).trim()) ? u.esc(v) : "—";
+    const compromiso = rec.compromiso === "Sí" ? "✅ Sí" : (rec.compromiso === "No" ? "⛔ No" : "—");
+    const kv = (label, v) => `<div class="cd-row"><span>${label}</span><b>${v}</b></div>`;
+    const css = `<style>
+      .cd{font-size:13.5px}
+      .cd-head{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.9rem}
+      .cd-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.22rem .65rem;border-radius:999px;background:var(--surface-2);font-size:12.5px;font-weight:600;color:var(--text)}
+      .cd-name{font-size:17px;font-weight:800;color:var(--text);margin-bottom:.5rem}
+      .cd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.7rem}
+      .cd-card{border:1px solid var(--border);border-radius:11px;padding:.7rem .85rem;background:var(--surface)}
+      .cd-card--act{border-top:3px solid ${n.color === "var(--neutral)" ? "#9aa5b1" : n.color}}
+      .cd-card__t{font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);margin-bottom:.5rem}
+      .cd-row{display:flex;justify-content:space-between;gap:.7rem;padding:.28rem 0;border-top:1px dashed var(--border);font-size:12.5px}
+      .cd-row:first-of-type{border-top:none}
+      .cd-row span{color:var(--text-muted);white-space:nowrap}
+      .cd-row b{text-align:right;color:var(--text)}
+    </style>`;
+    u.modal({
+      title: "Champion", wide: true,
+      body: `${css}<div class="cd">
+        <div class="cd-name">⭐ ${u.esc(rec.nombre || "—")}</div>
+        <div class="cd-head">
+          ${rec.unidad ? `<span class="cd-chip">🏥 ${u.esc(rec.unidad)}</span>` : ""}
+          ${rec.guia ? `<span class="cd-chip" style="background:${g}1f;color:${g};border:1px solid ${g}55">📘 ${u.esc(rec.guia)}</span>` : ""}
+          ${u.estadoBadge(rec.estado)}
+          <span class="cd-chip" style="color:${n.color}">${n.ic} ${n.label}</span>
+        </div>
+        <div class="cd-grid">
+          <div class="cd-card">
+            <div class="cd-card__t">Datos del Champion</div>
+            ${kv("Estamento", val(rec.estamento))}
+            ${kv("Turno", val(rec.turno))}
+            ${kv("Calidad contractual", val(rec.calidadContractual))}
+            ${kv("Fecha de nombramiento", rec.fechaNombramiento ? u.fechaCL(rec.fechaNombramiento) : "—")}
+            ${kv("¿Aceptó el compromiso?", compromiso)}
+          </div>
+          <div class="cd-card">
+            <div class="cd-card__t">Contacto</div>
+            ${kv("Correo electrónico", val(rec.correo))}
+            ${kv("Teléfono u otro", val(rec.contacto))}
+          </div>
+          <div class="cd-card cd-card--act">
+            <div class="cd-card__t">Actividad</div>
+            ${kv("Participaciones", s.total + " · " + fmtDur(s.horas))}
+            ${kv("Última", s.ultima ? u.fechaCL(s.ultima) + " (hace " + s.dias + " d)" : "—")}
+            ${kv("Nivel", n.ic + " " + n.label)}
+            ${kv("Asistencia a convocatorias", a.tasa == null ? "—" : a.asistio + "/" + a.convocado + " (" + a.tasa + "%)")}
+          </div>
+        </div>
+      </div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button><button class="btn btn--primary" data-bit>📋 Ver / registrar participación</button>`,
+      onMount(m) { const bt = m.querySelector("[data-bit]"); if (bt) bt.onclick = () => { u.closeModal(); bitacoraModal(rec, box); }; }
     });
   }
 
