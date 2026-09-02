@@ -20,7 +20,7 @@
       "Gestión de Casos · Neurología",
       "Todas las unidades"
     ],
-    estamentos: ["Enfermería", "TENS", "Médico", "Kinesiología", "Matrona", "Multiestamento", "Otro"],
+    estamentos: ["Enfermería", "TENS", "Médico", "Kinesiología", "Multiestamento", "Otro"],
     prioridades: ["alta", "media", "baja"],
     guiasArea: ["Lesiones por presión", "Accesos vasculares", "Dolor"],
     pilares: ["Calidad y seguridad", "Gestión del cuidado", "Formación continua",
