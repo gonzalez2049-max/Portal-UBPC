@@ -281,7 +281,7 @@
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           if (!d.titulo) { u.toast("Ingresa el título del boletín", "danger"); return; }
-          if (d.fecha) d.fecha = new Date(d.fecha).toISOString();
+          if (d.fecha) d.fecha = new Date(String(d.fecha).slice(0, 10) + "T12:00:00").toISOString();
           if (rec.id) S().update("edicionesEVIClinico", rec.id, d); else S().insert("edicionesEVIClinico", d, { withCode: true });
           u.closeModal(); u.toast("Boletín EVI Clínico guardado", "ok"); if (onDone) onDone();
         };
@@ -355,7 +355,7 @@
           sync();
           const d = u.readForm(m);
           d.evidencias = evs.filter(ev => ev.trabajo || ev.autores || ev.hallazgo);
-          if (d.fechaEnvio) d.fechaEnvio = new Date(d.fechaEnvio).toISOString();
+          if (d.fechaEnvio) d.fechaEnvio = new Date(String(d.fechaEnvio).slice(0, 10) + "T12:00:00").toISOString();
           if (rec.id) S().update("edicionesEVI", rec.id, d); else S().insert("edicionesEVI", d, { withCode: true });
           u.closeModal(); u.toast("Edición EVI guardada", "ok"); if (onDone) onDone();
         };

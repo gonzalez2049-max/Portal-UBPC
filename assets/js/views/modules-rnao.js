@@ -250,8 +250,8 @@
             return { nombre: n, tipo, denominador: Number(den), cumplen: Number(val(idx, "cumplen") || 0),
               noCumplen: Number(val(idx, "noCumplen") || 0), noAplica: Number(val(idx, "noAplica") || 0) };
           }).filter(Boolean);
-          if (d.fecha) d.fecha = new Date(d.fecha).toISOString();
-          if (d.proximaMedicion) d.proximaMedicion = new Date(d.proximaMedicion).toISOString();
+          if (d.fecha) d.fecha = new Date(String(d.fecha).slice(0, 10) + "T12:00:00").toISOString();
+          if (d.proximaMedicion) d.proximaMedicion = new Date(String(d.proximaMedicion).slice(0, 10) + "T12:00:00").toISOString();
           if (!d.periodo) { u.toast("Indica el periodo de evaluación", "danger"); return; }
           if (rec.id) S().update("evaluacionesRNAO", rec.id, d); else S().insert("evaluacionesRNAO", d);
           u.closeModal(); u.toast("Evaluación guardada", "ok"); if (onDone) onDone();
