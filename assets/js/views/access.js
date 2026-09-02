@@ -47,8 +47,10 @@
   // pero solo en equipos ya conectados a la nube (para no bloquear el acceso
   // en un equipo nuevo antes de configurarlo).
   const AUTH_FLAG = "ubpc:portalAuthed";
-  function portalAuthed() { try { return sessionStorage.getItem(AUTH_FLAG) === "1"; } catch (e) { return false; } }
-  function setPortalAuthed(on) { try { on ? sessionStorage.setItem(AUTH_FLAG, "1") : sessionStorage.removeItem(AUTH_FLAG); } catch (e) {} }
+  // Se guarda en localStorage para que el "recordado" dure entre días (no se
+  // pierde al cerrar el navegador). Solo se borra al usar «Salir».
+  function portalAuthed() { try { return localStorage.getItem(AUTH_FLAG) === "1"; } catch (e) { return false; } }
+  function setPortalAuthed(on) { try { on ? localStorage.setItem(AUTH_FLAG, "1") : localStorage.removeItem(AUTH_FLAG); } catch (e) {} }
   // Solo se pide contraseña al entrar si la usuaria lo activó (por defecto, no).
   function needsLogin() {
     return !!(U.cloud && U.cloud.configured() && U.store.getConfig("pedirClaveIngreso", false) && !portalAuthed());
@@ -79,7 +81,53 @@
       </div>`;
   }
 
+  // Pantalla de entrada (portada) que se muestra antes de elegir el perfil.
+  function hasEntered() { try { return sessionStorage.getItem("ubpc:entered") === "1"; } catch (e) { return false; } }
+  function entranceScreen() {
+    return `
+    <div class="access access--entrance">
+      <div class="franja"></div>
+      <div class="access__main">
+        <div class="access__stage">
+          <div class="access__topbar">
+            <div class="access__brand">
+              <div class="access__logo"><img src="assets/img/huap-logo.png" alt="Hospital de Urgencia Asistencia Pública"></div>
+              <div>
+                <div class="access__eyebrow">Centro de Operaciones · HUAP</div>
+                <h1 class="access__title">Unidad de Buenas Prácticas Clínicas</h1>
+                <div class="access__sub">Hospital de Urgencia Asistencia Pública</div>
+              </div>
+            </div>
+            ${themebarHTML()}
+          </div>
+          <div class="access__panel" style="justify-content:center">
+            <div class="access__intro" style="text-align:center;max-width:660px;margin:0 auto">
+              <h2>Bienvenido/a al<br>Portal de Gestión Operativa</h2>
+              <p class="narrativo">Registra, organiza, monitorea y respalda la gestión de la Unidad de Buenas
+              Prácticas Clínicas, manteniendo trazabilidad de responsables, fechas, estados y resultados.</p>
+              <div class="access__frase">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</div>
+              <div class="access__pillars" style="justify-content:center">
+                <span class="access__pillar"><span class="ic">🛡️</span>Seguridad</span>
+                <span class="access__pillar-sep"></span>
+                <span class="access__pillar ev"><span class="ic">🔬</span>Evidencia</span>
+                <span class="access__pillar-sep"></span>
+                <span class="access__pillar cu"><span class="ic">💙</span>Cuidado</span>
+              </div>
+              <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
+              <div style="margin-top:1.3rem">
+                <button class="btn btn--primary" id="enterBtn" style="font-size:1.05rem;padding:.75rem 1.8rem;border-radius:12px">Ingresar al portal →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="franja"></div>
+      <div class="access__foot">Portal de Gestión Operativa · UBPC · HUAP</div>
+    </div>`;
+  }
+
   function access() {
+    if (!hasEntered()) return entranceScreen();
     const perfiles = U.auth.perfiles();
     const coord = perfiles.filter(p => p.rol === "coordinador");
     const ref = perfiles.filter(p => p.rol === "referente");
@@ -132,6 +180,9 @@
 
   function accessBind(root) {
     const ui = U.ui;
+    // Botón de la pantalla de entrada → muestra la selección de perfil.
+    const enterBtn = root.querySelector("#enterBtn");
+    if (enterBtn) enterBtn.onclick = () => { try { sessionStorage.setItem("ubpc:entered", "1"); } catch (e) {} U.router.render(); };
     // Gate de ingreso con correo y contraseña (nube)
     const form = root.querySelector("#accLoginForm");
     if (form) {
