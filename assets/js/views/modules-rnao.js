@@ -845,6 +845,20 @@
     inactivo: { label: "Inactivo", color: "var(--danger)", ic: "🔴" },
     sindatos: { label: "Sin actividad aún", color: "var(--neutral)", ic: "⚪" }
   };
+  // Duración: se guarda internamente en horas (decimal) pero se ingresa en
+  // minutos u horas, para permitir micro-capacitaciones (ej. 5 minutos).
+  function durToHoras(val, unidad) {
+    const n = Number(val);
+    if (isNaN(n) || n <= 0) return 0;
+    return unidad === "horas" ? n : n / 60;
+  }
+  function fmtDur(h) {
+    const mins = Math.round((Number(h) || 0) * 60);
+    if (mins <= 0) return "0 min";
+    if (mins < 60) return mins + " min";
+    const hh = Math.floor(mins / 60), mm = mins % 60;
+    return hh + " h" + (mm ? " " + mm + " min" : "");
+  }
   function champStats(champId) {
     const evs = champEventos(champId);
     const horas = evs.reduce((a, e) => a + (e.horas || 0), 0);
@@ -921,7 +935,7 @@
         { key: "nombre", label: "Nombre" },
         { key: "unidad", label: "Unidad" },
         { key: "guia", label: "Guía", render: (r, uu) => { const g = U.data.guiaColor(r.guia); return `<span class="tag" style="background:${g}1f;color:${g};border:1px solid ${g}55">${uu.esc(r.guia || "—")}</span>`; } },
-        { key: "part", label: "Participaciones", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${s.horas}h`; }, exportVal: r => champStats(r.id).total },
+        { key: "part", label: "Participaciones", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${fmtDur(s.horas)}`; }, exportVal: r => champStats(r.id).total },
         { key: "ultima", label: "Última", center: true, render: (r, uu) => { const s = champStats(r.id); return s.ultima ? `${uu.fechaCL(s.ultima)}<br><span class="kpi__sub">hace ${s.dias} d</span>` : "—"; }, exportVal: r => { const s = champStats(r.id); return s.ultima ? ui().fechaCL(s.ultima) : ""; } },
         { key: "nivel", label: "Actividad", center: true, render: r => { const n = NIVEL[champStats(r.id).nivel]; return `<span class="doc-estado" style="--ec:${n.color}">${n.ic} ${n.label}</span>`; }, exportVal: r => NIVEL[champStats(r.id).nivel].label },
         { key: "estado", label: "Estado", badge: true }
@@ -955,12 +969,12 @@
       const n = NIVEL[s.nivel];
       const filas = evs.length ? evs.map(e => `<tr>
           <td>${u.fechaCL(e.fecha)}</td><td>${u.esc(e.tipo || "—")}</td>
-          <td>${u.esc(e.tema || "—")}</td><td class="num">${e.horas || 0}h</td>
+          <td>${u.esc(e.tema || "—")}</td><td class="num">${fmtDur(e.horas)}</td>
           <td>${/lider/i.test(e.rol || "") ? "⭐ Lideró" : "Asistió"}</td>
           <td class="right">${e.origen === "bitacora" ? `<button class="btn-icon" data-delp="${e.id}" title="Quitar">🗑️</button>` : `<span class="tag" title="Desde convocatoria">📅</span>`}</td>
         </tr>`).join("") : `<tr><td colspan="6" class="muted">Sin participaciones registradas todavía.</td></tr>`;
       return `<div class="dl" style="margin-bottom:.6rem">
-          <div><span>Participaciones</span><strong>${s.total} · ${s.horas}h</strong></div>
+          <div><span>Participaciones</span><strong>${s.total} · ${fmtDur(s.horas)}</strong></div>
           <div><span>Última</span><strong>${s.ultima ? u.fechaCL(s.ultima) + " (hace " + s.dias + " d)" : "—"}</strong></div>
           <div><span>Actividad</span><strong style="color:${n.color}">${n.ic} ${n.label}</strong></div>
           <div><span>Asistencia a convocatorias</span><strong>${a.tasa == null ? "—" : a.asistio + "/" + a.convocado + " (" + a.tasa + "%)"}</strong></div>
@@ -990,15 +1004,17 @@
         { name: "fecha", label: "Fecha", type: "date", value: u.hoyISO(), required: true },
         { name: "tipo", label: "Tipo", type: "select", options: CH_TIPOS, required: true },
         { name: "rol", label: "Rol", type: "select", options: CH_ROLES },
-        { name: "horas", label: "Horas", type: "number" },
+        { name: "duracion", label: "Duración", type: "number", attrs: 'min="0" step="1" placeholder="Ej: 5"' },
+        { name: "duracionUnidad", label: "Unidad", type: "select", options: ["minutos", "horas"] },
         { name: "tema", label: "Tema / actividad", full: true },
         { name: "evidencia", label: "Evidencia / enlace", full: true }
-      ], { rol: "Asistió" }),
+      ], { rol: "Asistió", duracionUnidad: "minutos" }),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
       onMount(m) {
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           if (!d.fecha || !d.tipo) { u.toast("Fecha y tipo son obligatorios", "danger"); return; }
+          d.horas = durToHoras(d.duracion, d.duracionUnidad); delete d.duracion; delete d.duracionUnidad;
           S().insert("participacionChampion", Object.assign({ championId: champ.id }, d));
           u.toast("Participación registrada", "ok");
           if (onDone) onDone();
@@ -1029,9 +1045,10 @@
         { name: "tema", label: "Tema / motivo", full: true },
         { name: "unidad", label: "Unidad", type: "select", options: ["—"].concat(CAT().unidades) },
         { name: "guia", label: "Guía", type: "select", options: ["—"].concat(CAT().guiasArea) },
-        { name: "horas", label: "Horas", type: "number" }
+        { name: "duracion", label: "Duración", type: "number", attrs: 'min="0" step="1" placeholder="Ej: 5"' },
+        { name: "duracionUnidad", label: "Unidad", type: "select", options: ["minutos", "horas"] }
       ],
-      defaults: () => ({ fecha: u.hoyISO() }),
+      defaults: () => ({ fecha: u.hoyISO(), duracionUnidad: "minutos" }),
       onFormMount: (m, rec) => injectAsistencia(m, rec),
       onBeforeSave: (data, rec, m) => {
         const conv = [], asis = [];
@@ -1043,6 +1060,7 @@
         data.convocados = conv; data.asistentes = asis;
         if (data.unidad === "—") data.unidad = "";
         if (data.guia === "—") data.guia = "";
+        data.horas = durToHoras(data.duracion, data.duracionUnidad); delete data.duracion; delete data.duracionUnidad;
         return data;
       }
     });
