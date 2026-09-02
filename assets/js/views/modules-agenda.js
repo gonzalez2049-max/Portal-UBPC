@@ -111,6 +111,64 @@
     });
   }
 
+  /* ===================== RECORDATORIOS (notificaciones del navegador) =====================
+     Avisan de lo de hoy y lo vencido aunque el portal esté abierto en segundo plano.
+     Se piden permiso una vez; luego se disparan al abrir y cada 30 min. */
+  const REM_KEY = "ubpc:remindersOn", REM_LOG = "ubpc:remindersLog";
+  function remSupported() { return typeof window !== "undefined" && "Notification" in window; }
+  function remOn() { try { return localStorage.getItem(REM_KEY) === "1" && remSupported() && Notification.permission === "granted"; } catch (e) { return false; } }
+  function remLog() { try { return JSON.parse(localStorage.getItem(REM_LOG) || "{}"); } catch (e) { return {}; } }
+  function remSaveLog(o) { try { localStorage.setItem(REM_LOG, JSON.stringify(o)); } catch (e) {} }
+  function enableReminders(cb) {
+    if (!remSupported()) { ui().toast("Este dispositivo no admite recordatorios del navegador", "warn"); if (cb) cb(); return; }
+    Notification.requestPermission().then(p => {
+      if (p === "granted") { try { localStorage.setItem(REM_KEY, "1"); } catch (e) {} ui().toast("Recordatorios activados ✓", "ok"); checkReminders(); }
+      else ui().toast("Permiso de notificaciones denegado por el navegador", "warn");
+      if (cb) cb();
+    }).catch(() => { if (cb) cb(); });
+  }
+  function disableReminders() { try { localStorage.setItem(REM_KEY, "0"); } catch (e) {} ui().toast("Recordatorios desactivados", "info"); }
+  function checkReminders() {
+    if (!remOn()) return;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayKey = today.getFullYear() + "-" + pad(today.getMonth() + 1) + "-" + pad(today.getDate());
+    const log = remLog(); const dayLog = log[todayKey] || {};
+    let fired = 0;
+    buildEvents().forEach(e => {
+      if (!e.d || e.done) return;
+      const over = e.deadline && e.d < today;
+      if (!(e.iso === todayKey || over)) return;
+      const k = e.id || (e.tipo + "-" + e.iso + "-" + e.titulo);
+      if (dayLog[k]) return;
+      try {
+        new Notification(over ? "⏰ Plazo vencido · UBPC" : "📅 Hoy en la agenda · UBPC", {
+          body: (e.hora ? e.hora + " · " : "") + e.titulo + (over ? " (plazo vencido)" : ""),
+          icon: "assets/img/huap-logo.png", tag: "ubpc-" + k
+        });
+        dayLog[k] = 1; fired++;
+      } catch (err) {}
+    });
+    if (fired) { log[todayKey] = dayLog; remSaveLog(log); }
+  }
+  // Resumen breve al abrir el portal (toast), aunque no haya permiso de notificaciones.
+  function resumenHoy() {
+    try {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const in8 = new Date(today); in8.setDate(in8.getDate() + 8);
+      const evs = buildEvents();
+      const hoy = evs.filter(e => e.iso === (today.getFullYear() + "-" + pad(today.getMonth() + 1) + "-" + pad(today.getDate())) && !e.done).length;
+      const venc = evs.filter(e => e.deadline && !e.done && e.d < today).length;
+      const prox = evs.filter(e => e.d >= today && e.d < in8 && !e.done).length;
+      if (hoy || venc) {
+        const partes = [];
+        if (hoy) partes.push(hoy + " hoy");
+        if (venc) partes.push(venc + " vencido" + (venc > 1 ? "s" : ""));
+        if (prox && !hoy) partes.push(prox + " esta semana");
+        ui().toast("📅 Agenda: " + partes.join(" · "), venc ? "danger" : "info");
+      }
+    } catch (e) {}
+  }
+
   function agenda() {
     return `<div class="page-head"><h1>Agenda UBPC</h1>
       <p>Reuniones, plazos, acciones, evaluaciones y actividades de todos los módulos — más tus propios eventos y recordatorios.</p></div>
@@ -120,7 +178,7 @@
   function agendaBind() {
     const container = document.getElementById("agenda-body");
     const u = ui();
-    let monthOffset = 0, selIso = null, hiddenTypes = {}, showProx = false;
+    let monthOffset = 0, selIso = null, hiddenTypes = {}, showProx = true;
 
     const draw = () => {
       const events = buildEvents().filter(e => !hiddenTypes[e.tipo]);
@@ -233,12 +291,17 @@
       const legend = `<div class="agc-legend-t">Filtra por tipo (toca para mostrar/ocultar):</div>` +
         `<div class="agc-legend">${Object.keys(TIPO).map(k => `<button class="agc-leg${hiddenTypes[k] ? " is-off" : ""}" data-legtype="${k}" style="--lc:${TIPO[k].c}" type="button" title="Mostrar u ocultar ${TIPO[k].lab}"><i></i>${TIPO[k].lab}</button>`).join("")}</div>`;
 
+      const remActivo = remOn();
       container.innerHTML = `
         <div class="grid grid--kpi" style="margin-bottom:1rem">
           ${kpi("Próximos", proximos, "Eventos desde hoy", "info", "🗓️")}
           ${kpi("En 7 días", venc7, "Esta semana", "warn", "⏳")}
           ${kpi("Vencidos", vencidos.length, "Plazos sin cerrar", vencidos.length ? "danger" : "ok", "⏰")}
           ${kpi("Este mes", mesEventos, MESES[mo] + " " + y, "info", "📆")}
+        </div>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:.5rem;margin-bottom:.7rem;flex-wrap:wrap">
+          <span class="kpi__sub" style="margin-right:auto">${remActivo ? "🔔 Recibirás avisos de lo de hoy y lo vencido." : "🔕 Activa los recordatorios para que el portal te avise."}</span>
+          <button class="btn btn--${remActivo ? "ghost" : "primary"} btn--sm" id="agc-remind">${remActivo ? "🔔 Recordatorios activados" : "🔔 Activar recordatorios"}</button>
         </div>
         <div class="card agc-cal-card">
           <div class="agc-cal-head">
@@ -261,6 +324,8 @@
 
       document.getElementById("agc-prev").onclick = () => { monthOffset--; selIso = null; draw(); };
       document.getElementById("agc-next").onclick = () => { monthOffset++; selIso = null; draw(); };
+      const rem = document.getElementById("agc-remind");
+      if (rem) rem.onclick = () => { if (remOn()) { disableReminders(); draw(); } else { enableReminders(draw); } };
       const clr = document.getElementById("agc-clear"); if (clr) clr.onclick = () => { selIso = null; draw(); };
       const sp = document.getElementById("agc-showprox"); if (sp) sp.onclick = () => { showProx = true; draw(); };
       const hp = document.getElementById("agc-hideprox"); if (hp) hp.onclick = () => { showProx = false; draw(); };
@@ -319,4 +384,8 @@
   U.coord.binders.agenda = agendaBind;
   U.agenda = U.agenda || {};
   U.agenda.buildEvents = buildEvents;   // reutilizable por el Home (próximos eventos)
+  U.agenda.checkReminders = checkReminders;   // recordatorios (notificaciones del navegador)
+  U.agenda.enableReminders = enableReminders;
+  U.agenda.remOn = remOn;
+  U.agenda.resumenHoy = resumenHoy;
 })();

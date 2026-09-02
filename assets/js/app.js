@@ -90,6 +90,19 @@
     if (U.cloud && U.cloud.configured() && U.cloud.signedIn()) {
       U.cloud.initialSync().then(r => { if (r && r.adopted) U.router.render(); });
     }
+    // Recordatorios de agenda: resumen al abrir + notificaciones del navegador,
+    // y revisión periódica mientras el portal esté abierto.
+    if (U.agenda) {
+      try {
+        if (U.auth && U.auth.isCoordinador && U.auth.isCoordinador()) {
+          setTimeout(() => { if (U.agenda.resumenHoy) U.agenda.resumenHoy(); }, 1500);
+        }
+        if (U.agenda.checkReminders) {
+          U.agenda.checkReminders();
+          setInterval(U.agenda.checkReminders, 30 * 60 * 1000);
+        }
+      } catch (e) {}
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
