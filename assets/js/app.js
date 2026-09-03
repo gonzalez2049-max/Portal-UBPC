@@ -83,6 +83,18 @@
   function boot() {
     Theme.apply();
     Storage.ensurePersist();
+    // Enlace de conexión rápida: ?conn=<base64(url|clave)> rellena la conexión a la
+    // nube al abrir (útil en equipos que borran los datos del navegador cada día).
+    try {
+      const params = new URLSearchParams(location.search);
+      const conn = params.get("conn");
+      if (conn && U.cloud && !U.cloud.configured()) {
+        const dec = decodeURIComponent(escape(atob(conn.replace(/-/g, "+").replace(/_/g, "/"))));
+        const i = dec.indexOf("|");
+        if (i > 0) { U.cloud.setConfig(dec.slice(0, i), dec.slice(i + 1)); }
+      }
+      if (conn) { params.delete("conn"); const qs = params.toString(); history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash); }
+    } catch (e) {}
     U.data.seedIfEmpty();
     window.addEventListener("hashchange", U.router.render);
     U.router.render();

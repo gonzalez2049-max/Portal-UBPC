@@ -552,12 +552,15 @@
           <div class="field"><label>Contraseña</label><input class="input" id="cloudPass" type="password" placeholder="••••••••"></div>
         </div>
         <div class="btn-row"><button class="btn btn--primary" id="cloudSignIn">Iniciar sesión</button>
+          <button class="btn btn--ghost btn--sm" id="cloudLink">🔗 Copiar enlace de conexión</button>
           <button class="btn btn--ghost btn--sm" id="cloudReset">Cambiar conexión</button></div>`;
     } else {
       inner = `<div style="margin-bottom:.5rem"><span class="storage-badge storage-badge--ok">☁️ Conectado como <strong>${u.esc(C.email())}</strong></span></div>
         <p class="card__hint" id="cloudStatus">${cloudStatusText(C.status())}</p>
+        <p class="card__hint">💡 Si este equipo borra los datos del navegador cada día, copia el <strong>enlace de conexión</strong> y guárdalo como marcador: al abrirlo, la URL y la clave se rellenan solas (solo escribes tu contraseña).</p>
         <div class="btn-row">
           <button class="btn btn--primary btn--sm" id="cloudSync">🔄 Sincronizar ahora</button>
+          <button class="btn btn--ghost btn--sm" id="cloudLink">🔗 Copiar enlace de conexión</button>
           <button class="btn btn--ghost btn--sm" id="cloudSignOut">Cerrar sesión en la nube</button>
         </div>`;
     }
@@ -589,6 +592,16 @@
         if (r && r.error) u.toast(r.error, "danger");
         U.router.render();
       } catch (e) { u.toast(e.message || "No se pudo iniciar sesión", "danger"); signIn.disabled = false; signIn.textContent = "Iniciar sesión"; }
+    };
+    const link = document.getElementById("cloudLink");
+    if (link) link.onclick = () => {
+      const c = C.getConfig && C.getConfig();
+      if (!c || !c.url || !c.anonKey) { u.toast("Primero guarda la conexión (URL y clave)", "warn"); return; }
+      let b64; try { b64 = btoa(unescape(encodeURIComponent(c.url + "|" + c.anonKey))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); } catch (e) { u.toast("No se pudo generar el enlace", "danger"); return; }
+      const enlace = location.origin + location.pathname + "?conn=" + b64 + "#/coord/config";
+      const ok = () => u.toast("Enlace copiado ✅ Guárdalo como marcador ⭐", "ok");
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(enlace).then(ok).catch(() => window.prompt("Copia este enlace y guárdalo como marcador:", enlace));
+      else window.prompt("Copia este enlace y guárdalo como marcador:", enlace);
     };
     const reset = document.getElementById("cloudReset");
     if (reset) reset.onclick = () => { C.clearAll(); U.router.render(); };

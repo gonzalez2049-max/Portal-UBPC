@@ -210,9 +210,12 @@
   // Se conecta al guardado local: cada cambio programa una subida.
   U.store.onPersist(schedulePush);
 
+  // Config actual (URL + clave pública, ambos NO secretos) para el "enlace de conexión".
+  function getConfig() { return cfg ? { url: cfg.url, anonKey: cfg.anonKey } : null; }
+
   U.cloud = {
     configured, signedIn, email, status, onStatus,
-    setConfig, clearAll, signIn, signOut,
+    setConfig, getConfig, clearAll, signIn, signOut,
     initialSync, syncNow, schedulePush
   };
 })();
