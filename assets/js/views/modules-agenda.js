@@ -113,6 +113,85 @@
     });
   }
 
+  // Fila de un evento en las listas (día, próximos, vencidos). Reutilizable.
+  function itemHTML(e, today, u) {
+    const m = TIPO[e.tipo], over = e.deadline && !e.done && e.d < today;
+    const dias = Math.round((e.d - today) / 86400000);
+    const cuando = over ? `<span class="agc-when over">Vencido</span>`
+      : dias === 0 ? `<span class="agc-when hoy">Hoy</span>`
+      : dias === 1 ? `<span class="agc-when">Mañana</span>`
+      : dias > 0 ? `<span class="agc-when">En ${dias} días</span>` : "";
+    const meta = `${u.fechaCL(e.d)}${e.hora ? " · " + u.esc(e.hora) : ""} · ${m.lab}`;
+    if (e.propio) {
+      return `<div class="agc-item" style="--tc:${m.c}">
+        <span class="agc-item__ic">${m.ic}</span>
+        <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
+          <span class="agc-item__meta">${meta}${e.nota ? " · " + u.esc(e.nota) : ""}</span></div>
+        ${cuando}
+        <span class="agc-item__acts"><button class="btn btn--ghost btn--sm" data-evedit="${e.id}" title="Editar">✏️</button>
+        <button class="btn btn--ghost btn--sm" data-evdel="${e.id}" title="Eliminar">🗑️</button></span></div>`;
+    }
+    // Con origen editable (tarea, acción, plan): ofrece Editar fecha / Eliminar /
+    // Ir al registro, en vez de navegar directamente al módulo.
+    if (e.col && e.dateField) {
+      const key = e.col + "|" + e.rid + "|" + e.dateField;
+      return `<div class="agc-item${over ? " agc-item--venc" : ""}" style="--tc:${m.c}">
+        <span class="agc-item__ic">${m.ic}</span>
+        <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
+          <span class="agc-item__meta">${meta}</span></div>
+        ${cuando}
+        <span class="agc-item__acts">
+          <button class="btn btn--ghost btn--sm" data-vfecha="${key}" title="Editar fecha">📅 Fecha</button>
+          <button class="btn btn--ghost btn--sm" data-vdel="${e.col}|${e.rid}" title="Eliminar">🗑️</button>
+          ${e.ruta ? `<a class="btn btn--ghost btn--sm" href="${e.ruta}" title="Ir al registro">↗</a>` : ""}
+        </span></div>`;
+    }
+    return `<a class="agc-item" href="${e.ruta}" style="--tc:${m.c}">
+      <span class="agc-item__ic">${m.ic}</span>
+      <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
+        <span class="agc-item__meta">${meta}</span></div>
+      ${cuando}</a>`;
+  }
+
+  // Enlaza las acciones (editar/eliminar) de las filas de eventos dentro de un contenedor.
+  function bindItemActions(root, done) {
+    const u = ui();
+    root.querySelectorAll("[data-evedit]").forEach(b => b.onclick = () => eventoForm(S().get("agendaEventos", b.dataset.evedit), done));
+    root.querySelectorAll("[data-evdel]").forEach(b => b.onclick = () =>
+      u.confirmDelete("¿Eliminar este evento?", () => { S().remove("agendaEventos", b.dataset.evdel); done(); }));
+    root.querySelectorAll("[data-vfecha]").forEach(b => b.onclick = () => {
+      const [col, rid, field] = b.dataset.vfecha.split("|");
+      editarFechaVencido(col, rid, field, done);
+    });
+    root.querySelectorAll("[data-vdel]").forEach(b => b.onclick = () => {
+      const [col, rid] = b.dataset.vdel.split("|");
+      u.confirmDelete("¿Eliminar este registro vencido? Se quita de forma permanente.", () => { S().remove(col, rid); done(); });
+    });
+  }
+
+  // Ventana emergente del día: muestra lo agendado y permite agregar AHÍ mismo,
+  // sin usar el panel de abajo. `onChange` refresca el calendario tras cambios.
+  function dayModal(iso, onChange) {
+    const u = ui();
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const evs = buildEvents().filter(e => e.iso === iso);
+    const body = evs.length
+      ? `<div class="agc-list">${evs.map(e => itemHTML(e, today, u)).join("")}</div>`
+      : `<div class="agc-empty" style="padding:1rem .4rem"><span>📅</span>
+          <p>No hay nada agendado este día. Agrégalo con el botón de abajo.</p></div>`;
+    u.modal({
+      title: "📅 " + u.fechaCL(dateFromIso(iso)),
+      body,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
+        <button class="btn btn--primary" id="agc-modaladd">＋ Agregar evento este día</button>`,
+      onMount(m) {
+        m.querySelector("#agc-modaladd").onclick = () => eventoForm(null, onChange, iso);
+        // Editar/eliminar cierran esta ventana (los modales no se apilan) y refrescan.
+        bindItemActions(m, () => { u.closeModal(); onChange(); });
+      }
+    });
+  }
+
   /* ===================== RECORDATORIOS (notificaciones del navegador) =====================
      Avisan de lo de hoy y lo vencido aunque el portal esté abierto en segundo plano.
      Se piden permiso una vez; luego se disparan al abrir y cada 30 min. */
@@ -180,7 +259,7 @@
   function agendaBind() {
     const container = document.getElementById("agenda-body");
     const u = ui();
-    let monthOffset = 0, selIso = null, hiddenTypes = {}, showProx = true;
+    let monthOffset = 0, hiddenTypes = {}, showProx = true;
 
     const draw = () => {
       const events = buildEvents().filter(e => !hiddenTypes[e.tipo]);
@@ -216,68 +295,23 @@
             title="${u.esc(e.titulo)} · ${m.lab}">${label}</span>`;
         }).join("");
         const more = evs.length > MAXCHIP ? `<span class="agc-more">+${evs.length - MAXCHIP} más</span>` : "";
-        cells += `<div class="agc-day${isToday ? " is-today" : ""}${evs.length ? " has-ev" : ""}${selIso === iso ? " is-sel" : ""}${overdue ? " is-over" : ""}"
+        cells += `<div class="agc-day${isToday ? " is-today" : ""}${evs.length ? " has-ev" : ""}${overdue ? " is-over" : ""}"
           data-iso="${iso}" title="Ver / agregar evento el ${dnum}">
           <span class="agc-day__n">${dnum}</span>
           <div class="agc-day__evs">${chips}${more}</div>
           ${evs.length ? "" : `<span class="agc-day__add">＋</span>`}</div>`;
       }
 
-      // ---- Detalle del día seleccionado / próximos (bajo el calendario) ----
-      const dayEvents = selIso ? (byIso[selIso] || []) : [];
+      // ---- Próximos eventos (bajo el calendario) ----
       const proxEvents = events.filter(e => e.d >= today).slice(0, 15);
-      const itemHTML = e => {
-        const m = TIPO[e.tipo], over = e.deadline && !e.done && e.d < today;
-        const dias = Math.round((e.d - today) / 86400000);
-        const cuando = over ? `<span class="agc-when over">Vencido</span>`
-          : dias === 0 ? `<span class="agc-when hoy">Hoy</span>`
-          : dias === 1 ? `<span class="agc-when">Mañana</span>`
-          : dias > 0 ? `<span class="agc-when">En ${dias} días</span>` : "";
-        const meta = `${u.fechaCL(e.d)}${e.hora ? " · " + u.esc(e.hora) : ""} · ${m.lab}`;
-        if (e.propio) {
-          return `<div class="agc-item" style="--tc:${m.c}">
-            <span class="agc-item__ic">${m.ic}</span>
-            <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
-              <span class="agc-item__meta">${meta}${e.nota ? " · " + u.esc(e.nota) : ""}</span></div>
-            ${cuando}
-            <span class="agc-item__acts"><button class="btn btn--ghost btn--sm" data-evedit="${e.id}" title="Editar">✏️</button>
-            <button class="btn btn--ghost btn--sm" data-evdel="${e.id}" title="Eliminar">🗑️</button></span></div>`;
-        }
-        // Con origen editable (tarea, acción, plan): ofrece Editar fecha / Eliminar /
-        // Ir al registro, en vez de navegar directamente al módulo.
-        if (e.col && e.dateField) {
-          const key = e.col + "|" + e.rid + "|" + e.dateField;
-          return `<div class="agc-item${over ? " agc-item--venc" : ""}" style="--tc:${m.c}">
-            <span class="agc-item__ic">${m.ic}</span>
-            <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
-              <span class="agc-item__meta">${meta}</span></div>
-            ${cuando}
-            <span class="agc-item__acts">
-              <button class="btn btn--ghost btn--sm" data-vfecha="${key}" title="Editar fecha">📅 Fecha</button>
-              <button class="btn btn--ghost btn--sm" data-vdel="${e.col}|${e.rid}" title="Eliminar">🗑️</button>
-              ${e.ruta ? `<a class="btn btn--ghost btn--sm" href="${e.ruta}" title="Ir al registro">↗</a>` : ""}
-            </span></div>`;
-        }
-        return `<a class="agc-item" href="${e.ruta}" style="--tc:${m.c}">
-          <span class="agc-item__ic">${m.ic}</span>
-          <div class="agc-item__body"><strong>${u.esc(e.titulo)}</strong>
-            <span class="agc-item__meta">${meta}</span></div>
-          ${cuando}</a>`;
-      };
-      // Contenido del panel inferior según el modo (día seleccionado · próximos · pista)
+      // Panel inferior: solo próximos eventos (o pista). El detalle de cada día
+      // ahora se abre en una ventana al hacer clic en el día, no aquí abajo.
       let panelTitle, panelActions, panelBody;
-      if (selIso) {
-        panelTitle = "Eventos del " + u.fechaCL(dateFromIso(selIso));
-        panelActions = `<button class="btn btn--ghost btn--sm" id="agc-clear">✕ Cerrar día</button>
-          <button class="btn btn--primary btn--sm" id="agc-addday">+ Agregar este día</button>`;
-        panelBody = dayEvents.length ? `<div class="agc-list">${dayEvents.map(itemHTML).join("")}</div>`
-          : `<div class="agc-empty"><span>📅</span><p>Sin eventos el ${u.fechaCL(dateFromIso(selIso))}.</p>
-              <button class="btn btn--primary btn--sm" id="agc-addday2">+ Agregar evento este día</button></div>`;
-      } else if (showProx) {
+      if (showProx) {
         panelTitle = "Próximos eventos";
         panelActions = `<button class="btn btn--ghost btn--sm" id="agc-hideprox">Ocultar</button>
           <button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`;
-        panelBody = proxEvents.length ? `<div class="agc-list">${proxEvents.map(itemHTML).join("")}</div>`
+        panelBody = proxEvents.length ? `<div class="agc-list">${proxEvents.map(e => itemHTML(e, today, u)).join("")}</div>`
           : `<p class="muted" style="padding:.6rem">Sin eventos próximos.</p>`;
       } else {
         panelTitle = "Agenda del mes";
@@ -288,7 +322,7 @@
 
       const vencHTML = vencidos.length ? `<div class="card agc-venc" style="border-left:4px solid var(--danger)">
           <h3 class="card__title" style="color:var(--danger);margin:0 0 .4rem">⏰ Vencidos (${vencidos.length})</h3>
-          <div class="agc-list" style="max-height:230px;overflow:auto">${vencidos.map(itemHTML).join("")}</div></div>` : "";
+          <div class="agc-list" style="max-height:230px;overflow:auto">${vencidos.map(e => itemHTML(e, today, u)).join("")}</div></div>` : "";
 
       const legend = `<div class="agc-legend-t">Filtra por tipo (toca para mostrar/ocultar):</div>` +
         `<div class="agc-legend">${Object.keys(TIPO).map(k => `<button class="agc-leg${hiddenTypes[k] ? " is-off" : ""}" data-legtype="${k}" style="--lc:${TIPO[k].c}" type="button" title="Mostrar u ocultar ${TIPO[k].lab}"><i></i>${TIPO[k].lab}</button>`).join("")}</div>`;
@@ -317,47 +351,33 @@
         </div>
         <div class="agc-below" style="margin-top:1rem">
           ${vencHTML}
-          <div class="card${selIso ? " agc-daycard is-open" : ""}">
+          <div class="card">
             <div class="section__head" style="margin-bottom:.4rem"><h3 class="card__title" style="margin:0">${panelTitle}</h3>
               <div class="btn-row">${panelActions}</div></div>
             ${panelBody}
           </div>
         </div>`;
 
-      document.getElementById("agc-prev").onclick = () => { monthOffset--; selIso = null; draw(); };
-      document.getElementById("agc-next").onclick = () => { monthOffset++; selIso = null; draw(); };
+      document.getElementById("agc-prev").onclick = () => { monthOffset--; draw(); };
+      document.getElementById("agc-next").onclick = () => { monthOffset++; draw(); };
       const rem = document.getElementById("agc-remind");
       if (rem) rem.onclick = () => { if (remOn()) { disableReminders(); draw(); } else { enableReminders(draw); } };
-      const clr = document.getElementById("agc-clear"); if (clr) clr.onclick = () => { selIso = null; draw(); };
       const sp = document.getElementById("agc-showprox"); if (sp) sp.onclick = () => { showProx = true; draw(); };
       const hp = document.getElementById("agc-hideprox"); if (hp) hp.onclick = () => { showProx = false; draw(); };
-      container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => { selIso = b.dataset.iso; showProx = false; draw(); });
-      // Clic en un bloque de evento: abre el detalle del día (para ver/editar/eliminar)
-      // en vez de navegar directamente al módulo.
+      // Clic en un día: abre la ventana del día para ver y AGREGAR ahí mismo.
+      container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => dayModal(b.dataset.iso, draw));
+      // Clic en un bloque de evento: abre igualmente la ventana de ese día.
       container.querySelectorAll(".agc-chip").forEach(c => c.onclick = ev => {
         ev.stopPropagation();
         const day = c.closest(".agc-day");
-        if (day && day.dataset.iso) { selIso = day.dataset.iso; showProx = false; draw(); }
+        if (day && day.dataset.iso) dayModal(day.dataset.iso, draw);
       });
-      const nev = document.getElementById("agc-newev"); if (nev) nev.onclick = () => eventoForm(null, () => { selIso = null; draw(); });
-      const addDay = () => eventoForm(null, () => draw(), selIso);
-      const ad1 = document.getElementById("agc-addday"); if (ad1) ad1.onclick = addDay;
-      const ad2 = document.getElementById("agc-addday2"); if (ad2) ad2.onclick = addDay;
+      const nev = document.getElementById("agc-newev"); if (nev) nev.onclick = () => eventoForm(null, draw);
       container.querySelectorAll("[data-legtype]").forEach(b => b.onclick = () => {
         const t = b.dataset.legtype; hiddenTypes[t] = !hiddenTypes[t]; draw();
       });
-      container.querySelectorAll("[data-evedit]").forEach(b => b.onclick = () => eventoForm(S().get("agendaEventos", b.dataset.evedit), draw));
-      container.querySelectorAll("[data-evdel]").forEach(b => b.onclick = () =>
-        u.confirmDelete("¿Eliminar este evento?", () => { S().remove("agendaEventos", b.dataset.evdel); draw(); }));
-      // Vencidos con origen editable: editar la fecha del plazo o eliminar el registro
-      container.querySelectorAll("[data-vfecha]").forEach(b => b.onclick = () => {
-        const [col, rid, field] = b.dataset.vfecha.split("|");
-        editarFechaVencido(col, rid, field, draw);
-      });
-      container.querySelectorAll("[data-vdel]").forEach(b => b.onclick = () => {
-        const [col, rid] = b.dataset.vdel.split("|");
-        u.confirmDelete("¿Eliminar este registro vencido? Se quita de forma permanente.", () => { S().remove(col, rid); draw(); });
-      });
+      // Acciones de las filas del panel de próximos/vencidos (editar/eliminar/fecha).
+      bindItemActions(container, draw);
     };
     draw();
 
