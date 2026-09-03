@@ -22,6 +22,8 @@
     propio: { ic: "📌", c: "#e0526f", lab: "Evento propio" }
   };
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  // Color propio por mes (para que el calendario no se vea plano y cada mes se distinga)
+  const MES_COLOR = ["#1e9fe0", "#e0526f", "#37a04a", "#7a5cd0", "#12b5a5", "#e0912f", "#0891b2", "#be185d", "#0f8f83", "#ca8a04", "#5b34b0", "#1554b8"];
   const DOW = ["L", "M", "M", "J", "V", "S", "D"];
   const pad = n => String(n).padStart(2, "0");
   function isoDay(fecha) {
@@ -303,7 +305,7 @@
           <span class="kpi__sub" style="margin-right:auto">${remActivo ? "🔔 Recibirás avisos de lo de hoy y lo vencido." : "🔕 Activa los recordatorios para que el portal te avise."}</span>
           <button class="btn btn--${remActivo ? "ghost" : "primary"} btn--sm" id="agc-remind">${remActivo ? "🔔 Recordatorios activados" : "🔔 Activar recordatorios"}</button>
         </div>
-        <div class="card agc-cal-card">
+        <div class="card agc-cal-card" style="--mc:${MES_COLOR[mo]}">
           <div class="agc-cal-head">
             <button class="btn-icon" id="agc-prev" aria-label="Mes anterior">‹</button>
             <strong>${MESES[mo][0].toUpperCase() + MESES[mo].slice(1)} ${y}</strong>

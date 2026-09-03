@@ -1754,30 +1754,38 @@ body.night .doc-page{ background:#fff; }
 /* ============================================================
    AGENDA — calendario mensual + lista de eventos
    ============================================================ */
-.agc-cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.7rem;
-  background:linear-gradient(100deg, color-mix(in srgb,var(--c-turquesa) 16%, transparent), color-mix(in srgb,var(--morado) 13%, transparent));
-  border:1px solid color-mix(in srgb,var(--c-turquesa) 22%, var(--border)); border-radius:12px; padding:.35rem .6rem; }
-.agc-cal-head strong{ font-family:var(--font-disp); font-size:1.35rem; color:var(--text); letter-spacing:-.01em; }
-.agc-cal-head .btn-icon{ background:var(--surface); border:1px solid var(--border); }
+/* Color por mes: --mc lo fija el JS según el mes mostrado (con respaldo al tema) */
+.agc-cal-card{ --mc: var(--c-turquesa); position:relative; border-top:4px solid var(--mc);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--mc) 7%, var(--surface)), var(--surface) 240px); }
+.agc-cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.8rem;
+  background:linear-gradient(100deg, color-mix(in srgb,var(--mc) 26%, transparent), color-mix(in srgb,var(--mc) 8%, transparent));
+  border:1px solid color-mix(in srgb,var(--mc) 32%, var(--border)); border-radius:14px; padding:.5rem .7rem;
+  box-shadow:0 6px 16px -12px color-mix(in srgb, var(--mc) 60%, transparent); }
+.agc-cal-head strong{ font-family:var(--font-disp); font-size:1.45rem; letter-spacing:-.01em;
+  color:color-mix(in srgb, var(--mc) 72%, var(--text)); }
+.agc-cal-head .btn-icon{ background:var(--surface); border:1px solid color-mix(in srgb,var(--mc) 30%, var(--border)); color:var(--mc); font-weight:800; }
+.agc-cal-head .btn-icon:hover{ background:color-mix(in srgb, var(--mc) 14%, var(--surface)); }
 .agc-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
 .agc-dow{ margin-bottom:5px; }
-.agc-dow__c{ text-align:center; font-size:11px; font-weight:800; color:var(--c-azul); padding:.3rem 0; border-radius:7px;
-  background:color-mix(in srgb, var(--c-turquesa) 10%, transparent); text-transform:uppercase; letter-spacing:.06em; }
+.agc-dow__c{ text-align:center; font-size:11px; font-weight:800; color:color-mix(in srgb, var(--mc) 78%, var(--text)); padding:.32rem 0; border-radius:8px;
+  background:color-mix(in srgb, var(--mc) 13%, transparent); text-transform:uppercase; letter-spacing:.06em; }
 /* Fondo tenue tras la grilla para que los casilleros resalten */
-.agc-cal-card .agc-grid--big{ background:color-mix(in srgb, var(--c-turquesa) 6%, transparent); padding:6px; border-radius:12px; }
-.agc-day{ position:relative; min-height:96px; border:1px solid var(--border); border-radius:10px; background:var(--surface);
-  cursor:pointer; padding:.28rem .28rem .3rem; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
-  font: inherit; color:var(--text-2); box-shadow:0 1px 3px rgba(18,90,80,.06); transition:background .15s, transform .15s, box-shadow .15s; overflow:hidden; }
+.agc-cal-card .agc-grid--big{ background:color-mix(in srgb, var(--mc) 7%, transparent); padding:7px; border-radius:14px; }
+.agc-day{ position:relative; min-height:96px; border:1px solid var(--border); border-radius:11px; background:var(--surface);
+  cursor:pointer; padding:.3rem .3rem .32rem; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+  font: inherit; color:var(--text-2); box-shadow:0 1px 3px rgba(18,90,80,.06); transition:background .15s, transform .15s, box-shadow .15s, border-color .15s; overflow:hidden; }
 .agc-day--blank{ background:transparent; border:none; box-shadow:none; cursor:default; }
 .agc-day__n{ font-size:13px; font-weight:800; align-self:flex-start; padding:0 .15rem; color:var(--text-2); }
-.agc-day.has-ev{ border-color:color-mix(in srgb, var(--c-turquesa) 28%, var(--border)); }
+/* Día con eventos: borde y una barrita superior del color del mes */
+.agc-day.has-ev{ border-color:color-mix(in srgb, var(--mc) 34%, var(--border)); box-shadow:0 3px 10px -6px color-mix(in srgb, var(--mc) 55%, transparent); }
+.agc-day.has-ev::before{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--mc); opacity:.65; }
 /* Columnas de fin de semana con un tinte cálido sutil */
 .agc-grid--big > .agc-day:nth-child(7n-1):not(.agc-day--blank),
 .agc-grid--big > .agc-day:nth-child(7n):not(.agc-day--blank){ background:color-mix(in srgb, var(--naranjo) 7%, var(--surface)); }
-.agc-day:not(.agc-day--blank):hover{ transform:translateY(-1px); box-shadow:0 5px 14px -6px rgba(18,90,80,.35); border-color:var(--c-turquesa); }
-.agc-day.is-today{ background:color-mix(in srgb, var(--c-turquesa) 18%, var(--surface)); border-color:var(--c-turquesa); box-shadow:0 0 0 2px color-mix(in srgb,var(--c-turquesa) 35%, transparent); }
-.agc-day.is-today .agc-day__n{ color:#fff; background:var(--c-turquesa); border-radius:50%; width:1.5em; height:1.5em; display:inline-flex; align-items:center; justify-content:center; }
-.agc-day.is-sel{ outline:2px solid var(--morado); outline-offset:1px; }
+.agc-day:not(.agc-day--blank):hover{ transform:translateY(-2px); box-shadow:0 8px 18px -8px color-mix(in srgb, var(--mc) 55%, transparent); border-color:var(--mc); }
+.agc-day.is-today{ background:color-mix(in srgb, var(--mc) 16%, var(--surface)); border-color:var(--mc); box-shadow:0 0 0 2px color-mix(in srgb,var(--mc) 40%, transparent); }
+.agc-day.is-today .agc-day__n{ color:#fff; background:var(--mc); border-radius:50%; width:1.6em; height:1.6em; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 3px 8px -3px color-mix(in srgb, var(--mc) 70%, transparent); }
+.agc-day.is-sel{ outline:2px solid var(--mc); outline-offset:1px; }
 .agc-day.is-over .agc-day__n{ color:var(--danger); }
 /* Bloques de evento estilo Outlook */
 .agc-day__evs{ display:flex; flex-direction:column; gap:2px; margin-top:2px; min-width:0; }
