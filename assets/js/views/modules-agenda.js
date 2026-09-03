@@ -329,7 +329,7 @@
 
       const remActivo = remOn();
       container.innerHTML = `
-        <div class="grid grid--kpi" style="margin-bottom:1rem">
+        <div class="grid grid--kpi agc-kpis" style="margin-bottom:.7rem">
           ${kpi("Próximos", proximos, "Eventos desde hoy", "info", "🗓️")}
           ${kpi("En 7 días", venc7, "Esta semana", "warn", "⏳")}
           ${kpi("Vencidos", vencidos.length, "Plazos sin cerrar", vencidos.length ? "danger" : "ok", "⏰")}
