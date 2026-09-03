@@ -470,8 +470,7 @@
      reuniones, acuerdos, colaboraciones, articulación, solicitudes y documentos.
      No elimina datos: solo agrupa colecciones ya existentes en un solo módulo. */
   const M5_TABS = [
-    { key: "reuniones", label: "Participaciones y reuniones" },
-    { key: "acuerdos", label: "Acuerdos y acciones" },
+    { key: "reuniones", label: "Reuniones y acuerdos" },
     { key: "colaboraciones", label: "Colaboraciones y red" },
     { key: "articulacion", label: "Articulación y posicionamiento" },
     { key: "respaldos", label: "Documentos y respaldos" }
@@ -486,13 +485,41 @@
   function m5Bind(main, params) {
     const tab = (params && params.tab) || "reuniones";
     const box = document.getElementById("m5-body");
-    if (tab === "reuniones") return m5Reuniones(box);
+    // "acuerdos" quedó fusionado dentro de "reuniones" (son actas de la misma reunión).
+    if (tab === "reuniones" || tab === "acuerdos") return m5ReunionesAcuerdos(box);
     if (tab === "respaldos") return m5Respaldos(box);
-    if (tab === "acuerdos") return m5Acuerdos(box);
     if (tab === "articulacion") return m5Articulacion(box);
     if (tab === "colaboraciones") return U.coord.colabPanel && U.coord.colabPanel(box);
   }
-  function m5Reuniones(box) {
+
+  // Vista combinada: las reuniones (actas) y los acuerdos que salen de ellas,
+  // juntos en una sola pantalla, porque son parte del acta de la misma reunión.
+  function m5ReunionesAcuerdos(box) {
+    box.innerHTML = `
+      <div class="card" style="border-left:4px solid var(--celeste);margin-bottom:1rem">
+        <p class="card__hint" style="margin:0">📋 Actas de reunión y sus acuerdos, en un solo lugar. Registra la <strong>reunión</strong> (recibe código UBPC-REU) y, desde su fila con 🤝, genera los <strong>acuerdos o acciones</strong> que quedaron comprometidos. Abajo ves todos los acuerdos con su reunión de origen.</p>
+      </div>
+      <div class="section__head"><div><h3 class="section__title" style="margin:0">Reuniones (actas)</h3>
+        <p class="section__hint">Cada reunión muestra los acuerdos que salieron de ella.</p></div></div>
+      <div id="m5-reuniones"></div>
+      <div class="section__head" style="margin-top:1.6rem"><div><h3 class="section__title" style="margin:0">Acuerdos y acciones</h3>
+        <p class="section__hint">Compromisos derivados de las reuniones. Código UBPC-ACU.</p></div></div>
+      <div id="m5-acuerdos"></div>`;
+    const refresh = () => m5ReunionesAcuerdos(box);
+    m5Reuniones(document.getElementById("m5-reuniones"), refresh);
+    m5Acuerdos(document.getElementById("m5-acuerdos"));
+  }
+  // Chips de los acuerdos ligados a una reunión (por su código en reunionOrigen).
+  function acuerdosDeReunion(r, u) {
+    if (!r.codigo) return "—";
+    const ligados = S().all("acuerdos").filter(a => a.reunionOrigen === r.codigo);
+    if (!ligados.length) return `<span class="muted">Sin acuerdos</span>`;
+    const badge = e => /complet/i.test(e || "") ? "ok" : /curso/i.test(e || "") ? "warn" : "neutral";
+    return ligados.map(a => `<span class="tag" title="${u.esc(a.compromiso || "")}" style="display:inline-flex;gap:.3rem;align-items:center;margin:.1rem .15rem">
+      <span class="badge badge--${badge(a.estado)}" style="font-size:.62rem">${u.esc(a.estado || "—")}</span>
+      ${u.esc((a.compromiso || "").slice(0, 42))}${(a.compromiso || "").length > 42 ? "…" : ""}</span>`).join(" ");
+  }
+  function m5Reuniones(box, onAcuerdo) {
     R().mount(box, {
       collection: "reuniones", title: "Reunión", icon: "📅", withCode: true,
       hint: "Participaciones y reuniones. Cada una recibe código UBPC-REU-AAAA-000.",
@@ -505,7 +532,7 @@
         { key: "tema", label: "Tema o título" },
         { key: "unidad", label: "Unidad o institución" },
         { key: "responsable", label: "Responsable" },
-        { key: "resultado", label: "Resultado / próxima acción" }
+        { key: "acuerdos", label: "Acuerdos / acciones", render: (r, u) => acuerdosDeReunion(r, u) }
       ],
       fields: [
         { name: "fecha", label: "Fecha", type: "date", required: true },
@@ -516,7 +543,7 @@
         { name: "resultado", label: "Resultado o próxima acción", type: "textarea", full: true }
       ],
       defaults: () => ({ fecha: ui().hoyISO() }),
-      rowActions: [{ ico: "🤝", title: "Generar acuerdo desde la reunión", fn: (rec) => crearAcuerdoDesde(rec) }]
+      rowActions: [{ ico: "🤝", title: "Generar acuerdo desde la reunión", fn: (rec) => crearAcuerdoDesde(rec, onAcuerdo) }]
     });
   }
   // Registro maestro: vincula automáticamente los Documentos UBPC (estación
@@ -607,7 +634,7 @@
       defaults: () => ({ estado: "Pendiente" })
     });
   }
-  function crearAcuerdoDesde(reunion) {
+  function crearAcuerdoDesde(reunion, done) {
     const u = ui();
     u.modal({ title: "Nuevo acuerdo desde " + (reunion.codigo || "reunión"),
       body: u.formHTML([
@@ -622,7 +649,7 @@
         if (!d.compromiso) { u.toast("El compromiso es obligatorio", "danger"); return; }
         d.reunionOrigen = reunion.codigo;
         S().insert("acuerdos", d, { withCode: true });
-        u.closeModal(); u.toast("Acuerdo creado", "ok");
+        u.closeModal(); u.toast("Acuerdo creado", "ok"); if (done) done();
       }; } });
   }
   function m5Articulacion(box) {
