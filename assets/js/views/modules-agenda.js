@@ -153,6 +153,30 @@
       ${cuando}</a>`;
   }
 
+  // Próximos eventos en acordeón, agrupados por cercanía (más fácil de leer).
+  function proxAccordion(list, today, u) {
+    const dias = e => Math.round((e.d - today) / 86400000);
+    const buckets = [
+      { lab: "Hoy", ic: "📍", test: d => d === 0, open: true },
+      { lab: "Mañana", ic: "🌅", test: d => d === 1, open: true },
+      { lab: "Esta semana", ic: "🗓️", test: d => d >= 2 && d <= 7, open: true },
+      { lab: "Próximas semanas", ic: "📆", test: d => d >= 8 && d <= 30, open: false },
+      { lab: "Más adelante", ic: "⏳", test: d => d > 30, open: false }
+    ];
+    const groups = buckets.map(b => ({ b, items: list.filter(e => b.test(dias(e))) })).filter(g => g.items.length);
+    if (!groups.length) return `<p class="muted" style="padding:.6rem">Sin eventos próximos.</p>`;
+    return `<div class="agc-acc">` + groups.map(g =>
+      `<details class="agc-acc__g"${g.b.open ? " open" : ""}>
+        <summary class="agc-acc__sum">
+          <span class="agc-acc__ic">${g.b.ic}</span>
+          <span class="agc-acc__lab">${g.b.lab}</span>
+          <span class="agc-acc__count">${g.items.length}</span>
+          <span class="agc-acc__chev" aria-hidden="true">▸</span>
+        </summary>
+        <div class="agc-list agc-acc__body">${g.items.map(e => itemHTML(e, today, u)).join("")}</div>
+      </details>`).join("") + `</div>`;
+  }
+
   // Enlaza las acciones (editar/eliminar) de las filas de eventos dentro de un contenedor.
   function bindItemActions(root, done) {
     const u = ui();
@@ -303,7 +327,7 @@
       }
 
       // ---- Próximos eventos (bajo el calendario) ----
-      const proxEvents = events.filter(e => e.d >= today).slice(0, 15);
+      const proxEvents = events.filter(e => e.d >= today).slice(0, 60);
       // Panel inferior: solo próximos eventos (o pista). El detalle de cada día
       // ahora se abre en una ventana al hacer clic en el día, no aquí abajo.
       let panelTitle, panelActions, panelBody;
@@ -311,8 +335,7 @@
         panelTitle = "Próximos eventos";
         panelActions = `<button class="btn btn--ghost btn--sm" id="agc-hideprox">Ocultar</button>
           <button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`;
-        panelBody = proxEvents.length ? `<div class="agc-list">${proxEvents.map(e => itemHTML(e, today, u)).join("")}</div>`
-          : `<p class="muted" style="padding:.6rem">Sin eventos próximos.</p>`;
+        panelBody = proxAccordion(proxEvents, today, u);
       } else {
         panelTitle = "Agenda del mes";
         panelActions = `<button class="btn btn--ghost btn--sm" id="agc-showprox">🗓️ Ver próximos eventos</button>

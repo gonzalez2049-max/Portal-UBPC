@@ -1829,6 +1829,23 @@ body.night .agc-chip b{ color:#fff; }
 body.night .agc-leg{ background:rgba(255,255,255,.04); border-color:rgba(255,255,255,.1); }
 body.night .agc-leg.is-off{ background:rgba(255,255,255,.02); }
 .agc-list{ display:flex; flex-direction:column; gap:.4rem; }
+/* Acordeón de próximos eventos: agrupa por cercanía (Hoy, Mañana, Esta semana…) */
+.agc-acc{ display:flex; flex-direction:column; gap:.5rem; }
+.agc-acc__g{ border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface); }
+.agc-acc__g[open]{ border-color:color-mix(in srgb, var(--celeste) 45%, var(--border)); box-shadow:0 4px 14px -10px rgba(0,0,0,.35); }
+.agc-acc__sum{ display:flex; align-items:center; gap:.55rem; padding:.6rem .8rem; cursor:pointer; list-style:none;
+  font-weight:600; color:var(--text-1); user-select:none; background:color-mix(in srgb, var(--celeste) 7%, var(--surface)); }
+.agc-acc__sum::-webkit-details-marker{ display:none; }
+.agc-acc__sum:hover{ background:color-mix(in srgb, var(--celeste) 13%, var(--surface)); }
+.agc-acc__ic{ font-size:1.05rem; }
+.agc-acc__lab{ flex:1; }
+.agc-acc__count{ min-width:1.5rem; height:1.5rem; padding:0 .45rem; border-radius:999px; display:inline-grid; place-items:center;
+  font-size:12px; font-weight:700; color:#fff; background:var(--celeste); }
+.agc-acc__chev{ color:var(--text-muted); transition:transform .18s ease; font-size:.9rem; }
+.agc-acc__g[open] .agc-acc__chev{ transform:rotate(90deg); }
+.agc-acc__body{ padding:.5rem .6rem .6rem; }
+body.night .agc-acc__g{ background:rgba(18,32,28,.6); }
+body.night .agc-acc__sum{ background:rgba(18,181,165,.1); color:#eaf5ef; }
 .agc-item{ display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem; border-radius:11px; text-decoration:none;
   color:inherit; background:var(--surface-2); border-left:3px solid var(--tc,#12b5a5); transition:background .15s, transform .15s; }
 .agc-item:hover{ background:var(--azul-50); transform:translateX(2px); }
