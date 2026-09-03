@@ -503,4 +503,6 @@
 
   Object.assign(U.coord.views, { m4 });
   Object.assign(U.coord.binders, { m4: m4Bind });
+  // Módulo EVI reutilizable (para que también lo use el Referente).
+  U.eviModule = { mount: evi };
 })();

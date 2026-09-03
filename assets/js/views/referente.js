@@ -16,7 +16,7 @@
     { label: "Submódulos operativos", items: [
       { key: "biblioteca", label: "Bitácora Biblioteca", ico: "📚" },
       { key: "capacitacion", label: "Capacitación por turno", ico: "🎓" },
-      { key: "evidencia", label: "Evidencia y recomendación", ico: "🔬" },
+      { key: "evi", label: "EVI · Evidencia que transforma", ico: "🦉" },
       { key: "planesSeg", label: "Seguimiento de Planes RNAO", ico: "🧭" },
       { key: "apoyo", label: "Solicitud de apoyo", ico: "🆘" },
       { key: "reunion", label: "Reunión de seguimiento", ico: "📅" },
@@ -129,7 +129,7 @@
       <div class="section" style="margin:0">
         <div class="section__head"><div><h2 class="section__title">Evidencia y recomendación</h2>
           <p class="section__hint">Conectada con Coordinación.</p></div>
-          <a class="btn btn--ghost btn--sm" href="#/ref/evidencia">Ver todo →</a></div>
+          <a class="btn btn--ghost btn--sm" href="#/ref/evi">Ver todo →</a></div>
         <div class="card rt-evi">
           <div>
             ${ultimaEvi
@@ -138,7 +138,7 @@
                  <div class="kpi__sub">${u.esc(ultimaEvi.fuente || "")}${ultimaEvi.fecha ? " · " + u.fechaCL(ultimaEvi.fecha) : ""}</div>
                  <p style="margin:.45rem 0 .55rem"><strong>Recomendación:</strong> ${u.esc((ultimaEvi.recomendacion || ultimaEvi.resumen || "—")).slice(0, 150)}</p>`
               : `<p class="narrativo" style="margin-top:0">Aquí verás la evidencia que registra Coordinación para apoyar decisiones clínicas. También puedes aportar la tuya.</p>`}
-            <a class="btn btn--primary btn--sm" href="#/ref/evidencia">Abrir evidencia y recomendación</a>
+            <a class="btn btn--primary btn--sm" href="#/ref/evi">Abrir EVI · Evidencia que transforma</a>
           </div>
           <img class="evi-img" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
         </div>
@@ -289,6 +289,18 @@
       ${ui().empty("Submódulo en implementación por etapas.", "La estructura de datos y trazabilidad ya está preparada para este submódulo.", "🛠️")}`;
   }
 
+  // Módulo EVI compartido con el Coordinador (mismas ediciones y boletines).
+  function eviRef() {
+    return `<div class="page-head"><h1>EVI · Evidencia que transforma</h1>
+      <p>Ediciones de evidencia científica y boletines de EVI Clínico para transferir la evidencia a la práctica. Compartido con la Coordinación.</p></div>
+      <div id="evi-ref-body"></div>`;
+  }
+  function eviRefBind() {
+    const box = document.getElementById("evi-ref-body");
+    if (box && U.eviModule && U.eviModule.mount) U.eviModule.mount(box);
+    else if (box) box.innerHTML = ui().empty("Módulo EVI no disponible.", "Recarga la página para cargar el módulo.", "🦉");
+  }
+
   U.ref = {
     default: "inicio",
     nav: NAV,
@@ -299,13 +311,13 @@
       funciones,
       biblioteca: placeholder("Bitácora de Biblioteca Digital", "Recursos incorporados, actualizados, reemplazados o retirados."),
       capacitacion: placeholder("Capacitación clínica por turno", "Registro de capacitaciones por turno y estamento."),
-      evidencia: placeholder("Evidencia y recomendación", "Búsqueda y análisis de evidencia científica para la práctica."),
+      evi: eviRef,
       apoyo: placeholder("Solicitud de apoyo técnico", "Solicita apoyo o intervención del Coordinador UBPC."),
       reunion: placeholder("Reunión de seguimiento", "Programación y registro de reuniones de seguimiento."),
       monitoreo: placeholder("Monitoreo e implementación", "Auditorías, indicadores, brechas e intervenciones."),
       solicitudesRecibidas,
       config
     },
-    binders: { inicio: inicioBind, config: configBind, solicitudesRecibidas: solicitudesRecibidasBind, funciones: funcionesBind }
+    binders: { inicio: inicioBind, config: configBind, solicitudesRecibidas: solicitudesRecibidasBind, funciones: funcionesBind, evi: eviRefBind }
   };
 })();
