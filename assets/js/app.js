@@ -101,6 +101,9 @@
     // Sincronización con la nube (si está configurada): adopta lo más reciente.
     if (U.cloud && U.cloud.configured() && U.cloud.signedIn()) {
       U.cloud.initialSync().then(r => { if (r && r.adopted) U.router.render(); });
+    } else if (U.cloud && U.cloud.checkConnection) {
+      // Configurada pero sin sesión: avisar de inmediato que NO se está respaldando.
+      U.cloud.checkConnection();
     }
     // Recordatorios de agenda: resumen al abrir + notificaciones del navegador,
     // y revisión periódica mientras el portal esté abierto.

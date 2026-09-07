@@ -1510,6 +1510,9 @@ body.night .pin-prog{ background:rgba(255,255,255,.1); }
 .cloud-banner button{ cursor:pointer; border:none; background:#fff; color:#c62f3b; font-weight:800;
   padding:.35rem .8rem; border-radius:9px; font-size:.85rem; }
 .cloud-banner button:hover{ filter:brightness(.96); }
+/* Aviso de "no conectada": ámbar, apilado sobre el aviso rojo de error si ambos aparecen */
+.cloud-banner--warn{ background:#b45309; bottom:auto; top:14px; }
+.cloud-banner--warn button{ color:#b45309; }
 @keyframes cloudBannerIn{ from{ opacity:0; transform:translate(-50%,10px); } to{ opacity:1; transform:translate(-50%,0); } }
 @media (prefers-reduced-motion:reduce){ .cloud-banner{ animation:none; } }
 

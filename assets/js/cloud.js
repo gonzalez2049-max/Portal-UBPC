@@ -112,11 +112,37 @@
   let _keepAliveOn = false;
   function startKeepAlive() {
     if (_keepAliveOn) return; _keepAliveOn = true;
-    setInterval(() => { if (configured() && signedIn()) refresh(); }, 45 * 60 * 1000);
-    const revive = () => { if (configured() && signedIn()) refresh().then(ok => { if (ok !== false) syncNow(); }).catch(() => {}); };
+    setInterval(() => { if (configured() && signedIn()) refresh(); checkConnection(); }, 45 * 60 * 1000);
+    const revive = () => { if (configured() && signedIn()) refresh().then(ok => { if (ok !== false) syncNow(); }).catch(() => {}); checkConnection(); };
     try {
-      document.addEventListener("visibilitychange", () => { if (!document.hidden) revive(); });
+      document.addEventListener("visibilitychange", () => { if (document.hidden) flushOnExit(); else revive(); });
       window.addEventListener("online", revive);
+      window.addEventListener("offline", checkConnection);
+      window.addEventListener("pagehide", flushOnExit);
+      window.addEventListener("beforeunload", flushOnExit);
+    } catch (e) {}
+    checkConnection();
+    setInterval(checkConnection, 60 * 1000);
+  }
+
+  /* Aviso PERMANENTE e imposible de ignorar cuando la nube está configurada pero
+     NO hay sesión activa: en ese estado los cambios se guardan SOLO en este
+     equipo y se perderían si el computador borra los datos del navegador. */
+  function checkConnection() {
+    try {
+      const problema = configured() && !signedIn();
+      let el = document.getElementById("cloud-disc-banner");
+      if (problema) {
+        if (!el) {
+          el = document.createElement("div");
+          el.id = "cloud-disc-banner"; el.className = "cloud-banner cloud-banner--warn no-print";
+          document.body.appendChild(el);
+        }
+        el.innerHTML = '<span>⛔ <strong>No estás conectada a la nube.</strong> Lo que escribas se guarda SOLO en este computador y puede perderse si el equipo se reinicia o borra el navegador. Conéctate para respaldar tus datos.</span>' +
+          '<button type="button" id="cloud-disc-go">Conectarme ahora</button>';
+        const b = document.getElementById("cloud-disc-go");
+        if (b) b.onclick = function () { location.hash = "#/coord/config"; };
+      } else if (el) { el.remove(); }
     } catch (e) {}
   }
 
@@ -129,13 +155,19 @@
     return arr && arr[0] ? arr[0] : null;
   }
 
-  async function remoteUpsert(dbObj) {
+  async function remoteUpsert(dbObj, keepalive) {
     const body = JSON.stringify({ user_id: sess.uid, data: dbObj, updated_at: new Date().toISOString() });
     const opts = { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body };
+    if (keepalive) opts.keepalive = true; // permite terminar el guardado aunque se cierre la pestaña
     let res = await api("/rest/v1/" + TABLE + "?on_conflict=user_id", opts, true);
     if (res.status === 401 && await refresh()) res = await api("/rest/v1/" + TABLE + "?on_conflict=user_id", opts, true);
     if (!res.ok) throw new Error("No se pudo guardar en la nube (" + res.status + ").");
     return true;
+  }
+  // Intento de guardado "de último segundo" al cerrar/ocultar la pestaña.
+  function flushOnExit() {
+    if (!configured() || !signedIn()) return;
+    try { remoteUpsert(U.store.raw(), true); } catch (e) {}
   }
 
   // ¿La nube ya tiene datos reales guardados? (evita que un equipo nuevo,
@@ -262,7 +294,7 @@
       setStatus("syncing");
       try { await pushMerged(); setStatus("ok", "Cambios guardados en la nube."); }
       catch (e) { setStatus("error", e.message); }
-    }, 1500);
+    }, 800);
   }
 
   async function syncNow() {
@@ -286,6 +318,6 @@
   U.cloud = {
     configured, signedIn, email, status, onStatus,
     setConfig, getConfig, clearAll, signIn, signOut,
-    initialSync, syncNow, schedulePush
+    initialSync, syncNow, schedulePush, checkConnection
   };
 })();
