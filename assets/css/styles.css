@@ -134,16 +134,16 @@ p { margin: 0 0 .6em; }
 .grid--3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
 
 /* KPI card — con color por tipo, tinte suave y profundidad (más legible, menos plano) */
-.kpi { --kc: var(--azul-700); position:relative; overflow:hidden; border-left: 5px solid var(--kc); }
+.kpi { --kc: var(--azul-700, #12b5a5); position:relative; overflow:hidden; border-left: 5px solid var(--kc); }
 .kpi__label { font-size: 13px; font-weight:700; color: var(--text-2); display:flex; align-items:center; gap:.4rem; }
 /* Puntito de color al lado de la etiqueta, para identificar el tipo de un vistazo */
 .kpi__label::before{ content:""; width:.55rem; height:.55rem; border-radius:50%; background:var(--kc); flex:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--kc) 18%, transparent); }
-.kpi__value { font-size: 1.95rem; font-weight: 800; letter-spacing:-.5px; color:var(--text-1); }
+.kpi__value { font-size: 1.95rem; font-weight: 800; letter-spacing:-.5px; color:var(--text, #17263d); }
 .kpi__sub { font-size: 12.5px; color: var(--text-muted); }
-.kpi--danger { --kc: var(--danger); }
-.kpi--warn { --kc: var(--naranjo); }
-.kpi--ok { --kc: var(--verde); }
-.kpi--info { --kc: var(--celeste); }
+.kpi--danger { --kc: var(--danger, #e0526f); }
+.kpi--warn { --kc: var(--naranjo, #e0912f); }
+.kpi--ok { --kc: var(--verde, #37a04a); }
+.kpi--info { --kc: var(--info, #176ac0); }
 
 /* ---------- Tablas ---------- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
