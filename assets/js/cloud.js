@@ -144,6 +144,46 @@
     return !!(d && Array.isArray(d.usuarios) && d.usuarios.length);
   }
 
+  /* Fusiona dos versiones de la base (local y nube) SIN perder registros.
+     Regla: por cada colección, se unen los registros por id y, si el mismo id
+     está en ambos lados, gana el de fecha de modificación más reciente. Así,
+     si un equipo entró algo el viernes y otro abre el lunes, NADA se borra por
+     sobrescritura: la nube termina con la suma de ambos.
+     Nota: por diseño, si se elimina un registro en un equipo mientras otro aún
+     lo tiene, puede reaparecer; es el precio de no perder datos por accidente. */
+  function ts(r) { return Date.parse((r && (r.fechaModificacion || r.fechaCreacion)) || "") || 0; }
+  function mergeDB(local, remote) {
+    if (!remote || typeof remote !== "object") return local;
+    if (!local || typeof local !== "object") return remote;
+    const cols = (U.store && U.store.collections) || [];
+    const out = { __schema: local.__schema || remote.__schema || 1, __updatedAt: new Date().toISOString(), __seq: {} };
+    // Contadores de código: se toma el mayor por clave para no repetir códigos.
+    const seqKeys = new Set([...Object.keys(local.__seq || {}), ...Object.keys(remote.__seq || {})]);
+    seqKeys.forEach(k => out.__seq[k] = Math.max(Number((local.__seq || {})[k]) || 0, Number((remote.__seq || {})[k]) || 0));
+    const localNewer = (Date.parse(local.__updatedAt || "") || 0) >= (Date.parse(remote.__updatedAt || "") || 0);
+    cols.forEach(c => {
+      const la = Array.isArray(local[c]) ? local[c] : [];
+      const ra = Array.isArray(remote[c]) ? remote[c] : [];
+      if (c === "config") {
+        // Configuración: se une por clave; ante conflicto gana el equipo con base más reciente.
+        const map = new Map();
+        (localNewer ? ra : la).forEach(r => r && map.set(r.key, r));
+        (localNewer ? la : ra).forEach(r => r && map.set(r.key, r));
+        out[c] = [...map.values()];
+        return;
+      }
+      const map = new Map();
+      la.forEach(r => { if (r && r.id != null) map.set(r.id, r); });
+      ra.forEach(r => {
+        if (!r || r.id == null) return;
+        map.set(r.id, map.has(r.id) ? (ts(r) >= ts(map.get(r.id)) ? r : map.get(r.id)) : r);
+      });
+      out[c] = [...map.values()];
+      if (c === "actividadReciente") out[c] = out[c].sort((a, b) => (Date.parse(b.fecha || "") || 0) - (Date.parse(a.fecha || "") || 0)).slice(0, 60);
+    });
+    return out;
+  }
+
   // ¿Lo local es solo la semilla por defecto (sin datos reales del usuario)?
   // (No se cuenta "hitos" porque la semilla ya crea uno de inicio.)
   function localSeedOnly() {
@@ -158,11 +198,12 @@
     return !hasRecords && !editedProfile;
   }
 
-  /* Sincronización inicial — REGLA SEGURA:
-     - Si en este equipo NO hay datos reales (equipo nuevo o vacío), se
-       adopta lo que haya en la nube (recuperación).
-     - Si en este equipo SÍ hay datos reales, NUNCA se sobrescriben: se
-       suben a la nube (así lo local nunca se pierde y respalda la nube). */
+  /* Sincronización inicial — REGLA SEGURA (a prueba de varios equipos):
+     - Si en este equipo NO hay datos reales (equipo nuevo o borrado), se
+       adopta lo que haya en la nube (recuperación total).
+     - Si en este equipo SÍ hay datos reales, se FUSIONA con la nube (unión de
+       ambos, gana el más reciente por registro) y se guarda el resultado en los
+       dos lados. Así nunca se pierde lo que uno u otro equipo haya ingresado. */
   async function initialSync() {
     if (!configured() || !signedIn()) return { skipped: true };
     startKeepAlive();
@@ -171,13 +212,25 @@
       // Renueva el token al abrir (si expiró de un día para otro) para reconectar sin re-login.
       if (sess && sess.refresh_token) { try { await refresh(); } catch (e) {} }
       if (!signedIn()) { setStatus("error", "Tu sesión en la nube expiró: vuelve a iniciar sesión."); return { error: "session" }; }
+      const remote = await remoteGet();
+      const remoteData = remote && remote.data;
       if (localSeedOnly()) {
-        const remote = await remoteGet();
-        if (remote && remoteHasData(remote.data)) {
-          U.store.loadFromCloud(remote.data);
+        if (remoteData && remoteHasData(remoteData)) {
+          U.store.loadFromCloud(remoteData);
           setStatus("ok", "Datos cargados desde la nube.");
           return { adopted: true };
         }
+        await remoteUpsert(U.store.raw());
+        setStatus("ok", "Datos respaldados en la nube.");
+        return { pushed: true };
+      }
+      // Hay datos locales: fusionar con la nube (nunca sobrescribir a ciegas).
+      if (remoteData && remoteHasData(remoteData)) {
+        const merged = mergeDB(U.store.raw(), remoteData);
+        U.store.loadFromCloud(merged);
+        await remoteUpsert(merged);
+        setStatus("ok", "Datos sincronizados (fusión sin pérdidas).");
+        return { adopted: true, merged: true };
       }
       await remoteUpsert(U.store.raw());
       setStatus("ok", "Datos respaldados en la nube.");
@@ -188,6 +241,18 @@
     }
   }
 
+  /* Sube a la nube fusionando antes con lo que ya haya allí, para no borrar por
+     sobrescritura lo que otro equipo pudo haber guardado en el intertanto. */
+  async function pushMerged() {
+    let base = U.store.raw();
+    try {
+      const remote = await remoteGet();
+      if (remote && remote.data && remoteHasData(remote.data)) base = mergeDB(base, remote.data);
+    } catch (e) { /* si no se puede leer, se sube lo local igualmente */ }
+    await remoteUpsert(base);
+    return base;
+  }
+
   /* Empujar cambios locales a la nube (con pequeño retardo para agrupar). */
   function schedulePush() {
     if (!configured() || !signedIn()) return;
@@ -195,7 +260,7 @@
     setStatus("pending");
     pushTimer = setTimeout(async () => {
       setStatus("syncing");
-      try { await remoteUpsert(U.store.raw()); setStatus("ok", "Cambios guardados en la nube."); }
+      try { await pushMerged(); setStatus("ok", "Cambios guardados en la nube."); }
       catch (e) { setStatus("error", e.message); }
     }, 1500);
   }
@@ -203,7 +268,12 @@
   async function syncNow() {
     if (!configured() || !signedIn()) return { skipped: true };
     setStatus("syncing");
-    try { await remoteUpsert(U.store.raw()); setStatus("ok", "Sincronizado."); return { ok: true }; }
+    try {
+      // Fusiona con la nube y también refresca lo local con el resultado.
+      const merged = await pushMerged();
+      try { U.store.loadFromCloud(merged); if (U.router && U.router.render) U.router.render(); } catch (e) {}
+      setStatus("ok", "Sincronizado."); return { ok: true, merged: true };
+    }
     catch (e) { setStatus("error", e.message); return { error: e.message }; }
   }
 
