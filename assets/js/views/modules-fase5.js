@@ -299,6 +299,17 @@
     const u = ui();
     return `<div class="card kpi kpi--${kind}"><div class="kpi__label">${u.esc(label)}</div><div class="kpi__value">${value}</div>${sub ? `<div class="nt-kpichip">${u.esc(sub)}</div>` : ""}</div>`;
   }
+  // KPI enriquecido para el Mapa Inteligente (color por significado, ícono,
+  // acento y, opcionalmente, barra de progreso). No cambia los KPI de otros módulos.
+  function kpiMon(label, value, kind, sub, icon, bar) {
+    const u = ui();
+    const barHTML = (bar != null && !isNaN(bar))
+      ? `<div class="nt-mkpi__bar"><span style="width:${Math.max(0, Math.min(100, Number(bar)))}%"></span></div>` : "";
+    const subHTML = sub ? `<div class="nt-mkpi__sub" title="${u.esc(sub)}">${u.esc(sub)}</div>` : "";
+    return `<div class="card nt-mkpi nt-mkpi--${kind}">
+      <div class="nt-mkpi__top"><span class="nt-mkpi__label">${u.esc(label)}</span><span class="nt-mkpi__ic">${icon || ""}</span></div>
+      <div class="nt-mkpi__value">${value}</div>${barHTML}${subHTML}</div>`;
+  }
   function alertas234(box) {
     const u = ui();
     const meds = S().all("nt234");
@@ -324,12 +335,12 @@
         <h2 class="nt-monitor__title">Mapa Inteligente de Alertas NT 234</h2>
         <p class="nt-monitor__sub">Actualización automática desde las evaluaciones registradas · ${u.esc(periodoNT(ultimo))}</p>
       </div>
-      <div class="grid grid--kpi" style="margin:1rem 0">
-        ${kpiA("Cumplimiento institucional", instit + "%", "info")}
-        ${kpiA("Unidades evaluadas", evaluadas, "info")}
-        ${kpiA("En cumplimiento", enCumpl, "ok")}
-        ${kpiA("Unidades en seguimiento", seg.length, "warn", seg.map(c => c.un).join(", "))}
-        ${kpiA("Unidades con intervención", inter.length, "danger", inter.map(c => c.un).join(", "))}
+      <div class="grid grid--kpi nt-mkpis" style="margin:1rem 0">
+        ${kpiMon("Cumplimiento institucional", instit + (instit === "—" ? "" : "%"), "info", "Meta " + meta234() + "%", "🏥", instit === "—" ? null : instit)}
+        ${kpiMon("Unidades evaluadas", evaluadas, "eval", "Total con datos", "📋")}
+        ${kpiMon("En cumplimiento", enCumpl, "ok", "≥ 80%", "✅")}
+        ${kpiMon("Unidades en seguimiento", seg.length, "warn", seg.map(c => c.un).join(", ") || "Ninguna", "⚠️")}
+        ${kpiMon("Unidades con intervención", inter.length, "danger", inter.map(c => c.un).join(", ") || "Ninguna", "🚨")}
       </div>
       ${cards.length ? `<div class="grid grid--3">${cards.map(c => `
         <div class="nt-alert nt-alert--${c.e.k}">
