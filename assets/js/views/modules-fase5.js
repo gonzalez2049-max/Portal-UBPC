@@ -375,11 +375,17 @@
         <tbody>${rows.map(ntIndRow).join("")}</tbody></table></div>
         <button type="button" class="btn btn--ghost btn--sm" id="nt-addind">+ Agregar indicador</button></div></div>`;
   }
+  // Separa el texto de indicadores en partes, aceptando separadores por coma,
+  // punto y coma, guion " - "/"–" o punto medio " · " (formatos antiguos).
+  function splitIndicadores(str) {
+    return String(str || "").split(/\s*·\s*|\s+[–-]\s+|[,;]\s*/).map(s => s.trim()).filter(Boolean);
+  }
   function ntIndParse(rec) {
     if (rec && Array.isArray(rec.indicadoresLista) && rec.indicadoresLista.length) return rec.indicadoresLista;
-    if (rec && rec.indicadores) return rec.indicadores.split(/[,;]/).map(s => {
-      const m = s.trim().match(/^(.*?)\s*(\d+)\s*%?$/);
-      return m ? { indicador: m[1].trim(), valor: m[2] } : { indicador: s.trim() };
+    if (rec && rec.indicadores) return splitIndicadores(rec.indicadores).map(s => {
+      // Valor entre paréntesis "(52%)" o al final "52%".
+      const m = s.match(/^(.*?)\s*\((\d+)\s*%?\)\s*$/) || s.match(/^(.*?)\s*(\d+)\s*%?$/);
+      return m ? { indicador: m[1].trim(), valor: m[2] } : { indicador: s };
     }).filter(x => x.indicador);
     return [];
   }
@@ -412,7 +418,17 @@
         { key: "fechaSolicitud", label: "Fecha solicitud", date: true },
         { key: "plazo", label: "Plazo", date: true },
         { key: "unidad", label: "Unidad" },
-        { key: "indicadores", label: "Indicadores a trabajar", render: (r, u2) => (r.indicadores || "").split(/[,;]/).map(s => s.trim()).filter(Boolean).map(s => `<span class="tag nt-chip">${u2.esc(s)}</span>`).join(" ") || "—" },
+        { key: "indicadores", label: "Indicadores a trabajar", render: (r, u2) => {
+            // Cada indicador como su propia etiqueta (separados), tanto en registros
+            // nuevos (lista estructurada) como antiguos (texto con guiones o comas).
+            let partes;
+            if (Array.isArray(r.indicadoresLista) && r.indicadoresLista.length) {
+              partes = r.indicadoresLista.map(x => x.indicador + (x.valor !== "" && x.valor != null ? " (" + x.valor + "%)" : ""));
+            } else {
+              partes = splitIndicadores(r.indicadores);
+            }
+            return partes.length ? partes.map(s => `<span class="tag nt-chip">${u2.esc(s)}</span>`).join(" ") : "—";
+          } },
         { key: "observaciones", label: "Observaciones", render: (r, u2) => `<div class="nt-obs">${u2.esc(r.observaciones || "—")}</div>` }
       ],
       wideForm: true,
