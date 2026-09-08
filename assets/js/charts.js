@@ -27,7 +27,7 @@
   /* Gráfico de línea temporal (un indicador por serie; incluye meta) */
   function lineChart(cfg) {
     // cfg: { width, height, labels:[], series:[{name,color,values:[]}], meta, metaLabel, yUnit:"%" }
-    const w = cfg.width || 640, h = cfg.height || 260;
+    const w = cfg.width || 880, h = cfg.height || 220;
     const padL = 46, padR = 30, padT = 22, padB = 40;
     const iw = w - padL - padR, ih = h - padT - padB;
     const labels = cfg.labels || [];
@@ -46,7 +46,7 @@
     if (cfg.meta != null) {
       metaLine = `<line x1="${padL}" y1="${y(cfg.meta)}" x2="${w - padR}" y2="${y(cfg.meta)}"
         stroke="var(--morado)" stroke-width="2" stroke-dasharray="6 4"/>
-        <text x="${w - padR}" y="${y(cfg.meta) - 5}" text-anchor="end" font-size="11" font-weight="700" fill="var(--morado)">Meta ${cfg.meta}%</text>`;
+        <text x="${w - padR}" y="${y(cfg.meta) - 6}" text-anchor="end" font-size="11" font-weight="700" fill="var(--morado)" paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">Meta ${cfg.meta}%</text>`;
     }
 
     const showVals = cfg.hideValues !== true;
@@ -58,8 +58,12 @@
         const first = k === 0, lastp = k === valid.length - 1;
         const anchor = first ? "start" : (lastp ? "end" : "middle");
         const dx = first ? 5 : (lastp ? -5 : 0);
+        // Si el valor está cerca de la meta, la etiqueta va DEBAJO del punto
+        // para no chocar con la línea/etiqueta de meta.
+        const near = cfg.meta != null && Math.abs(o.v - cfg.meta) < 12;
+        const ly = near ? y(o.v) + 17 : y(o.v) - 9;
         return `<circle cx="${x(o.i)}" cy="${y(o.v)}" r="4" fill="${s.color}"/>${showVals
-          ? `<text x="${x(o.i) + dx}" y="${y(o.v) - 9}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="${s.color}">${o.v}%</text>` : ""}`;
+          ? `<text x="${x(o.i) + dx}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="${s.color}" paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">${o.v}%</text>` : ""}`;
       }).join("");
       return `<polyline fill="none" stroke="${s.color}" stroke-width="3" points="${pts}"/>${dots}`;
     }).join("");
@@ -69,8 +73,8 @@
       ${cfg.meta != null ? `<span><i style="background:var(--morado)"></i>Meta institucional</span>` : ""}
     </div>`;
 
-    return `<div style="overflow-x:auto">
-      <svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px" role="img" aria-label="Tendencia de cumplimiento">
+    return `<div class="chart-wrap" style="width:100%">
+      <svg viewBox="0 0 ${w} ${h}" width="100%" style="height:auto;display:block;max-width:1280px;margin:0 auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tendencia de cumplimiento">
         ${grid}${metaLine}${paths}${xlabels}
       </svg></div>${legend}`;
   }
