@@ -240,6 +240,15 @@
         { key: "cobertura", label: "Cobertura" },
         { key: "estado", label: "Estado", badge: true }
       ],
+      rowActions: [{
+        ico: esNT ? "↩️" : "➡️",
+        title: esNT ? "Mover a Capacitación BPSO" : "Mover a Capacitación NT 234",
+        fn: (rec, refresh) => {
+          S().update("actividades", rec.id, { programa: esNT ? "BPSO" : "NT 234" });
+          ui().toast("Actividad movida a " + (esNT ? "BPSO" : "NT 234"), "ok");
+          if (refresh) refresh(); draw();
+        }
+      }],
       fields: [
         { name: "programa", label: "Programa", type: "select", options: ["BPSO", "NT 234"], hint: "Determina en qué pestaña aparece la actividad." },
         { name: "fecha", label: "Fecha", type: "date", required: true },
