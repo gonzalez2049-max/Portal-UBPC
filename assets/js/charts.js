@@ -31,11 +31,12 @@
     const padL = 46, padR = 30, padT = 22, padB = 40;
     const iw = w - padL - padR, ih = h - padT - padB;
     const labels = cfg.labels || [];
-    const maxY = 100, minY = 0;
+    const suffix = cfg.valueSuffix != null ? cfg.valueSuffix : "%";
+    const minY = 0, maxY = cfg.maxY || 100; // por defecto 0–100 (porcentajes); cfg.maxY para conteos
     const x = i => padL + (labels.length <= 1 ? iw / 2 : (iw * i) / (labels.length - 1));
     const y = v => padT + ih - (ih * (v - minY)) / (maxY - minY);
 
-    const grid = [0, 25, 50, 75, 100].map(v =>
+    const grid = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(maxY * f)).map(v =>
       `<line x1="${padL}" y1="${y(v)}" x2="${w - padR}" y2="${y(v)}" stroke="var(--chart-grid,#eef2f8)"/>
        <text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--text-muted)">${v}</text>`).join("");
 
@@ -63,7 +64,7 @@
         const near = cfg.meta != null && Math.abs(o.v - cfg.meta) < 12;
         const ly = near ? y(o.v) + 17 : y(o.v) - 9;
         return `<circle cx="${x(o.i)}" cy="${y(o.v)}" r="4" fill="${s.color}"/>${showVals
-          ? `<text x="${x(o.i) + dx}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="${s.color}" paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">${o.v}%</text>` : ""}`;
+          ? `<text x="${x(o.i) + dx}" y="${ly}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="${s.color}" paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">${o.v}${suffix}</text>` : ""}`;
       }).join("");
       return `<polyline fill="none" stroke="${s.color}" stroke-width="3" points="${pts}"/>${dots}`;
     }).join("");

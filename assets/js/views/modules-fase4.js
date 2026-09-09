@@ -206,6 +206,9 @@
         : `La capacitación se mantuvo estable respecto al período anterior.`)
       : `Registra actividades en más períodos para ver la evolución.`;
     const accion = estItems.length > 1 ? `El estamento con menor cobertura es <strong>${u.esc(menor.label)}</strong> (${menor.value}). Priorizar actividades dirigidas a ese grupo.` : `Diversifica los estamentos para ampliar el alcance.`;
+    // Techo "bonito" para el eje del gráfico de personas por período (conteo, no %)
+    const niceCeil = m => { m = Math.max(m, 1); const pw = Math.pow(10, Math.floor(Math.log10(m))); const r = m / pw; const s = r <= 1 ? 1 : r <= 1.5 ? 1.5 : r <= 2 ? 2 : r <= 3 ? 3 : r <= 4 ? 4 : r <= 5 ? 5 : r <= 6 ? 6 : r <= 8 ? 8 : 10; return Math.round(s * pw); };
+    const capMax = niceCeil(Math.max.apply(0, serie.concat([1])));
 
     el.innerHTML = `
       <div class="grid grid--kpi" style="margin-bottom:1rem">
@@ -217,10 +220,7 @@
       <div class="grid grid--2" style="margin-bottom:1.1rem">
         <div class="card"><div class="section__head" style="margin-bottom:.4rem">
           <h3 class="card__title" style="margin:0">📈 Personas capacitadas por período</h3>${dBadge}</div>
-          ${multi ? `<div style="padding:.2rem .2rem .1rem">${U.charts.sparkline(serie, { color: "var(--verde)" })}</div>
-            <div class="flex" style="justify-content:space-between;font-size:12px;color:var(--text-muted);margin-top:.2rem">
-              ${periodos.map((pr, i) => `<span>${u.esc(pr)}: <strong style="color:var(--text-2)">${serie[i]}</strong></span>`).join("")}</div>`
-            : `<div class="kpi__value" style="font-size:2rem">${serie[0] || 0}</div><div class="kpi__sub">personas en ${u.esc(periodos[0] || "—")}</div>`}
+          <div style="padding:.2rem 0 .1rem">${U.charts.lineChart({ labels: periodos, series: [{ name: "Personas capacitadas", color: "var(--verde)", values: serie }], maxY: capMax, valueSuffix: "" })}</div>
           <div class="nt-lectura"><span class="nt-lectura__ico">🧭</span>
             <div><div style="margin-bottom:.15rem">${lectura}</div><div style="color:var(--text-2)"><strong>Decisión sugerida:</strong> ${accion}</div></div></div>
         </div>
