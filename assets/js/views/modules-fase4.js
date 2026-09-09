@@ -51,6 +51,8 @@
     if (v !== undefined && v !== null && v !== "") return Number(v) || 0;
     return Number(r.dotacion) || 0;
   }
+  // ¿El año n está cerrado (bloqueado)?
+  function mcClosed(n) { const v = S().getConfig("masacritica.cierre" + n, false); return v === true || v === "true"; }
   function masaCritica(box) {
     const u = ui();
     const ceilp = (n, pct) => Math.ceil((Number(n) || 0) * pct / 100);
@@ -74,50 +76,70 @@
         const col = pct >= 100 ? "var(--verde)" : pct >= 50 ? "var(--naranjo)" : "var(--danger)";
         return `<div style="display:flex;align-items:center;gap:.4rem"><div style="flex:1;min-width:48px;background:var(--chart-track,#e9eff7);border-radius:6px;height:8px;overflow:hidden"><div style="width:${Math.min(100, pct)}%;height:100%;background:${col};border-radius:6px"></div></div><span style="font-size:12px;font-weight:700;color:${col}">${pct}%</span></div>`;
       };
+      const gapGlobal = Math.max(0, totMeta.a3 - totalChamp);
       const avanceGlobal = totMeta.a3 > 0 ? Math.round(totalChamp / totMeta.a3 * 100) : 0;
-      // Celda de año: dotación → a capacitar
-      const yearCell = (dot, meta) => `<span style="color:var(--text-muted)">${dot}</span> <span style="opacity:.45">→</span> <strong>${meta}</strong>`;
+      const añoEnCurso = mcClosed(1) ? (mcClosed(2) ? (mcClosed(3) ? 0 : 3) : 2) : 1;
+      // Celda de año: dotación → meta acumulada, y cuántos faltan (Champions vs meta)
+      const yearCell = (dot, meta, champ) => {
+        const falta = Math.max(0, meta - champ);
+        const done = meta > 0 && champ >= meta;
+        const sub = meta <= 0 ? "" : (done ? `<div style="font-size:11px;color:var(--verde);font-weight:700">✓ cumplido</div>`
+          : `<div style="font-size:11px;color:var(--naranjo);font-weight:700">faltan ${falta}</div>`);
+        return `<div>${dot} <span style="opacity:.45">→</span> <strong>${meta}</strong></div>${sub}`;
+      };
       const rows = recs.map(r => {
         const d1 = dotOf(r, 1), d2 = dotOf(r, 2), d3 = dotOf(r, 3);
         const m1 = ceilp(d1, p.a1), m2 = ceilp(d2, p.a2), m3 = ceilp(d3, p.a3);
         const champ = champMap[norm(r.estamento)] || 0;
         return `<tr>
           <td><strong>${u.esc(r.estamento || "—")}</strong></td>
-          <td class="num">${yearCell(d1, m1)}</td>
-          <td class="num">${yearCell(d2, m2)}</td>
-          <td class="num">${yearCell(d3, m3)}</td>
+          <td class="num">${yearCell(d1, m1, champ)}</td>
+          <td class="num">${yearCell(d2, m2, champ)}</td>
+          <td class="num">${yearCell(d3, m3, champ)}</td>
           <td class="num">${champ}</td>
-          <td style="min-width:120px">${avanceBar(champ, m3)}</td>
           <td class="nowrap"><button class="btn btn--ghost btn--sm" data-mcedit="${r.id}">Editar</button> <button class="btn btn--ghost btn--sm" data-mcdel="${r.id}">Eliminar</button></td></tr>`;
       }).join("");
       box.innerHTML = `
         <div class="card" style="border-left:4px solid var(--morado);margin-bottom:1rem">
           <h3 class="card__title" style="margin:.1rem 0 .35rem">🎯 Meta de Masa Crítica (Personal)</h3>
-          <p class="card__hint" style="margin:0 0 .2rem">Objetivos de desarrollo de Champions según las orientaciones técnicas RNAO / BPSO. La <strong>dotación es móvil</strong>: ingresa la de cada año por estamento y el portal calcula cuántos capacitar. Metas: Año 1 = ${p.a1}%, Año 2 = ${p.a2}%, Año 3 = ${p.a3}% (masa crítica mínima). El <strong>avance</strong> se conecta con la <a href="#/coord/m3?tab=champion">Red Champion</a> del Programa RNAO (Champions activos por estamento).</p>
-          <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.7rem;align-items:flex-end">
-            ${["a1", "a2", "a3"].map((k, i) => `<label class="field" style="max-width:120px;margin:0"><span style="font-size:12px;font-weight:700;color:var(--text-2)">Año ${i + 1} (%)</span><input class="input" type="number" min="0" max="100" step="0.5" data-mcpct="${k}" value="${p[k]}"></label>`).join("")}
-            <span class="kpi__sub" style="max-width:280px">Puedes ajustar los % si cambian tus orientaciones técnicas.</span>
+          <p class="card__hint" style="margin:0 0 .2rem">Objetivos de desarrollo de Champions según las OO.TT RNAO / BPSO. Se trabaja <strong>año por año</strong>: ingresas la dotación del año y lo <strong>cierras</strong>. Las metas son <strong>acumuladas</strong>: Año 1 = ${p.a1}%, Año 2 = ${p.a2}%, Año 3 = ${p.a3}% (masa crítica mínima). El portal muestra cuántos <strong>faltan</strong> para cada meta, comparando con los Champions activos de la <a href="#/coord/m3?tab=champion">Red Champion</a>.${añoEnCurso ? ` <strong>Año en curso: Año ${añoEnCurso}.</strong>` : " <strong>Los tres años están cerrados.</strong>"}</p>
+          <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.7rem">
+            ${[1, 2, 3].map(n => {
+              const closed = mcClosed(n);
+              return `<div style="border:1px solid ${closed ? "var(--border-2)" : "var(--celeste)"};border-radius:12px;padding:.55rem .7rem;min-width:150px;background:${closed ? "var(--surface-2)" : "#fff"}">
+                <div style="font-size:12px;font-weight:800;color:var(--text-2);margin-bottom:.35rem">Año ${n} ${closed ? "🔒 cerrado" : (añoEnCurso === n ? "• en curso" : "")}</div>
+                <label style="display:flex;align-items:center;gap:.35rem;font-size:11.5px;color:var(--text-muted)">Meta % <input class="input" type="number" min="0" max="100" step="0.5" data-mcpct="a${n}" value="${p["a" + n]}" style="max-width:68px;padding:.25rem .4rem"></label>
+                <button class="btn btn--${closed ? "ghost" : "primary"} btn--sm" data-mcclose="${n}" style="margin-top:.45rem;width:100%">${closed ? "🔓 Reabrir año" : "🔒 Cerrar año"}</button>
+              </div>`;
+            }).join("")}
+            <span class="kpi__sub" style="max-width:230px;align-self:center">Ingresa la dotación del año y ciérralo. Los años cerrados quedan bloqueados (puedes reabrir).</span>
           </div>
         </div>
         <div class="grid grid--kpi" style="margin-bottom:1rem">
-          ${kpiMC("Meta Año 1", totMeta.a1, "warn", p.a1 + "% de la dotación Año 1")}
-          ${kpiMC("Meta Año 2", totMeta.a2, "warn", p.a2 + "% de la dotación Año 2")}
-          ${kpiMC("Masa crítica · Año 3", totMeta.a3, "ok", p.a3 + "% de la dotación Año 3")}
-          ${kpiMC("Avance (Champions)", avanceGlobal + "%", avanceGlobal >= 100 ? "ok" : avanceGlobal >= 50 ? "warn" : "danger", totalChamp + " de " + totMeta.a3 + " (meta Año 3)")}
+          ${kpiMC("Capacitados (Champions)", totalChamp, "ok", "Activos en la Red Champion")}
+          ${kpiMC("Masa crítica · Año 3", totMeta.a3, "warn", p.a3 + "% acumulado de la dotación Año 3")}
+          ${kpiMC("Faltan para Año 3", gapGlobal, gapGlobal > 0 ? "danger" : "ok", gapGlobal > 0 ? "por capacitar (meta acumulada)" : "meta cumplida 🎉")}
+          ${kpiMC("Avance masa crítica", avanceGlobal + "%", avanceGlobal >= 100 ? "ok" : avanceGlobal >= 50 ? "warn" : "danger", totalChamp + " de " + totMeta.a3)}
         </div>
         <div class="section__head"><div><h3 class="section__title" style="margin:0">Capacitación por estamento</h3>
-          <p class="section__hint">En cada año se muestra <strong>dotación → a capacitar</strong>. La dotación puede cambiar cada año.</p></div>
+          <p class="section__hint">Cada año muestra <strong>dotación → meta acumulada</strong> y cuántos <strong>faltan</strong> por capacitar.</p></div>
           <button class="btn btn--primary btn--sm" id="mc-new">+ Agregar estamento</button></div>
         ${recs.length ? `<div class="table-wrap"><table class="tbl mc-tbl"><thead><tr>
-          <th>Estamento</th><th class="num">Año 1 (${p.a1}%)</th><th class="num">Año 2 (${p.a2}%)</th><th class="num">Año 3 (${p.a3}%)</th><th class="num">Champions</th><th>Avance Año 3</th><th>Acciones</th></tr></thead>
+          <th>Estamento</th><th class="num">Año 1 (${p.a1}%)${mcClosed(1) ? " 🔒" : ""}</th><th class="num">Año 2 (${p.a2}%)${mcClosed(2) ? " 🔒" : ""}</th><th class="num">Año 3 (${p.a3}%)${mcClosed(3) ? " 🔒" : ""}</th><th class="num">Capacitados</th><th>Acciones</th></tr></thead>
           <tbody>${rows}
-            <tr style="background:rgba(15,143,131,.09);font-weight:700"><td>TOTAL</td><td class="num">${yearCell(totDot.a1, totMeta.a1)}</td><td class="num">${yearCell(totDot.a2, totMeta.a2)}</td><td class="num">${yearCell(totDot.a3, totMeta.a3)}</td><td class="num">${totalChamp}</td><td style="min-width:120px">${avanceBar(totalChamp, totMeta.a3)}</td><td></td></tr>
+            <tr style="background:rgba(15,143,131,.09);font-weight:700"><td>TOTAL</td><td class="num">${yearCell(totDot.a1, totMeta.a1, totalChamp)}</td><td class="num">${yearCell(totDot.a2, totMeta.a2, totalChamp)}</td><td class="num">${yearCell(totDot.a3, totMeta.a3, totalChamp)}</td><td class="num">${totalChamp}</td><td></td></tr>
           </tbody></table></div>`
           : u.empty("Aún no hay estamentos cargados.", "Agrega la dotación de enfermeros, TENS, auxiliares, etc.", "👥")}`;
 
       box.querySelectorAll("[data-mcpct]").forEach(inp => inp.onchange = () => {
         const v = Math.max(0, Math.min(100, Number(inp.value) || 0));
         S().setConfig("masacritica." + inp.dataset.mcpct, v); render();
+      });
+      box.querySelectorAll("[data-mcclose]").forEach(b => b.onclick = () => {
+        const n = b.dataset.mcclose, closed = mcClosed(n);
+        if (!closed) {
+          u.confirmDelete("¿Cerrar el Año " + n + "? Su dotación quedará bloqueada (podrás reabrirlo cuando quieras).", () => { S().setConfig("masacritica.cierre" + n, true); u.toast("Año " + n + " cerrado 🔒", "ok"); render(); });
+        } else { S().setConfig("masacritica.cierre" + n, false); u.toast("Año " + n + " reabierto", "info"); render(); }
       });
       document.getElementById("mc-new").onclick = () => mcForm(null, render);
       box.querySelectorAll("[data-mcedit]").forEach(b => b.onclick = () => mcForm(S().get("masaCritica", b.dataset.mcedit), render));
@@ -128,15 +150,19 @@
   function mcForm(rec, done) {
     const u = ui();
     rec = rec || {};
+    const isNew = !rec.id;
+    // En un estamento existente, los años CERRADOS quedan de solo lectura.
+    const lock = n => (!isNew && mcClosed(n)) ? 'readonly style="background:var(--surface-2);color:var(--text-muted)"' : "";
+    const lockHint = n => (!isNew && mcClosed(n)) ? "Año cerrado 🔒 — reábrelo en el panel para editarlo." : (n === 1 ? "N° de funcionarios del estamento el Año 1." : "Déjalo vacío si es igual al Año " + (n - 1) + ".");
     u.modal({
       title: rec.id ? "Editar estamento" : "Agregar estamento",
       body: `<datalist id="mc-est"><option>Enfermería</option><option>TENS</option><option>Auxiliar de servicio</option><option>Médico</option><option>Kinesiología</option><option>Matrona</option></datalist>`
-        + `<p class="card__hint" style="margin:0 0 .5rem">La <strong>dotación es móvil</strong>: puede cambiar cada año. Si un año es igual al anterior, repite el número. Si dejas Año 2 o Año 3 en blanco, se usa el del año previo.</p>`
+        + `<p class="card__hint" style="margin:0 0 .5rem">Ingresa la dotación de cada año. Los años <strong>cerrados</strong> aparecen bloqueados (reábrelos desde el panel para modificarlos).</p>`
         + u.formHTML([
           { name: "estamento", label: "Estamento", required: true, full: true, value: rec.estamento || "", attrs: 'list="mc-est"', placeholder: "Ej: Enfermería, TENS, Auxiliar de servicio…" },
-          { name: "dot1", label: "Dotación Año 1", type: "number", required: true, value: rec.dot1 != null ? rec.dot1 : (rec.dotacion != null ? rec.dotacion : ""), hint: "N° de funcionarios del estamento el Año 1." },
-          { name: "dot2", label: "Dotación Año 2", type: "number", value: rec.dot2 != null ? rec.dot2 : "", hint: "Déjalo vacío si es igual al Año 1." },
-          { name: "dot3", label: "Dotación Año 3", type: "number", value: rec.dot3 != null ? rec.dot3 : "", hint: "Déjalo vacío si es igual al Año 2." }
+          { name: "dot1", label: "Dotación Año 1", type: "number", required: true, value: rec.dot1 != null ? rec.dot1 : (rec.dotacion != null ? rec.dotacion : ""), attrs: lock(1), hint: lockHint(1) },
+          { name: "dot2", label: "Dotación Año 2", type: "number", value: rec.dot2 != null ? rec.dot2 : "", attrs: lock(2), hint: lockHint(2) },
+          { name: "dot3", label: "Dotación Año 3", type: "number", value: rec.dot3 != null ? rec.dot3 : "", attrs: lock(3), hint: lockHint(3) }
         ], {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
       onMount(m) {
