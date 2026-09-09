@@ -8,7 +8,8 @@
   const S = () => U.store, ui = () => U.ui, CAT = () => U.data.CAT, R = () => U.components.resource;
 
   const TABS = [
-    { key: "actividades", label: "Actividades y capacitación" },
+    { key: "capbpso", label: "Capacitación BPSO" },
+    { key: "capnt234", label: "Capacitación NT 234" },
     { key: "masacritica", label: "Meta de Masa Crítica" },
     { key: "evi", label: "EVI · Evidencia que transforma" },
     { key: "reconocimientos", label: "Reconocimientos" }
@@ -23,9 +24,12 @@
       ${R().tabsBar("coord", "m4", TABS, tab)}<div id="m4-body"></div>`;
   }
   function m4Bind(main, params) {
-    const tab = (params && params.tab) || "actividades";
+    let tab = (params && params.tab) || "capbpso";
+    if (tab === "actividades") tab = "capbpso"; // compatibilidad con enlaces antiguos
     const box = document.getElementById("m4-body");
-    ({ actividades, masacritica: masaCritica, evi, reconocimientos }[tab] || actividades)(box);
+    if (tab === "capbpso") return actividades(box, "BPSO");
+    if (tab === "capnt234") return actividades(box, "NT 234");
+    ({ masacritica: masaCritica, evi, reconocimientos }[tab] || (b => actividades(b, "BPSO")))(box);
   }
 
   /* ---------- Meta de Masa Crítica (dotación por estamento → a capacitar por año) ---------- */
@@ -48,20 +52,36 @@
       const recs = S().all("masaCritica").sort((a, b) => (a.estamento || "").localeCompare(b.estamento || ""));
       const dotTotal = recs.reduce((s, r) => s + (Number(r.dotacion) || 0), 0);
       const tot = { a1: ceilp(dotTotal, p.a1), a2: ceilp(dotTotal, p.a2), a3: ceilp(dotTotal, p.a3) };
+      // Conexión con la Red Champion (Programa RNAO): Champions activos por estamento
+      const norm = s => String(s || "").trim().toLowerCase();
+      const champActivos = S().all("redChampion").filter(c => c.estado !== "Inactivo");
+      const champMap = {};
+      champActivos.forEach(c => { const k = norm(c.estamento); if (k) champMap[k] = (champMap[k] || 0) + 1; });
+      const totalChamp = champActivos.length;
+      const avanceBar = (val, meta) => {
+        const pct = meta > 0 ? Math.round(val / meta * 100) : 0;
+        const col = pct >= 100 ? "var(--verde)" : pct >= 50 ? "var(--naranjo)" : "var(--danger)";
+        return `<div style="display:flex;align-items:center;gap:.4rem"><div style="flex:1;min-width:48px;background:var(--chart-track,#e9eff7);border-radius:6px;height:8px;overflow:hidden"><div style="width:${Math.min(100, pct)}%;height:100%;background:${col};border-radius:6px"></div></div><span style="font-size:12px;font-weight:700;color:${col}">${pct}%</span></div>`;
+      };
+      const avanceGlobal = tot.a3 > 0 ? Math.round(totalChamp / tot.a3 * 100) : 0;
       const rows = recs.map(r => {
         const d = Number(r.dotacion) || 0;
+        const metaA3 = ceilp(d, p.a3);
+        const champ = champMap[norm(r.estamento)] || 0;
         return `<tr>
           <td><strong>${u.esc(r.estamento || "—")}</strong></td>
           <td class="num">${d}</td>
           <td class="num">${ceilp(d, p.a1)}</td>
           <td class="num">${ceilp(d, p.a2)}</td>
-          <td class="num"><strong>${ceilp(d, p.a3)}</strong></td>
+          <td class="num"><strong>${metaA3}</strong></td>
+          <td class="num">${champ}</td>
+          <td style="min-width:120px">${avanceBar(champ, metaA3)}</td>
           <td class="nowrap"><button class="btn btn--ghost btn--sm" data-mcedit="${r.id}">Editar</button> <button class="btn btn--ghost btn--sm" data-mcdel="${r.id}">Eliminar</button></td></tr>`;
       }).join("");
       box.innerHTML = `
         <div class="card" style="border-left:4px solid var(--morado);margin-bottom:1rem">
           <h3 class="card__title" style="margin:.1rem 0 .35rem">🎯 Meta de Masa Crítica (Personal)</h3>
-          <p class="card__hint" style="margin:0 0 .2rem">Objetivos de desarrollo de Champions según las orientaciones técnicas RNAO / BPSO. Ingresa la <strong>dotación por estamento</strong> y el portal calcula cuántos funcionarios debes capacitar. Las metas son <strong>acumuladas</strong>: Año 1 = ${p.a1}%, Año 2 = ${p.a2}%, Año 3 = ${p.a3}% (masa crítica mínima recomendada).</p>
+          <p class="card__hint" style="margin:0 0 .2rem">Objetivos de desarrollo de Champions según las orientaciones técnicas RNAO / BPSO. Ingresa la <strong>dotación por estamento</strong> y el portal calcula cuántos funcionarios debes capacitar. Las metas son <strong>acumuladas</strong>: Año 1 = ${p.a1}%, Año 2 = ${p.a2}%, Año 3 = ${p.a3}% (masa crítica mínima recomendada). El <strong>avance</strong> se conecta automáticamente con la <a href="#/coord/m3?tab=champion">Red Champion</a> del Programa RNAO (cuenta los Champions activos por estamento).</p>
           <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.7rem;align-items:flex-end">
             ${["a1", "a2", "a3"].map((k, i) => `<label class="field" style="max-width:120px;margin:0"><span style="font-size:12px;font-weight:700;color:var(--text-2)">Año ${i + 1} (%)</span><input class="input" type="number" min="0" max="100" step="0.5" data-mcpct="${k}" value="${p[k]}"></label>`).join("")}
             <span class="kpi__sub" style="max-width:280px">Puedes ajustar los % si cambian tus orientaciones técnicas.</span>
@@ -69,17 +89,17 @@
         </div>
         <div class="grid grid--kpi" style="margin-bottom:1rem">
           ${kpiMC("Dotación total", dotTotal, "info", "Suma de todos los estamentos")}
-          ${kpiMC("Meta Año 1", tot.a1, "warn", p.a1 + "% de la dotación")}
-          ${kpiMC("Meta Año 2", tot.a2, "warn", p.a2 + "% acumulado")}
-          ${kpiMC("Masa crítica · Año 3", tot.a3, "ok", p.a3 + "% acumulado (mínima)")}
+          ${kpiMC("Masa crítica · Año 3", tot.a3, "warn", p.a3 + "% acumulado (meta mínima)")}
+          ${kpiMC("Champions en red", totalChamp, "ok", "Registrados activos (Programa RNAO)")}
+          ${kpiMC("Avance masa crítica", avanceGlobal + "%", avanceGlobal >= 100 ? "ok" : avanceGlobal >= 50 ? "warn" : "danger", totalChamp + " de " + tot.a3 + " Champions")}
         </div>
         <div class="section__head"><div><h3 class="section__title" style="margin:0">Capacitación por estamento</h3>
           <p class="section__hint">Cálculo automático de funcionarios a capacitar por año (metas acumuladas)</p></div>
           <button class="btn btn--primary btn--sm" id="mc-new">+ Agregar estamento</button></div>
         ${recs.length ? `<div class="table-wrap"><table class="tbl"><thead><tr>
-          <th>Estamento</th><th class="num">Dotación</th><th class="num">Año 1 (${p.a1}%)</th><th class="num">Año 2 (${p.a2}% acum.)</th><th class="num">Año 3 (${p.a3}% acum.)</th><th>Acciones</th></tr></thead>
+          <th>Estamento</th><th class="num">Dotación</th><th class="num">Año 1 (${p.a1}%)</th><th class="num">Año 2 (${p.a2}% acum.)</th><th class="num">Año 3 (${p.a3}% acum.)</th><th class="num">Champions</th><th>Avance Año 3</th><th>Acciones</th></tr></thead>
           <tbody>${rows}
-            <tr style="background:rgba(15,143,131,.09);font-weight:700"><td>TOTAL</td><td class="num">${dotTotal}</td><td class="num">${tot.a1}</td><td class="num">${tot.a2}</td><td class="num">${tot.a3}</td><td></td></tr>
+            <tr style="background:rgba(15,143,131,.09);font-weight:700"><td>TOTAL</td><td class="num">${dotTotal}</td><td class="num">${tot.a1}</td><td class="num">${tot.a2}</td><td class="num">${tot.a3}</td><td class="num">${totalChamp}</td><td style="min-width:120px">${avanceBar(totalChamp, tot.a3)}</td><td></td></tr>
           </tbody></table></div>`
           : u.empty("Aún no hay estamentos cargados.", "Agrega la dotación de enfermeros, TENS, auxiliares, etc.", "👥")}`;
 
@@ -127,10 +147,10 @@
     const d = new Date(fecha); if (isNaN(d)) return "—";
     return d.getFullYear() + "-S" + (d.getMonth() < 6 ? 1 : 2);
   }
-  function renderCapChart(el) {
+  function renderCapChart(el, acts) {
     if (!el) return;
     const u = ui();
-    const acts = S().all("actividades");
+    acts = acts || S().all("actividades");
     if (!acts.length) { el.innerHTML = ""; return; }
     const totalCap = acts.reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0);
     const sumPO = acts.reduce((n, a) => n + (parseInt(a.poblacionObjetivo) || 0), 0);
@@ -192,16 +212,24 @@
       </div>`;
   }
 
-  function actividades(box) {
-    box.innerHTML = `<div id="cap-chart"></div><div id="cap-res"></div>`;
-    const draw = () => renderCapChart(document.getElementById("cap-chart"));
+  function actividades(box, programa) {
+    programa = programa || "BPSO";
+    const esNT = programa === "NT 234";
+    // BPSO incluye lo antiguo sin programa; NT 234 solo lo marcado como NT 234.
+    const pred = esNT ? (a => a.programa === "NT 234") : (a => (a.programa || "BPSO") !== "NT 234");
+    box.innerHTML = `<div class="section__head" style="margin-bottom:.6rem"><div>
+        <h3 class="section__title" style="margin:0">Actividades y capacitación · ${programa}</h3>
+        <p class="section__hint">${esNT ? "Capacitaciones asociadas a la Norma Técnica 234 (prevención de LPP)." : "Capacitaciones del programa RNAO / BPSO (formación de Champions y buenas prácticas)."}</p></div></div>
+      <div id="cap-chart"></div><div id="cap-res"></div>`;
+    const draw = () => renderCapChart(document.getElementById("cap-chart"), S().all("actividades").filter(pred));
     draw();
     R().mount(document.getElementById("cap-res"), {
       afterChange: draw,
-      collection: "actividades", title: "Actividad", icon: "🎓", withCode: true,
-      hint: "Actividades de capacitación con estamento, personas capacitadas y cobertura. Código UBPC-CAP-AAAA-000.",
+      collection: "actividades", title: "Actividad " + programa, icon: "🎓", withCode: true,
+      filter: pred,
+      hint: "Actividades de capacitación " + programa + " con estamento, personas capacitadas y cobertura. Código UBPC-CAP-AAAA-000.",
       newLabel: "Nueva actividad",
-      emptyMsg: "Aún no hay actividades registradas.",
+      emptyMsg: "Aún no hay actividades de " + programa + " registradas.",
       columns: [
         { key: "codigo", label: "Código", mono: true, width: "150px" },
         { key: "fecha", label: "Fecha", date: true },
@@ -213,6 +241,7 @@
         { key: "estado", label: "Estado", badge: true }
       ],
       fields: [
+        { name: "programa", label: "Programa", type: "select", options: ["BPSO", "NT 234"], hint: "Determina en qué pestaña aparece la actividad." },
         { name: "fecha", label: "Fecha", type: "date", required: true },
         { name: "actividad", label: "Actividad", required: true, full: true },
         { name: "tipo", label: "Tipo", type: "select", options: ["Capacitación", "Taller", "Curso", "Charla", "Inducción", "Simulación", "Otro"] },
@@ -226,7 +255,7 @@
         { name: "responsable", label: "Responsable" },
         { name: "estado", label: "Estado", type: "select", options: ["Pendiente", "En curso", "Completado"] }
       ],
-      defaults: () => ({ estado: "Completado", fecha: ui().hoyISO() }),
+      defaults: () => ({ estado: "Completado", fecha: ui().hoyISO(), programa }),
       onFormMount: (m, rec) => {
         const u = ui();
         rec = rec || {};
@@ -271,6 +300,7 @@
         recompute();
       },
       onBeforeSave: (d, rec, m) => {
+        if (!d.programa) d.programa = programa; // conserva la clasificación de la pestaña
         const estSel = m && m.querySelector('[name="estamento"]');
         const isMulti = /multiestamento/i.test(estSel ? estSel.value : (d.estamento || ""));
         if (isMulti && m) {
