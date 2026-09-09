@@ -96,7 +96,7 @@
         <div class="section__head"><div><h3 class="section__title" style="margin:0">Capacitación por estamento</h3>
           <p class="section__hint">Cálculo automático de funcionarios a capacitar por año (metas acumuladas)</p></div>
           <button class="btn btn--primary btn--sm" id="mc-new">+ Agregar estamento</button></div>
-        ${recs.length ? `<div class="table-wrap"><table class="tbl"><thead><tr>
+        ${recs.length ? `<div class="table-wrap"><table class="tbl mc-tbl"><thead><tr>
           <th>Estamento</th><th class="num">Dotación</th><th class="num">Año 1 (${p.a1}%)</th><th class="num">Año 2 (${p.a2}% acum.)</th><th class="num">Año 3 (${p.a3}% acum.)</th><th class="num">Champions</th><th>Avance Año 3</th><th>Acciones</th></tr></thead>
           <tbody>${rows}
             <tr style="background:rgba(15,143,131,.09);font-weight:700"><td>TOTAL</td><td class="num">${dotTotal}</td><td class="num">${tot.a1}</td><td class="num">${tot.a2}</td><td class="num">${tot.a3}</td><td class="num">${totalChamp}</td><td style="min-width:120px">${avanceBar(totalChamp, tot.a3)}</td><td></td></tr>

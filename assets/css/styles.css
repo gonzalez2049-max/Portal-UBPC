@@ -616,6 +616,10 @@ h1,h2,h3,h4,.section__title,.card__title,.page-head h1,.access__title,.kpi__valu
 .tbl tbody tr:nth-child(even){ background:rgba(15,143,131,.045); }
 .tbl tbody tr:hover{ background:#eafaf5; }
 .tbl tbody td{ border-bottom:1px solid rgba(15,143,131,.10); }
+/* Tabla de Masa Crítica: columnas centradas (el nombre del estamento a la izquierda) */
+.tbl.mc-tbl th, .tbl.mc-tbl td, .tbl.mc-tbl td.num{ text-align:center; }
+.tbl.mc-tbl th:first-child, .tbl.mc-tbl td:first-child{ text-align:left; }
+.tbl.mc-tbl td > div{ margin-left:auto; margin-right:auto; max-width:150px; }
 
 /* Botones con degradado de marca */
 .btn--primary{ background: var(--g-btn); box-shadow:0 10px 20px -12px rgba(122,92,208,.7); }
