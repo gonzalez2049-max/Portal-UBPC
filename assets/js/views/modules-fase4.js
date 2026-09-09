@@ -102,10 +102,12 @@
           </div>
         </div>
         <div class="grid grid--kpi" style="margin-bottom:1rem">
-          ${kpiMC("Champions a capacitar · Año 1", totMeta.a1, "info", p.a1 + "% de la dotación Año 1")}
-          ${kpiMC("Champions a capacitar · Año 2", totMeta.a2, "warn", p.a2 + "% acumulado (Año 2)")}
-          ${kpiMC("Masa crítica TOTAL · Año 3", totMeta.a3, "ok", p.a3 + "% acumulado — meta final")}
-          ${kpiMC("Capacitados hoy", totalChamp, avanceGlobal >= 100 ? "ok" : "info", avanceGlobal + "% de la masa crítica" + (gapGlobal > 0 ? " · faltan " + gapGlobal : " 🎉"))}
+          ${(() => { const done = totMeta.a1 > 0 && totalChamp >= totMeta.a1, pct = totMeta.a1 > 0 ? Math.round(totalChamp / totMeta.a1 * 100) : 0;
+            return kpiMC("Año 1 (capacitados / meta)", totalChamp + " / " + totMeta.a1, done ? "ok" : "info", p.a1 + "% de la dotación · " + pct + "% cumplido"); })()}
+          ${(() => { const done = totMeta.a2 > 0 && totalChamp >= totMeta.a2, pct = totMeta.a2 > 0 ? Math.round(totalChamp / totMeta.a2 * 100) : 0;
+            return kpiMC("Año 2 (capacitados / meta)", totalChamp + " / " + totMeta.a2, done ? "ok" : "warn", p.a2 + "% acumulado · " + pct + "% cumplido"); })()}
+          ${kpiMC("Masa crítica TOTAL · Año 3", totalChamp + " / " + totMeta.a3, avanceGlobal >= 100 ? "ok" : "warn", p.a3 + "% acumulado · meta final")}
+          ${kpiMC("Avance total", avanceGlobal + "%", avanceGlobal >= 100 ? "ok" : avanceGlobal >= 50 ? "warn" : "danger", gapGlobal > 0 ? "faltan " + gapGlobal + " para la masa crítica" : "masa crítica cumplida 🎉")}
         </div>
         <div class="section__head"><div><h3 class="section__title" style="margin:0">Capacitación por estamento</h3>
           <p class="section__hint">Cada año muestra <strong>dotación → meta acumulada</strong> y cuántos <strong>faltan</strong> por capacitar.</p></div>
