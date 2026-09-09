@@ -44,62 +44,74 @@
     const u = ui();
     return `<div class="card kpi kpi--${kind}"><div class="kpi__label">${u.esc(label)}</div><div class="kpi__value">${value}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
   }
+  // Dotación de un estamento en el año n (móvil por año). Compatibilidad: registros
+  // antiguos con dotación única se usan como valor para los tres años.
+  function dotOf(r, n) {
+    const v = r["dot" + n];
+    if (v !== undefined && v !== null && v !== "") return Number(v) || 0;
+    return Number(r.dotacion) || 0;
+  }
   function masaCritica(box) {
     const u = ui();
     const ceilp = (n, pct) => Math.ceil((Number(n) || 0) * pct / 100);
     const render = () => {
       const p = mcPcts();
       const recs = S().all("masaCritica").sort((a, b) => (a.estamento || "").localeCompare(b.estamento || ""));
-      const dotTotal = recs.reduce((s, r) => s + (Number(r.dotacion) || 0), 0);
-      const tot = { a1: ceilp(dotTotal, p.a1), a2: ceilp(dotTotal, p.a2), a3: ceilp(dotTotal, p.a3) };
       // Conexión con la Red Champion (Programa RNAO): Champions activos por estamento
       const norm = s => String(s || "").trim().toLowerCase();
       const champActivos = S().all("redChampion").filter(c => c.estado !== "Inactivo");
       const champMap = {};
       champActivos.forEach(c => { const k = norm(c.estamento); if (k) champMap[k] = (champMap[k] || 0) + 1; });
       const totalChamp = champActivos.length;
+      // Totales por año (dotación y meta a capacitar)
+      const totDot = { a1: 0, a2: 0, a3: 0 }, totMeta = { a1: 0, a2: 0, a3: 0 };
+      recs.forEach(r => {
+        totDot.a1 += dotOf(r, 1); totDot.a2 += dotOf(r, 2); totDot.a3 += dotOf(r, 3);
+        totMeta.a1 += ceilp(dotOf(r, 1), p.a1); totMeta.a2 += ceilp(dotOf(r, 2), p.a2); totMeta.a3 += ceilp(dotOf(r, 3), p.a3);
+      });
       const avanceBar = (val, meta) => {
         const pct = meta > 0 ? Math.round(val / meta * 100) : 0;
         const col = pct >= 100 ? "var(--verde)" : pct >= 50 ? "var(--naranjo)" : "var(--danger)";
         return `<div style="display:flex;align-items:center;gap:.4rem"><div style="flex:1;min-width:48px;background:var(--chart-track,#e9eff7);border-radius:6px;height:8px;overflow:hidden"><div style="width:${Math.min(100, pct)}%;height:100%;background:${col};border-radius:6px"></div></div><span style="font-size:12px;font-weight:700;color:${col}">${pct}%</span></div>`;
       };
-      const avanceGlobal = tot.a3 > 0 ? Math.round(totalChamp / tot.a3 * 100) : 0;
+      const avanceGlobal = totMeta.a3 > 0 ? Math.round(totalChamp / totMeta.a3 * 100) : 0;
+      // Celda de año: dotación → a capacitar
+      const yearCell = (dot, meta) => `<span style="color:var(--text-muted)">${dot}</span> <span style="opacity:.45">→</span> <strong>${meta}</strong>`;
       const rows = recs.map(r => {
-        const d = Number(r.dotacion) || 0;
-        const metaA3 = ceilp(d, p.a3);
+        const d1 = dotOf(r, 1), d2 = dotOf(r, 2), d3 = dotOf(r, 3);
+        const m1 = ceilp(d1, p.a1), m2 = ceilp(d2, p.a2), m3 = ceilp(d3, p.a3);
         const champ = champMap[norm(r.estamento)] || 0;
         return `<tr>
           <td><strong>${u.esc(r.estamento || "—")}</strong></td>
-          <td class="num">${d}</td>
-          <td class="num">${ceilp(d, p.a1)}</td>
-          <td class="num">${ceilp(d, p.a2)}</td>
-          <td class="num"><strong>${metaA3}</strong></td>
+          <td class="num">${yearCell(d1, m1)}</td>
+          <td class="num">${yearCell(d2, m2)}</td>
+          <td class="num">${yearCell(d3, m3)}</td>
           <td class="num">${champ}</td>
-          <td style="min-width:120px">${avanceBar(champ, metaA3)}</td>
+          <td style="min-width:120px">${avanceBar(champ, m3)}</td>
           <td class="nowrap"><button class="btn btn--ghost btn--sm" data-mcedit="${r.id}">Editar</button> <button class="btn btn--ghost btn--sm" data-mcdel="${r.id}">Eliminar</button></td></tr>`;
       }).join("");
       box.innerHTML = `
         <div class="card" style="border-left:4px solid var(--morado);margin-bottom:1rem">
           <h3 class="card__title" style="margin:.1rem 0 .35rem">🎯 Meta de Masa Crítica (Personal)</h3>
-          <p class="card__hint" style="margin:0 0 .2rem">Objetivos de desarrollo de Champions según las orientaciones técnicas RNAO / BPSO. Ingresa la <strong>dotación por estamento</strong> y el portal calcula cuántos funcionarios debes capacitar. Las metas son <strong>acumuladas</strong>: Año 1 = ${p.a1}%, Año 2 = ${p.a2}%, Año 3 = ${p.a3}% (masa crítica mínima recomendada). El <strong>avance</strong> se conecta automáticamente con la <a href="#/coord/m3?tab=champion">Red Champion</a> del Programa RNAO (cuenta los Champions activos por estamento).</p>
+          <p class="card__hint" style="margin:0 0 .2rem">Objetivos de desarrollo de Champions según las orientaciones técnicas RNAO / BPSO. La <strong>dotación es móvil</strong>: ingresa la de cada año por estamento y el portal calcula cuántos capacitar. Metas: Año 1 = ${p.a1}%, Año 2 = ${p.a2}%, Año 3 = ${p.a3}% (masa crítica mínima). El <strong>avance</strong> se conecta con la <a href="#/coord/m3?tab=champion">Red Champion</a> del Programa RNAO (Champions activos por estamento).</p>
           <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.7rem;align-items:flex-end">
             ${["a1", "a2", "a3"].map((k, i) => `<label class="field" style="max-width:120px;margin:0"><span style="font-size:12px;font-weight:700;color:var(--text-2)">Año ${i + 1} (%)</span><input class="input" type="number" min="0" max="100" step="0.5" data-mcpct="${k}" value="${p[k]}"></label>`).join("")}
             <span class="kpi__sub" style="max-width:280px">Puedes ajustar los % si cambian tus orientaciones técnicas.</span>
           </div>
         </div>
         <div class="grid grid--kpi" style="margin-bottom:1rem">
-          ${kpiMC("Dotación total", dotTotal, "info", "Suma de todos los estamentos")}
-          ${kpiMC("Masa crítica · Año 3", tot.a3, "warn", p.a3 + "% acumulado (meta mínima)")}
-          ${kpiMC("Champions en red", totalChamp, "ok", "Registrados activos (Programa RNAO)")}
-          ${kpiMC("Avance masa crítica", avanceGlobal + "%", avanceGlobal >= 100 ? "ok" : avanceGlobal >= 50 ? "warn" : "danger", totalChamp + " de " + tot.a3 + " Champions")}
+          ${kpiMC("Meta Año 1", totMeta.a1, "warn", p.a1 + "% de la dotación Año 1")}
+          ${kpiMC("Meta Año 2", totMeta.a2, "warn", p.a2 + "% de la dotación Año 2")}
+          ${kpiMC("Masa crítica · Año 3", totMeta.a3, "ok", p.a3 + "% de la dotación Año 3")}
+          ${kpiMC("Avance (Champions)", avanceGlobal + "%", avanceGlobal >= 100 ? "ok" : avanceGlobal >= 50 ? "warn" : "danger", totalChamp + " de " + totMeta.a3 + " (meta Año 3)")}
         </div>
         <div class="section__head"><div><h3 class="section__title" style="margin:0">Capacitación por estamento</h3>
-          <p class="section__hint">Cálculo automático de funcionarios a capacitar por año (metas acumuladas)</p></div>
+          <p class="section__hint">En cada año se muestra <strong>dotación → a capacitar</strong>. La dotación puede cambiar cada año.</p></div>
           <button class="btn btn--primary btn--sm" id="mc-new">+ Agregar estamento</button></div>
         ${recs.length ? `<div class="table-wrap"><table class="tbl mc-tbl"><thead><tr>
-          <th>Estamento</th><th class="num">Dotación</th><th class="num">Año 1 (${p.a1}%)</th><th class="num">Año 2 (${p.a2}% acum.)</th><th class="num">Año 3 (${p.a3}% acum.)</th><th class="num">Champions</th><th>Avance Año 3</th><th>Acciones</th></tr></thead>
+          <th>Estamento</th><th class="num">Año 1 (${p.a1}%)</th><th class="num">Año 2 (${p.a2}%)</th><th class="num">Año 3 (${p.a3}%)</th><th class="num">Champions</th><th>Avance Año 3</th><th>Acciones</th></tr></thead>
           <tbody>${rows}
-            <tr style="background:rgba(15,143,131,.09);font-weight:700"><td>TOTAL</td><td class="num">${dotTotal}</td><td class="num">${tot.a1}</td><td class="num">${tot.a2}</td><td class="num">${tot.a3}</td><td class="num">${totalChamp}</td><td style="min-width:120px">${avanceBar(totalChamp, tot.a3)}</td><td></td></tr>
+            <tr style="background:rgba(15,143,131,.09);font-weight:700"><td>TOTAL</td><td class="num">${yearCell(totDot.a1, totMeta.a1)}</td><td class="num">${yearCell(totDot.a2, totMeta.a2)}</td><td class="num">${yearCell(totDot.a3, totMeta.a3)}</td><td class="num">${totalChamp}</td><td style="min-width:120px">${avanceBar(totalChamp, totMeta.a3)}</td><td></td></tr>
           </tbody></table></div>`
           : u.empty("Aún no hay estamentos cargados.", "Agrega la dotación de enfermeros, TENS, auxiliares, etc.", "👥")}`;
 
@@ -119,16 +131,22 @@
     u.modal({
       title: rec.id ? "Editar estamento" : "Agregar estamento",
       body: `<datalist id="mc-est"><option>Enfermería</option><option>TENS</option><option>Auxiliar de servicio</option><option>Médico</option><option>Kinesiología</option><option>Matrona</option></datalist>`
+        + `<p class="card__hint" style="margin:0 0 .5rem">La <strong>dotación es móvil</strong>: puede cambiar cada año. Si un año es igual al anterior, repite el número. Si dejas Año 2 o Año 3 en blanco, se usa el del año previo.</p>`
         + u.formHTML([
           { name: "estamento", label: "Estamento", required: true, full: true, value: rec.estamento || "", attrs: 'list="mc-est"', placeholder: "Ej: Enfermería, TENS, Auxiliar de servicio…" },
-          { name: "dotacion", label: "Dotación (N° de funcionarios)", type: "number", required: true, value: rec.dotacion != null ? rec.dotacion : "", hint: "Total de funcionarios de ese estamento en tu servicio/unidad." }
+          { name: "dot1", label: "Dotación Año 1", type: "number", required: true, value: rec.dot1 != null ? rec.dot1 : (rec.dotacion != null ? rec.dotacion : ""), hint: "N° de funcionarios del estamento el Año 1." },
+          { name: "dot2", label: "Dotación Año 2", type: "number", value: rec.dot2 != null ? rec.dot2 : "", hint: "Déjalo vacío si es igual al Año 1." },
+          { name: "dot3", label: "Dotación Año 3", type: "number", value: rec.dot3 != null ? rec.dot3 : "", hint: "Déjalo vacío si es igual al Año 2." }
         ], {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
       onMount(m) {
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
-          if (!d.estamento || d.dotacion === "" || d.dotacion == null) { u.toast("Completa estamento y dotación", "danger"); return; }
-          d.dotacion = Number(d.dotacion) || 0;
+          if (!d.estamento || d.dot1 === "" || d.dot1 == null) { u.toast("Completa estamento y la dotación del Año 1", "danger"); return; }
+          const n1 = Number(d.dot1) || 0;
+          const n2 = (d.dot2 === "" || d.dot2 == null) ? n1 : (Number(d.dot2) || 0);
+          const n3 = (d.dot3 === "" || d.dot3 == null) ? n2 : (Number(d.dot3) || 0);
+          d.dot1 = n1; d.dot2 = n2; d.dot3 = n3; d.dotacion = n1; // dotacion se conserva por compatibilidad
           if (rec.id) S().update("masaCritica", rec.id, d); else S().insert("masaCritica", d);
           u.closeModal(); u.toast("Guardado", "ok"); done();
         };
