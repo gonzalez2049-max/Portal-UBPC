@@ -9,6 +9,7 @@
 
   const TABS = [
     { key: "actividades", label: "Actividades y capacitación" },
+    { key: "masacritica", label: "Meta de Masa Crítica" },
     { key: "evi", label: "EVI · Evidencia que transforma" },
     { key: "reconocimientos", label: "Reconocimientos" }
   ];
@@ -24,7 +25,95 @@
   function m4Bind(main, params) {
     const tab = (params && params.tab) || "actividades";
     const box = document.getElementById("m4-body");
-    ({ actividades, evi, reconocimientos }[tab] || actividades)(box);
+    ({ actividades, masacritica: masaCritica, evi, reconocimientos }[tab] || actividades)(box);
+  }
+
+  /* ---------- Meta de Masa Crítica (dotación por estamento → a capacitar por año) ---------- */
+  function mcPcts() {
+    return {
+      a1: Number(S().getConfig("masacritica.a1", 6)) || 6,
+      a2: Number(S().getConfig("masacritica.a2", 12)) || 12,
+      a3: Number(S().getConfig("masacritica.a3", 15)) || 15
+    };
+  }
+  function kpiMC(label, value, kind, sub) {
+    const u = ui();
+    return `<div class="card kpi kpi--${kind}"><div class="kpi__label">${u.esc(label)}</div><div class="kpi__value">${value}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
+  }
+  function masaCritica(box) {
+    const u = ui();
+    const ceilp = (n, pct) => Math.ceil((Number(n) || 0) * pct / 100);
+    const render = () => {
+      const p = mcPcts();
+      const recs = S().all("masaCritica").sort((a, b) => (a.estamento || "").localeCompare(b.estamento || ""));
+      const dotTotal = recs.reduce((s, r) => s + (Number(r.dotacion) || 0), 0);
+      const tot = { a1: ceilp(dotTotal, p.a1), a2: ceilp(dotTotal, p.a2), a3: ceilp(dotTotal, p.a3) };
+      const rows = recs.map(r => {
+        const d = Number(r.dotacion) || 0;
+        return `<tr>
+          <td><strong>${u.esc(r.estamento || "—")}</strong></td>
+          <td class="num">${d}</td>
+          <td class="num">${ceilp(d, p.a1)}</td>
+          <td class="num">${ceilp(d, p.a2)}</td>
+          <td class="num"><strong>${ceilp(d, p.a3)}</strong></td>
+          <td class="nowrap"><button class="btn btn--ghost btn--sm" data-mcedit="${r.id}">Editar</button> <button class="btn btn--ghost btn--sm" data-mcdel="${r.id}">Eliminar</button></td></tr>`;
+      }).join("");
+      box.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--morado);margin-bottom:1rem">
+          <h3 class="card__title" style="margin:.1rem 0 .35rem">🎯 Meta de Masa Crítica (Personal)</h3>
+          <p class="card__hint" style="margin:0 0 .2rem">Objetivos de desarrollo de Champions según las orientaciones técnicas RNAO / BPSO. Ingresa la <strong>dotación por estamento</strong> y el portal calcula cuántos funcionarios debes capacitar. Las metas son <strong>acumuladas</strong>: Año 1 = ${p.a1}%, Año 2 = ${p.a2}%, Año 3 = ${p.a3}% (masa crítica mínima recomendada).</p>
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.7rem;align-items:flex-end">
+            ${["a1", "a2", "a3"].map((k, i) => `<label class="field" style="max-width:120px;margin:0"><span style="font-size:12px;font-weight:700;color:var(--text-2)">Año ${i + 1} (%)</span><input class="input" type="number" min="0" max="100" step="0.5" data-mcpct="${k}" value="${p[k]}"></label>`).join("")}
+            <span class="kpi__sub" style="max-width:280px">Puedes ajustar los % si cambian tus orientaciones técnicas.</span>
+          </div>
+        </div>
+        <div class="grid grid--kpi" style="margin-bottom:1rem">
+          ${kpiMC("Dotación total", dotTotal, "info", "Suma de todos los estamentos")}
+          ${kpiMC("Meta Año 1", tot.a1, "warn", p.a1 + "% de la dotación")}
+          ${kpiMC("Meta Año 2", tot.a2, "warn", p.a2 + "% acumulado")}
+          ${kpiMC("Masa crítica · Año 3", tot.a3, "ok", p.a3 + "% acumulado (mínima)")}
+        </div>
+        <div class="section__head"><div><h3 class="section__title" style="margin:0">Capacitación por estamento</h3>
+          <p class="section__hint">Cálculo automático de funcionarios a capacitar por año (metas acumuladas)</p></div>
+          <button class="btn btn--primary btn--sm" id="mc-new">+ Agregar estamento</button></div>
+        ${recs.length ? `<div class="table-wrap"><table class="tbl"><thead><tr>
+          <th>Estamento</th><th class="num">Dotación</th><th class="num">Año 1 (${p.a1}%)</th><th class="num">Año 2 (${p.a2}% acum.)</th><th class="num">Año 3 (${p.a3}% acum.)</th><th>Acciones</th></tr></thead>
+          <tbody>${rows}
+            <tr style="background:rgba(15,143,131,.09);font-weight:700"><td>TOTAL</td><td class="num">${dotTotal}</td><td class="num">${tot.a1}</td><td class="num">${tot.a2}</td><td class="num">${tot.a3}</td><td></td></tr>
+          </tbody></table></div>`
+          : u.empty("Aún no hay estamentos cargados.", "Agrega la dotación de enfermeros, TENS, auxiliares, etc.", "👥")}`;
+
+      box.querySelectorAll("[data-mcpct]").forEach(inp => inp.onchange = () => {
+        const v = Math.max(0, Math.min(100, Number(inp.value) || 0));
+        S().setConfig("masacritica." + inp.dataset.mcpct, v); render();
+      });
+      document.getElementById("mc-new").onclick = () => mcForm(null, render);
+      box.querySelectorAll("[data-mcedit]").forEach(b => b.onclick = () => mcForm(S().get("masaCritica", b.dataset.mcedit), render));
+      box.querySelectorAll("[data-mcdel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este estamento?", () => { S().remove("masaCritica", b.dataset.mcdel); render(); }));
+    };
+    render();
+  }
+  function mcForm(rec, done) {
+    const u = ui();
+    rec = rec || {};
+    u.modal({
+      title: rec.id ? "Editar estamento" : "Agregar estamento",
+      body: `<datalist id="mc-est"><option>Enfermería</option><option>TENS</option><option>Auxiliar de servicio</option><option>Médico</option><option>Kinesiología</option><option>Matrona</option></datalist>`
+        + u.formHTML([
+          { name: "estamento", label: "Estamento", required: true, full: true, value: rec.estamento || "", attrs: 'list="mc-est"', placeholder: "Ej: Enfermería, TENS, Auxiliar de servicio…" },
+          { name: "dotacion", label: "Dotación (N° de funcionarios)", type: "number", required: true, value: rec.dotacion != null ? rec.dotacion : "", hint: "Total de funcionarios de ese estamento en tu servicio/unidad." }
+        ], {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.estamento || d.dotacion === "" || d.dotacion == null) { u.toast("Completa estamento y dotación", "danger"); return; }
+          d.dotacion = Number(d.dotacion) || 0;
+          if (rec.id) S().update("masaCritica", rec.id, d); else S().insert("masaCritica", d);
+          u.closeModal(); u.toast("Guardado", "ok"); done();
+        };
+      }
+    });
   }
 
   /* ---------- Actividades y capacitación ---------- */
