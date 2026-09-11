@@ -48,7 +48,20 @@
     s.all("actividades").forEach(r => push(r.fecha, "Capacitación · " + (r.actividad || ""), "capacitacion", "#/coord/m4"));
     s.all("convocatoriaChampion").forEach(r => push(r.fecha, "Champions · " + (r.tipo || "Convocatoria") + (r.tema ? " · " + r.tema : ""), "champion", "#/coord/m3?tab=champion"));
     s.all("colaboraciones").forEach(r => push(r.fecha, "Colaboración · " + (r.institucion || ""), "colaboracion", "#/coord/m5?tab=colaboraciones"));
-    s.all("agendaEventos").forEach(r => push(r.fecha, r.titulo || "Evento", "propio", null, { propio: true, id: r.id, hora: r.hora, nota: r.nota }));
+    s.all("agendaEventos").forEach(r => {
+      const startIso = isoDay(r.fecha); if (!startIso) return;
+      const endIso = r.fechaFin ? isoDay(r.fechaFin) : startIso;
+      const isRange = !!(endIso && endIso !== startIso);
+      const base = { propio: true, id: r.id, hora: r.hora, nota: r.nota, rangeStart: startIso, rangeEnd: endIso, isRange };
+      // Evento de un día → 1 entrada; evento con rango → una entrada por cada día (para verlo en todo el calendario).
+      const cur = dateFromIso(startIso), end = dateFromIso(endIso);
+      let guard = 0;
+      while (cur <= end && guard < 400) {
+        const iso = cur.getFullYear() + "-" + pad(cur.getMonth() + 1) + "-" + pad(cur.getDate());
+        push(iso, r.titulo || "Evento", "propio", null, base);
+        cur.setDate(cur.getDate() + 1); guard++;
+      }
+    });
     // Próxima medición de cada indicador según su periodicidad
     if (U.indicadoresUtil && U.indicadoresUtil.proximaMedicion) {
       s.all("indicadores").forEach(r => {
@@ -73,7 +86,8 @@
       title: rec ? "Editar evento" : "Nuevo evento",
       body: u.formHTML([
         { name: "titulo", label: "Título del evento", required: true, full: true, value: rec ? rec.titulo : "" },
-        { name: "fecha", label: "Fecha", type: "date", required: true, value: rec ? rec.fecha : (preset || u.hoyISO()) },
+        { name: "fecha", label: "Fecha (desde)", type: "date", required: true, value: rec ? rec.fecha : (preset || u.hoyISO()) },
+        { name: "fechaFin", label: "Fecha de término (opcional)", type: "date", value: rec && rec.fechaFin ? rec.fechaFin : "", hint: "Déjala vacía si el evento es de un solo día." },
         { name: "hora", label: "Hora (opcional)", type: "time", value: rec ? rec.hora : "" },
         { name: "nota", label: "Nota (opcional)", type: "textarea", full: true, value: rec ? rec.nota : "" }
       ], {}),
@@ -82,6 +96,11 @@
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           if (!d.titulo || !d.fecha) { u.toast("Completa el título y la fecha", "danger"); return; }
+          // Rango: si hay fecha de término y quedó antes del inicio, se intercambian.
+          if (d.fechaFin) {
+            if (d.fechaFin < d.fecha) { const t = d.fecha; d.fecha = d.fechaFin; d.fechaFin = t; }
+            if (d.fechaFin === d.fecha) d.fechaFin = ""; // mismo día = un solo día
+          }
           if (rec) S().update("agendaEventos", rec.id, d); else S().insert("agendaEventos", d);
           u.closeModal(); u.toast(rec ? "Evento actualizado" : "Evento agregado", "ok"); done();
         };
@@ -121,7 +140,9 @@
       : dias === 0 ? `<span class="agc-when hoy">Hoy</span>`
       : dias === 1 ? `<span class="agc-when">Mañana</span>`
       : dias > 0 ? `<span class="agc-when">En ${dias} días</span>` : "";
-    const meta = `${u.fechaCL(e.d)}${e.hora ? " · " + u.esc(e.hora) : ""} · ${m.lab}`;
+    const meta = (e.isRange && e.rangeStart && e.rangeEnd)
+      ? `Del ${u.fechaCL(dateFromIso(e.rangeStart))} al ${u.fechaCL(dateFromIso(e.rangeEnd))}${e.hora ? " · " + u.esc(e.hora) : ""} · ${m.lab}`
+      : `${u.fechaCL(e.d)}${e.hora ? " · " + u.esc(e.hora) : ""} · ${m.lab}`;
     if (e.propio) {
       return `<div class="agc-item" style="--tc:${m.c}">
         <span class="agc-item__ic">${m.ic}</span>
@@ -290,9 +311,11 @@
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const in8 = new Date(today); in8.setDate(in8.getDate() + 8);
       const byIso = {}; events.forEach(e => { (byIso[e.iso] = byIso[e.iso] || []).push(e); });
+      // Para los conteos, un evento con rango se cuenta UNA vez (no un día por celda).
+      const uniq = arr => { const s = {}; return arr.filter(e => { if (e.propio && e.id) { if (s[e.id]) return false; s[e.id] = 1; } return true; }); };
 
-      const proximos = events.filter(e => e.d >= today).length;
-      const venc7 = events.filter(e => e.d >= today && e.d < in8).length;
+      const proximos = uniq(events.filter(e => e.d >= today)).length;
+      const venc7 = uniq(events.filter(e => e.d >= today && e.d < in8)).length;
       const vencidos = events.filter(e => e.deadline && !e.done && e.d < today);
 
       // ---- Calendario del mes ----
@@ -300,7 +323,7 @@
       const y = base.getFullYear(), mo = base.getMonth();
       const days = new Date(y, mo + 1, 0).getDate();
       const lead = (new Date(y, mo, 1).getDay() + 6) % 7;
-      const mesEventos = events.filter(e => e.d.getFullYear() === y && e.d.getMonth() === mo).length;
+      const mesEventos = uniq(events.filter(e => e.d.getFullYear() === y && e.d.getMonth() === mo)).length;
       const MAXCHIP = 3;
       let cells = "";
       for (let i = 0; i < lead; i++) cells += `<div class="agc-day agc-day--blank"></div>`;
@@ -327,7 +350,12 @@
       }
 
       // ---- Próximos eventos (bajo el calendario) ----
-      const proxEvents = events.filter(e => e.d >= today).slice(0, 60);
+      // Eventos propios con rango se listan UNA sola vez (en su día de inicio).
+      const _seenProx = {};
+      const proxEvents = events.filter(e => e.d >= today).filter(e => {
+        if (e.propio && e.id) { if (_seenProx[e.id]) return false; _seenProx[e.id] = 1; }
+        return true;
+      }).slice(0, 60);
       // Panel inferior: solo próximos eventos (o pista). El detalle de cada día
       // ahora se abre en una ventana al hacer clic en el día, no aquí abajo.
       let panelTitle, panelActions, panelBody;
