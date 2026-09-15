@@ -1010,6 +1010,7 @@
           ${pfld("lineaBaseCumpl", "Cumplimiento línea base (%)", "Nivel de cumplimiento medido al inicio.", { value: data.lineaBaseCumpl, type: "number" })}
           ${pfld("recomendacion", "Recomendación abordada", "Recomendación específica de la guía que se trabaja.", { value: data.recomendacion, type: "textarea", full: true })}
           ${pfld("brecha", "Brecha detectada", "Diferencia entre la práctica actual y la recomendada.", { value: data.brecha, type: "textarea", full: true })}
+          ${pfld("brechaPct", "% de la brecha", "Cumplimiento que tuvo esa brecha o recomendación (el N° que ves al medir).", { value: data.brechaPct, type: "number" })}
         </div></section>
 
       <section class="pf-section">${secH(3, "Objetivos, actividades, responsables, recursos, verificadores y etapa KTA")}
@@ -1101,7 +1102,7 @@
       <h2>2. Guía, recomendación y brecha</h2>
       <p><strong>Guía BPSO / RNAO:</strong> ${e(data.guia)} · <strong>Línea base:</strong> ${pct(data.lineaBaseCumpl)}</p>
       <p><strong>Recomendación:</strong></p>${par(data.recomendacion)}
-      <p><strong>Brecha detectada:</strong></p>${par(data.brecha)}
+      <p><strong>Brecha detectada:</strong>${(data.brechaPct !== "" && data.brechaPct != null && !isNaN(data.brechaPct)) ? ` <b>(${pct(data.brechaPct)})</b>` : ""}</p>${par(data.brecha)}
       <h2>3. Objetivos, actividades y etapa KTA</h2>
       <p><strong>Objetivo general:</strong></p>${par(data.objetivoGeneral)}
       <p><strong>Objetivos específicos:</strong></p>${list(data.objetivosEspecificos)}
