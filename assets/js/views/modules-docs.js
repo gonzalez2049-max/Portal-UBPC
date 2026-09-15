@@ -451,11 +451,21 @@
   function renderList(container, params) {
     const u = ui();
     const docs = S().all("docsTrabajo").sort((a, b) => new Date(b.fechaModificacion || 0) - new Date(a.fechaModificacion || 0));
+    // Nombre corto para la galería (el nombre completo va en el tooltip y dentro del editor)
+    const TPL_CORTO = {
+      informeTecnico: "Informe Técnico", informeAnual: "Informe Anual",
+      planTrabajo: "Plan de Capacitación", planMejora: "Plan de Mejora",
+      actaReunion: "Acta de Reunión", auditoria: "Informe de Auditoría",
+      protocolo: "Protocolo", planCapacitacion: "Plan de Entrenamiento",
+      fichaBP: "Boletín Clínico", planRNAO: "Plan RNAO / BPSO",
+      planFortalecimiento: "Plan de Fortalecimiento", memo: "Manual / Guía",
+      informeBPSO: "Informe Anual BPSO"
+    };
     const gallery = Object.keys(PLANTILLAS).map(k => {
       const p = PLANTILLAS[k];
       return `<button class="doc-tpl" data-tpl="${k}" style="--tc:${p.color}" title="Crear: ${u.esc(p.label)}">
         <span class="doc-tpl__ic">${p.ic}</span>
-        <span class="doc-tpl__lab">${u.esc(p.label)}</span></button>`;
+        <span class="doc-tpl__lab">${u.esc(TPL_CORTO[k] || p.label)}</span></button>`;
     }).join("");
 
     // Filtro por estado de los documentos guardados
