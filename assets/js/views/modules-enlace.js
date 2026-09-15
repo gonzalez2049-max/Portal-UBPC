@@ -63,6 +63,45 @@
     return "tareas";
   };
 
+  /* ---------- Programar (agendar) una reunión con el Referente ---------- */
+  function programarReunion(onDone) {
+    const u = ui();
+    const ref = U.auth.referente();
+    const me = U.auth.current();
+    const fields = [
+      { name: "fecha", label: "Fecha de la reunión", type: "date", required: true, value: u.hoyISO() },
+      { name: "hora", label: "Hora", type: "time" },
+      { name: "tema", label: "Tema de la reunión", required: true, full: true },
+      { name: "modalidad", label: "Modalidad", type: "select", options: ["Presencial", "Videollamada", "Teléfono"] },
+      { name: "lugar", label: "Lugar o enlace (sala / link)", full: true },
+      { name: "objetivo", label: "Objetivo / temas a tratar", type: "textarea", full: true }
+    ];
+    u.modal({
+      title: "Programar reunión con el Referente",
+      body: `<p class="card__hint">Se <strong>agenda una nueva reunión</strong> con ${u.esc(ref ? ref.nombre : "el Referente")}, aparece en la Agenda y se le notifica. (Para registrar una reunión ya realizada, usa el módulo Reuniones.)</p>${u.formHTML(fields, { modalidad: "Presencial" })}`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>📅 Agendar reunión</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          if (!d.fecha || !d.tema) { u.toast("Indica fecha y tema de la reunión", "danger"); return; }
+          const rec = S().insert("reuniones", {
+            fecha: d.fecha, hora: d.hora || "", tema: d.tema, tipo: "Reunión con el Referente",
+            modalidad: d.modalidad || "Presencial", lugar: d.lugar || "", objetivo: d.objetivo || "",
+            responsable: me ? me.nombre : "Coordinación", referente: ref ? ref.nombre : "Referente Técnico",
+            convocadoPor: me ? me.nombre : "Coordinación", estado: "Programada"
+          }, { withCode: true });
+          U.notif.push({
+            titulo: "Reunión programada: " + d.tema, modulo: "Reunión de seguimiento",
+            prioridad: "normal", destinatario: "referente", ref: "#/ref/gestion?tab=reunion"
+          });
+          u.closeModal();
+          u.toast("Reunión agendada" + (rec.codigo ? " · " + rec.codigo : "") + " · " + u.fechaCL(d.fecha), "ok");
+          if (onDone) onDone();
+        };
+      }
+    });
+  }
+
   /* ---------- Vista principal ---------- */
   function enlace(params) {
     const u = ui();
@@ -104,7 +143,7 @@
         <div class="enl-actions">
           <button class="btn btn--primary btn--sm" id="enlSolicitud">📨 Enviar solicitud técnica</button>
           <button class="btn btn--sm" id="enlTarea" style="background:var(--c-turquesa);color:#fff">✅ Asignar tarea</button>
-          <a class="btn btn--ghost btn--sm" href="#/coord/m5?tab=reuniones">📅 Programar reunión</a>
+          <button class="btn btn--ghost btn--sm" id="enlReunion">📅 Programar reunión</button>
         </div>
       </div>
 
@@ -281,6 +320,8 @@
     if (s) s.onclick = () => U.solicitudes.crearDesde("Enlace con el Referente", {}, rerender);
     const t = document.getElementById("enlTarea");
     if (t) t.onclick = () => asignarTarea(rerender);
+    const rm = document.getElementById("enlReunion");
+    if (rm) rm.onclick = () => programarReunion(rerender);
 
     const box = document.getElementById("enl-tab");
     if (!box) return;
