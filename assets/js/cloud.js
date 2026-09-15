@@ -113,7 +113,9 @@
   function startKeepAlive() {
     if (_keepAliveOn) return; _keepAliveOn = true;
     setInterval(() => { if (configured() && signedIn()) refresh(); checkConnection(); }, 45 * 60 * 1000);
-    const revive = () => { if (configured() && signedIn()) refresh().then(ok => { if (ok !== false) syncNow(); }).catch(() => {}); checkConnection(); };
+    // Al volver a la pestaña o recuperar internet: renovar token y SUBIR lo local
+    // (sin traer y re-renderizar), para NO borrar un formulario que se esté editando.
+    const revive = () => { if (configured() && signedIn()) refresh().then(ok => { if (ok !== false) schedulePush(); }).catch(() => {}); checkConnection(); };
     try {
       document.addEventListener("visibilitychange", () => { if (document.hidden) flushOnExit(); else revive(); });
       window.addEventListener("online", revive);
@@ -303,7 +305,10 @@
     try {
       // Fusiona con la nube y también refresca lo local con el resultado.
       const merged = await pushMerged();
-      try { U.store.loadFromCloud(merged); if (U.router && U.router.render) U.router.render(); } catch (e) {}
+      // Actualiza los datos locales con la fusión, pero NO re-renderiza aquí:
+      // un re-render en segundo plano borraría un formulario que se esté editando.
+      // Los cambios traídos se ven al navegar; para forzar refresco usar recargar.
+      try { U.store.loadFromCloud(merged); } catch (e) {}
       setStatus("ok", "Sincronizado."); return { ok: true, merged: true };
     }
     catch (e) { setStatus("error", e.message); return { error: e.message }; }
