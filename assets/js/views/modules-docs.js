@@ -910,7 +910,15 @@
       return current;
     }
     const saveBtn = document.getElementById("doc-save");
-    if (saveBtn) saveBtn.onclick = () => doSave();
+    if (saveBtn) {
+      saveBtn.onclick = () => doSave();
+      // Auto-guardado silencioso: guarda el borrador ~2 s después de dejar de escribir,
+      // para no perder el trabajo si algo re-dibuja o se cierra la vista.
+      let _autoT = null;
+      const autosave = () => { clearTimeout(_autoT); _autoT = setTimeout(() => { try { doSave(true); } catch (e) {} }, 2000); };
+      bodyEl.addEventListener("input", autosave);
+      titleEl.addEventListener("input", autosave);
+    }
     // Flujo documental: aprobar → código/finalizar → versiones / anular
     const wfBtn = (id, fn) => { const b = document.getElementById(id); if (b) b.onclick = fn; };
     wfBtn("wf-aprobar", () => aprobar(container, doSave(true)));
@@ -1221,6 +1229,20 @@
     if (!locked) {
       const saveBtn = document.getElementById("doc-save");
       if (saveBtn) saveBtn.onclick = () => doSavePlan();
+      // Auto-guardado silencioso (sin validación ni aviso): no perder el trabajo si
+      // algo re-dibuja o se cierra la vista. Guarda ~2 s después de dejar de escribir.
+      let _autoT2 = null;
+      const autosavePlan = () => { clearTimeout(_autoT2); _autoT2 = setTimeout(() => {
+        try {
+          const d = readPlanForm(container);
+          if (!current && !(d.nombre || d.guia || d.objetivoGeneral)) return; // aún nada que guardar
+          const titulo = d.nombre || p.titulo;
+          const payload = { titulo, plantilla: "planRNAO", contenido: coverHTML(titulo, p.label, true) + planToHTML(d), planData: d, tamano: sheet };
+          if (current) S().update("docsTrabajo", current.id, payload);
+          else current = S().insert("docsTrabajo", Object.assign({ estado: "borrador", version: 1 }, payload));
+        } catch (e) {}
+      }, 2000); };
+      container.addEventListener("input", autosavePlan);
       // Repetibles: agregar / quitar filas
       const bindRm = () => container.querySelectorAll("[data-reprm]").forEach(b => b.onclick = () => b.closest("tr").remove());
       container.querySelectorAll("[data-repadd]").forEach(b => b.onclick = () => {
