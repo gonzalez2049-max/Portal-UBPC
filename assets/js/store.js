@@ -30,7 +30,7 @@
   };
 
   function emptyDB() {
-    const db = { __schema: SCHEMA_VERSION, __seq: {} };
+    const db = { __schema: SCHEMA_VERSION, __seq: {}, __deleted: [] };
     COLLECTIONS.forEach(c => { db[c] = []; });
     return db;
   }
@@ -45,6 +45,7 @@
     // Migración tolerante: nunca elimina datos; solo agrega lo faltante.
     if (typeof db.__schema !== "number") db.__schema = SCHEMA_VERSION;
     if (!db.__seq) db.__seq = {};
+    if (!Array.isArray(db.__deleted)) db.__deleted = [];
     COLLECTIONS.forEach(c => { if (!Array.isArray(db[c])) db[c] = []; });
     return db;
   }
@@ -153,6 +154,11 @@
       if (i >= 0) {
         const rec = arr[i];
         arr.splice(i, 1);
+        // Lápida (tombstone): registra la eliminación para que la sincronización
+        // con la nube NO reviva el registro borrado al fusionar.
+        if (!Array.isArray(DB.__deleted)) DB.__deleted = [];
+        DB.__deleted.push({ c: collection, id, t: new Date().toISOString() });
+        if (DB.__deleted.length > 3000) DB.__deleted = DB.__deleted.slice(-3000);
         persist();
         logActivity(collection, "eliminó", rec);
         return true;
@@ -201,6 +207,7 @@
       if (!obj || typeof obj !== "object") return;
       COLLECTIONS.forEach(c => { if (!Array.isArray(obj[c])) obj[c] = []; });
       if (!obj.__seq) obj.__seq = {};
+      if (!Array.isArray(obj.__deleted)) obj.__deleted = [];
       obj.__schema = SCHEMA_VERSION;
       DB = obj;
       try { localStorage.setItem(ROOT, JSON.stringify(DB)); } catch (e) {}

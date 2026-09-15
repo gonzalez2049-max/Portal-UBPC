@@ -186,6 +186,22 @@
      Nota: por diseño, si se elimina un registro en un equipo mientras otro aún
      lo tiene, puede reaparecer; es el precio de no perder datos por accidente. */
   function ts(r) { return Date.parse((r && (r.fechaModificacion || r.fechaCreacion)) || "") || 0; }
+  // Une las lápidas (eliminaciones) de ambos lados, quedándose con la más reciente
+  // por (colección|id) y descartando las muy antiguas para no crecer sin fin.
+  function mergeTombstones(local, remote) {
+    const cutoff = Date.now() - 400 * 24 * 3600 * 1000; // ~13 meses
+    const map = new Map();
+    [...(Array.isArray(local) ? local : []), ...(Array.isArray(remote) ? remote : [])].forEach(d => {
+      if (!d || d.id == null) return;
+      const key = (d.c || "") + "|" + d.id;
+      const t = Date.parse(d.t || "") || 0;
+      if (t < cutoff) return;
+      const cur = map.get(key);
+      if (!cur || t >= (Date.parse(cur.t || "") || 0)) map.set(key, d);
+    });
+    return [...map.values()];
+  }
+
   function mergeDB(local, remote) {
     if (!remote || typeof remote !== "object") return local;
     if (!local || typeof local !== "object") return remote;
@@ -194,6 +210,11 @@
     // Contadores de código: se toma el mayor por clave para no repetir códigos.
     const seqKeys = new Set([...Object.keys(local.__seq || {}), ...Object.keys(remote.__seq || {})]);
     seqKeys.forEach(k => out.__seq[k] = Math.max(Number((local.__seq || {})[k]) || 0, Number((remote.__seq || {})[k]) || 0));
+    // Lápidas fusionadas: lo eliminado en un equipo no revive al fusionar.
+    const tomb = mergeTombstones(local.__deleted, remote.__deleted);
+    out.__deleted = tomb;
+    const tombAt = new Map();
+    tomb.forEach(d => tombAt.set((d.c || "") + "|" + d.id, Date.parse(d.t || "") || 0));
     const localNewer = (Date.parse(local.__updatedAt || "") || 0) >= (Date.parse(remote.__updatedAt || "") || 0);
     cols.forEach(c => {
       const la = Array.isArray(local[c]) ? local[c] : [];
@@ -212,7 +233,11 @@
         if (!r || r.id == null) return;
         map.set(r.id, map.has(r.id) ? (ts(r) >= ts(map.get(r.id)) ? r : map.get(r.id)) : r);
       });
-      out[c] = [...map.values()];
+      // Descarta lo eliminado, salvo que el registro se haya editado DESPUÉS de la lápida.
+      out[c] = [...map.values()].filter(r => {
+        const dt = tombAt.get(c + "|" + r.id);
+        return dt == null || ts(r) > dt;
+      });
       if (c === "actividadReciente") out[c] = out[c].sort((a, b) => (Date.parse(b.fecha || "") || 0) - (Date.parse(a.fecha || "") || 0)).slice(0, 60);
     });
     return out;
@@ -323,6 +348,6 @@
   U.cloud = {
     configured, signedIn, email, status, onStatus,
     setConfig, getConfig, clearAll, signIn, signOut,
-    initialSync, syncNow, schedulePush, checkConnection
+    initialSync, syncNow, schedulePush, checkConnection, mergeDB
   };
 })();
