@@ -91,6 +91,33 @@
   };
   function indicadorTipo(nombre) { return INDICADOR_TIPO[(nombre || "").trim()] || "Proceso"; }
 
+  /* ---------- Catálogo de indicadores NQuIRE (por guía) ----------
+     Indicadores oficiales NQuIRE del programa BPSO. El "Indicador de éxito" del
+     plan (Fase 6) se elige de aquí para dar trazabilidad y comparabilidad.
+     Nota: por ahora se carga el indicador de proceso de LPP tomado del
+     Consolidado Nacional (ulcerprev_pro01). Se pueden agregar los demás. */
+  const NQUIRE = {
+    "Lesiones por presión": [
+      {
+        codigo: "ulcerprev_pro01",
+        nombre: "Valoración de riesgo de LPP al ingreso",
+        tipo: "Proceso",
+        recomendaciones: "RNAO 1.1 y 1.2a",
+        descripcion: "Porcentaje de usuarios que ingresan al servicio clínico en los que se cumple la valoración del riesgo de LPP mediante escala validada (NSRAS, Braden Q o Braden) antes de las 24 horas.",
+        formula: "N° de usuarios con valoración del riesgo de LPP con escala validada antes de 24 h desde el ingreso ÷ N° total de usuarios evaluados que ingresaron al servicio durante el mes × 100",
+        periodicidad: "Mensual",
+        interpretacion: "La mejora se observa como un aumento en el porcentaje."
+      }
+    ]
+  };
+  function nquireFor(guia) { return NQUIRE[(guia || "").trim()] || []; }
+  function nquireByName(nombre) {
+    const n = (nombre || "").trim().toLowerCase();
+    if (!n) return null;
+    for (const g in NQUIRE) { const hit = NQUIRE[g].find(i => (i.nombre || "").trim().toLowerCase() === n); if (hit) return hit; }
+    return null;
+  }
+
   /* ---------- Semilla inicial (solo si la base está vacía) ---------- */
   function seedIfEmpty() {
     const s = store();
@@ -164,5 +191,5 @@
   }
 
   window.UBPC = window.UBPC || {};
-  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, INDICADOR_TIPO, TIPO_DONABEDIAN, indicadorTipo };
+  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, INDICADOR_TIPO, TIPO_DONABEDIAN, indicadorTipo, NQUIRE, nquireFor, nquireByName };
 })();

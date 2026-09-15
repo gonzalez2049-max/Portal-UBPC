@@ -412,6 +412,11 @@
     let ctrl;
     if (opt.type === "textarea") ctrl = `<textarea class="input" id="${id}" data-pf="${name}" rows="${opt.rows || 2}" ${opt.req ? "data-req" : ""}>${u.esc(val)}</textarea>`;
     else if (opt.type === "select") ctrl = `<select class="input" id="${id}" data-pf="${name}">${(opt.options || []).map(o => `<option ${String(o) === String(val) ? "selected" : ""}>${u.esc(o)}</option>`).join("")}</select>`;
+    else if (opt.list) {
+      const listId = id + "-list";
+      ctrl = `<input class="input" id="${id}" data-pf="${name}" type="text" list="${listId}" value="${u.esc(val)}" placeholder="${u.esc(opt.placeholder || "")}" ${opt.req ? "data-req" : ""}>`
+        + `<datalist id="${listId}">${(opt.list || []).map(o => `<option value="${u.esc(o)}"></option>`).join("")}</datalist>`;
+    }
     else ctrl = `<input class="input" id="${id}" data-pf="${name}" type="${opt.type || "text"}" value="${u.esc(val)}" ${opt.req ? "data-req" : ""}>`;
     return `<div class="pf-field ${opt.full ? "pf-field--full" : ""}"><label for="${id}">${u.esc(label)}${req}</label>${ctrl}${help ? `<span class="pf-help">${u.esc(help)}</span>` : ""}</div>`;
   }
@@ -454,6 +459,15 @@
     const d = duracionPlan(ini, fin);
     return d ? "⏱️ Plazo estimado: <strong>" + d.txt + "</strong>" : "⏱️ Plazo estimado: define inicio y término para calcularlo.";
   }
+  // Sugerencias para el indicador de éxito: indicadores NQuIRE de la guía +
+  // indicadores de práctica de esa guía (para elegir el que cierra la brecha).
+  function nquireOpts(guia) {
+    const nq = (U.data.nquireFor ? U.data.nquireFor(guia) : []).map(i => i.nombre);
+    const prac = (U.data.INDICADORES && U.data.INDICADORES[guia]) ? U.data.INDICADORES[guia] : [];
+    const seen = {}; const out = [];
+    nq.concat(prac).forEach(n => { const k = (n || "").trim(); if (k && !seen[k.toLowerCase()]) { seen[k.toLowerCase()] = 1; out.push(k); } });
+    return out;
+  }
   function planFormHTML(data) {
     return `<div class="plan-form">
       <p class="pf-help" style="margin:.1rem 0 .7rem">Estructura basada en las Orientaciones Técnicas del Programa BPSO (MINSAL) — ciclo <b>Conocimiento a la Acción</b> (RNAO).</p>
@@ -462,7 +476,7 @@
         <div class="pf-grid">
           ${pinFld("unidad", "Unidad", "Unidad con baja adherencia, brecha o incumplimiento.", { value: data.unidad, type: "select", options: ["—"].concat(CAT().unidades), req: true })}
           ${pinFld("guia", "Guía BPSO", "Guía de buenas prácticas de referencia.", { value: data.guia, type: "select", options: CAT().guiasArea, req: true })}
-          ${pinFld("indicador", "Indicador / recomendación", "Indicador o recomendación que origina la brecha.", { value: data.indicador, full: true })}
+          ${pinFld("indicador", "Indicador de éxito (NQuIRE)", "Elige el indicador NQuIRE que mide el cierre de la brecha. Se ajusta a la guía/recomendación que trabajas; su código y fórmula aparecen en la Evaluación de resultados.", { value: data.indicador, full: true, list: nquireOpts(data.guia), placeholder: "Escribe o elige un indicador NQuIRE…" })}
           ${pinFld("lineaBase", "Línea base (%)", "Cumplimiento total de la guía (medición inicial).", { value: data.lineaBase, type: "number" })}
           ${pinFld("meta", "Meta (%)", "Meta de cumplimiento comprometida.", { value: data.meta, type: "number" })}
           ${pinFld("brecha", "Brecha a trabajar", "Nombre de la brecha o recomendación con menor cumplimiento.", { value: data.brecha, full: true })}
@@ -521,6 +535,8 @@
   function savePlan(box, current, opts) {
     opts = opts || {}; const u = ui();
     const d = readPlanForm(box);
+    // Vincula el indicador de éxito con el catálogo NQuIRE (código para trazabilidad).
+    d.indicadorCodigo = (U.data.nquireByName && (U.data.nquireByName(d.indicador) || {}).codigo) || "";
     box.querySelectorAll(".pf-field--err").forEach(x => x.classList.remove("pf-field--err"));
     const faltan = [];
     if (!d.unidad || d.unidad === "—") faltan.push("unidad");

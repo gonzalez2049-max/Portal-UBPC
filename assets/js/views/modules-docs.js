@@ -1548,6 +1548,17 @@
      del plan. El plan es la única fuente; el documento se regenera
      mientras está en borrador (no se duplica la información).
      ============================================================ */
+  // Celda del "Indicador de éxito": si el indicador coincide con el catálogo
+  // NQuIRE, muestra su código, tipo, recomendaciones y fórmula (trazabilidad).
+  function indicadorNquireCell(plan, e) {
+    if (!plan.indicador) return "—";
+    const nq = (U.data.nquireByName && U.data.nquireByName(plan.indicador)) || null;
+    if (!nq) return e(plan.indicador);
+    return `<strong>${e(nq.nombre)}</strong> <span style="color:#5a6b84">· Código NQuIRE <b>${e(nq.codigo)}</b> · Indicador de ${e(nq.tipo)}${nq.recomendaciones ? " · " + e(nq.recomendaciones) : ""}</span>`
+      + `<div style="color:#41526b;font-size:9pt;margin-top:.25rem"><b>Fórmula:</b> ${e(nq.formula)}</div>`
+      + (nq.periodicidad ? `<div style="color:#5a6b84;font-size:9pt"><b>Periodicidad:</b> ${e(nq.periodicidad)}</div>` : "");
+  }
+
   function planMejoraContentFromPlan(plan) {
     const u = ui();
     const e = v => u.esc(v != null && String(v).trim() !== "" ? v : "—");
@@ -1646,7 +1657,7 @@
       <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Resultado del cierre de la brecha y medios de verificación.</p>
       ${ficha([
         kv("Meta de cumplimiento", pct(plan.meta)),
-        kv("Indicador de éxito", e(plan.indicador)),
+        kv("Indicador de éxito", indicadorNquireCell(plan, e)),
         kv("Medios de verificación", (acc.length || acts.length) ? "Según el verificador indicado en cada acción (Fase 4)." : listCell(verifList))
       ])}`;
   }
