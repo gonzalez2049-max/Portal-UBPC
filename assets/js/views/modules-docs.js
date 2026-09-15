@@ -1555,8 +1555,9 @@
     if (!plan.indicador) return "—";
     const nq = (U.data.nquireByName && U.data.nquireByName(plan.indicador)) || null;
     if (!nq) return e(plan.indicador);
-    return `<strong>${e(nq.nombre)}</strong> <span style="color:#5a6b84">· Código NQuIRE <b>${e(nq.codigo)}</b> · Indicador de ${e(nq.tipo)}${nq.recomendaciones ? " · " + e(nq.recomendaciones) : ""}</span>`
-      + `<div style="color:#41526b;font-size:9pt;margin-top:.25rem"><b>Fórmula:</b> ${e(nq.formula)}</div>`
+    const cod = nq.codigo ? `Código NQuIRE <b>${e(nq.codigo)}</b>` : `Código NQuIRE por confirmar`;
+    return `<strong>${e(nq.nombre)}</strong> <span style="color:#5a6b84">· ${cod} · Indicador de ${e(nq.tipo)}${nq.recomendaciones ? " · " + e(nq.recomendaciones) : ""}</span>`
+      + (nq.formula ? `<div style="color:#41526b;font-size:9pt;margin-top:.25rem"><b>Fórmula:</b> ${e(nq.formula)}</div>` : "")
       + (nq.periodicidad ? `<div style="color:#5a6b84;font-size:9pt"><b>Periodicidad:</b> ${e(nq.periodicidad)}</div>` : "");
   }
 

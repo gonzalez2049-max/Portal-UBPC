@@ -106,16 +106,60 @@
         descripcion: "Porcentaje de usuarios que ingresan al servicio clínico en los que se cumple la valoración del riesgo de LPP mediante escala validada (NSRAS, Braden Q o Braden) antes de las 24 horas.",
         formula: "N° de usuarios con valoración del riesgo de LPP con escala validada antes de 24 h desde el ingreso ÷ N° total de usuarios evaluados que ingresaron al servicio durante el mes × 100",
         periodicidad: "Mensual",
-        interpretacion: "La mejora se observa como un aumento en el porcentaje."
-      }
+        interpretacion: "La mejora se observa como un aumento en el porcentaje.",
+        alias: ["valoracion de riesgo", "escala de riesgo", "valoracion del riesgo"]
+      },
+      // Indicadores de práctica de la unidad (código NQuIRE por confirmar con el consolidado).
+      { codigo: "", nombre: "Cumplimiento de medidas preventivas según riesgo", tipo: "Proceso", periodicidad: "Mensual",
+        recomendaciones: "RNAO — implementación de medidas preventivas",
+        descripcion: "Porcentaje de usuarios en riesgo con aplicación de las medidas preventivas de LPP acordes a su nivel de riesgo (incluye cambios de posición, superficie de alivio, cuidado de la piel y manejo de la humedad).",
+        formula: "N° de usuarios en riesgo con medidas preventivas aplicadas según su nivel de riesgo ÷ N° total de usuarios en riesgo × 100",
+        alias: ["medidas preventivas", "cumplimiento de medidas", "aplicacion de medidas"] },
+      { codigo: "", nombre: "Reevaluación del riesgo según condición clínica", tipo: "Proceso", periodicidad: "Mensual",
+        descripcion: "Porcentaje de usuarios en riesgo con reevaluación del riesgo de LPP ante cambios en su condición clínica.",
+        formula: "N° de usuarios en riesgo con reevaluación del riesgo de LPP registrada según cambio de condición ÷ N° total de usuarios en riesgo × 100",
+        alias: ["reevaluacion"] },
+      { codigo: "", nombre: "Plan preventivo acorde al riesgo", tipo: "Proceso", periodicidad: "Mensual",
+        descripcion: "Porcentaje de usuarios en riesgo con un plan preventivo de LPP acorde a su nivel de riesgo.",
+        formula: "N° de usuarios en riesgo con plan preventivo acorde a su nivel de riesgo ÷ N° total de usuarios en riesgo × 100",
+        alias: ["plan preventivo"] },
+      { codigo: "", nombre: "Cambios de posición según riesgo", tipo: "Proceso", periodicidad: "Mensual",
+        descripcion: "Porcentaje de usuarios en riesgo con registro de cambios de posición según la frecuencia indicada por su nivel de riesgo.",
+        formula: "N° de usuarios en riesgo con registro de cambios de posición según la frecuencia indicada ÷ N° total de usuarios en riesgo × 100",
+        alias: ["cambios de posicion", "cambio de posicion"] },
+      { codigo: "", nombre: "Superficie de alivio o redistribución de presión", tipo: "Estructura", periodicidad: "Mensual",
+        descripcion: "Porcentaje de usuarios en riesgo con superficie de alivio o redistribución de presión indicada según su nivel de riesgo.",
+        formula: "N° de usuarios en riesgo con superficie de alivio/redistribución indicada según su nivel de riesgo ÷ N° total de usuarios en riesgo × 100",
+        alias: ["superficie de alivio", "redistribucion de presion", "colchon"] },
+      { codigo: "", nombre: "Registro de LPP previa (al ingreso)", tipo: "Proceso", periodicidad: "Mensual",
+        descripcion: "Porcentaje de usuarios con registro de la valoración de LPP presentes al ingreso.",
+        formula: "N° de usuarios con registro de valoración de LPP previa al ingreso ÷ N° total de usuarios ingresados × 100",
+        alias: ["lpp previa", "registro de lpp"] },
+      { codigo: "", nombre: "Pacientes sin LPP intrahospitalaria", tipo: "Resultado", periodicidad: "Mensual",
+        descripcion: "Porcentaje de usuarios que no desarrollan LPP de origen intrahospitalario durante su hospitalización.",
+        formula: "N° de usuarios sin LPP de origen intrahospitalario ÷ N° total de usuarios evaluados × 100",
+        alias: ["sin lpp", "incidencia", "prevalencia", "intrahospitalaria"] }
     ]
   };
   function nquireFor(guia) { return NQUIRE[(guia || "").trim()] || []; }
+  // Normaliza para emparejar sin importar mayúsculas, acentos ni espacios extra.
+  function _norm(s) {
+    return (s || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+  }
   function nquireByName(nombre) {
-    const n = (nombre || "").trim().toLowerCase();
+    const n = _norm(nombre);
     if (!n) return null;
-    for (const g in NQUIRE) { const hit = NQUIRE[g].find(i => (i.nombre || "").trim().toLowerCase() === n); if (hit) return hit; }
-    return null;
+    let all = [];
+    for (const g in NQUIRE) all = all.concat(NQUIRE[g]);
+    // 1) coincidencia exacta normalizada
+    let hit = all.find(i => _norm(i.nombre) === n);
+    if (hit) return hit;
+    // 2) por alias contenido en el texto
+    hit = all.find(i => (i.alias || []).some(a => n.indexOf(_norm(a)) >= 0));
+    if (hit) return hit;
+    // 3) el nombre del catálogo está contenido en el texto (o viceversa)
+    hit = all.find(i => { const cn = _norm(i.nombre); return cn && (n.indexOf(cn) >= 0 || cn.indexOf(n) >= 0); });
+    return hit || null;
   }
 
   /* ---------- Semilla inicial (solo si la base está vacía) ---------- */
