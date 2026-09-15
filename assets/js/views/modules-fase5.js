@@ -29,9 +29,19 @@
     const vals = NT_IND.map(i => r[i.k]).filter(v => v !== "" && v != null && !isNaN(Number(v))).map(Number);
     return vals.length ? round1(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
   }
-  // Cumplimiento global: SIEMPRE se recalcula en vivo desde los indicadores (fuente de
-  // verdad). Solo si no hay ningún indicador cargado se usa el porcentaje guardado.
+  // Cumplimiento global. Si se ingresó el "N° aplicables" (Cumple + No cumple, sin N/A)
+  // de los indicadores, se calcula PONDERADO por esos N — equivale a la fórmula
+  // Total Cumple / (Total Cumple + Total No cumple) × 100. Si no hay N, se promedian
+  // los % ingresados (comportamiento anterior, para los registros que ya cuadran).
   function globalNT(r) {
+    let sumC = 0, sumN = 0, anyN = false;
+    NT_IND.forEach(i => {
+      const pct = r[i.k], n = r[i.k + "_n"];
+      const pv = (pct !== "" && pct != null && !isNaN(Number(pct))) ? Number(pct) : null;
+      const nv = (n !== "" && n != null && !isNaN(Number(n))) ? Number(n) : null;
+      if (pv != null && nv != null && nv > 0) { sumC += pv / 100 * nv; sumN += nv; anyN = true; }
+    });
+    if (anyN && sumN > 0) return round1(sumC / sumN * 100);
     const p = promInd(r);
     if (p != null) return p;
     if (r.porcentaje !== "" && r.porcentaje != null && !isNaN(r.porcentaje)) return round1(Number(r.porcentaje));
@@ -274,26 +284,56 @@
 
   function formNT(rec, done) {
     const u = ui();
-    const fields = [
-      { name: "periodo", label: "Periodo (mes)", type: "month", required: true, value: rec ? rec.periodo : "" },
-      { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, required: true, placeholder: "Seleccionar…", value: rec ? rec.unidad : "" },
-      { name: "jefatura", label: "Jefatura / EU responsable", value: rec ? rec.jefatura : "" }
-    ].concat(NT_IND.map(i => ({ name: i.k, label: i.l + " (%)", type: "number", value: rec ? rec[i.k] : "" })))
-      .concat([
-        { name: "enviadoUnidad", label: "Enviado a la unidad", type: "select", options: ["No", "Sí"], value: rec ? rec.enviadoUnidad : "No" },
-        { name: "fechaEnvio", label: "Fecha de envío", type: "date", value: rec && rec.fechaEnvio ? u.isoDay(rec.fechaEnvio) : "" },
-        { name: "observaciones", label: "Observaciones", type: "textarea", full: true, value: rec ? rec.observaciones : "" }
-      ]);
+    rec = rec || {};
+    const top = [
+      { name: "periodo", label: "Periodo (mes)", type: "month", required: true, value: rec.periodo || "" },
+      { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, required: true, placeholder: "Seleccionar…", value: rec.unidad || "" },
+      { name: "jefatura", label: "Jefatura / EU responsable", value: rec.jefatura || "" }
+    ];
+    const bottom = [
+      { name: "enviadoUnidad", label: "Enviado a la unidad", type: "select", options: ["No", "Sí"], value: rec.enviadoUnidad || "No" },
+      { name: "fechaEnvio", label: "Fecha de envío", type: "date", value: rec.fechaEnvio ? u.isoDay(rec.fechaEnvio) : "" },
+      { name: "observaciones", label: "Observaciones", type: "textarea", full: true, value: rec.observaciones || "" }
+    ];
+    // Tabla de indicadores: % de cumplimiento + N° aplicables (Cumple+No cumple, sin N/A).
+    const indTable = `<div style="margin:.3rem 0 .2rem">
+      <label style="font-weight:700;font-size:13px">Indicadores NT 234</label>
+      <p class="card__hint" style="margin:.15rem 0 .45rem">Ingresa el <strong>% de cumplimiento</strong> y el <strong>N° aplicables</strong> (Cumple + No cumple, sin N/A) de cada indicador. Si completas el N° en todos, el <strong>cumplimiento global</strong> se calcula con tu fórmula: Total Cumple ÷ Total aplicables. Si dejas los N° vacíos, se promedian los %.</p>
+      <div class="table-wrap"><table class="tbl mc-tbl"><thead><tr><th>Indicador</th><th class="num">Cumplimiento %</th><th class="num">N° aplicables</th><th class="num">Cumple (auto)</th></tr></thead>
+        <tbody>${NT_IND.map(i => `<tr>
+          <td>${u.esc(i.l)}</td>
+          <td class="num"><input class="input" type="number" min="0" max="100" step="0.1" name="${i.k}" value="${rec[i.k] != null ? rec[i.k] : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
+          <td class="num"><input class="input" type="number" min="0" step="1" name="${i.k}_n" value="${rec[i.k + "_n"] != null ? rec[i.k + "_n"] : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
+          <td class="num" data-cumple="${i.k}">—</td></tr>`).join("")}
+          <tr style="font-weight:700;background:rgba(15,143,131,.09)"><td>Cumplimiento global</td><td class="num" data-gpct>—</td><td class="num" data-gn>—</td><td class="num" data-gc>—</td></tr>
+        </tbody></table></div></div>`;
     u.modal({
-      title: rec ? "Editar registro NT 234" : "Nuevo registro NT 234", wide: true,
-      body: u.formHTML(fields, {}),
+      title: rec.id ? "Editar registro NT 234" : "Nuevo registro NT 234", wide: true,
+      body: u.formHTML(top, {}) + indTable + u.formHTML(bottom, {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
       onMount(m) {
+        const recompute = () => {
+          let sumC = 0, sumN = 0, anyN = false;
+          NT_IND.forEach(i => {
+            const pctEl = m.querySelector(`[name="${i.k}"]`), nEl = m.querySelector(`[name="${i.k}_n"]`);
+            const pct = pctEl && pctEl.value !== "" ? Number(pctEl.value) : null;
+            const n = nEl && nEl.value !== "" ? Number(nEl.value) : null;
+            const cell = m.querySelector(`[data-cumple="${i.k}"]`);
+            if (pct != null && n != null && n > 0) { const c = pct / 100 * n; if (cell) cell.textContent = Math.round(c); sumC += c; sumN += n; anyN = true; }
+            else if (cell) cell.textContent = "—";
+          });
+          const g = globalNT(u.readForm(m));
+          const gp = m.querySelector("[data-gpct]"), gn = m.querySelector("[data-gn]"), gc = m.querySelector("[data-gc]");
+          if (gp) gp.textContent = g != null ? g + "%" : "—";
+          if (gn) gn.textContent = anyN ? sumN : "—";
+          if (gc) gc.textContent = anyN ? Math.round(sumC) : "—";
+        };
+        m.addEventListener("input", recompute); recompute();
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           if (!d.periodo || !d.unidad) { u.toast("Completa periodo y unidad", "danger"); return; }
-          d.porcentaje = promInd(d);
-          if (rec) S().update("nt234", rec.id, d); else S().insert("nt234", d);
+          d.porcentaje = globalNT(d); // cumplimiento global (ponderado por N si existe)
+          if (rec.id) S().update("nt234", rec.id, d); else S().insert("nt234", d);
           u.closeModal(); u.toast("Registro guardado", "ok"); done();
         };
       }
