@@ -453,14 +453,21 @@
     const docs = S().all("docsTrabajo").sort((a, b) => new Date(b.fechaModificacion || 0) - new Date(a.fechaModificacion || 0));
     const gallery = Object.keys(PLANTILLAS).map(k => {
       const p = PLANTILLAS[k];
-      return `<button class="doc-tpl" data-tpl="${k}" style="--tc:${p.color}">
+      return `<button class="doc-tpl" data-tpl="${k}" style="--tc:${p.color}" title="Crear: ${u.esc(p.label)}">
         <span class="doc-tpl__ic">${p.ic}</span>
-        <span class="doc-tpl__lab">${u.esc(p.label)}</span>
-        <span class="doc-tpl__new">+ Crear</span></button>`;
+        <span class="doc-tpl__lab">${u.esc(p.label)}</span></button>`;
     }).join("");
 
+    // Filtro por estado de los documentos guardados
+    const filtro = (params && params.estado) || "todos";
+    const cuenta = e => e === "todos" ? docs.length : docs.filter(d => (d.estado || "borrador") === e).length;
+    const chips = [["todos", "Todos"], ["borrador", "Borradores"], ["aprobado", "Aprobados"], ["finalizado", "Finalizados"], ["anulado", "Anulados"]]
+      .map(([e, lab]) => `<button class="doc-chip${filtro === e ? " is-on" : ""}" data-filtro="${e}" type="button">${lab} <span class="doc-chip__n">${cuenta(e)}</span></button>`).join("");
+    const visibles = filtro === "todos" ? docs : docs.filter(d => (d.estado || "borrador") === filtro);
+
     const list = docs.length
-      ? `<div class="grid grid--3">${docs.map(d => {
+      ? (visibles.length
+        ? `<div class="grid grid--3">${visibles.map(d => {
           const p = plMeta(d.plantilla);
           const dst = estadoDe(d);
           return `<div class="doc-card" data-estado="${u.esc(d.estado || "borrador")}" style="--tc:${p.color}">
@@ -473,16 +480,20 @@
               <button class="btn btn--primary btn--sm" data-open="${d.id}">Abrir</button>
               ${(d.estado && d.estado !== "borrador") ? "" : `<button class="btn btn--ghost btn--sm" data-del="${d.id}">🗑️</button>`}</div></div>`;
         }).join("")}</div>`
-      : u.empty("Aún no hay documentos.", "Elige una plantilla arriba para crear tu primer documento institucional.", "🗂️");
+        : u.empty("Sin documentos en este estado.", "Prueba con otro filtro.", "🔎"))
+      : u.empty("Aún no hay documentos.", "Abre “＋ Nuevo documento” y elige una plantilla para crear el primero.", "🗂️");
 
     container.innerHTML = `
-      <div class="section"><h3 class="section__title">Nuevo documento desde plantilla</h3>
-        <p class="card__hint" style="margin:.1rem 0 .7rem">Plantillas con la identidad de la Unidad. Elige una y edítala como en un documento.</p>
-        <div class="doc-gallery">${gallery}</div></div>
-      <div class="section__head" style="margin-top:1.2rem"><h3 class="section__title">Documentos guardados</h3></div>
+      <details class="doc-new"${docs.length ? "" : " open"}>
+        <summary class="doc-new__sum"><span class="doc-new__plus">＋</span> Nuevo documento <span class="doc-new__hint">· elige una plantilla</span></summary>
+        <div class="doc-gallery">${gallery}</div>
+      </details>
+      <div class="section__head" style="margin-top:1.1rem"><h3 class="section__title">Documentos guardados</h3></div>
+      <div class="doc-filtros">${chips}</div>
       ${list}`;
 
     container.querySelectorAll("[data-tpl]").forEach(b => b.onclick = () => openEditor(container, null, b.dataset.tpl));
+    container.querySelectorAll("[data-filtro]").forEach(b => b.onclick = () => renderList(container, Object.assign({}, params, { estado: b.dataset.filtro })));
     container.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openEditor(container, S().get("docsTrabajo", b.dataset.open)));
     container.querySelectorAll("[data-del]").forEach(b => b.onclick = () =>
       u.confirmDelete("¿Eliminar este documento?", () => { S().remove("docsTrabajo", b.dataset.del); renderList(container); }));
@@ -627,21 +638,21 @@
     const codigo = rec && rec.codigo;
 
     const tools = [
-      { c: "bold", ic: "𝗕", t: "Negrita" }, { c: "italic", ic: "𝘐", t: "Cursiva" }, { c: "underline", ic: "U̲", t: "Subrayado" },
+      { c: "bold", ic: "𝗕", t: "Negrita", l: "Negrita" }, { c: "italic", ic: "𝘐", t: "Cursiva", l: "Cursiva" }, { c: "underline", ic: "U̲", t: "Subrayado", l: "Subrayado" },
       { sep: 1 },
-      { c: "formatBlock", v: "H2", ic: "T", t: "Título" }, { c: "formatBlock", v: "H3", ic: "t", t: "Subtítulo" }, { c: "formatBlock", v: "P", ic: "¶", t: "Texto normal" },
+      { c: "formatBlock", v: "H2", ic: "T", t: "Título", l: "Título" }, { c: "formatBlock", v: "H3", ic: "t", t: "Subtítulo", l: "Subtítulo" }, { c: "formatBlock", v: "P", ic: "¶", t: "Texto normal", l: "Texto" },
       { sep: 1 },
-      { c: "insertUnorderedList", ic: "•", t: "Lista con viñetas" }, { c: "insertOrderedList", ic: "1.", t: "Lista numerada" },
+      { c: "insertUnorderedList", ic: "•", t: "Lista con viñetas", l: "Viñetas" }, { c: "insertOrderedList", ic: "1.", t: "Lista numerada", l: "Numerada" },
       { sep: 1 },
-      { c: "justifyLeft", ic: "⯇", t: "Alinear a la izquierda" }, { c: "justifyCenter", ic: "≡", t: "Centrar" },
-      { c: "justifyRight", ic: "⯈", t: "Alinear a la derecha" }, { c: "justifyFull", ic: "▤", t: "Justificar" },
+      { c: "justifyLeft", ic: "⯇", t: "Alinear a la izquierda", l: "Izquierda" }, { c: "justifyCenter", ic: "≡", t: "Centrar", l: "Centrar" },
+      { c: "justifyRight", ic: "⯈", t: "Alinear a la derecha", l: "Derecha" }, { c: "justifyFull", ic: "▤", t: "Justificar", l: "Justificar" },
       { sep: 1 },
-      { c: "undo", ic: "↶", t: "Deshacer" }, { c: "redo", ic: "↷", t: "Rehacer" }
+      { c: "undo", ic: "↶", t: "Deshacer", l: "Deshacer" }, { c: "redo", ic: "↷", t: "Rehacer", l: "Rehacer" }
     ];
     const FONTS = [["", "Fuente…"], ["'Nunito Sans',sans-serif", "Nunito Sans"], ["Arial,Helvetica,sans-serif", "Arial"], ["Georgia,serif", "Georgia"], ["'Times New Roman',serif", "Times"], ["'Courier New',monospace", "Courier"]];
     const SIZES = [["", "Tamaño…"], ["2", "Pequeña"], ["3", "Normal"], ["4", "Media"], ["5", "Grande"], ["6", "Muy grande"], ["7", "Enorme"]];
     const btns = tools.map(x => x.sep ? `<span class="doc-tb__sep"></span>`
-      : `<button class="doc-tb__btn" data-cmd="${x.c}" ${x.v ? `data-val="${x.v}"` : ""} title="${x.t}" type="button">${x.ic}</button>`).join("");
+      : `<button class="doc-tb__btn" data-cmd="${x.c}" ${x.v ? `data-val="${x.v}"` : ""} title="${x.t}" type="button"><span class="doc-tb__ic">${x.ic}</span><span class="doc-tb__lab">${x.l || x.t}</span></button>`).join("");
     const SHEETS = [["a4", "A4"], ["carta", "Carta"], ["oficio", "Oficio"]];
     const selFont = `<select class="doc-tb__sel" id="doc-font" title="Tipo de letra">${FONTS.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
     const selSize = `<select class="doc-tb__sel" id="doc-size" title="Tamaño de letra">${SIZES.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
