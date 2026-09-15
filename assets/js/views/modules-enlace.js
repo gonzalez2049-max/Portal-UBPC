@@ -31,13 +31,14 @@
           if (!d.titulo) { u.toast("Escribe el título de la tarea", "danger"); return; }
           const me = U.auth.current();
           const max = Math.max(0, ...S().all("kanban").filter(c => c.owner === "referente").map(c => c.orden || 0));
-          S().insert("kanban", {
+          const nueva = S().insert("kanban", {
             owner: "referente", columna: "Pendiente", titulo: d.titulo,
             prioridad: d.prioridad || "media", fechaLimite: d.fechaLimite || "",
             responsable: ref ? ref.nombre : "Referente Técnico",
             asignadoPor: me ? me.nombre : "Coordinación",
             nota: d.nota || "", orden: max + 1
           }, { withCode: true });
+          ensureTaskBank(nueva); // deja el código en el banco de códigos
           U.notif.push({
             titulo: "Nueva tarea asignada: " + d.titulo, modulo: "Enlace con Coordinación",
             prioridad: d.prioridad === "alta" ? "alta" : "normal",
@@ -161,10 +162,31 @@
       }
     });
   }
+  // Asegura que la tarea tenga código y lo deja en el banco de códigos (codigosInternos),
+  // para trazabilidad y control de producción — igual que el resto de registros.
+  function ensureTaskBank(rec) {
+    if (!rec || !rec.id) return;
+    let codigo = rec.codigo;
+    if (!codigo) { codigo = S().nextCode("kanban"); if (codigo) { S().update("kanban", rec.id, { codigo }); rec.codigo = codigo; } }
+    if (codigo && !S().all("codigosInternos").some(c => c.codigo === codigo)) {
+      const me = U.auth.current();
+      S().insert("codigosInternos", {
+        codigo, familia: "kanban", familiaLabel: "Tarea del Referente",
+        tipo: "Tarea asignada", nombre: rec.titulo || "Tarea",
+        responsable: rec.asignadoPor || (me ? me.nombre : "Coordinación"),
+        fecha: rec.fechaCreacion || new Date().toISOString()
+      });
+    }
+  }
+  function syncTaskBank() {
+    S().all("kanban").filter(t => (t.owner || "coordinador") === "referente").forEach(ensureTaskBank);
+  }
+
   // Tabla de tareas — mode "coord" (crea/edita/borra) o "ref" (actualiza estado)
   function tareasTable(box, mode) {
     const u = ui();
     const manage = mode === "coord";
+    syncTaskBank(); // asigna códigos faltantes y los deja en el banco de códigos
     R().mount(box, {
       collection: "kanban", title: "Tarea", icon: "✅", withCode: true, readOnly: !manage,
       hint: manage ? "Tareas asignadas al Referente, con código, prioridad, fecha límite y estado."
@@ -198,7 +220,8 @@
         }
         return d;
       },
-      afterSave: manage ? () => U.notif.push({ titulo: "Nueva tarea asignada", modulo: "Enlace con Coordinación", destinatario: "referente", ref: "#/ref/seguimiento?tab=tareas" }) : undefined,
+      afterSave: () => { syncTaskBank(); if (manage) U.notif.push({ titulo: "Nueva tarea asignada", modulo: "Enlace con Coordinación", destinatario: "referente", ref: "#/ref/seguimiento?tab=tareas" }); },
+      afterChange: () => syncTaskBank(),
       canDelete: () => manage,
       detail: (rec, refresh) => tareaDetalle(rec, () => { if (refresh) refresh(); }),
       rowActions: manage ? [] : [
