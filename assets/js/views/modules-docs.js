@@ -688,12 +688,15 @@
     const selSize = `<select class="doc-tb__sel" id="doc-size" title="Tamaño de letra">${SIZES.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
     const selSheet = `<select class="doc-tb__sel" id="doc-sheet" title="Tamaño de hoja">${SHEETS.map(o => `<option value="${o[0]}">📄 ${o[1]}</option>`).join("")}</select>`;
     const colorInp = `<label class="doc-tb__color" title="Color del texto"><span>A</span><input type="color" id="doc-color" value="#17263d"></label>`;
+    const paintBtn = `<button class="doc-tb__btn doc-tb__wide" id="doc-paint" title="Copiar formato: pon el cursor en el texto con el formato deseado, presiona aquí y luego selecciona el texto a formatear" type="button">🖌 Copiar formato</button>`;
     const tableBtns = `<button class="doc-tb__btn" id="tbl-ins" title="Insertar tabla" type="button">⊞ Tabla</button>`
       + `<button class="doc-tb__btn" id="tbl-rowa" title="Agregar fila" type="button">＋fila</button>`
       + `<button class="doc-tb__btn" id="tbl-cola" title="Agregar columna" type="button">＋col</button>`
       + `<button class="doc-tb__btn" id="tbl-rowd" title="Quitar fila" type="button">－fila</button>`
-      + `<button class="doc-tb__btn" id="tbl-cold" title="Quitar columna" type="button">－col</button>`;
+      + `<button class="doc-tb__btn" id="tbl-cold" title="Quitar columna" type="button">－col</button>`
+      + `<button class="doc-tb__btn doc-tb__wide" id="tbl-props" title="Ajustar tabla: ancho, bordes, relleno, alineación y ancho de columna" type="button">⚙ Ajustar tabla</button>`;
     const toolbar = btns + `<span class="doc-tb__sep"></span>` + colorInp + selFont + selSize
+      + `<span class="doc-tb__sep"></span>` + paintBtn
       + `<span class="doc-tb__sep"></span>` + selSheet
       + `<span class="doc-tb__sep"></span>` + tableBtns
       + `<span class="doc-tb__sep"></span><button class="doc-tb__btn doc-tb__wide" id="doc-pagebreak" title="Insertar salto de página" type="button">⤓ Salto de hoja</button>`
@@ -940,6 +943,94 @@
     tblBtn("doc-cover-btn", () => {
       if (bodyEl.querySelector(".doc-cover")) { ui().toast("El documento ya tiene portada", "warn"); return; }
       bodyEl.insertAdjacentHTML("afterbegin", coverHTML(titleEl.value || p.titulo, p.label));
+    });
+
+    // ---- Copiar formato (brocha) ----
+    let painterFmt = null;
+    const paintBtnEl = document.getElementById("doc-paint");
+    function elAtCaret() {
+      let n = savedRange ? savedRange.startContainer : (window.getSelection().anchorNode);
+      if (n && n.nodeType === 3) n = n.parentNode;
+      return (n && bodyEl.contains(n)) ? n : null;
+    }
+    function armPainter() {
+      const el = elAtCaret();
+      if (!el) { ui().toast("Pon el cursor en el texto con el formato a copiar", "warn"); return; }
+      const cs = getComputedStyle(el);
+      painterFmt = { fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight,
+        fontStyle: cs.fontStyle, textDecoration: cs.textDecorationLine || cs.textDecoration, color: cs.color };
+      if (paintBtnEl) paintBtnEl.classList.add("is-armed");
+      ui().toast("Ahora selecciona el texto a formatear", "ok");
+    }
+    function applyPainter() {
+      if (!painterFmt) return;
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount || sel.isCollapsed || !bodyEl.contains(sel.anchorNode)) return;
+      const range = sel.getRangeAt(0);
+      const span = document.createElement("span");
+      const f = painterFmt;
+      span.style.fontFamily = f.fontFamily; span.style.fontSize = f.fontSize;
+      span.style.fontWeight = f.fontWeight; span.style.fontStyle = f.fontStyle;
+      span.style.color = f.color;
+      if (f.textDecoration && f.textDecoration !== "none") span.style.textDecoration = f.textDecoration;
+      try { span.appendChild(range.extractContents()); range.insertNode(span);
+        sel.removeAllRanges(); const r2 = document.createRange(); r2.selectNodeContents(span); sel.addRange(r2);
+      } catch (e) {}
+      painterFmt = null; if (paintBtnEl) paintBtnEl.classList.remove("is-armed");
+      bodyEl.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    if (paintBtnEl) paintBtnEl.addEventListener("mousedown", e => { e.preventDefault(); saveSel(); armPainter(); });
+    bodyEl.addEventListener("mouseup", () => { if (painterFmt) setTimeout(applyPainter, 0); });
+
+    // ---- Ajustar tabla (ancho, bordes, relleno, alineación, ancho de columna) ----
+    tblBtn("tbl-props", () => {
+      const cell = needCell(); if (!cell) return;
+      const table = cell.closest("table");
+      const colIdx = Array.prototype.indexOf.call(cell.parentNode.children, cell);
+      const u = ui();
+      const curAncho = table.style.width || "auto";
+      const curAlign = table.style.marginLeft === "auto" ? (table.style.marginRight === "auto" ? "center" : "right") : "izquierda";
+      const curBordes = /none/.test(cell.style.border) ? "no" : "si";
+      const curPad = cell.style.padding || "6px 10px";
+      const fields = [
+        { name: "ancho", label: "Ancho de la tabla", type: "select", options: ["Automático", "100%", "75%", "50%"],
+          value: curAncho === "auto" || !curAncho ? "Automático" : curAncho },
+        { name: "align", label: "Alineación de la tabla", type: "select", options: ["Izquierda", "Centrada", "Derecha"],
+          value: curAlign === "center" ? "Centrada" : curAlign === "right" ? "Derecha" : "Izquierda" },
+        { name: "bordes", label: "Bordes", type: "select", options: ["Sí", "No"], value: curBordes === "no" ? "No" : "Sí" },
+        { name: "padding", label: "Relleno de celdas", type: "select", options: ["Compacto", "Normal", "Amplio"],
+          value: /2px|3px/.test(curPad) ? "Compacto" : /12px|16px/.test(curPad) ? "Amplio" : "Normal" },
+        { name: "colw", label: "Ancho de la columna actual (%)", type: "number", placeholder: "vacío = automático" }
+      ];
+      u.modal({
+        title: "Ajustar tabla",
+        body: `<p class="card__hint">Cambia el tamaño y estilo de la tabla donde está el cursor.</p>${u.formHTML(fields, {})}`,
+        footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>Aplicar</button>`,
+        onMount(m) {
+          m.querySelector("[data-ok]").onclick = () => {
+            const d = u.readForm(m);
+            const anchoMap = { "Automático": "", "100%": "100%", "75%": "75%", "50%": "50%" };
+            table.style.width = anchoMap[d.ancho] || "";
+            table.style.tableLayout = table.style.width ? "fixed" : "";
+            if (d.align === "Centrada") { table.style.marginLeft = "auto"; table.style.marginRight = "auto"; }
+            else if (d.align === "Derecha") { table.style.marginLeft = "auto"; table.style.marginRight = "0"; }
+            else { table.style.marginLeft = "0"; table.style.marginRight = "auto"; }
+            const padMap = { "Compacto": "3px 6px", "Normal": "6px 10px", "Amplio": "12px 16px" };
+            const pad = padMap[d.padding] || "6px 10px";
+            table.querySelectorAll("td,th").forEach(c => {
+              c.style.padding = pad;
+              c.style.border = d.bordes === "No" ? "none" : "1px solid #c7d2cf";
+            });
+            const w = parseFloat(d.colw);
+            if (!isNaN(w) && w > 0) {
+              table.querySelectorAll("tr").forEach(tr => { const c = tr.children[colIdx]; if (c) c.style.width = w + "%"; });
+              if (!table.style.width) { table.style.width = "100%"; table.style.tableLayout = "fixed"; }
+            }
+            u.closeModal(); u.toast("Tabla ajustada", "ok");
+            bodyEl.dispatchEvent(new Event("input", { bubbles: true }));
+          };
+        }
+      });
     });
     } // fin handlers de edición (documento no bloqueado)
 

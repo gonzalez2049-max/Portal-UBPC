@@ -1751,6 +1751,7 @@ body.night .doc-tools{ background:rgba(14,26,22,.72); border-color:rgba(255,255,
 .doc-tb__btn{ display:inline-flex; align-items:center; gap:.3rem; min-width:32px; height:32px; padding:0 .55rem; border:none; background:transparent; border-radius:8px; cursor:pointer;
   font-size:12px; font-weight:700; color:var(--text-2); transition:background .15s, color .15s; white-space:nowrap; }
 .doc-tb__btn:hover{ background:var(--azul-50); color:var(--c-azul); }
+.doc-tb__btn.is-armed{ background:var(--c-azul,#1554b8); color:#fff; box-shadow:0 0 0 2px color-mix(in srgb, var(--c-azul,#1554b8) 30%, transparent); }
 .doc-tb__ic{ font-size:14px; line-height:1; display:inline-flex; align-items:center; }
 .doc-tb__lab{ font-size:11.5px; letter-spacing:.1px; }
 .doc-tb__sep{ width:1px; height:20px; background:var(--border-2); margin:0 .3rem; }
