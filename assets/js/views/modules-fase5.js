@@ -21,6 +21,9 @@
     { k: "nutricion", l: "Nutrición" }, { k: "registroResponsable", l: "Registro responsable" }
   ];
   const MESES6 = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  // Color propio por mes (para diferenciar los períodos evaluados de un vistazo)
+  const MES_COLOR6 = ["#1e9fe0", "#e0526f", "#37a04a", "#7a5cd0", "#12b5a5", "#e0912f", "#0891b2", "#be185d", "#0f8f83", "#ca8a04", "#5b34b0", "#1554b8"];
+  function colorMes(pr) { const m = String(pr || "").match(/^\d{4}-(\d{2})/); return MES_COLOR6[(m ? Number(m[1]) - 1 : 0) % 12]; }
   function meta234() { return Number(S().getConfig("nt234.meta", 90)); }
 
   // Redondeo a 1 decimal (evita el desfase de redondear a entero: 78,9 no se vuelve 79)
@@ -247,10 +250,11 @@
 
       let rows = "";
       periodos.slice().reverse().forEach(pr => {
-        rows += `<tr class="nt-h-group"><td colspan="${NT_IND.length + 4}"><span class="nt-h-plabel">Periodo evaluado</span> ${u.esc(periodoNT(pr))}</td></tr>`;
+        const pc = colorMes(pr);
+        rows += `<tr class="nt-h-group" style="--pc:${pc}"><td colspan="${NT_IND.length + 4}"><span class="nt-h-dot"></span><span class="nt-h-plabel">Periodo evaluado</span> <span class="nt-h-mes">${u.esc(periodoNT(pr))}</span></td></tr>`;
         meds.filter(m => m.periodo === pr).forEach(m => {
           const g = globalNT(m), e = estadoNT(g);
-          rows += `<tr>
+          rows += `<tr class="nt-p-row" style="--pc:${pc}">
             <td><strong>${u.esc(m.unidad || "—")}</strong>${m.jefatura ? `<div class="kpi__sub">${u.esc(m.jefatura)}</div>` : ""}</td>
             ${NT_IND.map(i => `<td class="num">${m[i.k] !== "" && m[i.k] != null ? Number(m[i.k]) + "%" : "—"}</td>`).join("")}
             <td class="num"><span class="badge badge--${e.badge}">${g != null ? g + "%" : "—"}</span></td>

@@ -1975,9 +1975,16 @@ body.night .doc-tb__sel{ background:rgba(255,255,255,.06); }
    ============================================================ */
 .nt-hist{ font-size:12.5px; } .nt-hist th.num, .nt-hist td.num{ text-align:center; white-space:nowrap; }
 .nt-hist td, .nt-hist th{ padding:.5rem .55rem; }
-.nt-hist .nt-h-group td{ background:var(--surface-2); font-weight:800; color:var(--text-2); font-size:12px; }
-.nt-h-plabel{ font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--text-muted); font-weight:800; }
-.nt-hist tbody tr:not(.nt-h-group):hover{ background:rgba(18,181,165,.05); }
+/* Encabezado de período: color propio por mes, más grande y destacado */
+.nt-hist .nt-h-group td{ background:color-mix(in srgb, var(--pc,#0f8f83) 13%, var(--surface-2)); font-weight:800;
+  color:color-mix(in srgb, var(--pc,#0f8f83) 72%, #17263d); font-size:15px; padding-top:.7rem; padding-bottom:.55rem;
+  border-top:2px solid var(--pc,#0f8f83); border-bottom:1px solid color-mix(in srgb, var(--pc,#0f8f83) 30%, var(--border)); }
+.nt-h-dot{ display:inline-block; width:.7rem; height:.7rem; border-radius:50%; background:var(--pc,#0f8f83); margin-right:.5rem; vertical-align:-1px; box-shadow:0 0 0 3px color-mix(in srgb, var(--pc,#0f8f83) 20%, transparent); }
+.nt-h-plabel{ font-size:10.5px; text-transform:uppercase; letter-spacing:.8px; color:color-mix(in srgb, var(--pc,#0f8f83) 55%, var(--text-muted)); font-weight:800; margin-right:.3rem; }
+.nt-h-mes{ font-family:var(--font-disp,Georgia,serif); font-size:16px; }
+/* Franja de color por mes en cada fila del período, para distinguir el bloque */
+.nt-hist tbody tr.nt-p-row td:first-child{ box-shadow:inset 4px 0 0 0 color-mix(in srgb, var(--pc,#0f8f83) 55%, transparent); }
+.nt-hist tbody tr:not(.nt-h-group):hover{ background:color-mix(in srgb, var(--pc,#0f8f83) 6%, #fff); }
 .nowrap{ white-space:nowrap; }
 
 /* Banner monitor */
