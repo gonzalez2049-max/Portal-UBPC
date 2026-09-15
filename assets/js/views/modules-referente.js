@@ -146,6 +146,14 @@
               <h4 class="doc-card__title" style="margin:.4rem 0 .1rem">${u.esc(p.indicador || p.objetivo || "Plan de intervención")}</h4></div>
             <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span>
           </div>
+          ${(() => {
+            const nq = (U.data.nquireByName && p.indicador) ? U.data.nquireByName(p.indicador) : null;
+            if (!nq) return "";
+            const tc = { "Proceso": "#176ac0", "Resultado": "#2f9d57", "Estructura": "#7a5cd0" }[nq.tipo] || "#176ac0";
+            return `<div class="kpi__sub" style="margin:.15rem 0" title="${u.esc(nq.formula || "")}"><b>Indicador NQuIRE:</b> ${u.esc(nq.nombre)}
+              <span class="tag" style="background:${tc}1f;color:${tc};border:1px solid ${tc}55">${u.esc(nq.tipo)}</span>
+              ${nq.codigo ? `<span class="mono" style="font-size:11px">${u.esc(nq.codigo)}</span>` : `<span class="muted" style="font-size:11px">código por confirmar</span>`}</div>`;
+          })()}
           <div class="kpi__sub">Plazo: ${p.plazoInicio ? u.fechaCL(p.plazoInicio) : "—"} → ${p.plazoFin ? u.fechaCL(p.plazoFin) : "—"} · Frecuencia: ${u.esc(p.frecuenciaSeg && p.frecuenciaSeg !== "—" ? p.frecuenciaSeg : "—")} · Avance: ${av != null ? av + "%" : "—"}</div>
           <div class="pin-prog" style="margin:.4rem 0"><div class="pin-prog__bar" style="width:${av != null ? Math.min(100, Math.max(0, av)) : 0}%;background:${color}"></div></div>
           ${segList}
