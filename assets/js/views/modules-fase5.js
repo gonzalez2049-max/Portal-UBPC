@@ -23,13 +23,19 @@
   const MESES6 = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   function meta234() { return Number(S().getConfig("nt234.meta", 90)); }
 
+  // Redondeo a 1 decimal (evita el desfase de redondear a entero: 78,9 no se vuelve 79)
+  function round1(n) { return Math.round(n * 10) / 10; }
   function promInd(r) {
-    const vals = NT_IND.map(i => Number(r[i.k])).filter((v, idx) => r[NT_IND[idx].k] !== "" && r[NT_IND[idx].k] != null && !isNaN(v));
-    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    const vals = NT_IND.map(i => r[i.k]).filter(v => v !== "" && v != null && !isNaN(Number(v))).map(Number);
+    return vals.length ? round1(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
   }
+  // Cumplimiento global: SIEMPRE se recalcula en vivo desde los indicadores (fuente de
+  // verdad). Solo si no hay ningún indicador cargado se usa el porcentaje guardado.
   function globalNT(r) {
-    if (r.porcentaje !== "" && r.porcentaje != null && !isNaN(r.porcentaje)) return Math.round(Number(r.porcentaje));
-    return promInd(r);
+    const p = promInd(r);
+    if (p != null) return p;
+    if (r.porcentaje !== "" && r.porcentaje != null && !isNaN(r.porcentaje)) return round1(Number(r.porcentaje));
+    return null;
   }
   function estadoNT(pct) {
     if (pct == null) return { k: "sd", label: "Sin datos", inter: "Sin datos", color: "var(--neutral)", badge: "neutral" };
@@ -322,7 +328,7 @@
       const g = globalNT(last), gp = prev ? globalNT(prev) : null, e = estadoNT(g);
       let vari;
       if (gp == null) vari = `<span class="nt-var">Sin comparación</span>`;
-      else { const d = g - gp; vari = d > 0 ? `<span class="nt-var up">↗ Mejoró +${d}%</span>` : d < 0 ? `<span class="nt-var down">↘ Disminuyó ${d}%</span>` : `<span class="nt-var eq">→ Se mantiene</span>`; }
+      else { const d = round1(g - gp); vari = d > 0 ? `<span class="nt-var up">↗ Mejoró +${d}%</span>` : d < 0 ? `<span class="nt-var down">↘ Disminuyó ${d}%</span>` : `<span class="nt-var eq">→ Se mantiene</span>`; }
       return { un, g, e, vari, jef: last.jefatura };
     }).filter(c => c.g != null).sort((a, b) => a.g - b.g);
     const evaluadas = cards.length;
@@ -573,7 +579,7 @@
     const { per, list } = medsUltimoPeriodo();
     if (!list.length) return null;
     const gl = list.map(globalNT).filter(v => v != null);
-    const prom = gl.length ? Math.round(gl.reduce((a, b) => a + b, 0) / gl.length) : 0;
+    const prom = gl.length ? round1(gl.reduce((a, b) => a + b, 0) / gl.length) : 0;
     const by = k => list.filter(m => estadoNT(globalNT(m)).k === k).length;
     const meta = meta234();
     const v = variacionNT();
