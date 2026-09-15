@@ -37,7 +37,7 @@
             responsable: ref ? ref.nombre : "Referente Técnico",
             asignadoPor: me ? me.nombre : "Coordinación",
             nota: d.nota || "", orden: max + 1
-          });
+          }, { withCode: true });
           U.notif.push({
             titulo: "Nueva tarea asignada: " + d.titulo, modulo: "Enlace con Coordinación",
             prioridad: d.prioridad === "alta" ? "alta" : "normal",
@@ -121,23 +121,99 @@
     <div id="enl-tab"></div>`;
   }
 
+  /* ---------- Tabla de tareas (mismo formato que las solicitudes) ---------- */
+  const TAREA_ESTADOS = ["Pendiente", "En curso", "Completado"];
+  function estadoTareaBadge(v, u) {
+    const map = { "Pendiente": ["#8a94a6", "✏️"], "En curso": ["#e0912f", "🔄"], "Completado": ["#1f9d57", "✅"] };
+    const m = map[v] || ["#8a94a6", ""];
+    return `<span class="doc-estado doc-estado--sm" style="--ec:${m[0]}">${m[1]} ${u.esc(v || "—")}</span>`;
+  }
+  function prioridadBadge(v, u) {
+    return v === "alta" ? `<span class="badge badge--danger">Alta</span>`
+      : `<span class="tag" style="text-transform:capitalize">${u.esc(v || "media")}</span>`;
+  }
+  // Detalle de una tarea
+  function tareaDetalle(rec, onChange) {
+    const u = ui();
+    const soyCoord = U.auth.isCoordinador && U.auth.isCoordinador();
+    const idx = TAREA_ESTADOS.indexOf(rec.columna || "Pendiente");
+    u.modal({
+      title: "Tarea " + (rec.codigo || ""), wide: true,
+      body: `<div class="dl">
+          <div><span>Código</span><strong class="mono">${u.esc(rec.codigo || "—")}</strong></div>
+          <div><span>Estado</span><strong>${estadoTareaBadge(rec.columna, u)}</strong></div>
+          <div><span>Prioridad</span><strong>${prioridadBadge(rec.prioridad, u)}</strong></div>
+          <div><span>Fecha límite</span><strong>${rec.fechaLimite ? u.fechaCL(rec.fechaLimite) : "—"}</strong></div>
+          <div><span>Asignada por</span><strong>${u.esc(rec.asignadoPor || "Coordinación")}</strong></div>
+          <div><span>Responsable</span><strong>${u.esc(rec.responsable || "Referente Técnico")}</strong></div>
+        </div>
+        <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Instrucción / detalle</span>
+          <p class="narrativo">${u.esc(rec.nota || "—")}</p></div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
+        + (idx >= 0 && idx < TAREA_ESTADOS.length - 1 ? `<button class="btn btn--primary" data-next>Marcar “${TAREA_ESTADOS[idx + 1]}”</button>` : ""),
+      onMount(m) {
+        const nb = m.querySelector("[data-next]");
+        if (nb) nb.onclick = () => {
+          const completada = TAREA_ESTADOS[idx + 1] === "Completado";
+          S().update("kanban", rec.id, { columna: TAREA_ESTADOS[idx + 1], fechaCompletada: completada ? new Date().toISOString() : rec.fechaCompletada });
+          u.closeModal(); u.toast("Estado actualizado", "ok"); if (onChange) onChange();
+        };
+      }
+    });
+  }
+  // Tabla de tareas — mode "coord" (crea/edita/borra) o "ref" (actualiza estado)
+  function tareasTable(box, mode) {
+    const u = ui();
+    const manage = mode === "coord";
+    R().mount(box, {
+      collection: "kanban", title: "Tarea", icon: "✅", withCode: true, readOnly: !manage,
+      hint: manage ? "Tareas asignadas al Referente, con código, prioridad, fecha límite y estado."
+        : "Tareas que te asignó la Coordinación. Ábrelas para ver el detalle y actualizar su estado.",
+      newLabel: "Asignar tarea",
+      emptyMsg: "Aún no hay tareas asignadas.",
+      emptySub: manage ? "Asigna la primera tarea con “+ Asignar tarea”." : "Cuando la Coordinación te asigne tareas, aparecerán aquí.",
+      filter: r => (r.owner || "coordinador") === "referente",
+      filters: [{ key: "columna", label: "Estado" }, { key: "prioridad", label: "Prioridad" }],
+      columns: [
+        { key: "codigo", label: "Código", mono: true, width: "150px" },
+        { key: "titulo", label: "Tarea" },
+        { key: "prioridad", label: "Prioridad", render: (r) => prioridadBadge(r.prioridad, u) },
+        { key: "fechaLimite", label: "Fecha límite", date: true },
+        { key: "asignadoPor", label: "Asignada por" },
+        { key: "columna", label: "Estado", render: (r) => estadoTareaBadge(r.columna, u) }
+      ],
+      fields: [
+        { name: "titulo", label: "Tarea para el Referente", required: true, full: true },
+        { name: "prioridad", label: "Prioridad", type: "select", options: ["alta", "media", "baja"] },
+        { name: "fechaLimite", label: "Fecha límite", type: "date" },
+        { name: "columna", label: "Estado", type: "select", options: TAREA_ESTADOS },
+        { name: "nota", label: "Instrucción o detalle", type: "textarea", full: true }
+      ],
+      defaults: () => ({ owner: "referente", columna: "Pendiente", prioridad: "media" }),
+      onBeforeSave: (d, rec) => {
+        if (!rec) {
+          const me = U.auth.current(); const ref = U.auth.referente();
+          d.owner = "referente"; d.asignadoPor = me ? me.nombre : "Coordinación";
+          d.responsable = ref ? ref.nombre : "Referente Técnico";
+        }
+        return d;
+      },
+      afterSave: manage ? () => U.notif.push({ titulo: "Nueva tarea asignada", modulo: "Enlace con Coordinación", destinatario: "referente", ref: "#/ref/seguimiento?tab=tareas" }) : undefined,
+      canDelete: () => manage,
+      detail: (rec, refresh) => tareaDetalle(rec, () => { if (refresh) refresh(); }),
+      rowActions: manage ? [] : [
+        { ico: "🔄", title: "Actualizar estado", show: (r) => (r.columna || "Pendiente") !== "Completado",
+          fn: (rec, refresh) => tareaDetalle(rec, () => { if (refresh) refresh(); }) }
+      ]
+    });
+  }
+
   /* ---------- Contenido por pestaña ---------- */
   function renderTareas(box) {
-    const u = ui();
-    const tareas = S().all("kanban").filter(c => c.owner === "referente");
-    box.innerHTML = `
-      <div class="section__head"><div><h2 class="section__title">Tareas asignadas</h2>
-        <p class="section__hint">Tablero del Referente. Sigue el avance de lo que le encargas.</p></div>
-        <button class="btn btn--primary btn--sm" id="enlTarea2">+ Asignar tarea</button></div>
-      <div class="card">
-        ${tareas.length ? `<ul class="feed">${tareas.map(t => `<li>
-            <span class="feed__ico">${t.columna === "Completado" ? "✅" : t.prioridad === "alta" ? "🔴" : "📌"}</span>
-            <div><strong>${u.esc(t.titulo)}</strong>
-            <div class="feed__meta">${u.esc(t.columna)}${t.fechaLimite ? " · vence " + u.fechaCL(t.fechaLimite) : ""}${t.asignadoPor ? " · por " + u.esc(t.asignadoPor) : ""}</div></div></li>`).join("")}</ul>`
-          : u.empty("Sin tareas asignadas.", "Asigna la primera tarea al Referente con “+ Asignar tarea”.", "✅")}
-      </div>`;
-    const b = box.querySelector("#enlTarea2");
-    if (b) b.onclick = () => asignarTarea(() => U.router.render());
+    box.innerHTML = `<div class="section__head"><div><h2 class="section__title">Tareas asignadas</h2>
+        <p class="section__hint">Lo que le encargas al Referente, con código y estado — igual que las solicitudes.</p></div></div>
+      <div id="enl-tareas-tbl"></div>`;
+    tareasTable(box.querySelector("#enl-tareas-tbl"), "coord");
   }
 
   function renderActividad(box) {
@@ -194,5 +270,5 @@
   // Registrar en el portal del Coordinador
   U.coord.views.enlace = enlace;
   U.coord.binders.enlace = enlaceBind;
-  U.enlace = { asignarTarea };
+  U.enlace = { asignarTarea, tareasTable };
 })();

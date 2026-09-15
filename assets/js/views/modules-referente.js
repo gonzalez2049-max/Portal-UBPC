@@ -307,11 +307,12 @@
   }
   function segTareas(box) {
     const u = ui();
-    const pend = S().all("kanban").filter(k => k.owner === "referente" && k.columna !== "Completado").length;
     box.innerHTML = `<div class="section__head"><div><h2 class="section__title">Tareas asignadas por Coordinación</h2>
-      <p class="section__hint">${pend} pendiente(s). Actualiza el estado de cada tarea desde el tablero.</p></div></div>
-      <div id="seg-kanban"></div>`;
-    U.components.kanban.mount(document.getElementById("seg-kanban"), "referente");
+      <p class="section__hint">Con código, prioridad, fecha límite y estado. Ábrelas para actualizar su estado.</p></div></div>
+      <div id="seg-tareas-tbl"></div>`;
+    const tbl = document.getElementById("seg-tareas-tbl");
+    if (U.enlace && U.enlace.tareasTable) U.enlace.tareasTable(tbl, "ref");
+    else U.components.kanban.mount(tbl, "referente");
   }
   function seguimientoBind(main, params) {
     const box = document.getElementById("ref-hub"); if (!box) return;

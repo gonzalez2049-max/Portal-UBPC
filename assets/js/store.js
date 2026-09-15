@@ -21,7 +21,7 @@
 
   // Prefijos de códigos automáticos por colección
   const CODE_PREFIX = {
-    solicitudes: "SOL", reuniones: "REU", acuerdos: "ACU",
+    solicitudes: "SOL", reuniones: "REU", acuerdos: "ACU", kanban: "TAR",
     documentos: "DOC", edicionesEVI: "EVI", edicionesEVIClinico: "EVIC", colaboraciones: "COL",
     actividades: "CAP", articulaciones: "ART", accionesRNAO: "ACC",
     evidenciaSemana: "EVA", docsTrabajo: "DOC", planesIntervencion: "PIN", protocolosEnf: "PRO",
