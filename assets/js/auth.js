@@ -86,6 +86,31 @@
     badgeCount(rol) {
       const urgent = Notif.attention(rol).filter(n => n.prioridad === "alta" || n.prioridad === "media").length;
       return urgent + Notif.unread(rol).length;
+    },
+
+    // Sonido (zumbido) de notificación. Respeta el interruptor de Configuración.
+    soundOn() { try { return store().getConfig("sonidoNotif", true) !== false; } catch (e) { return true; } },
+    setSound(on) { try { store().setConfig("sonidoNotif", !!on); } catch (e) {} },
+    _actx: null,
+    beep(force) {
+      try {
+        if (!force && !Notif.soundOn()) return;
+        const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+        if (!Notif._actx) Notif._actx = new AC();
+        const ctx = Notif._actx; if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
+        const t0 = ctx.currentTime;
+        // Doble tono breve tipo "zumbido"
+        [[880, 0], [1245, 0.14]].forEach(([f, dt]) => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = "triangle"; o.frequency.value = f;
+          const s = t0 + dt;
+          g.gain.setValueAtTime(0.0001, s);
+          g.gain.exponentialRampToValueAtTime(0.2, s + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, s + 0.13);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(s); o.stop(s + 0.15);
+        });
+      } catch (e) {}
     }
   };
 

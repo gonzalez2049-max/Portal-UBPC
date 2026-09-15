@@ -88,6 +88,13 @@
     if (n && !c) { c = document.createElement("span"); c.className = "bell__count"; b.appendChild(c); }
     if (c) { if (n) c.textContent = n; else c.remove(); }
     b.classList.toggle("bell--ring", !!n);
+    // Sonido (zumbido) cuando aumentan los avisos respecto al último visto
+    try {
+      const key = "ubpc:bellSeen:" + rol;
+      const prev = parseInt(sessionStorage.getItem(key) || "-1", 10);
+      if (prev >= 0 && n > prev) { U.notif.beep(); b.classList.add("bell--pulse"); setTimeout(() => b.classList.remove("bell--pulse"), 1200); }
+      sessionStorage.setItem(key, String(n));
+    } catch (e) {}
   }
   function updateNavBadges(config, portal) {
     (config.nav || []).forEach(group => (group.items || []).forEach(it => {
@@ -255,7 +262,10 @@
     panel.innerHTML = `
       <div class="notif-panel__head">
         <strong>Notificaciones</strong>
-        <button class="btn btn--ghost btn--sm" data-readall>Marcar todas como leídas</button>
+        <div class="flex" style="gap:.3rem">
+          <button class="btn btn--ghost btn--sm" data-sound title="Sonido de notificaciones">${U.notif.soundOn() ? "🔔 Sonido" : "🔕 Silencio"}</button>
+          <button class="btn btn--ghost btn--sm" data-readall>Marcar todas como leídas</button>
+        </div>
       </div>
       <div class="notif-list">
         ${attention.length ? `<div class="notif-sec">⚠️ Requiere atención (${attention.length})</div>` + attention.slice(0, 30).map(attItem).join("") : ""}
@@ -272,6 +282,15 @@
     const bell = document.querySelector(".bell");
     bell.appendChild(panel);
     panel.querySelector("[data-readall]").onclick = () => { U.notif.markAllRead(rol); panel.remove(); render(); };
+    const soundBtn = panel.querySelector("[data-sound]");
+    if (soundBtn) soundBtn.onclick = e => {
+      e.stopPropagation();
+      const on = !U.notif.soundOn();
+      U.notif.setSound(on);
+      soundBtn.textContent = on ? "🔔 Sonido" : "🔕 Silencio";
+      if (on) U.notif.beep(true);  // prueba el sonido al activarlo
+      U.ui.toast(on ? "Sonido de notificaciones activado" : "Notificaciones en silencio", "ok");
+    };
     panel.querySelectorAll(".notif-item").forEach(item => {
       item.onclick = () => {
         U.notif.markRead(item.dataset.nid);

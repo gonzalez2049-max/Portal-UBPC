@@ -260,44 +260,72 @@
     });
   }
 
-  /* ---------- Mi gestión / Mi seguimiento ---------- */
-  function gestion() {
-    const u = ui();
-    const counts = [
-      ["📚", "Biblioteca Digital", S().all("bibliotecaBitacora").length, "biblioteca"],
-      ["🎓", "Capacitación por turno", S().all("capacitacionRef").length, "capacitacion"],
-      ["🔬", "Evidencia y recomendación", S().all("evidenciaSemana").length, "evidencia"],
-      ["📅", "Reuniones de seguimiento", S().all("reuniones").length, "reunion"],
-      ["📈", "Monitoreo e implementación", S().all("monitoreoRef").length, "monitoreo"]
-    ];
-    return `<div class="page-head"><h1>Mi gestión</h1><p>Resumen de tus registros operativos.</p></div>
-      <div class="grid grid--3">${counts.map(c => `<a class="card" href="#/ref/${c[3]}" style="text-decoration:none;color:inherit;border-top:4px solid var(--c-turquesa)">
-        <div class="flex"><div class="avatar" style="background:var(--c-turquesa)">${c[0]}</div>
-        <div><div class="kpi__value" style="font-size:1.6rem">${c[2]}</div><div class="kpi__label">${c[1]}</div></div></div>
-        <div class="kpi__sub" style="margin-top:.4rem">${c[2] ? "Ver registros →" : "Sin registros aún · Comienza aquí →"}</div></a>`).join("")}</div>`;
+  /* ---------- Hubs agrupadores (menos módulos en el menú) ---------- */
+  function hubTab(tabs, params) {
+    const t = params && params.tab;
+    return (t && tabs.some(x => x.key === t)) ? t : tabs[0].key;
   }
-  function seguimiento() {
+  function hubView(title, subtitle, moduleKey, tabs, params) {
+    return `<div class="page-head"><h1>${title}</h1><p>${subtitle}</p></div>
+      ${R().tabsBar("ref", moduleKey, tabs, hubTab(tabs, params))}
+      <div id="ref-hub"></div>`;
+  }
+  // Monta un submódulo ya registrado (vista + binder) dentro del hub, sin su encabezado propio.
+  function mountSub(box, subKey) {
+    const view = U.ref.views[subKey], bind = U.ref.binders[subKey];
+    if (!view) { box.innerHTML = ui().empty("Módulo no disponible.", "Recarga la página.", "🛠️"); return; }
+    box.innerHTML = view();
+    const ph = box.querySelector(".page-head"); if (ph) ph.remove();
+    if (bind) { try { bind(box); } catch (e) {} }
+  }
+
+  /* ---------- Mi trabajo (registros operativos agrupados) ---------- */
+  const TRB_TABS = [
+    { key: "evidencia", label: "Evidencia", color: "#12b5a5" },
+    { key: "evi", label: "EVI", color: "#7a5cd0" },
+    { key: "biblioteca", label: "Biblioteca", color: "#1554b8" },
+    { key: "capacitacion", label: "Capacitación", color: "#e0912f" },
+    { key: "reunion", label: "Reuniones", color: "#0d6ea8" }
+  ];
+  function gestion(params) {
+    return hubView("Mi trabajo", "Tus registros operativos en un solo lugar: evidencia, EVI, biblioteca, capacitación y reuniones.", "gestion", TRB_TABS, params);
+  }
+  function gestionBind(main, params) {
+    const box = document.getElementById("ref-hub"); if (!box) return;
+    mountSub(box, hubTab(TRB_TABS, params));
+  }
+
+  /* ---------- Mi seguimiento (todo lo que hay que seguir) ---------- */
+  const SEG_TABS = [
+    { key: "solicitudes", label: "Solicitudes del Coordinador", color: "#1554b8" },
+    { key: "tareas", label: "Tareas asignadas", color: "#0f8f83" },
+    { key: "planes", label: "Planes RNAO", color: "#7a5cd0" },
+    { key: "monitoreo", label: "Monitoreo", color: "#e0912f" }
+  ];
+  function seguimiento(params) {
+    return hubView("Mi seguimiento", "Todo lo que debes seguir en un solo lugar: solicitudes recibidas del Coordinador, tus tareas asignadas, los planes RNAO y el monitoreo.", "seguimiento", SEG_TABS, params);
+  }
+  function segTareas(box) {
     const u = ui();
-    const kanbanPend = S().all("kanban").filter(k => k.owner === "referente" && k.columna !== "Completado");
-    const solEnCurso = S().all("solicitudes").filter(s => (s.direccion || "coord-a-ref") === "coord-a-ref" && /enviada|curso/i.test(s.estado || ""));
-    const monPend = S().all("monitoreoRef").filter(m => m.estado !== "Completado");
-    function lista(items, render, empty) {
-      return items.length ? `<ul class="feed">${items.map(render).join("")}</ul>` : u.empty(empty, "", "✅");
-    }
-    return `<div class="page-head"><h1>Mi seguimiento</h1><p>Pendientes, solicitudes en gestión y monitoreo en curso.</p></div>
-      <div class="grid grid--3">
-        <div class="card"><h3 class="card__title">Tareas pendientes (${kanbanPend.length})</h3>
-          ${lista(kanbanPend, k => `<li><span class="feed__ico">📌</span><div><strong>${u.esc(k.titulo)}</strong><div class="feed__meta">${u.esc(k.columna)} · ${k.fechaLimite ? u.fechaCL(k.fechaLimite) : "sin fecha"}</div></div></li>`, "Sin tareas pendientes.")}</div>
-        <div class="card"><h3 class="card__title">Solicitudes en gestión (${solEnCurso.length})</h3>
-          ${lista(solEnCurso, s => `<li><span class="feed__ico">📨</span><div><strong>${u.esc(s.titulo || s.codigo)}</strong><div class="feed__meta">${u.estadoBadge(s.estado)}</div></div></li>`, "Sin solicitudes en gestión.")}</div>
-        <div class="card"><h3 class="card__title">Monitoreo en curso (${monPend.length})</h3>
-          ${lista(monPend, m => `<li><span class="feed__ico">📈</span><div><strong>${u.esc(m.tipoRegistro || "Registro")}</strong> · ${u.esc(m.unidad || "")}<div class="feed__meta">${u.estadoBadge(m.estado)}</div></div></li>`, "Sin monitoreo en curso.")}</div>
-      </div>`;
+    const pend = S().all("kanban").filter(k => k.owner === "referente" && k.columna !== "Completado").length;
+    box.innerHTML = `<div class="section__head"><div><h2 class="section__title">Tareas asignadas por Coordinación</h2>
+      <p class="section__hint">${pend} pendiente(s). Actualiza el estado de cada tarea desde el tablero.</p></div></div>
+      <div id="seg-kanban"></div>`;
+    U.components.kanban.mount(document.getElementById("seg-kanban"), "referente");
+  }
+  function seguimientoBind(main, params) {
+    const box = document.getElementById("ref-hub"); if (!box) return;
+    const tab = hubTab(SEG_TABS, params);
+    if (tab === "solicitudes") mountSub(box, "solicitudesRecibidas");
+    else if (tab === "planes") mountSub(box, "planesSeg");
+    else if (tab === "monitoreo") mountSub(box, "monitoreo");
+    else segTareas(box);
   }
 
   Object.assign(U.ref.views, { biblioteca, capacitacion, evidencia, apoyo, reunion, monitoreo, gestion, seguimiento, planesSeg });
   Object.assign(U.ref.binders, {
     biblioteca: bibliotecaBind, capacitacion: capacitacionBind, evidencia: evidenciaBind,
-    apoyo: apoyoBind, reunion: reunionBind, monitoreo: monitoreoBind, planesSeg: planesSegBind
+    apoyo: apoyoBind, reunion: reunionBind, monitoreo: monitoreoBind, planesSeg: planesSegBind,
+    gestion: gestionBind, seguimiento: seguimientoBind
   });
 })();

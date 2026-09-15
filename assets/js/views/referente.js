@@ -9,24 +9,16 @@
   const NAV = [
     { label: "Mi portal", items: [
       { key: "inicio", label: "Inicio", ico: "🏠" },
-      { key: "gestion", label: "Mi gestión", ico: "🗂️" },
-      { key: "seguimiento", label: "Mi seguimiento", ico: "📌" },
-      { key: "funciones", label: "Funciones del rol", ico: "📋" }
+      { key: "seguimiento", label: "Mi seguimiento", ico: "📌",
+        badgeFn: () => S().all("solicitudes").filter(x => (x.direccion || "coord-a-ref") === "coord-a-ref" && (x.estado === "Enviada" || x.estado === "En curso")).length },
+      { key: "gestion", label: "Mi trabajo", ico: "🗂️" }
     ]},
-    { label: "Submódulos operativos", items: [
-      { key: "biblioteca", label: "Bitácora Biblioteca", ico: "📚" },
-      { key: "capacitacion", label: "Capacitación por turno", ico: "🎓" },
-      { key: "evidencia", label: "Evidencia y recomendación", ico: "🔬" },
-      { key: "evi", label: "EVI · Evidencia que transforma", ico: "🦉" },
+    { label: "Documentos y apoyo", items: [
       { key: "docs", label: "Gestión Documental", ico: "📄" },
-      { key: "planesSeg", label: "Seguimiento de Planes RNAO", ico: "🧭" },
-      { key: "apoyo", label: "Solicitud de apoyo", ico: "🆘" },
-      { key: "reunion", label: "Reunión de seguimiento", ico: "📅" },
-      { key: "monitoreo", label: "Monitoreo e implementación", ico: "📈" }
+      { key: "apoyo", label: "Solicitud de apoyo", ico: "🆘" }
     ]},
     { label: "Cuenta", items: [
-      { key: "solicitudesRecibidas", label: "Solicitudes recibidas", ico: "📨",
-        badgeFn: () => S().all("solicitudes").filter(x => (x.direccion || "coord-a-ref") === "coord-a-ref" && (x.estado === "Enviada" || x.estado === "En curso")).length },
+      { key: "funciones", label: "Funciones del rol", ico: "📋" },
       { key: "config", label: "Configuración", ico: "⚙️" }
     ]}
   ];
@@ -108,7 +100,7 @@
         <div class="rt-prio__head"><span class="rt-live"></span><span class="hh-lbl">Solicitudes prioritarias</span>
           <span class="rt-count">${prioritarias.length}</span></div>
         <div class="rt-prio__list">${prioHTML}</div>
-        <a class="rt-all" href="#/ref/solicitudesRecibidas">Ver todas las solicitudes →</a>
+        <a class="rt-all" href="#/ref/seguimiento?tab=solicitudes">Ver todas las solicitudes →</a>
       </div>
       <div class="card rt-link">
         <span class="hh-lbl">🤝 Enlace directo con Coordinación</span>
