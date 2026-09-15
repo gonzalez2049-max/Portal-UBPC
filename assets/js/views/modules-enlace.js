@@ -7,7 +7,7 @@
 (function () {
   "use strict";
   const U = window.UBPC;
-  const S = () => U.store, ui = () => U.ui;
+  const S = () => U.store, ui = () => U.ui, R = () => U.components.resource;
 
   const E = () => (U.solicitudes && U.solicitudes.E) || {};
 
@@ -50,8 +50,20 @@
     });
   }
 
+  const TABS = [
+    { key: "tareas", label: "Tareas asignadas", color: "#12b5a5" },
+    { key: "solicitudes", label: "Solicitudes", color: "#1554b8" },
+    { key: "actividad", label: "Actividad operativa", color: "#7a5cd0" }
+  ];
+  const tabActivo = params => {
+    const t = params && params.tab;
+    if (t && TABS.some(x => x.key === t)) return t;
+    if (params && params.focus === "solicitudes") return "solicitudes";
+    return "tareas";
+  };
+
   /* ---------- Vista principal ---------- */
-  function enlace() {
+  function enlace(params) {
     const u = ui();
     const ref = U.auth.referente();
 
@@ -66,22 +78,13 @@
     const alRef = sols.filter(s => (s.direccion || "coord-a-ref") === "coord-a-ref");
     const delRef = sols.filter(s => s.direccion === "ref-a-coord");
     const abiertasRef = alRef.filter(s => !/cerrad/i.test(s.estado || ""));
-    // Solicitudes del referente que esperan MI respuesta (soy gestor, aún no cerrada)
     const esperanCoord = delRef.filter(s => !/cerrad/i.test(s.estado || ""));
 
     const tareas = S().all("kanban").filter(c => c.owner === "referente");
     const tareasPend = tareas.filter(c => c.columna !== "Completado");
     const tareasHechas = tareas.filter(c => c.columna === "Completado");
 
-    // Actividad operativa (colección compartida)
-    const act = [
-      ["🔬", "Evidencia y recomendación", S().all("evidenciaSemana").length, "#/ref/evidencia"],
-      ["📈", "Monitoreo e implementación", S().all("monitoreoRef").length, "#/ref/monitoreo"],
-      ["🎓", "Capacitación por turno", S().all("capacitacionRef").length, "#/ref/capacitacion"],
-      ["📚", "Bitácora Biblioteca", S().all("bibliotecaBitacora").length, "#/ref/biblioteca"]
-    ];
-
-    const rolLabel = "Referente Técnico";
+    const tab = tabActivo(params);
 
     return `<div class="page-head"><h1>Enlace con el Referente Técnico</h1>
       <p>Tu espacio de trabajo conjunto con el Referente: solicitudes, tareas asignadas y su actividad operativa, en tiempo real.</p></div>
@@ -91,7 +94,7 @@
         <div class="enl-id__row">
           <div class="avatar avatar--lg" style="background:var(--c-turquesa)">${ref.foto ? `<img src="${u.esc(ref.foto)}">` : u.initials(ref.nombre)}</div>
           <div class="enl-id__meta">
-            <span class="tag tag--role">${rolLabel}</span>
+            <span class="tag tag--role">Referente Técnico</span>
             <h2>${u.esc(ref.nombre)}</h2>
             <div class="muted">${u.esc(ref.cargo || "")}</div>
             <div class="kpi__sub">🏥 ${u.esc(ref.unidad || "UBPC – HUAP")}</div>
@@ -106,34 +109,46 @@
 
       <div class="card enl-stat">
         <div class="enl-stat__grid">
-          <div class="enl-chip enl-chip--warn"><b>${esperanCoord.length}</b><span>Esperan tu respuesta</span></div>
-          <div class="enl-chip enl-chip--info"><b>${abiertasRef.length}</b><span>Solicitudes activas al Referente</span></div>
-          <div class="enl-chip enl-chip--tq"><b>${tareasPend.length}</b><span>Tareas en curso</span></div>
-          <div class="enl-chip enl-chip--ok"><b>${tareasHechas.length}</b><span>Tareas completadas</span></div>
+          <a class="enl-chip enl-chip--warn" href="#/coord/enlace?tab=solicitudes"><b>${esperanCoord.length}</b><span>Esperan tu respuesta</span></a>
+          <a class="enl-chip enl-chip--info" href="#/coord/enlace?tab=solicitudes"><b>${abiertasRef.length}</b><span>Solicitudes activas al Referente</span></a>
+          <a class="enl-chip enl-chip--tq" href="#/coord/enlace?tab=tareas"><b>${tareasPend.length}</b><span>Tareas en curso</span></a>
+          <a class="enl-chip enl-chip--ok" href="#/coord/enlace?tab=tareas"><b>${tareasHechas.length}</b><span>Tareas completadas</span></a>
         </div>
       </div>
     </div>
 
-    <div class="section">
+    ${R().tabsBar("coord", "enlace", TABS, tab)}
+    <div id="enl-tab"></div>`;
+  }
+
+  /* ---------- Contenido por pestaña ---------- */
+  function renderTareas(box) {
+    const u = ui();
+    const tareas = S().all("kanban").filter(c => c.owner === "referente");
+    box.innerHTML = `
       <div class="section__head"><div><h2 class="section__title">Tareas asignadas</h2>
         <p class="section__hint">Tablero del Referente. Sigue el avance de lo que le encargas.</p></div>
         <button class="btn btn--primary btn--sm" id="enlTarea2">+ Asignar tarea</button></div>
       <div class="card">
-        ${tareas.length ? `<ul class="feed">${tareas.slice(0, 6).map(t => `<li>
+        ${tareas.length ? `<ul class="feed">${tareas.map(t => `<li>
             <span class="feed__ico">${t.columna === "Completado" ? "✅" : t.prioridad === "alta" ? "🔴" : "📌"}</span>
             <div><strong>${u.esc(t.titulo)}</strong>
             <div class="feed__meta">${u.esc(t.columna)}${t.fechaLimite ? " · vence " + u.fechaCL(t.fechaLimite) : ""}${t.asignadoPor ? " · por " + u.esc(t.asignadoPor) : ""}</div></div></li>`).join("")}</ul>`
-          : u.empty("Sin tareas asignadas.", "Asigna la primera tarea al Referente.", "✅")}
-      </div>
-    </div>
+          : u.empty("Sin tareas asignadas.", "Asigna la primera tarea al Referente con “+ Asignar tarea”.", "✅")}
+      </div>`;
+    const b = box.querySelector("#enlTarea2");
+    if (b) b.onclick = () => asignarTarea(() => U.router.render());
+  }
 
-    <div class="section">
-      <div class="section__head"><div><h2 class="section__title">Solicitudes con el Referente</h2>
-        <p class="section__hint">Flujo de solicitudes en ambos sentidos, con código, estado y cierre.</p></div></div>
-      <div id="enl-sol-body"></div>
-    </div>
-
-    <div class="section">
+  function renderActividad(box) {
+    const u = ui();
+    const act = [
+      ["🔬", "Evidencia y recomendación", S().all("evidenciaSemana").length, "#/ref/evidencia"],
+      ["📈", "Monitoreo e implementación", S().all("monitoreoRef").length, "#/ref/monitoreo"],
+      ["🎓", "Capacitación por turno", S().all("capacitacionRef").length, "#/ref/capacitacion"],
+      ["📚", "Bitácora Biblioteca", S().all("bibliotecaBitacora").length, "#/ref/biblioteca"]
+    ];
+    box.innerHTML = `
       <div class="section__head"><div><h2 class="section__title">Actividad operativa del Referente</h2>
         <p class="section__hint">Registros que el Referente lleva en su portal (se actualizan al sincronizar).</p></div></div>
       <div class="grid grid--kpi">
@@ -142,31 +157,38 @@
           <div class="enl-act__n">${a[2]}</div>
           <div class="enl-act__l">${a[1]}</div>
           <div class="kpi__sub">${a[2] ? "Ver registros →" : "Sin registros aún"}</div></a>`).join("")}
-      </div>
-    </div>`;
+      </div>`;
   }
 
-  function enlaceBind() {
+  function renderSolicitudes(box) {
+    box.innerHTML = `
+      <div class="section__head"><div><h2 class="section__title">Solicitudes con el Referente</h2>
+        <p class="section__hint">Flujo de solicitudes en ambos sentidos, con código, estado y cierre.</p></div></div>
+      <div id="enl-sol-body"></div>`;
+    const panel = box.querySelector("#enl-sol-body");
+    if (panel && U.solicitudes) U.solicitudes.coordPanel(panel);
+    if (panel && /[?&]focus=solicitudes/.test(location.hash)) {
+      setTimeout(() => {
+        panel.classList.add("is-spotlight");
+        try { panel.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+        setTimeout(() => panel.classList.remove("is-spotlight"), 5400);
+      }, 140);
+    }
+  }
+
+  function enlaceBind(main, params) {
     const rerender = () => U.router.render();
     const s = document.getElementById("enlSolicitud");
     if (s) s.onclick = () => U.solicitudes.crearDesde("Enlace con el Referente", {}, rerender);
-    [document.getElementById("enlTarea"), document.getElementById("enlTarea2")].forEach(b => {
-      if (b) b.onclick = () => asignarTarea(rerender);
-    });
-    // Panel completo de solicitudes (antes era el módulo "Solicitudes técnicas")
-    const box = document.getElementById("enl-sol-body");
-    if (box && U.solicitudes) U.solicitudes.coordPanel(box);
+    const t = document.getElementById("enlTarea");
+    if (t) t.onclick = () => asignarTarea(rerender);
 
-    // Lucecita: al llegar desde "Próximos pasos", resalta el panel de solicitudes.
-    // Se apunta al panel interno (no a la .section, hija directa de app__main cuya
-    // animación de entrada taparía el parpadeo).
-    if (box && /[?&]focus=solicitudes/.test(location.hash)) {
-      setTimeout(() => {
-        box.classList.add("is-spotlight");
-        try { box.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
-        setTimeout(() => box.classList.remove("is-spotlight"), 5400);
-      }, 140);
-    }
+    const box = document.getElementById("enl-tab");
+    if (!box) return;
+    const tab = tabActivo(params);
+    if (tab === "solicitudes") renderSolicitudes(box);
+    else if (tab === "actividad") renderActividad(box);
+    else renderTareas(box);
   }
 
   // Registrar en el portal del Coordinador
