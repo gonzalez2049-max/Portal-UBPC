@@ -450,6 +450,7 @@
   /* ---------- Listado + galería de plantillas ---------- */
   function renderList(container, params) {
     const u = ui();
+    syncAllDraftPlanDocs(); // los borradores de Plan de Mejora reflejan el formato más reciente
     const docs = S().all("docsTrabajo").sort((a, b) => new Date(b.fechaModificacion || 0) - new Date(a.fechaModificacion || 0));
     // Nombre corto para la galería (el nombre completo va en el tooltip y dentro del editor)
     const TPL_CORTO = {
@@ -1688,5 +1689,21 @@
     printDoc(d.titulo, d.contenido, me, d.tamano || "a4", d);
   }
 
-  U.docsEditor = { mount, ESTADOS, estadoDe, plMeta, syncLinkedPlanDoc, printDocById };
+  // Regenera TODOS los documentos "Plan de Mejora" en borrador desde su plan, para
+  // que reflejen el formato y los datos más recientes (p. ej. el indicador NQuIRE)
+  // sin tener que abrir o reguardar cada uno. Solo escribe si el contenido cambió.
+  function syncAllDraftPlanDocs() {
+    try {
+      S().all("docsTrabajo").forEach(doc => {
+        if (!doc.planRef || (doc.estado || "borrador") !== "borrador") return;
+        const plan = S().get("planesIntervencion", doc.planRef);
+        if (!plan) return;
+        const titulo = "Plan de Mejora · " + (plan.guia || "RNAO") + (plan.unidad ? " · " + plan.unidad : "");
+        const contenido = coverHTML(titulo, PLANTILLAS.planMejora.label, true) + planMejoraContentFromPlan(plan);
+        if (contenido !== doc.contenido || titulo !== doc.titulo) S().update("docsTrabajo", doc.id, { titulo, contenido });
+      });
+    } catch (e) {}
+  }
+
+  U.docsEditor = { mount, ESTADOS, estadoDe, plMeta, syncLinkedPlanDoc, syncAllDraftPlanDocs, printDocById };
 })();
