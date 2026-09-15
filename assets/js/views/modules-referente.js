@@ -205,25 +205,26 @@
   /* ---------- Reunión de seguimiento ---------- */
   function reunion() { return page("Reunión de seguimiento", "Programación y registro de reuniones de seguimiento.", "ref-reu"); }
   function reunionBind() {
+    const H = U.reunionHelpers || {};
     R().mount(document.getElementById("ref-reu"), {
-      collection: "reuniones", title: "Reunión de seguimiento", icon: "📅", withCode: true,
-      hint: "Reuniones de seguimiento. Código UBPC-REU-AAAA-000.",
+      collection: "reuniones", title: "Reunión de seguimiento", icon: "📅", withCode: true, wideForm: true,
+      hint: "Reuniones de seguimiento. Ábrelas para ver los temas a tratar. Código UBPC-REU-AAAA-000.",
       newLabel: "Nueva reunión", emptyMsg: "Aún no hay reuniones registradas.",
       columns: [
         { key: "codigo", label: "Código", mono: true, width: "150px" },
         { key: "fecha", label: "Fecha", date: true },
         { key: "tema", label: "Tema" },
-        { key: "unidad", label: "Unidad" },
+        { key: "objetivo", label: "Temas a tratar", render: (r, u) => H.temasCol ? H.temasCol(r, u) : u.esc(r.objetivo || "—") },
         { key: "resultado", label: "Resultado / próxima acción" }
       ],
-      fields: [
-        { name: "fecha", label: "Fecha", type: "date", required: true },
-        { name: "tipo", label: "Tipo", value: "Reunión de seguimiento" },
-        { name: "tema", label: "Tema o título", required: true, full: true },
-        { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
-        { name: "responsable", label: "Responsable" },
-        { name: "resultado", label: "Resultado o próxima acción", type: "textarea", full: true }
-      ],
+      fields: H.fields ? H.fields(["Reunión de seguimiento", "Reunión con Coordinación", "Comité", "Mesa técnica", "Otra"])
+        : [
+          { name: "fecha", label: "Fecha", type: "date", required: true },
+          { name: "tema", label: "Tema o título", required: true, full: true },
+          { name: "objetivo", label: "Temas a tratar / objetivo", type: "textarea", full: true },
+          { name: "resultado", label: "Resultado o próxima acción", type: "textarea", full: true }
+        ],
+      detail: (rec) => H.detalle ? H.detalle(rec) : null,
       defaults: () => ({ fecha: ui().hoyISO(), tipo: "Reunión de seguimiento" })
     });
   }

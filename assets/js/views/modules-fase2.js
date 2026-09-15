@@ -519,30 +519,69 @@
       <span class="badge badge--${badge(a.estado)}" style="font-size:.62rem">${u.esc(a.estado || "—")}</span>
       ${u.esc((a.compromiso || "").slice(0, 42))}${(a.compromiso || "").length > 42 ? "…" : ""}</span>`).join(" ");
   }
+  // ---- Reuniones: campos, columna de temas y detalle (compartidos coord/referente) ----
+  const REU_MODALIDAD = ["Presencial", "Videollamada", "Teléfono", "Mixta"];
+  function reunionFields(tipos) {
+    return [
+      { name: "fecha", label: "Fecha", type: "date", required: true },
+      { name: "hora", label: "Hora", type: "time" },
+      { name: "tipo", label: "Tipo", type: "select", options: tipos },
+      { name: "tema", label: "Tema o título", required: true, full: true },
+      { name: "modalidad", label: "Modalidad", type: "select", options: ["—"].concat(REU_MODALIDAD) },
+      { name: "lugar", label: "Lugar o enlace (sala / link)", full: true },
+      { name: "objetivo", label: "Temas a tratar / objetivo de la reunión", type: "textarea", full: true },
+      { name: "unidad", label: "Unidad o institución" },
+      { name: "responsable", label: "Responsable" },
+      { name: "resultado", label: "Resultado o próxima acción", type: "textarea", full: true }
+    ];
+  }
+  function reunionTemasCol(r, u) {
+    const t = r.objetivo || "";
+    if (!t) return `<span class="muted">—</span>`;
+    return `<span title="${u.esc(t)}">${u.esc(t.length > 70 ? t.slice(0, 70) + "…" : t)}</span>`;
+  }
+  function reunionDetalle(rec) {
+    const u = ui();
+    const fila = (label, val) => `<div><span>${u.esc(label)}</span><strong>${val ? u.esc(val) : "—"}</strong></div>`;
+    u.modal({
+      title: "Reunión " + (rec.codigo || ""), wide: true,
+      body: `<div class="dl">
+          ${fila("Código", rec.codigo)}
+          ${fila("Fecha", u.fechaCL(rec.fecha) + (rec.hora ? " · " + rec.hora : ""))}
+          ${fila("Tipo", rec.tipo)}
+          ${fila("Modalidad", rec.modalidad && rec.modalidad !== "—" ? rec.modalidad : "")}
+          ${fila("Lugar / enlace", rec.lugar)}
+          ${fila("Responsable", rec.responsable)}
+          ${rec.referente ? fila("Con", rec.referente) : ""}
+          ${rec.estado ? fila("Estado", rec.estado) : ""}
+        </div>
+        <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Tema</span>
+          <p class="narrativo">${u.esc(rec.tema || "—")}</p></div>
+        <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Temas a tratar / objetivo</span>
+          <p class="narrativo">${u.esc(rec.objetivo || "—")}</p></div>
+        ${rec.resultado ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Resultado / próxima acción</span><p class="narrativo">${u.esc(rec.resultado)}</p></div>` : ""}`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
+    });
+  }
+  U.reunionHelpers = { fields: reunionFields, detalle: reunionDetalle, temasCol: reunionTemasCol };
+
   function m5Reuniones(box, onAcuerdo) {
     R().mount(box, {
-      collection: "reuniones", title: "Reunión", icon: "📅", withCode: true,
+      collection: "reuniones", title: "Reunión", icon: "📅", withCode: true, wideForm: true,
       hint: "Participaciones y reuniones. Cada una recibe código UBPC-REU-AAAA-000.",
       newLabel: "Nueva reunión",
       emptyMsg: "Aún no hay reuniones registradas.",
       columns: [
         { key: "codigo", label: "Código", mono: true, width: "150px" },
         { key: "fecha", label: "Fecha", date: true },
-        { key: "tipo", label: "Tipo", render: (r, u) => `<span class="tag">${u.esc(r.tipo || "—")}</span>` },
         { key: "tema", label: "Tema o título" },
-        { key: "unidad", label: "Unidad o institución" },
+        { key: "objetivo", label: "Temas a tratar", render: (r, u) => reunionTemasCol(r, u) },
         { key: "responsable", label: "Responsable" },
         { key: "acuerdos", label: "Acuerdos / acciones", render: (r, u) => acuerdosDeReunion(r, u) }
       ],
-      fields: [
-        { name: "fecha", label: "Fecha", type: "date", required: true },
-        { name: "tipo", label: "Tipo", type: "select", options: ["Reunión interna", "Reunión institucional", "Comité", "Mesa técnica", "Participación", "Otra"] },
-        { name: "tema", label: "Tema o título", required: true, full: true },
-        { name: "unidad", label: "Unidad o institución" },
-        { name: "responsable", label: "Responsable" },
-        { name: "resultado", label: "Resultado o próxima acción", type: "textarea", full: true }
-      ],
+      fields: reunionFields(["Reunión interna", "Reunión institucional", "Comité", "Mesa técnica", "Participación", "Otra"]),
       defaults: () => ({ fecha: ui().hoyISO() }),
+      detail: (rec) => reunionDetalle(rec),
       rowActions: [{ ico: "🤝", title: "Generar acuerdo desde la reunión", fn: (rec) => crearAcuerdoDesde(rec, onAcuerdo) }]
     });
   }
