@@ -112,6 +112,9 @@
       </div>
       <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Descripción</span>
         <p class="narrativo">${u.esc(sol.descripcion || "—")}</p></div>
+      ${sol.refDoc && S().get("docsTrabajo", sol.refDoc) ? `<div style="grid-column:1/-1;margin:.2rem 0 .4rem">
+        <a class="btn btn--primary btn--sm" id="sol-doc-link" href="${soyReferente ? "#/ref/docs?doc=" : "#/coord/m2?tab=docs&doc="}${u.esc(sol.refDoc)}">📄 Abrir el documento para evaluar →</a>
+      </div>` : ""}
       ${sol.respuestaTecnica || sol.medioVerificacion ? `
         <div class="dl" style="border-top:1px dashed var(--border-2);padding-top:.6rem">
           ${fila("Respuesta técnica", sol.respuestaTecnica)}
@@ -152,6 +155,8 @@
       onMount(m) {
         const refresh = () => { u.closeModal(); if (onChange) onChange(); };
         const dir = sol.direccion || "coord-a-ref";
+        const docLink = m.querySelector("#sol-doc-link");
+        if (docLink) docLink.onclick = () => u.closeModal();
         const tomar = m.querySelector("[data-tomar]");
         if (tomar) tomar.onclick = () => {
           S().update("solicitudes", sol.id, { estado: E.CURSO });
