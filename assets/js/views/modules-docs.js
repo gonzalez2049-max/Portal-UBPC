@@ -667,40 +667,29 @@
     const version = (rec && rec.version) || 1;
     const codigo = rec && rec.codigo;
 
-    const tools = [
-      { c: "bold", ic: "𝗕", t: "Negrita", l: "Negrita" }, { c: "italic", ic: "𝘐", t: "Cursiva", l: "Cursiva" }, { c: "underline", ic: "U̲", t: "Subrayado", l: "Subrayado" },
-      { sep: 1 },
-      { c: "formatBlock", v: "H2", ic: "T", t: "Título", l: "Título" }, { c: "formatBlock", v: "H3", ic: "t", t: "Subtítulo", l: "Subtítulo" }, { c: "formatBlock", v: "P", ic: "¶", t: "Texto normal", l: "Texto" },
-      { sep: 1 },
-      { c: "insertUnorderedList", ic: "•", t: "Lista con viñetas", l: "Viñetas" }, { c: "insertOrderedList", ic: "1.", t: "Lista numerada", l: "Numerada" },
-      { sep: 1 },
-      { c: "justifyLeft", ic: "⯇", t: "Alinear a la izquierda", l: "Izquierda" }, { c: "justifyCenter", ic: "≡", t: "Centrar", l: "Centrar" },
-      { c: "justifyRight", ic: "⯈", t: "Alinear a la derecha", l: "Derecha" }, { c: "justifyFull", ic: "▤", t: "Justificar", l: "Justificar" },
-      { sep: 1 },
-      { c: "undo", ic: "↶", t: "Deshacer", l: "Deshacer" }, { c: "redo", ic: "↷", t: "Rehacer", l: "Rehacer" }
-    ];
     const FONTS = [["", "Fuente…"], ["'Nunito Sans',sans-serif", "Nunito Sans"], ["Arial,Helvetica,sans-serif", "Arial"], ["Georgia,serif", "Georgia"], ["'Times New Roman',serif", "Times"], ["'Courier New',monospace", "Courier"]];
     const SIZES = [["", "Tamaño…"], ["2", "Pequeña"], ["3", "Normal"], ["4", "Media"], ["5", "Grande"], ["6", "Muy grande"], ["7", "Enorme"]];
-    const btns = tools.map(x => x.sep ? `<span class="doc-tb__sep"></span>`
-      : `<button class="doc-tb__btn" data-cmd="${x.c}" ${x.v ? `data-val="${x.v}"` : ""} title="${x.t}" type="button"><span class="doc-tb__ic">${x.ic}</span><span class="doc-tb__lab">${x.l || x.t}</span></button>`).join("");
     const SHEETS = [["a4", "A4"], ["carta", "Carta"], ["oficio", "Oficio"]];
+    // Constructores de botones (ícono + nombre) y grupos de la barra
+    const cmdBtn = (c, ic, l, t, v) => `<button class="doc-tb__btn" data-cmd="${c}" ${v ? `data-val="${v}"` : ""} title="${u.esc(t)}" type="button"><span class="doc-tb__ic">${ic}</span><span class="doc-tb__lab">${l}</span></button>`;
+    const idBtn = (id, ic, l, t) => `<button class="doc-tb__btn" id="${id}" title="${u.esc(t)}" type="button"><span class="doc-tb__ic">${ic}</span><span class="doc-tb__lab">${l}</span></button>`;
+    const grp = h => `<div class="doc-tb__grp">${h}</div>`;
     const selFont = `<select class="doc-tb__sel" id="doc-font" title="Tipo de letra">${FONTS.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
     const selSize = `<select class="doc-tb__sel" id="doc-size" title="Tamaño de letra">${SIZES.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
     const selSheet = `<select class="doc-tb__sel" id="doc-sheet" title="Tamaño de hoja">${SHEETS.map(o => `<option value="${o[0]}">📄 ${o[1]}</option>`).join("")}</select>`;
     const colorInp = `<label class="doc-tb__color" title="Color del texto"><span>A</span><input type="color" id="doc-color" value="#17263d"></label>`;
-    const paintBtn = `<button class="doc-tb__btn doc-tb__wide" id="doc-paint" title="Copiar formato: pon el cursor en el texto con el formato deseado, presiona aquí y luego selecciona el texto a formatear" type="button">🖌 Copiar formato</button>`;
-    const tableBtns = `<button class="doc-tb__btn" id="tbl-ins" title="Insertar tabla" type="button">⊞ Tabla</button>`
-      + `<button class="doc-tb__btn" id="tbl-rowa" title="Agregar fila" type="button">＋fila</button>`
-      + `<button class="doc-tb__btn" id="tbl-cola" title="Agregar columna" type="button">＋col</button>`
-      + `<button class="doc-tb__btn" id="tbl-rowd" title="Quitar fila" type="button">－fila</button>`
-      + `<button class="doc-tb__btn" id="tbl-cold" title="Quitar columna" type="button">－col</button>`
-      + `<button class="doc-tb__btn doc-tb__wide" id="tbl-props" title="Ajustar tabla: ancho, bordes, relleno, alineación y ancho de columna" type="button">⚙ Ajustar tabla</button>`;
-    const toolbar = btns + `<span class="doc-tb__sep"></span>` + colorInp + selFont + selSize
-      + `<span class="doc-tb__sep"></span>` + paintBtn
-      + `<span class="doc-tb__sep"></span>` + selSheet
-      + `<span class="doc-tb__sep"></span>` + tableBtns
-      + `<span class="doc-tb__sep"></span><button class="doc-tb__btn doc-tb__wide" id="doc-pagebreak" title="Insertar salto de página" type="button">⤓ Salto de hoja</button>`
-      + `<button class="doc-tb__btn doc-tb__wide" id="doc-cover-btn" title="Insertar portada institucional" type="button">🏛️ Portada</button>`;
+    const toolbar =
+        grp(idBtn("doc-undo", "↶", "Deshacer", "Deshacer (Ctrl+Z)") + idBtn("doc-redo", "↷", "Rehacer", "Rehacer (Ctrl+Y)"))
+      + grp(cmdBtn("bold", "𝗕", "Negrita", "Negrita") + cmdBtn("italic", "𝘐", "Cursiva", "Cursiva") + cmdBtn("underline", "U̲", "Subrayado", "Subrayado"))
+      + grp(cmdBtn("formatBlock", "T", "Título", "Título", "H2") + cmdBtn("formatBlock", "t", "Subtítulo", "Subtítulo", "H3") + cmdBtn("formatBlock", "¶", "Texto", "Texto normal", "P"))
+      + grp(cmdBtn("insertUnorderedList", "•", "Viñetas", "Lista con viñetas") + cmdBtn("insertOrderedList", "1.", "Numerada", "Lista numerada"))
+      + grp(cmdBtn("justifyLeft", "⯇", "Izq.", "Alinear a la izquierda") + cmdBtn("justifyCenter", "≡", "Centrar", "Centrar") + cmdBtn("justifyRight", "⯈", "Der.", "Alinear a la derecha") + cmdBtn("justifyFull", "▤", "Justificar", "Justificar"))
+      + grp(colorInp + selFont + selSize)
+      + grp(idBtn("doc-paint", "🖌", "Copiar formato", "Copiar formato: pon el cursor en el texto con el formato deseado, presiona aquí y luego selecciona el texto a formatear"))
+      + grp(selSheet + idBtn("doc-pagebreak", "⤓", "Salto de hoja", "Insertar salto de página") + idBtn("doc-cover-btn", "🏛️", "Portada", "Insertar portada institucional"))
+      + grp(idBtn("tbl-ins", "⊞", "Tabla", "Insertar tabla") + idBtn("tbl-rowa", "＋", "Fila", "Agregar fila") + idBtn("tbl-cola", "＋", "Col.", "Agregar columna")
+          + idBtn("tbl-rowd", "－", "Fila", "Quitar fila") + idBtn("tbl-cold", "－", "Col.", "Quitar columna")
+          + idBtn("tbl-props", "⚙", "Estilo", "Estilo de tabla: bordes, relleno, ancho y alineación (arrastra el borde de una columna para cambiar su ancho)"));
 
     const estadoBadge = `<span class="doc-estado" style="--ec:${est.color}">${est.ic} ${u.esc(est.label)}${codigo ? " · " + u.esc(codigo) : ""}${(version > 1 || locked) ? " · v" + version : ""}</span>`;
     const esRef = !!(U.auth.isReferente && U.auth.isReferente());
@@ -773,6 +762,51 @@
     bodyEl.addEventListener("keyup", saveSel);
     bodyEl.addEventListener("mouseup", saveSel);
     bodyEl.addEventListener("focus", saveSel);
+
+    // ---- Historial propio: Deshacer / Rehacer robusto (no depende de execCommand) ----
+    const HIST_MAX = 120;
+    let hStack = [bodyEl.innerHTML], hAt = 0, hTimer = null, hLock = false;
+    function updateHistBtns() {
+      const ub = document.getElementById("doc-undo"), rb = document.getElementById("doc-redo");
+      if (ub) ub.disabled = hAt <= 0;
+      if (rb) rb.disabled = hAt >= hStack.length - 1;
+    }
+    function snapshot(now) {
+      if (hLock) return;
+      const take = () => {
+        const html = bodyEl.innerHTML;
+        if (html === hStack[hAt]) return;
+        hStack = hStack.slice(0, hAt + 1);
+        hStack.push(html);
+        if (hStack.length > HIST_MAX) hStack.shift();
+        hAt = hStack.length - 1;
+        updateHistBtns();
+      };
+      clearTimeout(hTimer);
+      if (now) take(); else hTimer = setTimeout(take, 350);
+    }
+    function histRestore(html) {
+      hLock = true;
+      bodyEl.innerHTML = html;
+      hLock = false;
+      bodyEl.focus();
+      try { const r = document.createRange(); r.selectNodeContents(bodyEl); r.collapse(false); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); savedRange = r.cloneRange(); } catch (e) {}
+      updateHistBtns();
+      bodyEl.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    function histUndo() { clearTimeout(hTimer); if (bodyEl.innerHTML !== hStack[hAt]) snapshot(true); if (hAt > 0) { hAt--; histRestore(hStack[hAt]); } else ui().toast("No hay nada que deshacer", "warn"); }
+    function histRedo() { if (hAt < hStack.length - 1) { hAt++; histRestore(hStack[hAt]); } else ui().toast("No hay nada que rehacer", "warn"); }
+    bodyEl.addEventListener("input", () => snapshot(false));
+    bodyEl.addEventListener("keydown", e => {
+      const mod = e.ctrlKey || e.metaKey; if (!mod) return;
+      const k = (e.key || "").toLowerCase();
+      if (k === "z" && !e.shiftKey) { e.preventDefault(); histUndo(); }
+      else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); histRedo(); }
+    });
+    { const ub = document.getElementById("doc-undo"), rb = document.getElementById("doc-redo");
+      if (ub) ub.addEventListener("mousedown", e => { e.preventDefault(); histUndo(); });
+      if (rb) rb.addEventListener("mousedown", e => { e.preventDefault(); histRedo(); }); }
+    updateHistBtns();
 
     // ---- Puntero visible: resalta el bloque (párrafo/título) donde está el cursor ----
     const blockOf = node => {
@@ -862,7 +896,7 @@
     container.querySelectorAll(".doc-tb__btn[data-cmd]").forEach(b => b.addEventListener("mousedown", e => {
       e.preventDefault(); bodyEl.focus();
       try { document.execCommand(b.dataset.cmd, false, b.dataset.val || null); } catch (err) {}
-      saveSel();
+      saveSel(); snapshot(true);
     }));
 
     // Tipo y tamaño de letra
@@ -877,7 +911,7 @@
     document.getElementById("doc-pagebreak").addEventListener("mousedown", e => {
       e.preventDefault(); restoreSel();
       try { document.execCommand("insertHTML", false, '<div class="doc-pagebreak" contenteditable="false">Salto de hoja</div><p><br></p>'); } catch (err) {}
-      saveSel();
+      saveSel(); snapshot(true);
     });
 
     // Color del texto
@@ -901,7 +935,7 @@
     function needCell() { const c = cellFromSel(); if (!c) ui().toast("Pon el cursor dentro de una tabla", "warn"); return c; }
     function tblBtn(id, fn) {
       const b = document.getElementById(id);
-      if (b) b.addEventListener("mousedown", e => { e.preventDefault(); fn(); saveSel(); });
+      if (b) b.addEventListener("mousedown", e => { e.preventDefault(); fn(); saveSel(); snapshot(true); });
     }
     tblBtn("tbl-ins", () => {
       restoreSel();
@@ -977,7 +1011,7 @@
         sel.removeAllRanges(); const r2 = document.createRange(); r2.selectNodeContents(span); sel.addRange(r2);
       } catch (e) {}
       painterFmt = null; if (paintBtnEl) paintBtnEl.classList.remove("is-armed");
-      bodyEl.dispatchEvent(new Event("input", { bubbles: true }));
+      snapshot(true);
     }
     if (paintBtnEl) paintBtnEl.addEventListener("mousedown", e => { e.preventDefault(); saveSel(); armPainter(); });
     bodyEl.addEventListener("mouseup", () => { if (painterFmt) setTimeout(applyPainter, 0); });
@@ -1027,10 +1061,50 @@
               if (!table.style.width) { table.style.width = "100%"; table.style.tableLayout = "fixed"; }
             }
             u.closeModal(); u.toast("Tabla ajustada", "ok");
-            bodyEl.dispatchEvent(new Event("input", { bubbles: true }));
+            snapshot(true);
           };
         }
       });
+    });
+
+    // ---- Redimensionar columnas de tabla con el mouse (arrastrar el borde) ----
+    let rzDrag = null;
+    const EDGE = 7;
+    bodyEl.addEventListener("mousemove", e => {
+      if (rzDrag) return;
+      const cell = e.target.closest ? e.target.closest("td,th") : null;
+      let onEdge = false;
+      if (cell && bodyEl.contains(cell)) {
+        const r = cell.getBoundingClientRect();
+        onEdge = (r.right - e.clientX) <= EDGE && (r.right - e.clientX) >= -2;
+      }
+      bodyEl.style.cursor = onEdge ? "col-resize" : "";
+      bodyEl._rzCell = onEdge ? cell : null;
+    });
+    bodyEl.addEventListener("mousedown", e => {
+      const cell = e.target && e.target.closest ? e.target.closest("td,th") : null;
+      if (!cell || !bodyEl.contains(cell)) return;
+      const r = cell.getBoundingClientRect();
+      if ((r.right - e.clientX) > EDGE || (r.right - e.clientX) < -2) return;
+      e.preventDefault();
+      const table = cell.closest("table");
+      const idx = Array.prototype.indexOf.call(cell.parentNode.children, cell);
+      table.style.tableLayout = "fixed";
+      if (!table.style.width) table.style.width = table.offsetWidth + "px";
+      const startX = e.clientX, startW = r.width;
+      rzDrag = true;
+      const onMove = ev => {
+        const w = Math.max(28, startW + (ev.clientX - startX));
+        table.querySelectorAll("tr").forEach(tr => { const c = tr.children[idx]; if (c) c.style.width = w + "px"; });
+      };
+      const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        rzDrag = null; bodyEl.style.cursor = "";
+        snapshot(true);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
     });
     } // fin handlers de edición (documento no bloqueado)
 
