@@ -619,6 +619,26 @@
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>` });
   }
 
+  // El Referente da aviso al Coordinador para que evalúe/valide el documento.
+  // Registra la solicitud (Referente → Coordinación) y lo deja en el historial.
+  function solicitarEvaluacion(container, doc) {
+    const u = ui();
+    if (!doc || !doc.id) { u.toast("Guarda el documento antes de solicitar evaluación", "danger"); return; }
+    const meta = plMeta(doc.plantilla);
+    if (!U.solicitudes || !U.solicitudes.crearApoyo) { u.toast("Módulo de solicitudes no disponible", "danger"); return; }
+    U.solicitudes.crearApoyo({
+      tituloModal: "Solicitar evaluación al Coordinador",
+      hint: "Se avisará al Coordinador/a UBPC para que revise y valide este documento. Podrás verlo en “Solicitudes”.",
+      titulo: "Evaluación de documento: " + (doc.titulo || meta.label),
+      descripcion: "Solicito revisión y validación del documento “" + (doc.titulo || meta.label) + "” (" + meta.label + ")"
+        + (doc.codigo ? " · " + doc.codigo : "") + ".",
+      moduloOrigen: "Gestión Documental", refDoc: doc.id
+    }, () => {
+      try { S().update("docsTrabajo", doc.id, { historial: logHist(doc, "Evaluación solicitada al Coordinador") }); } catch (e) {}
+      if (container) reopen(container, doc.id);
+    });
+  }
+
   /* ---------- Editor ---------- */
   function openEditor(container, rec, tplKey) {
     const u = ui();
@@ -680,11 +700,18 @@
       + `<button class="doc-tb__btn doc-tb__wide" id="doc-cover-btn" title="Insertar portada institucional" type="button">🏛️ Portada</button>`;
 
     const estadoBadge = `<span class="doc-estado" style="--ec:${est.color}">${est.ic} ${u.esc(est.label)}${codigo ? " · " + u.esc(codigo) : ""}${(version > 1 || locked) ? " · v" + version : ""}</span>`;
+    const esRef = !!(U.auth.isReferente && U.auth.isReferente());
     let wf = "";
-    if (estado === "borrador") wf = `<button class="btn btn--primary btn--sm" id="wf-aprobar">✔️ Aprobar (Coordinador)</button>`;
-    else if (estado === "aprobado") wf = `<button class="btn btn--primary btn--sm" id="wf-finalizar">🔒 Asignar código y finalizar</button><button class="btn btn--ghost btn--sm" id="wf-borrador">↩️ Volver a borrador</button>`;
-    else if (estado === "finalizado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button><button class="btn btn--ghost btn--sm" id="wf-anular">🚫 Anular</button>`;
-    else if (estado === "anulado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button>`;
+    if (esRef) {
+      // El Referente Técnico redacta y da aviso: la aprobación, finalización y
+      // codificación son exclusivas del Coordinador.
+      if (estado === "borrador") wf = `<button class="btn btn--primary btn--sm" id="wf-solicitar">📨 Solicitar evaluación al Coordinador</button>`;
+    } else {
+      if (estado === "borrador") wf = `<button class="btn btn--primary btn--sm" id="wf-aprobar">✔️ Aprobar (Coordinador)</button>`;
+      else if (estado === "aprobado") wf = `<button class="btn btn--primary btn--sm" id="wf-finalizar">🔒 Asignar código y finalizar</button><button class="btn btn--ghost btn--sm" id="wf-borrador">↩️ Volver a borrador</button>`;
+      else if (estado === "finalizado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button><button class="btn btn--ghost btn--sm" id="wf-anular">🚫 Anular</button>`;
+      else if (estado === "anulado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button>`;
+    }
     const histBtn = rec ? `<button class="btn btn--ghost btn--sm" id="wf-hist">🕘 Historial</button>` : "";
     const firmaBlock = estado === "finalizado" ? firmaHTML(rec) : "";
     const anuladoBlock = estado === "anulado"
@@ -943,6 +970,7 @@
     // Flujo documental: aprobar → código/finalizar → versiones / anular
     const wfBtn = (id, fn) => { const b = document.getElementById(id); if (b) b.onclick = fn; };
     wfBtn("wf-aprobar", () => aprobar(container, doSave(true)));
+    wfBtn("wf-solicitar", () => solicitarEvaluacion(container, doSave(true)));
     wfBtn("wf-finalizar", () => finalizar(container, current));
     wfBtn("wf-borrador", () => volverBorrador(container, current));
     wfBtn("wf-version", () => nuevaVersion(container, current));
@@ -1173,11 +1201,18 @@
     let sheet = (rec && rec.tamano) || "a4";
 
     const estadoBadge = `<span class="doc-estado" style="--ec:${est.color}">${est.ic} ${u.esc(est.label)}${codigo ? " · " + u.esc(codigo) : ""}${(version > 1 || locked) ? " · v" + version : ""}</span>`;
+    const esRef = !!(U.auth.isReferente && U.auth.isReferente());
     let wf = "";
-    if (estado === "borrador") wf = `<button class="btn btn--primary btn--sm" id="wf-aprobar">✔️ Aprobar (Coordinador)</button>`;
-    else if (estado === "aprobado") wf = `<button class="btn btn--primary btn--sm" id="wf-finalizar">🔒 Asignar código y finalizar</button><button class="btn btn--ghost btn--sm" id="wf-borrador">↩️ Volver a borrador</button>`;
-    else if (estado === "finalizado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button><button class="btn btn--ghost btn--sm" id="wf-anular">🚫 Anular</button>`;
-    else if (estado === "anulado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button>`;
+    if (esRef) {
+      // El Referente Técnico redacta y da aviso: la aprobación, finalización y
+      // codificación son exclusivas del Coordinador.
+      if (estado === "borrador") wf = `<button class="btn btn--primary btn--sm" id="wf-solicitar">📨 Solicitar evaluación al Coordinador</button>`;
+    } else {
+      if (estado === "borrador") wf = `<button class="btn btn--primary btn--sm" id="wf-aprobar">✔️ Aprobar (Coordinador)</button>`;
+      else if (estado === "aprobado") wf = `<button class="btn btn--primary btn--sm" id="wf-finalizar">🔒 Asignar código y finalizar</button><button class="btn btn--ghost btn--sm" id="wf-borrador">↩️ Volver a borrador</button>`;
+      else if (estado === "finalizado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button><button class="btn btn--ghost btn--sm" id="wf-anular">🚫 Anular</button>`;
+      else if (estado === "anulado") wf = `<button class="btn btn--primary btn--sm" id="wf-version">🆕 Nueva versión</button>`;
+    }
     const histBtn = rec ? `<button class="btn btn--ghost btn--sm" id="wf-hist">🕘 Historial</button>` : "";
 
     let surface;
@@ -1284,6 +1319,7 @@
 
     const wfBtn = (id, fn) => { const b = document.getElementById(id); if (b) b.onclick = fn; };
     wfBtn("wf-aprobar", () => { const c = doSavePlan(true); if (c) aprobar(container, c); });
+    wfBtn("wf-solicitar", () => { const c = doSavePlan(true); if (c) solicitarEvaluacion(container, c); });
     wfBtn("wf-finalizar", () => finalizar(container, current));
     wfBtn("wf-borrador", () => volverBorrador(container, current));
     wfBtn("wf-version", () => nuevaVersion(container, current));

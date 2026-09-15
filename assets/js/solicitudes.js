@@ -258,8 +258,8 @@
       { name: "descripcion", label: "Descripción", type: "textarea", full: true, required: true }
     ];
     u.modal({
-      title: "Solicitar apoyo al Coordinador",
-      body: `<p class="card__hint">Se enviará al Coordinador/a UBPC y se consolidará con código automático.</p>${u.formHTML(fields, { prioridad: "media" })}`,
+      title: prefill.tituloModal || "Solicitar apoyo al Coordinador",
+      body: `<p class="card__hint">${u.esc(prefill.hint || "Se enviará al Coordinador/a UBPC y se consolidará con código automático.")}</p>${u.formHTML(fields, Object.assign({ prioridad: "media" }, prefill))}`,
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Enviar solicitud</button>`,
       onMount(m) {
         m.querySelector("[data-save]").onclick = () => {
@@ -267,7 +267,8 @@
           if (!d.titulo || !d.descripcion) { u.toast("Título y descripción son obligatorios", "danger"); return; }
           const me = U.auth.current();
           const rec = S().insert("solicitudes", Object.assign({
-            direccion: "ref-a-coord", moduloOrigen: "Perfil del Referente",
+            direccion: "ref-a-coord", moduloOrigen: prefill.moduloOrigen || "Perfil del Referente",
+            refDoc: prefill.refDoc || "",
             solicitante: me ? me.nombre : "Referente", fechaEnvio: new Date().toISOString(),
             referente: me ? me.nombre : "", estado: E.ENVIADA,
             respuestaTecnica: "", intervencion: "", medioVerificacion: "", conclusion: "", decisionCoordinador: "", obsCierre: ""
