@@ -1412,7 +1412,10 @@
     const contenido = coverHTML(titulo, PLANTILLAS.planMejora.label, true) + planMejoraContentFromPlan(plan);
     let doc = S().all("docsTrabajo").find(d => d.planRef === plan.id);
     if (doc) {
-      if ((doc.estado || "borrador") === "borrador") S().update("docsTrabajo", doc.id, { titulo, contenido });
+      // El documento es un reflejo del plan: se regenera SIEMPRE desde los datos del
+      // plan (aunque esté aprobado/finalizado), para que el informe muestre siempre lo
+      // actual — p. ej. el % de la brecha. El estado y la versión no se tocan.
+      S().update("docsTrabajo", doc.id, { titulo, contenido });
       return doc.id;
     }
     const me = U.auth.current();
