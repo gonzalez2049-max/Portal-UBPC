@@ -8,6 +8,8 @@
   const U = window.UBPC;
   const S = () => U.store, ui = () => U.ui, CAT = () => U.data.CAT, IND = () => U.data.INDICADORES;
   const CS = () => U.coordStats;
+  // Ruta al documento vinculado, según el portal (Coordinador o Referente).
+  const docRoute = docId => (U.auth.isReferente && U.auth.isReferente()) ? ("#/ref/docs?doc=" + docId) : ("#/coord/m2?tab=docs&doc=" + docId);
 
   const TABS = [
     { key: "dashboard", label: "Dashboard" },
@@ -468,6 +470,27 @@
     nq.concat(prac).forEach(n => { const k = (n || "").trim(); if (k && !seen[k.toLowerCase()]) { seen[k.toLowerCase()] = 1; out.push(k); } });
     return out;
   }
+  // Muestra bajo el campo la ficha NQuIRE (tipo, código y fórmula) como guía al
+  // confeccionar el plan; se actualiza al escribir/elegir el indicador.
+  function renderNquireHint(box) {
+    const el = box.querySelector("#pin-nquire-hint");
+    const inp = box.querySelector('[data-pf="indicador"]');
+    if (!el || !inp) return;
+    const u = ui();
+    const nq = (U.data.nquireByName && inp.value.trim()) ? U.data.nquireByName(inp.value) : null;
+    if (!nq) { el.style.display = "none"; el.innerHTML = ""; return; }
+    const tc = { "Proceso": "#176ac0", "Resultado": "#2f9d57", "Estructura": "#7a5cd0" }[nq.tipo] || "#176ac0";
+    el.style.display = "";
+    el.innerHTML = `<div style="border:1px solid ${tc}44;background:${tc}0f;border-radius:12px;padding:.7rem .85rem">
+        <div style="font-weight:800;color:${tc};font-size:.82rem;letter-spacing:.3px;text-transform:uppercase;margin-bottom:.25rem">📐 Indicador NQuIRE — guía</div>
+        <div style="font-weight:700">${u.esc(nq.nombre)}
+          <span class="tag" style="background:${tc}1f;color:${tc};border:1px solid ${tc}55">${u.esc(nq.tipo)}</span>
+          ${nq.codigo ? `<span class="mono" style="font-size:11px">${u.esc(nq.codigo)}</span>` : `<span class="muted" style="font-size:11px">código por confirmar</span>`}</div>
+        ${nq.formula ? `<div style="margin-top:.3rem;font-size:.9rem"><b>Fórmula:</b> ${u.esc(nq.formula)}</div>` : ""}
+        ${nq.descripcion ? `<div style="margin-top:.2rem;font-size:.82rem;color:var(--text-2)">${u.esc(nq.descripcion)}</div>` : ""}
+        ${nq.recomendaciones ? `<div style="margin-top:.2rem;font-size:.82rem;color:var(--text-2)"><b>Recomendaciones:</b> ${u.esc(nq.recomendaciones)}</div>` : ""}
+      </div>`;
+  }
   function planFormHTML(data) {
     return `<div class="plan-form">
       <p class="pf-help" style="margin:.1rem 0 .7rem">Estructura basada en las Orientaciones Técnicas del Programa BPSO (MINSAL) — ciclo <b>Conocimiento a la Acción</b> (RNAO).</p>
@@ -476,7 +499,8 @@
         <div class="pf-grid">
           ${pinFld("unidad", "Unidad", "Unidad con baja adherencia, brecha o incumplimiento.", { value: data.unidad, type: "select", options: ["—"].concat(CAT().unidades), req: true })}
           ${pinFld("guia", "Guía BPSO", "Guía de buenas prácticas de referencia.", { value: data.guia, type: "select", options: CAT().guiasArea, req: true })}
-          ${pinFld("indicador", "Indicador de éxito (NQuIRE)", "Elige el indicador NQuIRE que mide el cierre de la brecha. Se ajusta a la guía/recomendación que trabajas; su código y fórmula aparecen en la Evaluación de resultados.", { value: data.indicador, full: true, list: nquireOpts(data.guia), placeholder: "Escribe o elige un indicador NQuIRE…" })}
+          ${pinFld("indicador", "Indicador de éxito (NQuIRE)", "Elige el indicador NQuIRE que mide el cierre de la brecha. Se ajusta a la guía/recomendación que trabajas; su código y fórmula aparecen abajo y en la Evaluación de resultados.", { value: data.indicador, full: true, list: nquireOpts(data.guia), placeholder: "Escribe o elige un indicador NQuIRE…" })}
+          <div class="pf-field pf-field--full" id="pin-nquire-hint" style="display:none"></div>
           ${pinFld("lineaBase", "Línea base (%)", "Cumplimiento total de la guía (medición inicial).", { value: data.lineaBase, type: "number" })}
           ${pinFld("meta", "Meta (%)", "Meta de cumplimiento comprometida.", { value: data.meta, type: "number" })}
           ${pinFld("brecha", "Brecha a trabajar", "Nombre de la brecha o recomendación con menor cumplimiento.", { value: data.brecha, full: true })}
@@ -581,6 +605,10 @@
       ${planFormHTML(data)}`;
 
     document.getElementById("pin-back").onclick = () => planList(box);
+    // Ficha NQuIRE bajo el indicador (guía en vivo)
+    const indInp = box.querySelector('[data-pf="indicador"]');
+    if (indInp) { indInp.addEventListener("input", () => renderNquireHint(box)); indInp.addEventListener("change", () => renderNquireHint(box)); }
+    renderNquireHint(box);
     const bindRm = () => box.querySelectorAll("[data-reprm]").forEach(b => b.onclick = () => b.closest("tr").remove());
     box.querySelectorAll("[data-repadd]").forEach(b => b.onclick = () => {
       const rep = b.dataset.repadd;
@@ -599,7 +627,7 @@
     ["plazoInicio", "plazoFin"].forEach(n => { const el = box.querySelector(`[data-pf="${n}"]`); if (el) el.addEventListener("input", updDur); });
 
     document.getElementById("pin-save").onclick = () => { const s = savePlan(box, current); if (s) { current = s; openPlanEditor(box, s); } };
-    document.getElementById("pin-doc").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.router.go("#/coord/m2?tab=docs&doc=" + s.docId); };
+    document.getElementById("pin-doc").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.router.go(docRoute(s.docId)); };
     document.getElementById("pin-pdf").onclick = () => { const s = savePlan(box, current, { silent: true }); if (s && s.docId) U.docsEditor.printDocById(s.docId); };
     document.getElementById("pin-cierre").onclick = () => {
       const s = savePlan(box, current, { silent: true }); if (!s) return;
@@ -651,7 +679,7 @@
     box.querySelectorAll("[data-plopen]").forEach(b => b.onclick = () => openPlanEditor(box, S().get("planesIntervencion", b.dataset.plopen)));
     box.querySelectorAll("[data-pldoc]").forEach(b => b.onclick = () => {
       const pl = S().get("planesIntervencion", b.dataset.pldoc); const docId = U.docsEditor.syncLinkedPlanDoc(pl);
-      S().update("planesIntervencion", pl.id, { docId }); U.router.go("#/coord/m2?tab=docs&doc=" + docId);
+      S().update("planesIntervencion", pl.id, { docId }); U.router.go(docRoute(docId));
     });
     box.querySelectorAll("[data-plpdf]").forEach(b => b.onclick = () => {
       const pl = S().get("planesIntervencion", b.dataset.plpdf); const docId = U.docsEditor.syncLinkedPlanDoc(pl);
@@ -1238,4 +1266,6 @@
   /* ---------- Registro ---------- */
   Object.assign(U.coord.views, { m3 });
   Object.assign(U.coord.binders, { m3: m3Bind });
+  // Módulo de Plan de Intervención reutilizable (Coordinador y Referente).
+  U.rnaoPlanes = { mount: planesTab };
 })();

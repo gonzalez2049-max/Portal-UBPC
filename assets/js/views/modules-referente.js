@@ -308,7 +308,7 @@
   const SEG_TABS = [
     { key: "solicitudes", label: "Solicitudes del Coordinador", color: "#1554b8" },
     { key: "tareas", label: "Tareas asignadas", color: "#0f8f83" },
-    { key: "planes", label: "Planes RNAO", color: "#7a5cd0" },
+    { key: "planes", label: "Plan de Intervención", color: "#7a5cd0" },
     { key: "monitoreo", label: "Monitoreo", color: "#e0912f" }
   ];
   function seguimiento(params) {
@@ -327,7 +327,7 @@
     const box = document.getElementById("ref-hub"); if (!box) return;
     const tab = hubTab(SEG_TABS, params);
     if (tab === "solicitudes") mountSub(box, "solicitudesRecibidas");
-    else if (tab === "planes") mountSub(box, "planesSeg");
+    else if (tab === "planes") { if (U.rnaoPlanes && U.rnaoPlanes.mount) U.rnaoPlanes.mount(box, params); else mountSub(box, "planesSeg"); }
     else if (tab === "monitoreo") mountSub(box, "monitoreo");
     else segTareas(box);
   }
