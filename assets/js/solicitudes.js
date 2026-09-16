@@ -135,6 +135,8 @@
     const soyGestor = me && me.rol === a.gestor;
     const soyRevisor = me && me.rol === a.revisor;
     const fase = stepIndex(sol.estado);
+    const dir0 = sol.direccion || "coord-a-ref";
+    const esCerrada = /cerrad/i.test(sol.estado || "");
     let footer = `<button class="btn btn--ghost" data-close>Cerrar</button>`;
     if (soyGestor && fase === 0)
       footer += `<button class="btn btn--primary" data-tomar>Marcar “En curso”</button>`;
@@ -146,6 +148,10 @@
       footer += `<button class="btn btn--ghost" data-devolver>Devolver con observaciones</button>
                  <button class="btn btn--primary" data-cerrar>Cerrar solicitud</button>`;
     }
+    // El Coordinador gestiona y CIERRA las solicitudes que le envía el Referente
+    // (revisó lo solicitado → cierra el proceso). Trazabilidad: queda "Cerrada por coordinación".
+    if (soyGestor && dir0 === "ref-a-coord" && !esCerrada)
+      footer += `<button class="btn" style="background:var(--verde);color:#fff" data-cerrar-g>✔️ Cerrar proceso</button>`;
 
     u.modal({
       title: "Solicitud " + (sol.codigo || ""),
@@ -178,8 +184,11 @@
           if (!sol.respuestaTecnica || !sol.medioVerificacion) {
             u.toast("No se puede cerrar sin respuesta técnica ni medio de verificación", "danger"); return;
           }
-          formCierre(sol, onChange);
+          formCierre(sol, onChange, a.revisor);
         };
+        // Cierre por el Coordinador de una solicitud del Referente (sin exigir respuesta técnica formal)
+        const cerrarG = m.querySelector("[data-cerrar-g]");
+        if (cerrarG) cerrarG.onclick = () => formCierre(sol, onChange, a.gestor);
         const devolver = m.querySelector("[data-devolver]");
         if (devolver) devolver.onclick = () => formDevolver(sol, onChange);
       }
@@ -210,21 +219,23 @@
     });
   }
 
-  function formCierre(sol, onChange) {
+  function formCierre(sol, onChange, closerRole) {
     const u = ui();
     const a = actores(sol); const dir = sol.direccion || "coord-a-ref";
-    const estadoCerrada = dir === "ref-a-coord" ? "Cerrada por el referente" : E.CERRADA;
+    const closer = closerRole || a.revisor;
+    const estadoCerrada = closer === "coordinador" ? "Cerrada por coordinación" : "Cerrada por el referente";
+    const avisarA = closer === "coordinador" ? "referente" : "coordinador"; // avisa a la otra parte
     u.modal({
       title: "Cerrar solicitud",
       body: `<p class="narrativo">Al cerrar, la solicitud queda “${u.esc(estadoCerrada)}” y se conserva en el historial (no se puede eliminar).</p>
-        ${u.formHTML([{ name: "obsCierre", label: "Observaciones de cierre", type: "textarea", full: true, value: sol.obsCierre }], {})}`,
+        ${u.formHTML([{ name: "obsCierre", label: "Observaciones / resolución de cierre", type: "textarea", full: true, value: sol.obsCierre }], {})}`,
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Confirmar cierre</button>`,
       onMount(m) {
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           S().update("solicitudes", sol.id, { estado: estadoCerrada, decisionCoordinador: estadoCerrada, obsCierre: d.obsCierre, fechaCierre: new Date().toISOString() });
           S().stamp("solicitudes", sol.id, "cerrado");
-          U.notif.push({ titulo: "Solicitud cerrada: " + sol.titulo, modulo: "Solicitudes de apoyo", destinatario: a.gestor, ref: refLink(a.gestor, dir) });
+          U.notif.push({ titulo: "Solicitud cerrada: " + sol.titulo, modulo: "Solicitudes de apoyo", destinatario: avisarA, ref: refLink(avisarA, dir) });
           u.closeModal(); u.toast("Solicitud cerrada", "ok");
           if (onChange) onChange();
         };

@@ -151,11 +151,22 @@
       prox7 = U.agenda.buildEvents().filter(e => !e.done && e.d >= hoy && e.d <= lim).length;
     }
 
+    // Solicitudes del Referente: bloque destacado y aparte (no se mezclan con el resto).
+    const refBlock = st2.solDelRef ? `
+      <a class="focus-ref" href="#/coord/enlace?tab=solicitudes&focus=solicitudes">
+        <span class="focus-ref__ico">📨</span>
+        <span class="focus-ref__n">${st2.solDelRef}</span>
+        <span class="focus-ref__body">
+          <span class="focus-ref__eb">🧑‍⚕️ Del Referente Técnico · Prioritario</span>
+          <strong class="focus-ref__txt">solicitud(es) por responder</strong>
+        </span>
+        <span class="focus-ref__cta">Responder →</span>
+      </a>` : "";
+
     const items = [];
     if (borradores) items.push({ ico: "✏️", n: borradores, txt: `documento(s) en borrador por revisar y aprobar`, href: "#/coord/m2?tab=docs&focus=borradores", cta: "Revisar", kind: "info" });
     if (aprobados) items.push({ ico: "✔️", n: aprobados, txt: `documento(s) aprobado(s) por finalizar y codificar`, href: "#/coord/m2?tab=docs&focus=aprobados", cta: "Finalizar", kind: "info" });
     if (st2.vencidas) items.push({ ico: "⏱️", n: st2.vencidas, txt: `tarea(s) o acción(es) vencida(s)`, href: "#/coord/guia?tab=agenda&focus=vencidos", cta: "Revisar", kind: "danger" });
-    if (st2.solDelRef) items.push({ ico: "📨", n: st2.solDelRef, txt: `solicitud(es) del Referente por responder`, href: "#/coord/enlace?tab=solicitudes&focus=solicitudes", cta: "Responder", kind: "warn" });
     if (st2.solPend) items.push({ ico: "🤝", n: st2.solPend, txt: `solicitud(es) técnica(s) en gestión`, href: "#/coord/enlace?tab=solicitudes&focus=solicitudes", cta: "Ver", kind: "info" });
     if (prox7) items.push({ ico: "🗓️", n: prox7, txt: `evento(s) programado(s) en los próximos 7 días`, href: "#/coord/guia?tab=agenda", cta: "Ver agenda", kind: "info" });
 
@@ -171,14 +182,14 @@
       }
     }
 
-    const total = items.reduce((a, i) => a + i.n, 0);
+    const total = items.reduce((a, i) => a + i.n, 0) + (st2.solDelRef || 0);
     const head = `<div class="focus-panel__head">
         <div><span class="focus-panel__eb">Requiere tu atención</span>
           <h2 class="focus-panel__title">Próximos pasos</h2></div>
         <span class="focus-panel__count ${total ? "" : "is-ok"}">${total ? total + " pendiente" + (total > 1 ? "s" : "") : "Todo al día ✨"}</span>
       </div>`;
 
-    const body = items.length
+    const listHTML = items.length
       ? `<div class="focus-list">${items.map(i => `
           <a class="focus-item focus-item--${i.kind}" href="${i.href}">
             <span class="focus-item__ico">${i.ico}</span>
@@ -186,6 +197,10 @@
             <span class="focus-item__txt">${u.esc(i.txt)}</span>
             <span class="focus-item__cta">${i.cta} →</span>
           </a>`).join("")}</div>`
+      : "";
+    const otrosLbl = (refBlock && items.length) ? `<div class="focus-sep">Otras actividades</div>` : "";
+    const body = (refBlock || items.length)
+      ? `${refBlock}${otrosLbl}${listHTML}`
       : `<div class="focus-empty"><span class="focus-empty__ic">🎉</span>
           <div><strong>No hay acciones pendientes.</strong>
           <div class="kpi__sub">Documentos, tareas, solicitudes y eventos están al día.</div></div></div>`;
