@@ -48,8 +48,12 @@
 
     const solPend = s.all("solicitudes").filter(x =>
       x.estadoReferente && x.estadoReferente !== "Cerrada por coordinación").length;
+    // Solicitudes ENVIADAS por el Referente que esperan la respuesta del Coordinador.
+    const solDelRef = s.all("solicitudes").filter(x =>
+      x.direccion === "ref-a-coord" && !/cerrad/i.test(x.estado || "")).length;
 
     const alertas = [];
+    if (solDelRef) alertas.push(`${solDelRef} solicitud(es) del Referente por responder`);
     if (solPend) alertas.push(`${solPend} solicitud(es) técnica(s) en gestión`);
     if (vencidas) alertas.push(`${vencidas} tarea(s)/acción(es) vencida(s)`);
     const critNoMeta = evals.reduce((n, e) => n + indicadoresBajoMeta(e).length, 0);
@@ -62,7 +66,7 @@
       docPendientes: s.all("documentos").filter(d => /revisi|borrador|enviado/i.test(d.estado || "")).length,
       personasCapacitadas: s.all("actividades").reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0),
       cobertura: coberturaUnidades(),
-      vencidas, solPend, alertas,
+      vencidas, solPend, solDelRef, alertas,
       proxEval: proximaEvaluacion(evals)
     };
   }
@@ -151,7 +155,8 @@
     if (borradores) items.push({ ico: "✏️", n: borradores, txt: `documento(s) en borrador por revisar y aprobar`, href: "#/coord/m2?tab=docs&focus=borradores", cta: "Revisar", kind: "info" });
     if (aprobados) items.push({ ico: "✔️", n: aprobados, txt: `documento(s) aprobado(s) por finalizar y codificar`, href: "#/coord/m2?tab=docs&focus=aprobados", cta: "Finalizar", kind: "info" });
     if (st2.vencidas) items.push({ ico: "⏱️", n: st2.vencidas, txt: `tarea(s) o acción(es) vencida(s)`, href: "#/coord/guia?tab=agenda&focus=vencidos", cta: "Revisar", kind: "danger" });
-    if (st2.solPend) items.push({ ico: "📨", n: st2.solPend, txt: `solicitud(es) técnica(s) en gestión`, href: "#/coord/enlace?focus=solicitudes", cta: "Ver", kind: "warn" });
+    if (st2.solDelRef) items.push({ ico: "📨", n: st2.solDelRef, txt: `solicitud(es) del Referente por responder`, href: "#/coord/enlace?tab=solicitudes&focus=solicitudes", cta: "Responder", kind: "warn" });
+    if (st2.solPend) items.push({ ico: "🤝", n: st2.solPend, txt: `solicitud(es) técnica(s) en gestión`, href: "#/coord/enlace?tab=solicitudes&focus=solicitudes", cta: "Ver", kind: "info" });
     if (prox7) items.push({ ico: "🗓️", n: prox7, txt: `evento(s) programado(s) en los próximos 7 días`, href: "#/coord/guia?tab=agenda", cta: "Ver agenda", kind: "info" });
 
     // Chip NT 234 (informativo, siempre visible si hay datos)

@@ -279,7 +279,7 @@
             respuestaTecnica: "", intervencion: "", medioVerificacion: "", conclusion: "", decisionCoordinador: "", obsCierre: ""
           }, d), { withCode: true });
           U.notif.push({ titulo: "Solicitud del Referente: " + rec.titulo, modulo: "Solicitudes de apoyo",
-            prioridad: d.prioridad === "alta" ? "alta" : "normal", destinatario: "coordinador", ref: "#/coord/solicitudes" });
+            prioridad: d.prioridad === "alta" ? "alta" : "normal", destinatario: "coordinador", ref: "#/coord/enlace?tab=solicitudes&focus=solicitudes" });
           u.closeModal(); u.toast("Solicitud enviada al Coordinador (" + rec.codigo + ")", "ok");
           if (onDone) onDone();
         };
