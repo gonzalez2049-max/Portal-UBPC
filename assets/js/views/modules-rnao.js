@@ -980,6 +980,13 @@
     mountConvoc(document.getElementById("ch-convoc"), box);
   }
 
+  // Color propio por jornada / turno (para distinguirlas de un vistazo)
+  const JORNADA_COLOR = {
+    "Diurno": "#e0912f", "Noche": "#5b34b0", "A": "#0f8f83", "B": "#176ac0",
+    "C": "#37a04a", "D": "#e0526f", "Cuarto turno": "#7a5cd0", "Larga": "#0d6ea8"
+  };
+  const jornadaColor = t => JORNADA_COLOR[(t || "").trim()] || "#8a97a8";
+
   function renderChampKpis(el) {
     const u = ui();
     const all = S().all("redChampion");
@@ -998,7 +1005,7 @@
     const countBy = key => { const m = {}; activos.forEach(c => { const k = (c[key] || "").trim() || "Sin especificar"; m[k] = (m[k] || 0) + 1; }); return m; };
     const chips = (m, color) => {
       const keys = Object.keys(m).sort((a, b) => m[b] - m[a]);
-      return keys.length ? keys.map(k => `<span class="ch-chip" style="--cc:${color}"><b>${m[k]}</b> ${u.esc(k)}</span>`).join("")
+      return keys.length ? keys.map(k => { const cc = typeof color === "function" ? color(k) : color; return `<span class="ch-chip" style="--cc:${cc}"><b>${m[k]}</b> ${u.esc(k)}</span>`; }).join("")
         : `<span class="muted">Sin datos</span>`;
     };
     el.innerHTML = `
@@ -1009,7 +1016,7 @@
       </div>
       <div class="ch-breakdown">
         <div class="card ch-bd"><div class="ch-bd__t">👥 Champions por estamento</div><div class="ch-bd__chips">${chips(countBy("estamento"), "#176ac0")}</div></div>
-        <div class="card ch-bd"><div class="ch-bd__t">🕑 Champions por jornada</div><div class="ch-bd__chips">${chips(countBy("turno"), "#0f8f83")}</div></div>
+        <div class="card ch-bd"><div class="ch-bd__t">🕑 Champions por jornada</div><div class="ch-bd__chips">${chips(countBy("turno"), k => jornadaColor(k))}</div></div>
       </div>`;
   }
 
@@ -1024,7 +1031,7 @@
         { key: "nombre", label: "Nombre" },
         { key: "estamento", label: "Estamento", render: (r, uu) => r.estamento ? `<span class="tag">${uu.esc(r.estamento)}</span>` : `<span class="muted">—</span>`, exportVal: r => r.estamento || "" },
         { key: "unidad", label: "Unidad" },
-        { key: "turno", label: "Jornada", center: true, render: (r, uu) => r.turno ? `<span class="tag" style="background:#0f8f831f;color:#0f8f83;border:1px solid #0f8f8355">${uu.esc(r.turno)}</span>` : `<span class="muted">—</span>`, exportVal: r => r.turno || "" },
+        { key: "turno", label: "Jornada", center: true, render: (r, uu) => { if (!r.turno) return `<span class="muted">—</span>`; const c = jornadaColor(r.turno); return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}66;font-weight:800">${uu.esc(r.turno)}</span>`; }, exportVal: r => r.turno || "" },
         { key: "guia", label: "Guía", render: (r, uu) => { const g = U.data.guiaColor(r.guia); return `<span class="tag" style="background:${g}1f;color:${g};border:1px solid ${g}55">${uu.esc(r.guia || "—")}</span>`; } },
         { key: "part", label: "Participaciones", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${fmtDur(s.horas)}`; }, exportVal: r => champStats(r.id).total },
         { key: "ultima", label: "Última", center: true, render: (r, uu) => { const s = champStats(r.id); return s.ultima ? `${uu.fechaCL(s.ultima)}<br><span class="kpi__sub">hace ${s.dias} d</span>` : "—"; }, exportVal: r => { const s = champStats(r.id); return s.ultima ? ui().fechaCL(s.ultima) : ""; } },
