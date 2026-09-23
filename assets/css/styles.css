@@ -1154,15 +1154,34 @@ body.night .pilar-sep{ background:linear-gradient(180deg, transparent, rgba(255,
 
 /* ---- KPI cards con más densidad (icono) ---- */
 .grid--kpi{ grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); }
-/* Red Champion: desglose por estamento / jornada */
-.ch-breakdown{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; margin-top:.8rem; }
-.ch-bd{ padding:.75rem .9rem; }
-.ch-bd__t{ font-family:var(--font-disp); font-weight:800; font-size:.95rem; margin-bottom:.5rem; }
-.ch-bd__chips{ display:flex; flex-wrap:wrap; gap:.4rem; }
-.ch-chip{ display:inline-flex; align-items:center; gap:.35rem; font-size:12.5px; font-weight:700; color:var(--text-2);
-  border:1px solid color-mix(in srgb, var(--cc,#176ac0) 40%, transparent); background:color-mix(in srgb, var(--cc,#176ac0) 10%, transparent);
-  border-radius:999px; padding:.28rem .7rem; }
-.ch-chip b{ font-family:var(--font-disp); font-size:.95rem; color:var(--cc,#176ac0); }
+/* Red Champion: KPIs y desglose por estamento / jornada */
+.ch-kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:.9rem; }
+.ch-kpi{ display:flex; align-items:center; gap:.9rem; padding:1rem 1.1rem; border-radius:16px;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--kc,#12b5a5) 12%, var(--surface,#fff)), var(--surface,#fff));
+  border:1px solid color-mix(in srgb, var(--kc,#12b5a5) 30%, transparent); border-left:5px solid var(--kc,#12b5a5);
+  box-shadow:0 12px 28px -20px color-mix(in srgb, var(--kc,#12b5a5) 70%, transparent); transition:transform .15s, box-shadow .15s; }
+.ch-kpi:hover{ transform:translateY(-3px); box-shadow:0 18px 34px -18px color-mix(in srgb, var(--kc,#12b5a5) 70%, transparent); }
+.ch-kpi__ico{ flex:none; width:3rem; height:3rem; border-radius:14px; display:grid; place-items:center; font-size:1.5rem;
+  background:color-mix(in srgb, var(--kc,#12b5a5) 18%, #fff); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--kc,#12b5a5) 25%, transparent); }
+.ch-kpi__value{ font-family:var(--font-disp); font-weight:800; font-size:2.1rem; line-height:1; color:var(--kc,#12b5a5); }
+.ch-kpi__label{ font-weight:800; font-size:.9rem; color:var(--text,#17263d); margin-top:.15rem; }
+.ch-kpi__sub{ font-size:11.5px; color:var(--text-muted,#8a97a8); margin-top:.1rem; }
+.ch-breakdown{ display:grid; grid-template-columns:1fr 1fr; gap:.9rem; margin-top:.9rem; }
+.ch-bd{ padding:.85rem 1rem; border-radius:16px; background:var(--surface,#fff); border:1px solid var(--border,#e6ecea);
+  box-shadow:0 10px 24px -20px rgba(20,40,35,.4); }
+.ch-bd__t{ display:flex; align-items:center; gap:.5rem; font-family:var(--font-disp); font-weight:800; font-size:1rem; margin-bottom:.65rem; }
+.ch-bd__ic{ width:1.9rem; height:1.9rem; border-radius:10px; display:grid; place-items:center; font-size:1rem;
+  background:color-mix(in srgb, var(--bc,#176ac0) 15%, #fff); }
+.ch-bd__chips{ display:flex; flex-wrap:wrap; gap:.45rem; }
+.ch-chip{ display:inline-flex; align-items:center; gap:.45rem; font-size:12.5px; font-weight:700; color:var(--text,#17263d);
+  border:1px solid color-mix(in srgb, var(--cc,#176ac0) 35%, transparent); background:color-mix(in srgb, var(--cc,#176ac0) 8%, #fff);
+  border-radius:999px; padding:.22rem .7rem .22rem .22rem; transition:transform .12s, box-shadow .12s; }
+.ch-chip:hover{ transform:translateY(-1px); box-shadow:0 8px 16px -12px color-mix(in srgb, var(--cc,#176ac0) 80%, transparent); }
+.ch-chip__n{ display:inline-grid; place-items:center; min-width:1.55rem; height:1.55rem; padding:0 .3rem; border-radius:999px;
+  background:var(--cc,#176ac0); color:#fff; font-family:var(--font-disp); font-size:.85rem; font-weight:800; }
+.ch-chip__lab{ padding-right:.15rem; }
+body.night .ch-kpi__ico, body.night .ch-bd__ic{ background:color-mix(in srgb, var(--kc,var(--bc,#12b5a5)) 24%, #16241f); }
+body.night .ch-bd, body.night .ch-chip{ background:rgba(24,38,34,.9); }
 @media (max-width:640px){ .ch-breakdown{ grid-template-columns:1fr; } }
 .kpi__top{ display:flex; align-items:flex-start; justify-content:space-between; gap:.5rem; }
 .kpi__ico{ width:2.15rem; height:2.15rem; border-radius:11px; display:grid; place-items:center; font-size:1.05rem;

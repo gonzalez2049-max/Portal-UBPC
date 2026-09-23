@@ -999,24 +999,29 @@
     const enMes = d => { const x = new Date(d); return x.getMonth() === mes && x.getFullYear() === anio; };
     const partMes = S().all("participacionChampion").filter(p => enMes(p.fecha)).length
       + conv.filter(c => enMes(c.fecha)).reduce((a, c) => a + (c.asistentes || []).length, 0);
-    const card = (lab, val, sub, color) => `<div class="card kpi" style="border-left-color:${color || "var(--c-celeste)"}">
-      <div class="kpi__label">${lab}</div><div class="kpi__value">${val}</div><div class="kpi__sub">${sub}</div></div>`;
+    const card = (lab, val, sub, color, ico) => `<div class="ch-kpi" style="--kc:${color}">
+      <div class="ch-kpi__ico">${ico}</div>
+      <div class="ch-kpi__main"><div class="ch-kpi__value">${val}</div>
+        <div class="ch-kpi__label">${lab}</div>
+        <div class="ch-kpi__sub">${sub}</div></div></div>`;
     // Desglose por estamento y por jornada (solo Champions activos)
     const countBy = key => { const m = {}; activos.forEach(c => { const k = (c[key] || "").trim() || "Sin especificar"; m[k] = (m[k] || 0) + 1; }); return m; };
     const chips = (m, color) => {
       const keys = Object.keys(m).sort((a, b) => m[b] - m[a]);
-      return keys.length ? keys.map(k => { const cc = typeof color === "function" ? color(k) : color; return `<span class="ch-chip" style="--cc:${cc}"><b>${m[k]}</b> ${u.esc(k)}</span>`; }).join("")
+      const tot = keys.reduce((a, k) => a + m[k], 0) || 1;
+      return keys.length ? keys.map(k => { const cc = typeof color === "function" ? color(k) : color; const pc = Math.round(m[k] / tot * 100);
+        return `<span class="ch-chip" style="--cc:${cc}" title="${m[k]} · ${pc}%"><b class="ch-chip__n">${m[k]}</b><span class="ch-chip__lab">${u.esc(k)}</span></span>`; }).join("")
         : `<span class="muted">Sin datos</span>`;
     };
     el.innerHTML = `
-      <div class="grid grid--kpi">
-        ${card("Champions activos", activos.length, "de " + totalReg + " registrados en la red", "var(--c-celeste)")}
-        ${card("Con actividad reciente", conActividad, "participaron en los últimos 60 días", conActividad ? "var(--verde)" : "var(--naranjo)")}
-        ${card("Participaciones del mes", partMes, "Bitácora + asistencias a convocatorias", "var(--morado)")}
+      <div class="ch-kpis">
+        ${card("Champions activos", activos.length, "de " + totalReg + " registrados en la red", "#12b5a5", "⭐")}
+        ${card("Con actividad reciente", conActividad, "participaron en los últimos 60 días", conActividad ? "#37a04a" : "#e0912f", "⚡")}
+        ${card("Participaciones del mes", partMes, "Bitácora + asistencias a convocatorias", "#7a5cd0", "📅")}
       </div>
       <div class="ch-breakdown">
-        <div class="card ch-bd"><div class="ch-bd__t">👥 Champions por estamento</div><div class="ch-bd__chips">${chips(countBy("estamento"), "#176ac0")}</div></div>
-        <div class="card ch-bd"><div class="ch-bd__t">🕑 Champions por jornada</div><div class="ch-bd__chips">${chips(countBy("turno"), k => jornadaColor(k))}</div></div>
+        <div class="ch-bd"><div class="ch-bd__t"><span class="ch-bd__ic" style="--bc:#176ac0">👥</span> Champions por estamento</div><div class="ch-bd__chips">${chips(countBy("estamento"), "#176ac0")}</div></div>
+        <div class="ch-bd"><div class="ch-bd__t"><span class="ch-bd__ic" style="--bc:#0f8f83">🕑</span> Champions por jornada</div><div class="ch-bd__chips">${chips(countBy("turno"), k => jornadaColor(k))}</div></div>
       </div>`;
   }
 
