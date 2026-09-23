@@ -982,28 +982,35 @@
 
   function renderChampKpis(el) {
     const u = ui();
-    const champs = S().all("redChampion").filter(c => c.estado !== "Inactivo");
-    const total = champs.length;
-    const activos = champs.filter(c => champStats(c.id).nivel === "activo").length;
-    const pctActivos = total ? Math.round(activos / total * 100) : null;
-    // Tasa de asistencia global a convocatorias
-    const conv = S().all("convocatoriaChampion");
-    let cono = 0, asi = 0;
-    conv.forEach(c => { cono += (c.convocados || []).length; asi += (c.asistentes || []).length; });
-    const tasa = cono ? Math.round(asi / cono * 100) : null;
+    const all = S().all("redChampion");
+    const activos = all.filter(c => c.estado === "Activo");
+    const totalReg = all.filter(c => c.estado !== "Inactivo").length;
+    const conActividad = activos.filter(c => champStats(c.id).nivel === "activo").length;
     // Participaciones del mes en curso
+    const conv = S().all("convocatoriaChampion");
     const now = new Date(), mes = now.getMonth(), anio = now.getFullYear();
     const enMes = d => { const x = new Date(d); return x.getMonth() === mes && x.getFullYear() === anio; };
     const partMes = S().all("participacionChampion").filter(p => enMes(p.fecha)).length
       + conv.filter(c => enMes(c.fecha)).reduce((a, c) => a + (c.asistentes || []).length, 0);
     const card = (lab, val, sub, color) => `<div class="card kpi" style="border-left-color:${color || "var(--c-celeste)"}">
       <div class="kpi__label">${lab}</div><div class="kpi__value">${val}</div><div class="kpi__sub">${sub}</div></div>`;
-    el.innerHTML = `<div class="grid grid--kpi">
-      ${card("Champions activos", total, "Registrados en la red", "var(--c-celeste)")}
-      ${card("% con actividad reciente", pctActivos == null ? "—" : pctActivos + "%", activos + " participaron ≤60 días", pctActivos != null && pctActivos >= 60 ? "var(--verde)" : "var(--naranjo)")}
-      ${card("Tasa de asistencia", tasa == null ? "—" : tasa + "%", conv.length + " convocatoria(s)", tasa != null && tasa >= 70 ? "var(--verde)" : "var(--naranjo)")}
-      ${card("Participaciones del mes", partMes, "Bitácora + asistencias", "var(--morado)")}
-    </div>`;
+    // Desglose por estamento y por jornada (solo Champions activos)
+    const countBy = key => { const m = {}; activos.forEach(c => { const k = (c[key] || "").trim() || "Sin especificar"; m[k] = (m[k] || 0) + 1; }); return m; };
+    const chips = (m, color) => {
+      const keys = Object.keys(m).sort((a, b) => m[b] - m[a]);
+      return keys.length ? keys.map(k => `<span class="ch-chip" style="--cc:${color}"><b>${m[k]}</b> ${u.esc(k)}</span>`).join("")
+        : `<span class="muted">Sin datos</span>`;
+    };
+    el.innerHTML = `
+      <div class="grid grid--kpi">
+        ${card("Champions activos", activos.length, "de " + totalReg + " registrados en la red", "var(--c-celeste)")}
+        ${card("Con actividad reciente", conActividad, "participaron en los últimos 60 días", conActividad ? "var(--verde)" : "var(--naranjo)")}
+        ${card("Participaciones del mes", partMes, "Bitácora + asistencias a convocatorias", "var(--morado)")}
+      </div>
+      <div class="ch-breakdown">
+        <div class="card ch-bd"><div class="ch-bd__t">👥 Champions por estamento</div><div class="ch-bd__chips">${chips(countBy("estamento"), "#176ac0")}</div></div>
+        <div class="card ch-bd"><div class="ch-bd__t">🕑 Champions por jornada</div><div class="ch-bd__chips">${chips(countBy("turno"), "#0f8f83")}</div></div>
+      </div>`;
   }
 
   function mountRegistry(el, box) {
@@ -1015,7 +1022,9 @@
       afterChange: () => renderChampion(box),
       columns: [
         { key: "nombre", label: "Nombre" },
+        { key: "estamento", label: "Estamento", render: (r, uu) => r.estamento ? `<span class="tag">${uu.esc(r.estamento)}</span>` : `<span class="muted">—</span>`, exportVal: r => r.estamento || "" },
         { key: "unidad", label: "Unidad" },
+        { key: "turno", label: "Jornada", center: true, render: (r, uu) => r.turno ? `<span class="tag" style="background:#0f8f831f;color:#0f8f83;border:1px solid #0f8f8355">${uu.esc(r.turno)}</span>` : `<span class="muted">—</span>`, exportVal: r => r.turno || "" },
         { key: "guia", label: "Guía", render: (r, uu) => { const g = U.data.guiaColor(r.guia); return `<span class="tag" style="background:${g}1f;color:${g};border:1px solid ${g}55">${uu.esc(r.guia || "—")}</span>`; } },
         { key: "part", label: "Participaciones", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${fmtDur(s.horas)}`; }, exportVal: r => champStats(r.id).total },
         { key: "ultima", label: "Última", center: true, render: (r, uu) => { const s = champStats(r.id); return s.ultima ? `${uu.fechaCL(s.ultima)}<br><span class="kpi__sub">hace ${s.dias} d</span>` : "—"; }, exportVal: r => { const s = champStats(r.id); return s.ultima ? ui().fechaCL(s.ultima) : ""; } },
@@ -1026,7 +1035,7 @@
         { name: "nombre", label: "Nombre", required: true, full: true },
         { name: "estamento", label: "Estamento", type: "select", options: CAT().estamentos },
         { name: "unidad", label: "Unidad", type: "select", options: CAT().unidades, placeholder: "Seleccionar…" },
-        { name: "turno", label: "Turno", type: "select", options: ["A", "B", "C", "D", "Diurno"], placeholder: "Seleccionar…" },
+        { name: "turno", label: "Jornada / Turno", type: "select", options: ["Diurno", "Noche", "A", "B", "C", "D", "Cuarto turno", "Larga"], placeholder: "Seleccionar…" },
         { name: "calidadContractual", label: "Calidad contractual", type: "select", options: ["Titular", "Contrata", "Reemplazo", "Honorarios"], placeholder: "Seleccionar…" },
         { name: "guia", label: "Guía", type: "select", options: CAT().guiasArea },
         { name: "fechaNombramiento", label: "Fecha de nombramiento", type: "date" },
@@ -1079,7 +1088,7 @@
           <div class="cd-card">
             <div class="cd-card__t">Datos del Champion</div>
             ${kv("Estamento", val(rec.estamento))}
-            ${kv("Turno", val(rec.turno))}
+            ${kv("Jornada / Turno", val(rec.turno))}
             ${kv("Calidad contractual", val(rec.calidadContractual))}
             ${kv("Fecha de nombramiento", rec.fechaNombramiento ? u.fechaCL(rec.fechaNombramiento) : "—")}
             ${kv("¿Aceptó el compromiso?", compromiso)}
