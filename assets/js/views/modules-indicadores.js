@@ -656,12 +656,88 @@
     if (_tab === "matriz") renderMatriz(_box); else renderRegistrados(_box);
   }
 
+  /* ---------- Datos conectados con RNAO / NT 234 ----------
+     Toma automáticamente las mediciones registradas en los módulos RNAO y
+     NT 234 y las muestra como series por período, para ir llevando el dato
+     en el tiempo. Es de solo lectura: la fuente es cada módulo. */
+  function datosConectados() {
+    const u = ui();
+    const CS = U.coordStats || {};
+    const NT = U.ntUtil || {};
+    const gColor = n => (U.data.guiaColor ? U.data.guiaColor(n) : "#12b5a5");
+    const uColor = n => (U.data.unidadColor ? U.data.unidadColor(n) : "#1554b8");
+
+    // RNAO: series por guía + unidad
+    const metaR = CS.metaInstitucional ? CS.metaInstitucional() : 80;
+    const grpR = {};
+    S().all("evaluacionesRNAO").forEach(e => {
+      const g = CS.globalCumplimiento ? CS.globalCumplimiento(e) : null;
+      if (g == null) return;
+      const key = (e.guia || "—") + " · " + (e.unidad || "—");
+      (grpR[key] = grpR[key] || { guia: e.guia || "—", unidad: e.unidad || "—", pts: [] })
+        .pts.push({ per: e.periodo || u.fechaCL(e.fecha), ord: String(e.periodo || e.fecha || ""), val: g });
+    });
+
+    // NT 234: series por unidad
+    const metaN = Number(S().getConfig("nt234.meta", 90)) || 90;
+    const grpN = {};
+    S().all("nt234").forEach(m => {
+      const g = NT.globalNT ? NT.globalNT(m) : null;
+      if (g == null) return;
+      (grpN[m.unidad || "—"] = grpN[m.unidad || "—"] || { unidad: m.unidad || "—", pts: [] })
+        .pts.push({ per: m.periodo || "—", ord: String(m.periodo || ""), val: g });
+    });
+
+    const trend = pts => {
+      if (pts.length < 2) return { a: "→", c: "var(--text-muted)" };
+      const d = Math.round((pts[pts.length - 1].val - pts[pts.length - 2].val) * 10) / 10;
+      if (d > 0) return { a: "↑ +" + d, c: "var(--verde)" };
+      if (d < 0) return { a: "↓ " + d, c: "var(--danger)" };
+      return { a: "→ 0", c: "var(--text-muted)" };
+    };
+    const estado = (v, meta) => v >= meta ? { l: "En meta", k: "ok" } : (v >= meta - 15 ? { l: "En seguimiento", k: "warn" } : { l: "Intervención", k: "danger" });
+    const serie = pts => `<div class="dc-serie">${pts.map(p => `<span class="dc-step">${u.esc(p.per)}: <b>${p.val}%</b></span>`).join('<span class="dc-arrow">→</span>')}</div>`;
+
+    const rowsR = Object.keys(grpR).sort().map(k => {
+      const g = grpR[k]; g.pts.sort((a, b) => a.ord.localeCompare(b.ord));
+      const last = g.pts[g.pts.length - 1].val, tr = trend(g.pts), es = estado(last, metaR);
+      return `<tr><td><span class="dc-dot" style="background:${gColor(g.guia)}"></span>${u.esc(g.guia)}<div class="kpi__sub">${u.esc(g.unidad)}</div></td>
+        <td>${serie(g.pts)}</td><td class="num"><b>${last}%</b></td><td class="num">≥ ${metaR}%</td>
+        <td><span class="badge badge--${es.k}">${es.l}</span></td><td class="num" style="color:${tr.c};font-weight:800">${tr.a}</td></tr>`;
+    }).join("");
+
+    const rowsN = Object.keys(grpN).sort().map(k => {
+      const g = grpN[k]; g.pts.sort((a, b) => a.ord.localeCompare(b.ord));
+      const last = g.pts[g.pts.length - 1].val, tr = trend(g.pts), es = estado(last, metaN);
+      return `<tr><td><span class="dc-dot" style="background:${uColor(g.unidad)}"></span>${u.esc(g.unidad)}</td>
+        <td>${serie(g.pts)}</td><td class="num"><b>${last}%</b></td><td class="num">≥ ${metaN}%</td>
+        <td><span class="badge badge--${es.k}">${es.l}</span></td><td class="num" style="color:${tr.c};font-weight:800">${tr.a}</td></tr>`;
+    }).join("");
+
+    if (!rowsR && !rowsN) return "";
+    const block = (titulo, color, link, linkLabel, headFirst, rows) => !rows ? "" : `
+      <div class="dc-block">
+        <div class="dc-block__hd"><span class="dc-block__pill" style="background:${color}">${titulo}</span>
+          <a class="btn btn--ghost btn--sm" href="${link}">${linkLabel} →</a></div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>${headFirst}</th><th>Serie por período</th><th class="right">Último</th><th class="right">Meta</th><th>Estado</th><th class="right">Tendencia</th></tr></thead>
+        <tbody>${rows}</tbody></table></div></div>`;
+
+    return `<details class="dc" open>
+      <summary class="dc__sum"><span class="dc__ic">📡</span><span class="dc__t">Datos conectados · RNAO / NT 234</span>
+        <span class="dc__hint">Se toman solos de esos módulos · solo lectura</span></summary>
+      <p class="kpi__sub" style="margin:.4rem .2rem .7rem">Estos valores se actualizan automáticamente cuando registras una nueva medición en RNAO o en la NT 234. Aquí los ves período a período para ir llevando el dato.</p>
+      ${block("RNAO · Guías BPSO", "#0d6ea8", "#/coord/m3?tab=evaluaciones", "Ir a RNAO", "Guía · Unidad", rowsR)}
+      ${block("NT 234 · Prevención de LPP", "#0f8f83", "#/coord/m6?tab=seguimiento", "Ir a NT 234", "Unidad", rowsN)}
+    </details>`;
+  }
+
   function renderRegistrados(box) {
     const u = ui();
     box.innerHTML = `
       <div id="ind-kpi"></div>
       <div id="ind-evi"></div>
       ${fichaCapacidadOperativa()}
+      ${datosConectados()}
       <div class="section__head"><h2 class="section__title">Indicadores registrados</h2>
         <button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button></div>
       <div id="ind-list"></div>`;
