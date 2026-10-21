@@ -187,6 +187,8 @@
           const names = IND()[guia] || [];
           const existing = {};
           (rec.indicadores || []).forEach(i => existing[i.nombre] = i);
+          // Celda del indicador con su fórmula oficial (numerador ÷ denominador) debajo.
+          const indCell = n => { const f = (U.data.indicadorFormula ? U.data.indicadorFormula(n) : ""); return `<td>${u.esc(n)}${f ? `<div class="kpi__sub" title="${u.esc(f)}" style="font-size:11px;margin-top:2px">${u.esc(f.length > 78 ? f.slice(0, 78) + "…" : f)}</div>` : ""}</td>`; };
           indsBox.innerHTML = `${donabedianLeyenda()}<div class="table-wrap"><table class="tbl"><thead><tr>
             <th>Indicador</th><th>Tipo</th>${esPct()
               ? `<th class="right">% cumplimiento</th>`
@@ -194,9 +196,9 @@
             </tr></thead><tbody>
             ${names.map((n, idx) => {
               const ex = existing[n] || {};
-              if (esPct()) return `<tr><td>${u.esc(n)}</td><td>${indTipoChip(n)}</td>
+              if (esPct()) return `<tr>${indCell(n)}<td>${indTipoChip(n)}</td>
                 <td class="num"><input class="input" style="width:90px" type="number" min="0" max="100" data-ind="${idx}" data-f="porcentaje" value="${ex.porcentaje != null ? ex.porcentaje : ""}"></td></tr>`;
-              return `<tr><td>${u.esc(n)}</td><td>${indTipoChip(n)}</td>
+              return `<tr>${indCell(n)}<td>${indTipoChip(n)}</td>
                 <td class="num"><input class="input" style="width:80px" type="number" min="0" data-ind="${idx}" data-f="denominador" value="${ex.denominador != null ? ex.denominador : ""}"></td>
                 <td class="num"><input class="input" style="width:80px" type="number" min="0" data-ind="${idx}" data-f="cumplen" value="${ex.cumplen != null ? ex.cumplen : ""}"></td>
                 <td class="num"><input class="input" style="width:80px" type="number" min="0" data-ind="${idx}" data-f="noCumplen" value="${ex.noCumplen != null ? ex.noCumplen : ""}"></td>

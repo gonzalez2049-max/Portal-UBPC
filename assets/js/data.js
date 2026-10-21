@@ -22,7 +22,7 @@
     ],
     estamentos: ["Enfermería", "TENS", "Auxiliar de servicio", "Médico", "Kinesiología", "Multiestamento", "Otro"],
     prioridades: ["alta", "media", "baja"],
-    guiasArea: ["Lesiones por presión", "Accesos vasculares", "Dolor"],
+    guiasArea: ["Caídas", "Lesiones por presión", "Accesos vasculares"],
     pilares: ["Calidad y seguridad", "Gestión del cuidado", "Formación continua",
               "Evidencia científica", "Articulación institucional"],
     tiposColaboracion: ["Asesoría Técnica", "Colaboración interna", "Visita técnica",
@@ -36,58 +36,73 @@
     frecuencias: ["Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"]
   };
 
-  /* ---------- Indicadores oficiales por guía BPSO ---------- */
+  /* ---------- Indicadores oficiales por guía (Anexo 4 · Atención Cerrada,
+     Norma Técnica de implementación RNAO/BPSO) ---------- */
   const INDICADORES = {
+    "Caídas": [
+      "Educación de precauciones universales de caídas",
+      "Evaluación posterior a las caídas",
+      "Tasa de caídas de pacientes",
+      "Lesiones relacionadas a caídas"
+    ],
     "Lesiones por presión": [
-      "Escala de riesgo aplicada antes de 6 horas",
-      "Reevaluación según condición clínica",
-      "Plan preventivo acorde al riesgo",
-      "Cambios de posición",
-      "Superficie de alivio o redistribución de presión",
-      "Registro de LPP previa",
-      "Pacientes sin LPP intrahospitalaria"
+      "Valoración de riesgo de LPP",
+      "Reevaluación riesgo LPP",
+      "Prevención LPP: uso superficie manejo de presión",
+      "Incidencia LPP"
     ],
     "Accesos vasculares": [
-      "Indicación documentada",
-      "Evaluación diaria del acceso vascular",
-      "Vigilancia del sitio de inserción",
-      "Accesos sin complicaciones (flebitis/infección)"
-    ],
-    "Dolor": [
-      "Valoración inicial del dolor",
-      "Reevaluación posterior a la intervención",
-      "Manejo multimodal del dolor",
-      "Pacientes con dolor controlado (EVA ≤ meta)"
+      "Educación práctica a proveedores de salud",
+      "Protocolo de cuidado multicomponente de DAVP",
+      "Complicaciones no infecciosas DAVC",
+      "Infección torrente sanguíneo por vía central (Tasa)"
     ]
   };
 
   /* ---------- Clasificación de indicadores (modelo Donabedian / NQuIRE) ----------
      Estructura = recursos/capacidad · Proceso = si se hace la práctica recomendada
-     · Resultado = efecto clínico. Se asigna automáticamente por nombre. */
+     · Resultado = efecto clínico. Según el Anexo 4 de la Norma Técnica. */
   const INDICADOR_TIPO = {
+    // Caídas
+    "Educación de precauciones universales de caídas": "Estructura",
+    "Evaluación posterior a las caídas": "Proceso",
+    "Tasa de caídas de pacientes": "Resultado",
+    "Lesiones relacionadas a caídas": "Resultado",
     // Lesiones por presión
-    "Escala de riesgo aplicada antes de 6 horas": "Proceso",
-    "Reevaluación según condición clínica": "Proceso",
-    "Plan preventivo acorde al riesgo": "Proceso",
-    "Cambios de posición": "Proceso",
-    "Superficie de alivio o redistribución de presión": "Estructura",
-    "Registro de LPP previa": "Proceso",
-    "Pacientes sin LPP intrahospitalaria": "Resultado",
+    "Valoración de riesgo de LPP": "Proceso",
+    "Reevaluación riesgo LPP": "Proceso",
+    "Prevención LPP: uso superficie manejo de presión": "Proceso",
+    "Incidencia LPP": "Resultado",
     // Accesos vasculares
-    "Indicación documentada": "Proceso",
-    "Evaluación diaria del acceso vascular": "Proceso",
-    "Vigilancia del sitio de inserción": "Proceso",
-    "Accesos sin complicaciones (flebitis/infección)": "Resultado",
-    // Dolor
-    "Valoración inicial del dolor": "Proceso",
-    "Reevaluación posterior a la intervención": "Proceso",
-    "Manejo multimodal del dolor": "Proceso",
-    "Pacientes con dolor controlado (EVA ≤ meta)": "Resultado"
+    "Educación práctica a proveedores de salud": "Estructura",
+    "Protocolo de cuidado multicomponente de DAVP": "Proceso",
+    "Complicaciones no infecciosas DAVC": "Resultado",
+    "Infección torrente sanguíneo por vía central (Tasa)": "Resultado"
   };
+
+  /* ---------- Fórmula del indicador (numerador / denominador) · Anexo 4 ---------- */
+  const INDICADOR_FORMULA = {
+    "Educación de precauciones universales de caídas": { num: "N° trabajadores de la salud educados", den: "N° total trabajadores de la salud" },
+    "Evaluación posterior a las caídas": { num: "N° pacientes evaluados posterior a una caída", den: "N° total pacientes con 1 o más caídas" },
+    "Tasa de caídas de pacientes": { num: "N° total pacientes con caída", den: "N° total días cama ocupados" },
+    "Lesiones relacionadas a caídas": { num: "N° caídas con lesiones", den: "N° total pacientes con caída" },
+    "Valoración de riesgo de LPP": { num: "N° pacientes con valoración riesgo LPP antes de 24 h del ingreso", den: "N° pacientes evaluados" },
+    "Reevaluación riesgo LPP": { num: "N° pacientes hospitalizados revalorados según protocolo local", den: "N° pacientes evaluados" },
+    "Prevención LPP: uso superficie manejo de presión": { num: "N° pacientes con riesgo moderado y alto con uso superficie manejo presión", den: "N° pacientes con riesgo moderado y alto evaluados" },
+    "Incidencia LPP": { num: "N° pacientes con al menos una LPP categoría II a IV", den: "N° pacientes egresados del servicio clínico (alta + trasladados + fallecidos)" },
+    "Educación práctica a proveedores de salud": { num: "N° proveedores de salud con educación práctica en inserción y/o mantenimiento de DAV", den: "N° proveedores de salud" },
+    "Protocolo de cuidado multicomponente de DAVP": { num: "N° pacientes con DAVP con atención según protocolo", den: "N° pacientes con DAVP" },
+    "Complicaciones no infecciosas DAVC": { num: "N° pacientes con complicaciones no infecciosas DAVC", den: "N° pacientes con DAVC" },
+    "Infección torrente sanguíneo por vía central (Tasa)": { num: "N° infecciones del torrente sanguíneo asociadas a la vía central", den: "N° total días de DAVC" }
+  };
+  function indicadorFormula(nombre) {
+    const f = INDICADOR_FORMULA[(nombre || "").trim()];
+    return f ? (f.num + " ÷ " + f.den + " × 100") : "";
+  }
   const TIPO_DONABEDIAN = {
     "Estructura": { color: "#7a5cd0", ic: "🏗️", def: "Recursos y capacidad (disponibilidad de insumos, protocolos vigentes, dotación)." },
-    "Proceso":    { color: "#176ac0", ic: "⚙️", def: "Si se realiza la práctica recomendada (adherencia: valoración, cambios de posición, registro)." },
-    "Resultado":  { color: "#2f9d57", ic: "🎯", def: "Efecto clínico observado (incidencia/prevalencia de LPP, tasa de complicaciones)." }
+    "Proceso":    { color: "#176ac0", ic: "⚙️", def: "Si se realiza la práctica recomendada (adherencia: valoración, prevención, registro)." },
+    "Resultado":  { color: "#2f9d57", ic: "🎯", def: "Efecto clínico observado (incidencia de LPP, tasa de caídas, infección de la vía central)." }
   };
   function indicadorTipo(nombre) { return INDICADOR_TIPO[(nombre || "").trim()] || "Proceso"; }
 
@@ -211,9 +226,10 @@
      Estable por nombre de guía y consistente en todo el portal. No usa morado:
      ese color queda reservado para la línea de "Meta institucional". */
   const GUIA_COLORS = {
+    "Caídas":               "#e0526f",
     "Lesiones por presión": "#12b5a5",
     "Accesos vasculares":   "#e0912f",
-    "Dolor":                "#e0526f"
+    "Dolor":                "#7a5cd0"
   };
   const GUIA_PALETTE = ["#12b5a5", "#e0912f", "#e0526f", "#37a04a", "#1e9fe0", "#0891b2", "#be185d", "#8a6d3b"];
   function guiaColor(nombre) {
@@ -235,5 +251,5 @@
   }
 
   window.UBPC = window.UBPC || {};
-  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, INDICADOR_TIPO, TIPO_DONABEDIAN, indicadorTipo, NQUIRE, nquireFor, nquireByName };
+  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, INDICADOR_TIPO, INDICADOR_FORMULA, TIPO_DONABEDIAN, indicadorTipo, indicadorFormula, NQUIRE, nquireFor, nquireByName };
 })();
