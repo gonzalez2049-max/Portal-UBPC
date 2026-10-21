@@ -676,7 +676,7 @@
     if (!list.length) { lb.innerHTML = u.empty("Aún no hay indicadores registrados.", "Crea uno o usa las recomendaciones de EVI.", "📏"); }
     else {
       // Agrupar por TEMA/guía (LPP, Caídas, Accesos…) y, dentro, por TIPO (Estructura/Proceso/Resultado).
-      const temaDe = i => (i.guia && String(i.guia).trim()) ? String(i.guia).trim() : "General";
+      const temaDe = i => U.data.guiaDeIndicador ? U.data.guiaDeIndicador(i.nombre, i.guia) : ((i.guia && String(i.guia).trim()) ? String(i.guia).trim() : "General");
       const byGuia = {}; list.forEach(i => { const g = temaDe(i); (byGuia[g] = byGuia[g] || []).push(i); });
       const ordenTemas = (U.data.CAT.guiasArea || []).concat(["General"]).filter(t => byGuia[t])
         .concat(Object.keys(byGuia).filter(t => !((U.data.CAT.guiasArea || []).concat(["General"]).includes(t))));
@@ -833,7 +833,7 @@
 
     const commonTop = u.formHTML([
       { name: "nombre", label: "Nombre del indicador", required: true, full: true, value: rec.nombre || "", hint: "Escribe o elige uno oficial del Anexo 4 (abajo se autocompleta tipo y guía)." },
-      { name: "guia", label: "Guía / tema", type: "select", options: ["General"].concat(U.data.CAT.guiasArea), value: rec.guia || "General", hint: "Caídas, LPP, Accesos vasculares o General." },
+      { name: "guia", label: "Guía / tema", type: "select", options: ["General"].concat(U.data.CAT.guiasArea), value: (U.data.guiaDeIndicador ? U.data.guiaDeIndicador(rec.nombre, rec.guia) : (rec.guia || "General")), hint: "Caídas, LPP, Accesos vasculares o General." },
       { name: "tipo", label: "Tipo de indicador", type: "select", options: TIPOS, value: tipo, hint: "Estructura = si algo existe · Proceso = cómo se hace · Resultado = efecto en el paciente · Impacto = efecto a largo plazo." },
       { name: "responsable", label: "Responsable", value: rec.responsable || "Enf. Coordinador/a UBPC", hint: "Quién mide y reporta este indicador." },
       { name: "objetivo", label: "Objetivo", type: "textarea", full: true, value: rec.objetivo || "", hint: "Qué se busca lograr o vigilar con este indicador (en una frase)." }

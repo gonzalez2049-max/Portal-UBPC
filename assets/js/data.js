@@ -177,6 +177,28 @@
     return hit || null;
   }
 
+  /* ---------- Deducir el TEMA/guía de un indicador ----------
+     Usa la guía guardada si existe; si no, la deduce del nombre (catálogo
+     oficial, catálogo NQuIRE o por palabras clave). Así los indicadores
+     antiguos (sin campo "guia") igual se agrupan por tema. */
+  function guiaDeIndicador(nombre, guiaGuardada) {
+    const gg = (guiaGuardada || "").toString().trim();
+    if (gg && gg.toLowerCase() !== "general") return gg;
+    const n = _norm(nombre);
+    if (!n) return "General";
+    // 1) nombre exacto dentro del catálogo oficial (INDICADORES)
+    for (const g in INDICADORES) if ((INDICADORES[g] || []).some(x => _norm(x) === n)) return g;
+    // 2) catálogo NQuIRE (por guía)
+    for (const g in NQUIRE) if ((NQUIRE[g] || []).some(i => _norm(i.nombre) === n || (i.alias || []).some(a => n.indexOf(_norm(a)) >= 0))) return g;
+    // 3) nombre del catálogo contenido en el texto (o viceversa)
+    for (const g in INDICADORES) if ((INDICADORES[g] || []).some(x => { const cx = _norm(x); return cx && (n.indexOf(cx) >= 0 || cx.indexOf(n) >= 0); })) return g;
+    // 4) por palabras clave
+    if (/\blpp\b|presion|presión|ulcer|escara/.test(n)) return "Lesiones por presión";
+    if (/caid|caíd/.test(n)) return "Caídas";
+    if (/vascular|\bdav\b|davp|davc|via central|vía central|torrente|cateter|catéter|acceso/.test(n)) return "Accesos vasculares";
+    return "General";
+  }
+
   /* ---------- Semilla inicial (solo si la base está vacía) ---------- */
   function seedIfEmpty() {
     const s = store();
@@ -251,5 +273,5 @@
   }
 
   window.UBPC = window.UBPC || {};
-  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, INDICADOR_TIPO, INDICADOR_FORMULA, TIPO_DONABEDIAN, indicadorTipo, indicadorFormula, NQUIRE, nquireFor, nquireByName };
+  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, INDICADOR_TIPO, INDICADOR_FORMULA, TIPO_DONABEDIAN, indicadorTipo, indicadorFormula, NQUIRE, nquireFor, nquireByName, guiaDeIndicador };
 })();
