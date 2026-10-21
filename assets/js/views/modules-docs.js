@@ -1606,7 +1606,48 @@
     })();
 
     // Estructura por fases del ciclo Conocimiento a la Acción (KTA) — OO.TT del Programa BPSO (MINSAL).
+    // Matriz de plan de trabajo (formato RNAO): una fila con recomendación, brecha,
+    // objetivo, estrategias/tareas y resultados esperados por año.
+    const yr0 = parseInt(plan.anioInicio, 10) || (plan.plazoInicio ? new Date(String(plan.plazoInicio).slice(0, 10) + "T12:00:00").getFullYear() : new Date().getFullYear());
+    const mTh = "padding:5pt 7pt;border:1px solid #bcd0c9;background:#0f8f83;color:#fff;font-size:8.8pt;font-weight:700;text-align:center;vertical-align:middle";
+    const mTd = "padding:5pt 7pt;border:1px solid #cdd9e5;vertical-align:top;font-size:9pt";
+    const estrCell = acc.length
+      ? `<ul style="margin:0;padding-left:1.05em">${acc.map(a => `<li style="margin:2px 0">${u.esc(a.accion)}${a.responsable ? ` <span style="color:#5a6b84">· ${u.esc(a.responsable)}</span>` : ""}${a.plazo ? ` <span style="color:#5a6b84">(${fdate(a.plazo)})</span>` : ""}</li>`).join("")}</ul>`
+      : "—";
+    const matriz = `
+      <h2>Matriz del plan de trabajo (RNAO)</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .4rem">Formato RNAO de plan de trabajo: recomendación seleccionada, brecha, objetivo, estrategias/tareas y resultados esperados por año.</p>
+      <table style="border-collapse:collapse;width:100%;margin:6pt 0 10pt;table-layout:fixed">
+        <thead>
+          <tr>
+            <th style="${mTh};width:16%" rowspan="2">Recomendación seleccionada</th>
+            <th style="${mTh};width:16%" rowspan="2">Problema / brecha u oportunidad</th>
+            <th style="${mTh};width:15%" rowspan="2">Objetivo</th>
+            <th style="${mTh}" rowspan="2">Estrategias y tareas de implementación</th>
+            <th style="${mTh}" colspan="3">Resultados esperados</th>
+          </tr>
+          <tr>
+            <th style="${mTh};width:10%">${yr0}</th>
+            <th style="${mTh};width:10%">${yr0 + 1}</th>
+            <th style="${mTh};width:10%">${yr0 + 2}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="${mTd}">${multi(plan.recomendacion) !== "—" ? multi(plan.recomendacion) : e(plan.indicador)}</td>
+            <td style="${mTd}">${brechaTxt}</td>
+            <td style="${mTd}">${multi(plan.objetivo)}</td>
+            <td style="${mTd}">${estrCell}</td>
+            <td style="${mTd}">${multi(plan.resultadoA1)}</td>
+            <td style="${mTd}">${multi(plan.resultadoA2)}</td>
+            <td style="${mTd}">${multi(plan.resultadoA3)}</td>
+          </tr>
+        </tbody>
+      </table>`;
+
     return `<p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .7rem">Plan estructurado según las Orientaciones Técnicas del Programa BPSO (MINSAL), siguiendo el ciclo <b>Conocimiento a la Acción</b> (RNAO).</p>
+      ${matriz}
+      <h2 style="margin-top:12pt">Detalle por fases · Conocimiento a la Acción</h2>
 
       <h2>Fase 1 · Identificación de la brecha</h2>
       <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Análisis de la situación local: dónde está la brecha entre la práctica y la recomendación.</p>

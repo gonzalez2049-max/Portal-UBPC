@@ -539,8 +539,14 @@
         </div>
         <div class="pf-rep-lbl">Seguimientos cronológicos <span class="pf-help">Registra cada revisión con fecha, avance y estado.</span></div>
         ${pinRepTable("seguimientos", data.seguimientos)}</section>
-      <section class="pf-section">${pinSecH(6, "Evaluación de resultados y cierre")}
-        <p class="pf-help" style="margin:.1rem 0 .6rem">Resultado del cierre de la brecha; el motivo se conserva al cerrar o reabrir el plan.</p>
+      <section class="pf-section">${pinSecH(6, "Resultados esperados y cierre")}
+        <p class="pf-help" style="margin:.1rem 0 .6rem">Resultados esperados por año (matriz de trabajo RNAO) y motivo de cierre.</p>
+        <div class="pf-grid">
+          ${pinFld("resultadoA1", "Resultado esperado · Año 1", "Qué se espera lograr el primer año.", { value: data.resultadoA1, type: "textarea", full: true })}
+          ${pinFld("resultadoA2", "Resultado esperado · Año 2", "Qué se espera lograr el segundo año.", { value: data.resultadoA2, type: "textarea", full: true })}
+          ${pinFld("resultadoA3", "Resultado esperado · Año 3", "Qué se espera lograr el tercer año.", { value: data.resultadoA3, type: "textarea", full: true })}
+          ${pinFld("anioInicio", "Año de inicio (para la matriz)", "Ej: 2025. Si lo dejas vacío se usa el año del plazo de inicio.", { value: data.anioInicio, type: "number" })}
+        </div>
         ${pinFld("motivoCierre", "Motivo de cierre / reapertura", "Se conserva al cerrar o reabrir el plan.", { value: data.motivoCierre, full: true })}</section>
     </div>`;
   }
