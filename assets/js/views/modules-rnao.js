@@ -316,8 +316,10 @@
       globals.forEach(x => { const k = keyFn(x.e); if (!k) return; (m[k] = m[k] || []).push(x.g); });
       return Object.keys(m).map(k => ({ label: k, value: Math.round(m[k].reduce((a, b) => a + b, 0) / m[k].length) })).sort((a, b) => a.value - b.value);
     };
-    const porGuia = byKey(e => e.guia);
-    const porUnidad = byKey(e => e.unidad);
+    const gColor = n => (U.data.guiaColor ? U.data.guiaColor(n) : "#12b5a5");
+    const uColorFn = n => (U.data.unidadColor ? U.data.unidadColor(n) : "#1554b8");
+    const porGuia = byKey(e => e.guia).map(it => Object.assign({}, it, { color: gColor(it.label) }));
+    const porUnidad = byKey(e => e.unidad).map(it => Object.assign({}, it, { color: uColorFn(it.label) }));
     const guiaAtencion = porGuia[0], unidadApoyo = porUnidad.find(x => x.label !== "Todas las unidades") || porUnidad[0];
 
     // indicadores críticos globales
@@ -382,9 +384,9 @@
           <h3 class="card__title">📊 Comparativa · meta ${metaI}%</h3>
           <p class="kpi__sub" style="margin:-.3rem 0 .5rem">De menor a mayor cumplimiento.</p>
           <div class="kpi__label" style="margin:.3rem 0 .2rem">Por guía</div>
-          ${porGuia.length ? U.charts.bars(porGuia, { meta: metaI }) : u.empty("Sin datos por guía.")}
-          <div class="kpi__label" style="margin:.9rem 0 .2rem">Por unidad</div>
-          ${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI }) : u.empty("Sin datos por unidad.")}
+          ${porGuia.length ? U.charts.bars(porGuia, { meta: metaI, colorBy: "item", metaMarker: true }) : u.empty("Sin datos por guía.")}
+          <div class="kpi__label" style="margin:1rem 0 .2rem">Por unidad <span class="kpi__sub" style="font-weight:600">· cada unidad con su color</span></div>
+          ${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI, colorBy: "item", metaMarker: true }) : u.empty("Sin datos por unidad.")}
         </div>
       </div>
 

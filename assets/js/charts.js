@@ -84,16 +84,29 @@
   function bars(items, opts) {
     opts = opts || {};
     const meta = opts.meta;
+    const byItem = opts.colorBy === "item"; // color por ítem (ej. por unidad) en vez de por semáforo
     if (!items || !items.length) return "";
-    return `<div class="bars">` + items.map(it => {
+    const metaPos = meta != null ? Math.max(0, Math.min(100, meta)) : null;
+    const cap = (meta != null && opts.metaMarker)
+      ? `<div class="bars__cap"><span class="bars__cap-mk"></span> La línea punteada marca la meta (${meta}%)</div>` : "";
+    return cap + `<div class="bars">` + items.map(it => {
       const v = Math.max(0, Math.min(100, it.value || 0));
-      const color = meta != null ? (v >= meta ? "var(--verde)" : v >= meta - 15 ? "var(--naranjo)" : "var(--danger)") : "var(--celeste)";
-      return `<div style="margin-bottom:.55rem">
-        <div class="flex" style="justify-content:space-between;font-size:13px;font-weight:600">
-          <span>${esc(it.label)}</span><span>${v}%</span>
-        </div>
-        <div style="background:var(--chart-track,#e9eff7);border-radius:6px;height:12px;overflow:hidden">
-          <div style="width:${v}%;height:100%;background:${color};border-radius:6px"></div>
+      const semColor = meta != null ? (v >= meta ? "var(--verde)" : v >= meta - 15 ? "var(--naranjo)" : "var(--danger)") : "var(--celeste)";
+      const fill = byItem ? (it.color || "var(--celeste)") : semColor;
+      const dot = byItem ? `<span class="bars__dot" style="background:${it.color || "var(--celeste)"}"></span>` : "";
+      let chip = "";
+      if (meta != null) {
+        const diff = v - meta;
+        chip = diff >= 0
+          ? `<span class="bars__chip bars__chip--ok">✓ en meta</span>`
+          : `<span class="bars__chip bars__chip--bad">▼ ${Math.abs(diff)} pts bajo meta</span>`;
+      }
+      const marker = (metaPos != null && opts.metaMarker) ? `<span class="bars__meta" style="left:${metaPos}%"></span>` : "";
+      return `<div class="bars__row">
+        <div class="bars__hd"><span class="bars__lbl">${dot}${esc(it.label)}</span>
+          <span class="bars__val"><b>${v}%</b>${chip}</span></div>
+        <div class="bars__track">
+          <div class="bars__fill" style="width:${v}%;background:${fill}"></div>${marker}
         </div>
       </div>`;
     }).join("") + `</div>`;

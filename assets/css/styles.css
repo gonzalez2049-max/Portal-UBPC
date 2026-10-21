@@ -1784,6 +1784,24 @@ body.night .doc-chip{ background:rgba(255,255,255,.05); }
 .doc-group__hint{ font-size:12px; color:var(--text-muted); }
 body.night .doc-group{ background:rgba(24,38,34,.72); }
 /* Indicadores: agrupación por tema (guía) y por tipo */
+/* Comparativa por guía / unidad: barras con color propio y marca de meta */
+.bars__cap{ font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:.35rem; margin:0 0 .5rem; }
+.bars__cap-mk{ display:inline-block; width:14px; height:0; border-top:2px dashed var(--morado,#7a5cd0); }
+.bars__row{ margin-bottom:.7rem; }
+.bars__hd{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; font-size:13px; margin-bottom:.22rem; }
+.bars__lbl{ display:flex; align-items:center; gap:.4rem; font-weight:700; min-width:0; }
+.bars__dot{ width:11px; height:11px; border-radius:50%; flex:none; box-shadow:0 0 0 2px color-mix(in srgb, var(--surface,#fff) 70%, transparent); }
+.bars__val{ display:flex; align-items:center; gap:.4rem; white-space:nowrap; }
+.bars__val b{ font-variant-numeric:tabular-nums; }
+.bars__chip{ font-size:10.5px; font-weight:800; padding:.05rem .4rem; border-radius:999px; letter-spacing:.2px; }
+.bars__chip--ok{ color:#0b7a46; background:rgba(18,181,109,.16); }
+.bars__chip--bad{ color:#b23047; background:rgba(224,82,111,.16); }
+.bars__track{ position:relative; background:var(--chart-track,#e9eff7); border-radius:7px; height:14px; overflow:hidden; }
+.bars__fill{ height:100%; border-radius:7px; transition:width .3s; }
+.bars__meta{ position:absolute; top:-2px; bottom:-2px; width:0; border-left:2px dashed var(--morado,#7a5cd0); opacity:.75; pointer-events:none; }
+body.night .bars__chip--ok{ color:#58e0a3; background:rgba(18,181,109,.2); }
+body.night .bars__chip--bad{ color:#ff9db0; background:rgba(224,82,111,.22); }
+
 .ico-collapse{ margin:0 0 1.1rem; border:1px solid var(--border); border-radius:14px; background:var(--surface-2); overflow:hidden; }
 .ico-collapse__sum{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:.55rem; padding:.7rem .9rem; user-select:none; }
 .ico-collapse__sum::-webkit-details-marker{ display:none; }
