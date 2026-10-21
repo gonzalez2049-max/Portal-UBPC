@@ -233,7 +233,6 @@
   function repEvidencia() {
     const edsCient = S().all("edicionesEVI");
     const edsClin = S().all("edicionesEVIClinico");
-    const semanal = S().all("evidenciaSemana");
 
     // Piezas de evidencia científica (cada edición contiene varias evidencias)
     const piezas = [];
@@ -242,19 +241,17 @@
       tipo: (ev.tipo && ev.tipo !== "—") ? ev.tipo : "Sin clasificar",
       titulo: ev.trabajo || "", area: ev.area || "", fuente: ev.autores || "", anio: ev.anio || ""
     })));
-    // Registros unificados de evidencia entregada (todos los canales)
+    // Evidencia entregada: solo los dos canales de la UBPC (EVI Científica y EVI Clínico)
     const items = piezas
       .concat(edsClin.map(e => ({ fecha: e.fechaEnvio, canal: "EVI Clínico", tipo: "Boletín clínico",
         titulo: "Boletín N.º " + (e.numeroEdicion || "—"), area: e.tema || "", fuente: "", anio: "" })))
-      .concat(semanal.map(e => ({ fecha: e.fecha, canal: "Evidencia para la acción", tipo: "Evidencia para la acción",
-        titulo: e.titulo || "", area: "", fuente: e.fuente || "", anio: "" })))
       .sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
 
     const total = items.length;
     const pct = n => total ? Math.round(n / total * 100) + "%" : "—";
 
     // Cantidad por canal de difusión
-    const canales = ["EVI Científica", "EVI Clínico", "Evidencia para la acción"];
+    const canales = ["EVI Científica", "EVI Clínico"];
     const porCanal = {}; items.forEach(i => porCanal[i.canal] = (porCanal[i.canal] || 0) + 1);
     const canalRows = canales.filter(c => porCanal[c]).map(c => {
       let detalle = "";
@@ -277,8 +274,8 @@
       body: kpiRow([
         { v: total, l: "Evidencias entregadas" },
         { v: piezas.length, l: "Piezas EVI Científica" },
-        { v: edsClin.length, l: "Boletines EVI Clínico" },
-        { v: semanal.length, l: "Evidencia para la acción" }
+        { v: edsCient.length, l: "Ediciones EVI Científica" },
+        { v: edsClin.length, l: "Boletines EVI Clínico" }
       ]) + `<h3>Cantidad por canal de difusión</h3>` +
         table(["Canal", "Cantidad", "% del total", "Detalle"], canalRows) +
         `<h3>Cantidad por tipo de evidencia científica</h3>` +
@@ -304,7 +301,7 @@
     { key: "nt234", title: "Norma Técnica 234", icon: "🛡️", desc: "Prevención de LPP: cumplimiento por unidad y planes de mejora.", build: repNT234 },
     { key: "capacitacion", title: "Capacitación y cobertura", icon: "🎓", desc: "Actividades, personas capacitadas y cobertura.", build: repCapacitacion },
     { key: "indicadores", title: "Indicadores UBPC", icon: "📏", desc: "Semáforo, cumplimiento, tendencias y alertas por indicador.", build: repIndicadores },
-    { key: "evidencia", title: "Evidencia entregada", icon: "🔬", desc: "Cantidad y tipo de evidencia difundida: EVI Científica, EVI Clínico y Evidencia para la acción.", build: repEvidencia },
+    { key: "evidencia", title: "Evidencia entregada", icon: "🔬", desc: "Cantidad y tipo de evidencia difundida: EVI Científica y EVI Clínico.", build: repEvidencia },
     { key: "documental", title: "Gestión Documental", icon: "🗂️", desc: "Inventario de documentos, versiones, estado y V°B° UBPC.", build: repDocumental },
     { key: "colaboracion", title: "Red de Colaboración", icon: "🌐", desc: "Colaboraciones institucionales y participación.", build: repColaboracion }
   ];
