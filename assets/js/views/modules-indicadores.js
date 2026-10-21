@@ -701,7 +701,7 @@
     const rowsR = Object.keys(grpR).sort().map(k => {
       const g = grpR[k]; g.pts.sort((a, b) => a.ord.localeCompare(b.ord));
       const last = g.pts[g.pts.length - 1].val, tr = trend(g.pts), es = estado(last, metaR);
-      return `<tr><td><span class="dc-dot" style="background:${gColor(g.guia)}"></span>${u.esc(g.guia)}<div class="kpi__sub">${u.esc(g.unidad)}</div></td>
+      return `<tr><td>${U.data.guiaChip(g.guia)}<div style="margin-top:4px">${U.data.unidadChip(g.unidad)}</div></td>
         <td>${serie(g.pts)}</td><td class="num"><b>${last}%</b></td><td class="num">≥ ${metaR}%</td>
         <td><span class="badge badge--${es.k}">${es.l}</span></td><td class="num" style="color:${tr.c};font-weight:800">${tr.a}</td></tr>`;
     }).join("");
@@ -709,7 +709,7 @@
     const rowsN = Object.keys(grpN).sort().map(k => {
       const g = grpN[k]; g.pts.sort((a, b) => a.ord.localeCompare(b.ord));
       const last = g.pts[g.pts.length - 1].val, tr = trend(g.pts), es = estado(last, metaN);
-      return `<tr><td><span class="dc-dot" style="background:${uColor(g.unidad)}"></span>${u.esc(g.unidad)}</td>
+      return `<tr><td>${U.data.unidadChip(g.unidad)}</td>
         <td>${serie(g.pts)}</td><td class="num"><b>${last}%</b></td><td class="num">≥ ${metaN}%</td>
         <td><span class="badge badge--${es.k}">${es.l}</span></td><td class="num" style="color:${tr.c};font-weight:800">${tr.a}</td></tr>`;
     }).join("");

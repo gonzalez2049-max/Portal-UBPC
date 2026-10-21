@@ -87,10 +87,10 @@
     const gc = U.data.guiaColor(e.guia);
     return `<div class="card" style="border-top:4px solid var(--verde)">
       <div class="card__head"><div>
-        <span class="tag" style="background:${gc}1f;color:${gc};border:1px solid ${gc}55"><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${gc};margin-right:5px;vertical-align:middle"></span>${u.esc(e.guia || "Guía")}</span>
+        ${U.data.guiaChip(e.guia)}
         <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(e.tipo || "")}</span>
       </div>${u.estadoBadge(e.estado || (global >= meta ? "Dentro de meta" : "En seguimiento"))}</div>
-      <div class="kpi__sub">${u.esc(e.unidad || "—")} · ${u.esc(e.periodo || u.fechaCL(e.fecha))}</div>
+      <div class="kpi__sub">${U.data.unidadChip(e.unidad)} · ${u.esc(e.periodo || u.fechaCL(e.fecha))}</div>
       <div class="center" style="margin:.6rem 0">
         <div style="font-size:2.4rem;font-weight:800;color:${color};line-height:1">${globalTxt}</div>
         <div class="kpi__sub">Cumplimiento global ${global != null && e.resultadoGlobalOficial != null && e.resultadoGlobalOficial !== "" ? "(oficial)" : ""} · Meta ${meta}%</div>
@@ -701,8 +701,10 @@
 
   // Etiqueta de unidad con color propio (para reconocer planes por unidad)
   function uniTag(unidad) {
-    const u = ui(); const c = (U.data.unidadColor ? U.data.unidadColor(unidad) : "#8a97a8");
-    return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}55">${u.esc(unidad || "—")}</span>`;
+    return U.data.unidadChip ? U.data.unidadChip(unidad) : `<span class="tag">${ui().esc(unidad || "—")}</span>`;
+  }
+  function gTag(guia) {
+    return U.data.guiaChip ? U.data.guiaChip(guia) : `<span class="tag">${ui().esc(guia || "Guía")}</span>`;
   }
   function planCard(pl) {
     const u = ui();
@@ -710,7 +712,7 @@
     const av = pinNum(pl.avance);
     const color = cerrado ? "var(--verde)" : (av != null && av >= 70 ? "var(--verde)" : av != null && av >= 40 ? "var(--naranjo)" : "var(--danger)");
     return `<div class="card" style="border-top:4px solid ${color}">
-      <div class="card__head"><div><span class="tag">${u.esc(pl.guia || "Guía")}</span> ${uniTag(pl.unidad)}</div>
+      <div class="card__head"><div>${gTag(pl.guia)} ${uniTag(pl.unidad)}</div>
         <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span></div>
       <h4 class="doc-card__title" style="margin:.4rem 0 .2rem">${u.esc(pl.indicador || pl.objetivo || "Plan de intervención")}</h4>
       <div class="kpi__sub">Línea base ${pinPct(pl.lineaBase)} · Meta ${pinPct(pl.meta)}${pl.brecha ? " · Brecha: " + u.esc(pl.brecha) + (pl.brechaPct !== "" && pl.brechaPct != null ? " (" + pinPct(pl.brechaPct) + ")" : "") : ""}</div>
@@ -1096,7 +1098,7 @@
         { key: "estamento", label: "Estamento", render: (r, uu) => r.estamento ? `<span class="tag">${uu.esc(r.estamento)}</span>` : `<span class="muted">—</span>`, exportVal: r => r.estamento || "" },
         { key: "unidad", label: "Unidad" },
         { key: "turno", label: "Jornada", center: true, render: (r, uu) => { if (!r.turno) return `<span class="muted">—</span>`; const c = jornadaColor(r.turno); return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}66;font-weight:800">${uu.esc(r.turno)}</span>`; }, exportVal: r => r.turno || "" },
-        { key: "guia", label: "Guía", render: (r, uu) => { const g = U.data.guiaColor(r.guia); return `<span class="tag" style="background:${g}1f;color:${g};border:1px solid ${g}55">${uu.esc(r.guia || "—")}</span>`; } },
+        { key: "guia", label: "Guía", render: r => U.data.guiaChip(r.guia) },
         { key: "part", label: "Participaciones", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${fmtDur(s.horas)}`; }, exportVal: r => champStats(r.id).total },
         { key: "ultima", label: "Última", center: true, render: (r, uu) => { const s = champStats(r.id); return s.ultima ? `${uu.fechaCL(s.ultima)}<br><span class="kpi__sub">hace ${s.dias} d</span>` : "—"; }, exportVal: r => { const s = champStats(r.id); return s.ultima ? ui().fechaCL(s.ultima) : ""; } },
         { key: "nivel", label: "Actividad", center: true, render: r => { const n = NIVEL[champStats(r.id).nivel]; return `<span class="doc-estado" style="--ec:${n.color}">${n.ic} ${n.label}</span>`; }, exportVal: r => NIVEL[champStats(r.id).nivel].label },
@@ -1150,8 +1152,8 @@
       body: `${css}<div class="cd">
         <div class="cd-name">⭐ ${u.esc(rec.nombre || "—")}</div>
         <div class="cd-head">
-          ${rec.unidad ? `<span class="cd-chip">🏥 ${u.esc(rec.unidad)}</span>` : ""}
-          ${rec.guia ? `<span class="cd-chip" style="background:${g}1f;color:${g};border:1px solid ${g}55">📘 ${u.esc(rec.guia)}</span>` : ""}
+          ${rec.unidad ? U.data.unidadChip(rec.unidad) : ""}
+          ${rec.guia ? U.data.guiaChip(rec.guia) : ""}
           ${u.estadoBadge(rec.estado)}
           <span class="cd-chip" style="color:${n.color}">${n.ic} ${n.label}</span>
         </div>
@@ -1259,7 +1261,7 @@
         { key: "fecha", label: "Fecha", date: true },
         { key: "tipo", label: "Tipo" },
         { key: "tema", label: "Tema" },
-        { key: "guia", label: "Guía", render: (r, uu) => r.guia ? (() => { const g = U.data.guiaColor(r.guia); return `<span class="tag" style="background:${g}1f;color:${g};border:1px solid ${g}55">${uu.esc(r.guia)}</span>`; })() : "—" },
+        { key: "guia", label: "Guía", render: r => r.guia ? U.data.guiaChip(r.guia) : "—" },
         { key: "asist", label: "Asistencia", center: true, render: r => { const co = (r.convocados || []).length, as = (r.asistentes || []).length; const t = co ? Math.round(as / co * 100) : null; const col = t == null ? "var(--neutral)" : (t >= 70 ? "var(--verde)" : "var(--naranjo)"); return `<strong style="color:${col}">${as}/${co}</strong>${t == null ? "" : " · " + t + "%"}`; }, exportVal: r => (r.asistentes || []).length + "/" + (r.convocados || []).length }
       ],
       fields: [
@@ -1336,7 +1338,7 @@
     box.innerHTML = `<p class="section__hint">Índice compuesto por guía: cumplimiento (60%), cobertura de seguimiento (25%) y participación de la Red Champion (15%, según Champions activos).</p>
       <div class="table-wrap"><table class="tbl"><thead><tr>
         <th>Guía</th><th class="right">Unidades</th><th class="right">Seguimientos</th><th class="right">Cumplimiento prom.</th><th class="right">Champions (activos)</th><th class="right">Índice</th></tr></thead><tbody>
-        ${filas.map(f => { const gc = U.data.guiaColor(f.g); return `<tr><td><span class="tag" style="background:${gc}1f;color:${gc};border:1px solid ${gc}55">${u.esc(f.g)}</span></td>
+        ${filas.map(f => { return `<tr><td>${U.data.guiaChip(f.g)}</td>
           <td class="num">${f.unidades}</td><td class="num">${f.seg}</td>
           <td class="num">${f.prom != null ? f.prom + "%" : "—"}</td><td class="num">${f.champ} <span class="kpi__sub">(${f.activos})</span></td>
           <td class="num"><strong style="color:${f.idx >= 75 ? "var(--verde)" : f.idx >= 50 ? "var(--naranjo)" : "var(--danger)"}">${f.idx}</strong></td></tr>`; }).join("")}

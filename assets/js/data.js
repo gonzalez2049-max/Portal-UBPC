@@ -272,6 +272,24 @@
     return UNIDAD_PALETTE[h % UNIDAD_PALETTE.length];
   }
 
+  // Escape mínimo para los helpers de chips (data.js no depende de U.ui).
+  function _esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m])); }
+  /* ---------- Chips consistentes de GUÍA y UNIDAD (en todo el portal) ----------
+     Deben distinguirse SIEMPRE, no solo por color:
+     · Guía  = píldora RELLENA (color sólido, texto blanco) con 📋
+     · Unidad = chip con BORDE punteado (tinte claro + contorno) con 🏥
+     Así, aunque los colores se parezcan, nunca se confunde una con otra. */
+  function guiaChip(nombre, opts) {
+    opts = opts || {}; const c = guiaColor(nombre); const t = (nombre == null || nombre === "") ? "—" : nombre;
+    const ico = opts.noIcon ? "" : "📋 ";
+    return `<span class="tag tag--guia" style="--chip-c:${c}" title="Guía BPSO">${ico}${_esc(t)}</span>`;
+  }
+  function unidadChip(nombre, opts) {
+    opts = opts || {}; const c = unidadColor(nombre); const t = (nombre == null || nombre === "") ? "—" : nombre;
+    const ico = opts.noIcon ? "" : "🏥 ";
+    return `<span class="tag tag--unidad" style="--chip-c:${c}" title="Unidad">${ico}${_esc(t)}</span>`;
+  }
+
   window.UBPC = window.UBPC || {};
-  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, INDICADOR_TIPO, INDICADOR_FORMULA, TIPO_DONABEDIAN, indicadorTipo, indicadorFormula, NQUIRE, nquireFor, nquireByName, guiaDeIndicador };
+  window.UBPC.data = { CAT, INDICADORES, seedIfEmpty, guiaColor, unidadColor, guiaChip, unidadChip, INDICADOR_TIPO, INDICADOR_FORMULA, TIPO_DONABEDIAN, indicadorTipo, indicadorFormula, NQUIRE, nquireFor, nquireByName, guiaDeIndicador };
 })();
