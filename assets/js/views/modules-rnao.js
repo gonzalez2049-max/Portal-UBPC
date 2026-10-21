@@ -503,6 +503,7 @@
         <div class="pf-grid">
           ${pinFld("unidad", "Unidad", "Unidad con baja adherencia, brecha o incumplimiento.", { value: data.unidad, type: "select", options: ["—"].concat(CAT().unidades), req: true })}
           ${pinFld("guia", "Guía BPSO", "Guía de buenas prácticas de referencia.", { value: data.guia, type: "select", options: CAT().guiasArea, req: true })}
+          ${pinFld("coordinador", "Responsable del plan (Coordinador/a)", "Quién lidera y responde por el plan ante la jefatura/MINSAL. Aparece en la portada y en la Fase 1.", { value: data.coordinador, full: true })}
           ${pinFld("indicador", "Indicador de éxito (NQuIRE)", "Elige el indicador NQuIRE que mide el cierre de la brecha. Se ajusta a la guía/recomendación que trabajas; su código y fórmula aparecen abajo y en la Evaluación de resultados.", { value: data.indicador, full: true, list: nquireOpts(data.guia), placeholder: "Escribe o elige un indicador NQuIRE…" })}
           <div class="pf-field pf-field--full" id="pin-nquire-hint" style="display:none"></div>
           ${pinFld("lineaBase", "Línea base (%)", "Cumplimiento total de la guía (medición inicial).", { value: data.lineaBase, type: "number" })}
