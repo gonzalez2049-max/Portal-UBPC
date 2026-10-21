@@ -675,16 +675,24 @@
     const lb = document.getElementById("ind-list");
     if (!list.length) { lb.innerHTML = u.empty("Aún no hay indicadores registrados.", "Crea uno o usa las recomendaciones de EVI.", "📏"); }
     else {
-      const groups = {}; list.forEach(i => { const t = i.tipo || "Otros"; (groups[t] = groups[t] || []).push(i); });
-      lb.innerHTML = TIPOS.concat(["Otros"]).filter(t => groups[t]).map(t => {
-        const c = TIPO_COLOR[t] || "#8a94a6";
-        return `<div style="margin-bottom:1.1rem">
-          <div style="display:flex;align-items:center;gap:.45rem;margin:.2rem 0 .5rem;font-weight:700;color:var(--text)">
-            <span style="width:10px;height:10px;border-radius:3px;background:${c};display:inline-block"></span>
-            Indicadores de ${u.esc(t)} <span class="kpi__sub" style="font-weight:500">· ${groups[t].length}</span>
-          </div>
-          <div class="grid grid--3">${groups[t].map(card).join("")}</div>
-        </div>`;
+      // Agrupar por TEMA/guía (LPP, Caídas, Accesos…) y, dentro, por TIPO (Estructura/Proceso/Resultado).
+      const temaDe = i => (i.guia && String(i.guia).trim()) ? String(i.guia).trim() : "General";
+      const byGuia = {}; list.forEach(i => { const g = temaDe(i); (byGuia[g] = byGuia[g] || []).push(i); });
+      const ordenTemas = (U.data.CAT.guiasArea || []).concat(["General"]).filter(t => byGuia[t])
+        .concat(Object.keys(byGuia).filter(t => !((U.data.CAT.guiasArea || []).concat(["General"]).includes(t))));
+      lb.innerHTML = ordenTemas.map(tema => {
+        const arr = byGuia[tema];
+        const gc = (U.data.guiaColor ? U.data.guiaColor(tema) : "#12b5a5");
+        const byTipo = {}; arr.forEach(i => { const t = i.tipo || "Otros"; (byTipo[t] = byTipo[t] || []).push(i); });
+        const bloques = TIPOS.concat(["Otros"]).filter(t => byTipo[t]).map(t => {
+          const c = TIPO_COLOR[t] || "#8a94a6";
+          return `<div class="ind-tipo">
+            <div class="ind-tipo__lbl"><span class="ind-tipo__dot" style="background:${c}"></span>Indicadores de ${u.esc(t)} <span class="ind-tipo__n">${byTipo[t].length}</span></div>
+            <div class="grid grid--3">${byTipo[t].map(card).join("")}</div></div>`;
+        }).join("");
+        return `<section class="ind-tema" style="--gc:${gc}">
+          <div class="ind-tema__hd"><span class="ind-tema__pill">${u.esc(tema)}</span><span class="ind-tema__n">${arr.length} indicador(es)</span></div>
+          ${bloques}</section>`;
       }).join("");
       lb.querySelectorAll("[data-idet]").forEach(b => b.onclick = () => detalle(S().get("indicadores", b.dataset.idet)));
       lb.querySelectorAll("[data-ied]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.ied)));
@@ -824,7 +832,8 @@
     let segs = rec.seguimientos ? JSON.parse(JSON.stringify(rec.seguimientos)) : [];
 
     const commonTop = u.formHTML([
-      { name: "nombre", label: "Nombre del indicador", required: true, full: true, value: rec.nombre || "", hint: "Nombre oficial del indicador. Ej: Valoración de riesgo de LPP al ingreso." },
+      { name: "nombre", label: "Nombre del indicador", required: true, full: true, value: rec.nombre || "", hint: "Escribe o elige uno oficial del Anexo 4 (abajo se autocompleta tipo y guía)." },
+      { name: "guia", label: "Guía / tema", type: "select", options: ["General"].concat(U.data.CAT.guiasArea), value: rec.guia || "General", hint: "Caídas, LPP, Accesos vasculares o General." },
       { name: "tipo", label: "Tipo de indicador", type: "select", options: TIPOS, value: tipo, hint: "Estructura = si algo existe · Proceso = cómo se hace · Resultado = efecto en el paciente · Impacto = efecto a largo plazo." },
       { name: "responsable", label: "Responsable", value: rec.responsable || "Enf. Coordinador/a UBPC", hint: "Quién mide y reporta este indicador." },
       { name: "objetivo", label: "Objetivo", type: "textarea", full: true, value: rec.objetivo || "", hint: "Qué se busca lograr o vigilar con este indicador (en una frase)." }
@@ -873,6 +882,26 @@
           ["numeradorDesc", "denominadorDesc", "numerador", "denominador"].forEach(n => { const el = m.querySelector(`[name="${n}"]`); if (el) el.addEventListener("input", paintFormula); });
         }
         tipoSel.onchange = renderDyn; renderDyn();
+
+        // Autocompletar desde el catálogo oficial (Anexo 4) al escribir/elegir el nombre.
+        const nombreInp = m.querySelector('[name="nombre"]');
+        const guiaSel = m.querySelector('[name="guia"]');
+        if (nombreInp && U.data.INDICADORES) {
+          const all = []; Object.keys(U.data.INDICADORES).forEach(g => (U.data.INDICADORES[g] || []).forEach(n => all.push(n)));
+          const dlId = "ind-oficial-dl";
+          let dl = m.querySelector("#" + dlId);
+          if (!dl) { dl = document.createElement("datalist"); dl.id = dlId; dl.innerHTML = all.map(n => `<option value="${u.esc(n)}"></option>`).join(""); m.appendChild(dl); }
+          nombreInp.setAttribute("list", dlId);
+          const guiaDe = n => { for (const g in U.data.INDICADORES) if ((U.data.INDICADORES[g] || []).includes(n)) return g; return null; };
+          nombreInp.addEventListener("change", () => {
+            const n = nombreInp.value.trim(); const g = guiaDe(n); if (!g) return;
+            if (guiaSel) guiaSel.value = g;
+            const t = U.data.indicadorTipo(n); if (tipoSel.value !== t) { tipoSel.value = t; renderDyn(); }
+            const f = (U.data.INDICADOR_FORMULA || {})[n];
+            if (f) { const nd = m.querySelector('[name="numeradorDesc"]'), dd = m.querySelector('[name="denominadorDesc"]');
+              if (nd && !nd.value) nd.value = f.num; if (dd && !dd.value) dd.value = f.den; paintFormula(); }
+          });
+        }
 
         const segBox = m.querySelector("#ind-segs");
         function renderSegs() {

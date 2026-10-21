@@ -476,23 +476,38 @@
       .map(([e, lab]) => `<button class="doc-chip${filtro === e ? " is-on" : ""}" data-filtro="${e}" type="button">${lab} <span class="doc-chip__n">${cuenta(e)}</span></button>`).join("");
     const visibles = filtro === "todos" ? docs : docs.filter(d => (d.estado || "borrador") === filtro);
 
-    const list = docs.length
-      ? (visibles.length
-        ? `<div class="grid grid--3">${visibles.map(d => {
-          const p = plMeta(d.plantilla);
-          const dst = estadoDe(d);
-          return `<div class="doc-card" data-estado="${u.esc(d.estado || "borrador")}" style="--tc:${p.color}">
-            <div class="doc-card__top"><span class="doc-card__ic">${p.ic}</span>
-              <span class="doc-card__tag">${u.esc(p.label)}</span>
-              <span class="doc-estado doc-estado--sm" style="--ec:${dst.color}">${dst.ic} ${u.esc(dst.label)}</span></div>
-            <h4 class="doc-card__title">${u.esc(d.titulo || "Documento sin título")}</h4>
-            <div class="doc-card__meta">${d.codigo ? `<span class="mono">${u.esc(d.codigo)}</span> · ` : ""}v${d.version || 1} · Modificado ${u.fechaCL(d.fechaModificacion)}</div>
-            <div class="doc-card__acts">
-              <button class="btn btn--primary btn--sm" data-open="${d.id}">Abrir</button>
-              ${(d.estado && d.estado !== "borrador") ? "" : `<button class="btn btn--ghost btn--sm" data-del="${d.id}">🗑️</button>`}</div></div>`;
-        }).join("")}</div>`
-        : u.empty("Sin documentos en este estado.", "Prueba con otro filtro.", "🔎"))
-      : u.empty("Aún no hay documentos.", "Abre “＋ Nuevo documento” y elige una plantilla para crear el primero.", "🗂️");
+    const cardHTML = d => {
+      const p = plMeta(d.plantilla);
+      const dst = estadoDe(d);
+      return `<div class="doc-card" data-estado="${u.esc(d.estado || "borrador")}" style="--tc:${p.color}">
+        <div class="doc-card__top"><span class="doc-card__ic">${p.ic}</span>
+          <span class="doc-card__tag">${u.esc(p.label)}</span>
+          <span class="doc-estado doc-estado--sm" style="--ec:${dst.color}">${dst.ic} ${u.esc(dst.label)}</span></div>
+        <h4 class="doc-card__title">${u.esc(d.titulo || "Documento sin título")}</h4>
+        <div class="doc-card__meta">${d.codigo ? `<span class="mono">${u.esc(d.codigo)}</span> · ` : ""}v${d.version || 1} · Modificado ${u.fechaCL(d.fechaModificacion)}</div>
+        <div class="doc-card__acts">
+          <button class="btn btn--primary btn--sm" data-open="${d.id}">Abrir</button>
+          ${(d.estado && d.estado !== "borrador") ? "" : `<button class="btn btn--ghost btn--sm" data-del="${d.id}">🗑️</button>`}</div></div>`;
+    };
+    const grupo = (ic, titulo, hint, arr, cls) => !arr.length ? "" :
+      `<div class="doc-group ${cls}">
+        <div class="doc-group__hd"><span class="doc-group__ic">${ic}</span><h4 class="doc-group__t">${titulo} <span class="doc-group__n">${arr.length}</span></h4><span class="doc-group__hint">${hint}</span></div>
+        <div class="grid grid--3">${arr.map(cardHTML).join("")}</div>
+      </div>`;
+
+    let list;
+    if (!docs.length) {
+      list = u.empty("Aún no hay documentos.", "Abre “＋ Nuevo documento” y elige una plantilla para crear el primero.", "🗂️");
+    } else if (filtro === "todos") {
+      // Separar los BORRADORES (en edición) del resto (validados/finalizados).
+      const borr = docs.filter(d => (d.estado || "borrador") === "borrador");
+      const resto = docs.filter(d => (d.estado || "borrador") !== "borrador");
+      list = grupo("✏️", "Borradores · en edición", "Aún no validados — se pueden editar y eliminar.", borr, "doc-group--borr")
+        + grupo("🔒", "Validados y finalizados", "Aprobados, finalizados o anulados — con código oficial.", resto, "doc-group--fin");
+    } else {
+      list = visibles.length ? `<div class="grid grid--3">${visibles.map(cardHTML).join("")}</div>`
+        : u.empty("Sin documentos en este estado.", "Prueba con otro filtro.", "🔎");
+    }
 
     container.innerHTML = `
       <details class="doc-new"${docs.length ? "" : " open"}>
