@@ -580,9 +580,13 @@
       ["warn", "86 – 100%", "Capacidad tensionada"],
       ["danger", "> 100%", "Capacidad superada"]
     ];
-    return `<section class="section">
-      <div class="section__head"><h2 class="section__title">Ficha técnica destacada</h2></div>
-      <div class="card ico-ficha" style="--acc:${acc}">
+    return `<details class="ico-collapse">
+      <summary class="ico-collapse__sum">
+        <span class="ico-collapse__ic">📐</span>
+        <span class="ico-collapse__t">Índice de Capacidad Operativa UBPC</span>
+        <span class="ico-collapse__hint">Ficha técnica + seguimiento mensual · toca para ver</span>
+      </summary>
+      <div class="card ico-ficha" style="--acc:${acc};margin-top:.7rem">
         <div class="ico-ficha__head">
           <span class="ico-ficha__badge">Estructura</span>
           <div class="ico-ficha__id">
@@ -625,7 +629,7 @@
 
         <div id="ico-data" class="ico-data"></div>
       </div>
-    </section>`;
+    </details>`;
   }
 
   /* ---------- Vista ---------- */
