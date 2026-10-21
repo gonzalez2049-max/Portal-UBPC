@@ -1626,31 +1626,35 @@
     const yr0 = parseInt(plan.anioInicio, 10) || (plan.plazoInicio ? new Date(String(plan.plazoInicio).slice(0, 10) + "T12:00:00").getFullYear() : new Date().getFullYear());
     const mTh = "padding:5pt 7pt;border:1px solid #bcd0c9;background:#0f8f83;color:#fff;font-size:8.8pt;font-weight:700;text-align:center;vertical-align:middle";
     const mTd = "padding:5pt 7pt;border:1px solid #cdd9e5;vertical-align:top;font-size:9pt";
-    // Estrategias/tareas y Responsable(s) en columnas separadas pero alineadas
-    // fila a fila (una viñeta por acción), como pide el formato MINSAL.
+    // Columnas según el "Ejemplo plan de trabajo" de las OO.TT (MINSAL):
+    // Recomendación · Problemas/brechas · Objetivo · Estrategias/Tareas ·
+    // Etapas generales · Resultados esperados por año.
+    // Estrategias: cada acción con su responsable (¿Quién?) y plazo.
     const estrCell = acc.length
-      ? `<ul style="margin:0;padding-left:1.05em">${acc.map(a => `<li style="margin:2px 0">${u.esc(a.accion)}${a.plazo ? ` <span style="color:#5a6b84">(${fdate(a.plazo)})</span>` : ""}</li>`).join("")}</ul>`
+      ? `<ul style="margin:0;padding-left:1.05em">${acc.map(a => `<li style="margin:2px 0">${u.esc(a.accion)}${a.responsable ? ` <span style="color:#5a6b84">· <b>${u.esc(a.responsable)}</b></span>` : ""}${a.plazo ? ` <span style="color:#5a6b84">(${fdate(a.plazo)})</span>` : ""}</li>`).join("")}</ul>`
       : "—";
-    const respCellMatriz = acc.length
-      ? `<ul style="margin:0;padding-left:1.05em">${acc.map(a => `<li style="margin:2px 0">${a.responsable ? u.esc(a.responsable) : "—"}</li>`).join("")}</ul>`
-      : (respList.length ? listCell(respList) : "—");
+    // Etapas generales: una por línea en el campo del plan.
+    const etapasArr = (plan.etapas || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const etapasCell = etapasArr.length
+      ? `<ul style="margin:0;padding-left:1.05em">${etapasArr.map(x => `<li style="margin:2px 0">${u.esc(x)}</li>`).join("")}</ul>`
+      : "—";
     const matriz = `
       <h2>Matriz del plan de trabajo (RNAO · OO.TT MINSAL)</h2>
-      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .4rem">Plan de trabajo operativo: recomendación seleccionada, brecha, objetivo, estrategias/tareas, <b>responsable(s)</b> y resultados esperados por año. Las estrategias y sus responsables van en el mismo orden.</p>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .4rem">Formato "Ejemplo plan de trabajo" de las Orientaciones Técnicas (MINSAL): recomendación seleccionada, problemas/brechas, objetivo, estrategias y tareas (con su responsable), etapas generales y resultados esperados por año.</p>
       <table style="border-collapse:collapse;width:100%;margin:6pt 0 10pt;table-layout:fixed">
         <thead>
           <tr>
-            <th style="${mTh};width:14%" rowspan="2">Recomendación seleccionada</th>
-            <th style="${mTh};width:13%" rowspan="2">Problema / brecha u oportunidad</th>
-            <th style="${mTh};width:12%" rowspan="2">Objetivo</th>
-            <th style="${mTh};width:17%" rowspan="2">Estrategias y tareas de implementación</th>
-            <th style="${mTh};width:14%" rowspan="2">Responsable(s) <span style="font-weight:400">(¿Quién?)</span></th>
+            <th style="${mTh};width:12%" rowspan="2">Recomendaciones seleccionadas</th>
+            <th style="${mTh};width:13%" rowspan="2">Problemas / brechas u oportunidades</th>
+            <th style="${mTh};width:12%" rowspan="2">Objetivos</th>
+            <th style="${mTh};width:19%" rowspan="2">Estrategias y tareas de implementación <span style="font-weight:400">(¿Quién?)</span></th>
+            <th style="${mTh};width:16%" rowspan="2">Etapas generales</th>
             <th style="${mTh}" colspan="3">Resultados esperados</th>
           </tr>
           <tr>
-            <th style="${mTh};width:10%">${yr0}</th>
-            <th style="${mTh};width:10%">${yr0 + 1}</th>
-            <th style="${mTh};width:10%">${yr0 + 2}</th>
+            <th style="${mTh};width:9%">${yr0}</th>
+            <th style="${mTh};width:9%">${yr0 + 1}</th>
+            <th style="${mTh};width:9%">${yr0 + 2}</th>
           </tr>
         </thead>
         <tbody>
@@ -1659,7 +1663,7 @@
             <td style="${mTd}">${brechaTxt}</td>
             <td style="${mTd}">${multi(plan.objetivo)}</td>
             <td style="${mTd}">${estrCell}</td>
-            <td style="${mTd}">${respCellMatriz}</td>
+            <td style="${mTd}">${etapasCell}</td>
             <td style="${mTd}">${multi(plan.resultadoA1)}</td>
             <td style="${mTd}">${multi(plan.resultadoA2)}</td>
             <td style="${mTd}">${multi(plan.resultadoA3)}</td>

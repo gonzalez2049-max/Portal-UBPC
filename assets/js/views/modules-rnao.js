@@ -547,6 +547,9 @@
         <div class="pf-rep-lbl">Acciones a implementar <span class="pf-help">Cada tarea concreta para cerrar la brecha, con responsable, regularidad, plazo, estado y verificador.</span></div>
         ${pinRepTable("acciones", data.acciones)}
         <div class="pf-grid" style="margin-top:.6rem">
+          ${pinFld("etapas", "Etapas generales de implementación", "Una etapa por línea (formato plan de trabajo MINSAL). Ej: Capturar el conocimiento local · Identificar y preparar líderes clínicos · Ejecutar y difundir · Formación de formadores.", { value: data.etapas, type: "textarea", rows: 3, full: true })}
+        </div>
+        <div class="pf-grid" style="margin-top:.6rem">
           ${pinFld("plazoInicio", "Cronología · inicio", "", { value: data.plazoInicio, type: "date" })}
           ${pinFld("plazoFin", "Cronología · término", "Fecha comprometida de término.", { value: data.plazoFin, type: "date" })}
         </div>
