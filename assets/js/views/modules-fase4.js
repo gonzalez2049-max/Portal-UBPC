@@ -569,7 +569,7 @@
       const nuevoLider = !!(celebrate && rey && prevLeader && rey.unidad !== prevLeader);
       const corona = rey ? `<div class="reco-corona${nuevoLider ? " reco-corona--nuevo" : ""}">
           ${nuevoLider ? `<div class="reco-corona__flash">👑 ¡Nueva unidad líder!</div>` : ""}
-          <img class="reco-corona__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
+          <img class="reco-corona__evi" src="assets/img/evi-full.png?v=20260731yy" alt="EVI, mascota de la UBPC">
           <div class="reco-corona__msg">
             <strong>🎉 ¡EVI corona a <span>${u.esc(rey.unidad)}</span> como la unidad más reconocida!</strong>
             <span>${rey.n} reconocimiento${rey.n !== 1 ? "s" : ""} · ¡Sigan fortaleciendo el cuidado con evidencia!</span>

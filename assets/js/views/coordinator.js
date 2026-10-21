@@ -425,7 +425,7 @@
             <p style="margin:.2rem 0"><strong>Recomendación para la práctica:</strong> ${ui().esc(e.recomendacion || "—")}</p>
             ${e.enlace ? `<a href="${ui().esc(e.enlace)}" target="_blank" rel="noopener">Ver fuente ↗</a>` : ""}
           </div>
-          <div class="evi__mascot"><img class="evi-img" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC"></div>
+          <div class="evi__mascot"><img class="evi-img" src="assets/img/evi-full.png?v=20260731yy" alt="EVI, mascota de la UBPC"></div>
         </div>`;
     return cuerpo + `<p class="evi__quote">"La evidencia cobra valor cuando transforma la práctica y mejora el cuidado."</p>`;
   }

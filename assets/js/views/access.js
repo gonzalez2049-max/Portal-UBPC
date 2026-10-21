@@ -102,7 +102,7 @@
           </div>
           <div style="display:flex;justify-content:center;padding:.5rem 0 1.2rem">
             <div class="access__intro" style="max-width:560px;width:100%;border-radius:22px;box-shadow:0 20px 55px rgba(15,60,50,.18);text-align:center;align-items:center;padding:2.4rem 2.2rem">
-              <img class="access__evi" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC" style="width:190px;margin:0 auto .6rem">
+              <img class="access__evi" src="assets/img/evi-full.png?v=20260731yy" alt="EVI, mascota de la UBPC" style="width:190px;margin:0 auto .6rem">
               <h2 style="font-size:1.7rem">Bienvenido/a al<br>Portal de Gestión Operativa</h2>
               <p class="narrativo" style="margin:.2rem auto 0;max-width:440px">Registra, organiza, monitorea y respalda la gestión de la Unidad de Buenas
               Prácticas Clínicas, con trazabilidad de responsables, fechas, estados y resultados.</p>

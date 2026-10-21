@@ -134,7 +134,7 @@
               : `<p class="narrativo" style="margin-top:0">Aquí verás la evidencia que registra Coordinación para apoyar decisiones clínicas. También puedes aportar la tuya.</p>`}
             <a class="btn btn--primary btn--sm" href="#/ref/evidencia">Abrir evidencia y recomendación</a>
           </div>
-          <img class="evi-img" src="assets/img/evi-full.png" alt="EVI, mascota de la UBPC">
+          <img class="evi-img" src="assets/img/evi-full.png?v=20260731yy" alt="EVI, mascota de la UBPC">
         </div>
       </div>
     </div>`;
