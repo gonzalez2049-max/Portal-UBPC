@@ -11,7 +11,7 @@
     { key: "seguimiento", label: "Seguimiento NT 234" },
     { key: "epi", label: "Epidemiología LPP" },
     { key: "alertas", label: "Mapa de Alertas NT 234" },
-    { key: "planes", label: "Plan de Mejora" },
+    { key: "planes", label: "Plan de Mejora · NT 234" },
     { key: "informe", label: "Informe A4" }
   ];
   const NT_IND = [
@@ -459,9 +459,10 @@
     const enPlazo = planes.filter(p => !entregado(p) && p.plazo && new Date(p.plazo) >= hoy);
     const entregados = planes.filter(entregado);
     const alerta = planes.filter(p => !entregado(p) && p.plazo && new Date(p.plazo) < hoy);
-    box.innerHTML = `<div class="card nt-plazos">
+    box.innerHTML = `<div class="doc-linked no-print" style="margin-bottom:.9rem">ℹ️ Estos son los <strong>planes de mejora de la Norma Técnica 234</strong> (cumplimiento de la norma de LPP). Son distintos de los <strong>Planes de Intervención RNAO/BPSO</strong> (implementación de guías), que se gestionan en <a href="#/coord/m3?tab=planes">Programa RNAO → Plan de Intervención</a>.</div>
+      <div class="card nt-plazos">
         <div class="nt-plazos__eyebrow">Control de plazos · NT 234</div>
-        <h3 class="card__title" style="margin:.1rem 0 .8rem">Estado de los planes de mejora</h3>
+        <h3 class="card__title" style="margin:.1rem 0 .8rem">Estado de los planes de mejora NT 234</h3>
         <div class="grid grid--3">
           ${plazoCol("En plazo", enPlazo, "info")}
           ${plazoCol("Entregados", entregados, "ok")}
@@ -470,7 +471,7 @@
       <div id="nt-planes-body"></div>`;
     R().mount(document.getElementById("nt-planes-body"), {
       collection: "planesNT234", title: "Plan de mejora NT 234", icon: "🛠️",
-      hint: "Seguimiento de solicitudes, indicadores y observaciones.",
+      hint: "Planes de cumplimiento de la Norma Técnica 234 (LPP). No confundir con los Planes de Intervención RNAO.",
       newLabel: "Nuevo plan",
       emptyMsg: "Aún no hay planes de mejora.",
       sort: (a, b) => new Date(b.fechaSolicitud || b.fechaCreacion) - new Date(a.fechaSolicitud || a.fechaCreacion),

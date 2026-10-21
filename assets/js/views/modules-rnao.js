@@ -676,7 +676,7 @@
     const u = ui();
     const planes = S().all("planesIntervencion").sort((a, b) => new Date(b.fechaModificacion || b.fechaCreacion || 0) - new Date(a.fechaModificacion || a.fechaCreacion || 0));
     box.innerHTML = `<div class="section__head">
-        <p class="section__hint">Planes de intervención para unidades con baja adherencia, brechas o incumplimiento de indicadores. Cada plan genera su documento “Plan de Mejora” asociado.</p>
+        <p class="section__hint">Planes de intervención RNAO/BPSO para cerrar brechas en la <strong>implementación de guías de buenas prácticas</strong>. Cada plan genera su documento “Plan de Mejora” con la matriz de trabajo. <span class="muted">(Los planes de cumplimiento de la Norma Técnica 234 se gestionan aparte, en NT 234 → Plan de Mejora.)</span></p>
         <button class="btn btn--primary btn--sm" id="newPlan">+ Nuevo plan</button>
       </div>
       ${planes.length ? `<div class="grid grid--3">${planes.map(planCard).join("")}</div>`
