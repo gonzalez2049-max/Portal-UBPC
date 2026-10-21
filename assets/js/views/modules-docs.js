@@ -1671,38 +1671,33 @@
         </tbody>
       </table>`;
 
-    return `<p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .7rem">Plan estructurado según las Orientaciones Técnicas del Programa BPSO (MINSAL), siguiendo el ciclo <b>Conocimiento a la Acción</b> (RNAO).</p>
-      ${matriz}
-      <h2 style="margin-top:12pt">Detalle por fases · Conocimiento a la Acción</h2>
+    return `<p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .7rem">Plan estructurado según las Orientaciones Técnicas del Programa BPSO (MINSAL), siguiendo el ciclo <b>Conocimiento a la Acción</b> (RNAO). Se presentan primero los <b>aspectos generales</b> y luego el <b>plan de trabajo</b>.</p>
 
-      <h2>Fase 1 · Identificación de la brecha</h2>
-      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Análisis de la situación local: dónde está la brecha entre la práctica y la recomendación.</p>
+      <h2>1 · Aspectos generales del plan</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Identificación, situación local (brecha), recomendación y objetivo, con las condiciones y recursos del contexto.</p>
       ${ficha([
         kv("Guía BPSO", e(plan.guia)),
         kv("Unidad implementadora", e(plan.unidad)),
         kv("Responsable del plan (Coordinador/a)", e(plan.coordinador)),
-        kv("Indicador / recomendación", e(plan.indicador)),
+        kv("Líder de guía", e(plan.liderGuia)),
+        kv("Colíder de guía (unidad)", e(plan.coliderGuia)),
+        kv("Responsable de la unidad", e(plan.responsableUnidad)),
+        kv("Indicador de éxito / recomendación", e(plan.indicador)),
+        kv("Recomendación abordada", multi(plan.recomendacion)),
+        kv("Objetivo del plan", multi(plan.objetivo)),
+        kv("Brecha a trabajar", brechaTxt),
         kv("Línea base (cumplimiento de la guía)", pct(plan.lineaBase)),
         kv("Meta comprometida", pct(plan.meta)),
-        kv("Brecha a trabajar", brechaTxt)
-      ])}
-
-      <h2>Fase 2 · Recomendación a implementar</h2>
-      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Adaptación de la recomendación de la guía al contexto local y objetivo del plan.</p>
-      ${ficha([
-        kv("Recomendación abordada", multi(plan.recomendacion)),
-        kv("Objetivo del plan", multi(plan.objetivo))
-      ])}
-
-      <h2>Fase 3 · Barreras y facilitadores</h2>
-      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Condiciones que dificultan o favorecen el uso de la recomendación, y recursos requeridos.</p>
-      ${ficha([
         kv("Barreras y facilitadores", multi(plan.barrerasFacilitadores)),
         kv("Recursos (disponibles / necesarios)", multi(plan.recursos))
       ])}
 
-      <h2>Fase 4 · Plan de Implementación</h2>
-      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .4rem">Selección de intervenciones: ¿Qué? · ¿Quién? · ¿Para cuándo?</p>
+      <h2 style="margin-top:12pt">2 · Plan de trabajo</h2>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Formato "Ejemplo plan de trabajo" de las OO.TT (MINSAL): estrategias y tareas con su responsable, etapas generales y resultados esperados por año.</p>
+      ${matriz}
+
+      <h3>Detalle de acciones e implementación</h3>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .4rem">¿Qué? · ¿Quién? · ¿Para cuándo?, con regularidad y verificador de cada acción.</p>
       ${acc.length
         ? `<table><thead><tr><th width="5%">N°</th><th>Acción <span style="font-weight:400">(¿Qué?)</span></th><th width="18%">Responsable <span style="font-weight:400">(¿Quién?)</span></th><th width="12%">Regularidad</th><th width="13%">Plazo <span style="font-weight:400">(¿Cuándo?)</span></th><th width="18%">Verificador</th></tr></thead><tbody>${acc.map((a, i) => `<tr><td>${i + 1}</td><td>${e(a.accion)}</td><td>${e(a.responsable)}</td><td>${(a.regularidad && a.regularidad !== "—") ? e(a.regularidad) : "—"}</td><td>${fdate(a.plazo)}</td><td>${e(a.verificador)}</td></tr>`).join("")}</tbody></table>`
         : `<p style="color:#5a6b84">Sin acciones registradas aún.</p>`}
@@ -1714,21 +1709,16 @@
         kv("Plan de comunicación", comCell)
       ])}
 
-      <h2>Fase 5 · Monitoreo del uso del conocimiento</h2>
-      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Seguimiento periódico de la adopción de la recomendación.</p>
+      <h3>Monitoreo y evaluación de resultados</h3>
+      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .4rem">Seguimiento periódico de la adopción e indicador de éxito para el cierre de la brecha.</p>
       ${ficha([
         kv("Frecuencia de seguimiento", (plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? e(plan.frecuenciaSeg) : "—"),
-        kv("Avance global", pct(plan.avance))
-      ])}
-      ${segs.length ? `<table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${fdate(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : `<p style="color:#5a6b84">Sin seguimientos registrados aún.</p>`}
-
-      <h2>Fase 6 · Evaluación de resultados</h2>
-      <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Resultado del cierre de la brecha y medios de verificación.</p>
-      ${ficha([
-        kv("Meta de cumplimiento", pct(plan.meta)),
+        kv("Avance global", pct(plan.avance)),
         kv("Indicador de éxito", indicadorNquireCell(plan, e)),
-        kv("Medios de verificación", (acc.length || acts.length) ? "Según el verificador indicado en cada acción (Fase 4)." : listCell(verifList))
-      ])}`;
+        kv("Meta de cumplimiento", pct(plan.meta)),
+        kv("Medios de verificación", (acc.length || acts.length) ? "Según el verificador indicado en cada acción." : listCell(verifList))
+      ])}
+      ${segs.length ? `<table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${fdate(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : `<p style="color:#5a6b84">Sin seguimientos registrados aún.</p>`}`;
   }
 
   // Crea o actualiza el documento vinculado y devuelve su id.

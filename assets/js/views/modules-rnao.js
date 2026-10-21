@@ -517,7 +517,10 @@
         <div class="pf-grid">
           ${pinFld("unidad", "Unidad", "Unidad con baja adherencia, brecha o incumplimiento.", { value: data.unidad, type: "select", options: ["—"].concat(CAT().unidades), req: true })}
           ${pinFld("guia", "Guía BPSO", "Guía de buenas prácticas de referencia.", { value: data.guia, type: "select", options: CAT().guiasArea, req: true })}
-          ${pinFld("coordinador", "Responsable del plan (Coordinador/a)", "Quién lidera y responde por el plan ante la jefatura/MINSAL. Aparece en la portada y en la Fase 1.", { value: data.coordinador, full: true })}
+          ${pinFld("coordinador", "Responsable del plan (Coordinador/a)", "Quién lidera y responde por el plan ante la jefatura/MINSAL. Aparece en la portada y en los aspectos generales.", { value: data.coordinador, full: true })}
+          ${pinFld("liderGuia", "Líder de guía", "Enfermero/a líder de la implementación de la guía BPSO.", { value: data.liderGuia })}
+          ${pinFld("coliderGuia", "Colíder de guía (unidad)", "Colíder de la guía en la unidad implementadora.", { value: data.coliderGuia })}
+          ${pinFld("responsableUnidad", "Responsable de la unidad", "Jefatura o responsable clínico de la unidad.", { value: data.responsableUnidad, full: true })}
           <div class="pf-field pf-field--full">
             <label for="pin-indicador">Indicador de éxito (NQuIRE)</label>
             <select class="input" id="pin-indicador" data-pf="indicador">${indicadorOptionsHTML(data.guia, data.indicador)}</select>
