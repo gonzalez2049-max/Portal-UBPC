@@ -230,6 +230,69 @@
     };
   }
 
+  function repEvidencia() {
+    const edsCient = S().all("edicionesEVI");
+    const edsClin = S().all("edicionesEVIClinico");
+    const semanal = S().all("evidenciaSemana");
+
+    // Piezas de evidencia científica (cada edición contiene varias evidencias)
+    const piezas = [];
+    edsCient.forEach(ed => (ed.evidencias || []).forEach(ev => piezas.push({
+      fecha: ed.fechaEnvio, canal: "EVI Científica",
+      tipo: (ev.tipo && ev.tipo !== "—") ? ev.tipo : "Sin clasificar",
+      titulo: ev.trabajo || "", area: ev.area || "", fuente: ev.autores || "", anio: ev.anio || ""
+    })));
+    // Registros unificados de evidencia entregada (todos los canales)
+    const items = piezas
+      .concat(edsClin.map(e => ({ fecha: e.fechaEnvio, canal: "EVI Clínico", tipo: "Boletín clínico",
+        titulo: "Boletín N.º " + (e.numeroEdicion || "—"), area: e.tema || "", fuente: "", anio: "" })))
+      .concat(semanal.map(e => ({ fecha: e.fecha, canal: "Evidencia para la acción", tipo: "Evidencia para la acción",
+        titulo: e.titulo || "", area: "", fuente: e.fuente || "", anio: "" })))
+      .sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+
+    const total = items.length;
+    const pct = n => total ? Math.round(n / total * 100) + "%" : "—";
+
+    // Cantidad por canal de difusión
+    const canales = ["EVI Científica", "EVI Clínico", "Evidencia para la acción"];
+    const porCanal = {}; items.forEach(i => porCanal[i.canal] = (porCanal[i.canal] || 0) + 1);
+    const canalRows = canales.filter(c => porCanal[c]).map(c => {
+      let detalle = "";
+      if (c === "EVI Científica") detalle = "en " + edsCient.length + " edición(es)";
+      else if (c === "EVI Clínico") detalle = edsClin.length + " boletín(es)";
+      return [esc(c), porCanal[c], pct(porCanal[c]), esc(detalle)];
+    });
+
+    // Cantidad por tipo de evidencia científica (de las piezas de EVI Científica)
+    const porTipo = {}; piezas.forEach(p => porTipo[p.tipo] = (porTipo[p.tipo] || 0) + 1);
+    const tipoRows = Object.keys(porTipo).sort((a, b) => porTipo[b] - porTipo[a])
+      .map(t => [esc(t), porTipo[t], piezas.length ? Math.round(porTipo[t] / piezas.length * 100) + "%" : "—"]);
+
+    // Detalle completo de evidencia entregada
+    const detRows = items.map(i => [ui().fechaCL(i.fecha), esc(i.canal), esc(i.tipo),
+      esc(i.titulo), esc(i.area || "—"), esc(i.fuente || "—")]);
+
+    return {
+      titulo: "Reporte de evidencia entregada", periodo: periodoActual(),
+      body: kpiRow([
+        { v: total, l: "Evidencias entregadas" },
+        { v: piezas.length, l: "Piezas EVI Científica" },
+        { v: edsClin.length, l: "Boletines EVI Clínico" },
+        { v: semanal.length, l: "Evidencia para la acción" }
+      ]) + `<h3>Cantidad por canal de difusión</h3>` +
+        table(["Canal", "Cantidad", "% del total", "Detalle"], canalRows) +
+        `<h3>Cantidad por tipo de evidencia científica</h3>` +
+        table(["Tipo de evidencia", "Cantidad", "% de las piezas"], tipoRows) +
+        `<h3>Detalle de evidencia entregada</h3>` +
+        table(["Fecha", "Canal", "Tipo", "Título / trabajo", "Área / tema", "Autores / fuente"], detRows),
+      excel: {
+        headers: ["Fecha", "Canal", "Tipo", "Título", "Área/Tema", "Autores/Fuente", "Año"],
+        rows: items.map(i => ({ Fecha: ui().fechaCL(i.fecha), Canal: i.canal, Tipo: i.tipo,
+          "Título": i.titulo, "Área/Tema": i.area || "", "Autores/Fuente": i.fuente || "", "Año": i.anio || "" }))
+      }
+    };
+  }
+
   function periodoActual() {
     const y = new Date().getFullYear();
     return y + (new Date().getMonth() < 6 ? "-S1" : "-S2");
@@ -241,6 +304,7 @@
     { key: "nt234", title: "Norma Técnica 234", icon: "🛡️", desc: "Prevención de LPP: cumplimiento por unidad y planes de mejora.", build: repNT234 },
     { key: "capacitacion", title: "Capacitación y cobertura", icon: "🎓", desc: "Actividades, personas capacitadas y cobertura.", build: repCapacitacion },
     { key: "indicadores", title: "Indicadores UBPC", icon: "📏", desc: "Semáforo, cumplimiento, tendencias y alertas por indicador.", build: repIndicadores },
+    { key: "evidencia", title: "Evidencia entregada", icon: "🔬", desc: "Cantidad y tipo de evidencia difundida: EVI Científica, EVI Clínico y Evidencia para la acción.", build: repEvidencia },
     { key: "documental", title: "Gestión Documental", icon: "🗂️", desc: "Inventario de documentos, versiones, estado y V°B° UBPC.", build: repDocumental },
     { key: "colaboracion", title: "Red de Colaboración", icon: "🌐", desc: "Colaboraciones institucionales y participación.", build: repColaboracion }
   ];
