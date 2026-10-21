@@ -1714,8 +1714,7 @@
       <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .3rem">Seguimiento periódico de la adopción de la recomendación.</p>
       ${ficha([
         kv("Frecuencia de seguimiento", (plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? e(plan.frecuenciaSeg) : "—"),
-        kv("Avance global", pct(plan.avance)),
-        kv("Responsables", listCell(respList))
+        kv("Avance global", pct(plan.avance))
       ])}
       ${segs.length ? `<table><thead><tr><th width="18%">Fecha</th><th>Descripción / avance</th><th width="14%">% avance</th><th width="18%">Estado</th></tr></thead><tbody>${segs.map(s => `<tr><td>${fdate(s.fecha)}</td><td>${e(s.descripcion)}</td><td>${pct(s.avance)}</td><td>${e(s.estado)}</td></tr>`).join("")}</tbody></table>` : `<p style="color:#5a6b84">Sin seguimientos registrados aún.</p>`}
 

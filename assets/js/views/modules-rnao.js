@@ -474,14 +474,28 @@
     nq.concat(prac).forEach(n => { const k = (n || "").trim(); if (k && !seen[k.toLowerCase()]) { seen[k.toLowerCase()] = 1; out.push(k); } });
     return out;
   }
+  // Opciones del desplegable del indicador de éxito según la guía elegida.
+  // Incluye el valor actual (si fuera uno propio) y la opción "Otro (escribir)".
+  function indicadorOptionsHTML(guia, current) {
+    const u = ui(); const cur = (current || "").trim();
+    const opts = nquireOpts(guia);
+    const inList = cur && opts.some(o => o.toLowerCase() === cur.toLowerCase());
+    let html = `<option value="">— Elige el indicador de éxito —</option>`;
+    html += opts.map(o => `<option value="${u.esc(o)}"${(cur && o.toLowerCase() === cur.toLowerCase()) ? " selected" : ""}>${u.esc(o)}</option>`).join("");
+    if (cur && !inList) html += `<option value="${u.esc(cur)}" selected>${u.esc(cur)} (actual)</option>`;
+    html += `<option value="__otro__">✎ Otro (escribir)…</option>`;
+    return html;
+  }
   // Muestra bajo el campo la ficha NQuIRE (tipo, código y fórmula) como guía al
   // confeccionar el plan; se actualiza al escribir/elegir el indicador.
   function renderNquireHint(box) {
     const el = box.querySelector("#pin-nquire-hint");
-    const inp = box.querySelector('[data-pf="indicador"]');
-    if (!el || !inp) return;
+    if (!el) return;
+    const sel = box.querySelector("#pin-indicador");
+    let val = sel ? sel.value : "";
+    if (val === "__otro__") { const o = box.querySelector("#pin-indicador-otro"); val = o ? o.value : ""; }
     const u = ui();
-    const nq = (U.data.nquireByName && inp.value.trim()) ? U.data.nquireByName(inp.value) : null;
+    const nq = (U.data.nquireByName && val.trim()) ? U.data.nquireByName(val) : null;
     if (!nq) { el.style.display = "none"; el.innerHTML = ""; return; }
     const tc = { "Proceso": "#176ac0", "Resultado": "#2f9d57", "Estructura": "#7a5cd0" }[nq.tipo] || "#176ac0";
     el.style.display = "";
@@ -504,7 +518,12 @@
           ${pinFld("unidad", "Unidad", "Unidad con baja adherencia, brecha o incumplimiento.", { value: data.unidad, type: "select", options: ["—"].concat(CAT().unidades), req: true })}
           ${pinFld("guia", "Guía BPSO", "Guía de buenas prácticas de referencia.", { value: data.guia, type: "select", options: CAT().guiasArea, req: true })}
           ${pinFld("coordinador", "Responsable del plan (Coordinador/a)", "Quién lidera y responde por el plan ante la jefatura/MINSAL. Aparece en la portada y en la Fase 1.", { value: data.coordinador, full: true })}
-          ${pinFld("indicador", "Indicador de éxito (NQuIRE)", "Elige el indicador NQuIRE que mide el cierre de la brecha. Se ajusta a la guía/recomendación que trabajas; su código y fórmula aparecen abajo y en la Evaluación de resultados.", { value: data.indicador, full: true, list: nquireOpts(data.guia), placeholder: "Escribe o elige un indicador NQuIRE…" })}
+          <div class="pf-field pf-field--full">
+            <label for="pin-indicador">Indicador de éxito (NQuIRE)</label>
+            <select class="input" id="pin-indicador" data-pf="indicador">${indicadorOptionsHTML(data.guia, data.indicador)}</select>
+            <input class="input" id="pin-indicador-otro" data-pf="indicadorOtro" type="text" placeholder="Escribe el indicador…" style="display:none;margin-top:.45rem" value="">
+            <span class="pf-help">Elige el indicador NQuIRE de la guía (su código y fórmula aparecen abajo). Las opciones cambian según la guía. Usa «Otro» para escribir uno propio.</span>
+          </div>
           <div class="pf-field pf-field--full" id="pin-nquire-hint" style="display:none"></div>
           ${pinFld("lineaBase", "Línea base (%)", "Cumplimiento total de la guía (medición inicial).", { value: data.lineaBase, type: "number" })}
           ${pinFld("meta", "Meta (%)", "Meta de cumplimiento comprometida.", { value: data.meta, type: "number" })}
@@ -570,6 +589,9 @@
   function savePlan(box, current, opts) {
     opts = opts || {}; const u = ui();
     const d = readPlanForm(box);
+    // Indicador de éxito: si se eligió "Otro", usar el texto escrito.
+    if (d.indicador === "__otro__") d.indicador = (d.indicadorOtro || "").trim();
+    delete d.indicadorOtro;
     // Vincula el indicador de éxito con el catálogo NQuIRE (código para trazabilidad).
     d.indicadorCodigo = (U.data.nquireByName && (U.data.nquireByName(d.indicador) || {}).codigo) || "";
     box.querySelectorAll(".pf-field--err").forEach(x => x.classList.remove("pf-field--err"));
@@ -616,9 +638,29 @@
       ${planFormHTML(data)}`;
 
     document.getElementById("pin-back").onclick = () => planList(box);
-    // Ficha NQuIRE bajo el indicador (guía en vivo)
-    const indInp = box.querySelector('[data-pf="indicador"]');
-    if (indInp) { indInp.addEventListener("input", () => renderNquireHint(box)); indInp.addEventListener("change", () => renderNquireHint(box)); }
+    // Indicador de éxito: desplegable por guía + opción "Otro (escribir)"
+    const indSel = box.querySelector("#pin-indicador");
+    const indOtro = box.querySelector("#pin-indicador-otro");
+    const guiaSel = box.querySelector('[data-pf="guia"]');
+    const syncOtro = () => {
+      const on = indSel && indSel.value === "__otro__";
+      if (indOtro) { indOtro.style.display = on ? "" : "none"; if (on) indOtro.focus(); }
+    };
+    if (indSel) indSel.addEventListener("change", () => { syncOtro(); renderNquireHint(box); });
+    if (indOtro) indOtro.addEventListener("input", () => renderNquireHint(box));
+    if (guiaSel) guiaSel.addEventListener("change", () => {
+      // Al cambiar la guía se repueblan las opciones, conservando lo ya elegido.
+      const curVal = (indSel && indSel.value === "__otro__") ? (indOtro ? indOtro.value : "") : (indSel ? indSel.value : "");
+      if (indSel) indSel.innerHTML = indicadorOptionsHTML(guiaSel.value, curVal);
+      syncOtro(); renderNquireHint(box);
+    });
+    // Sincroniza las opciones del indicador con la guía mostrada al abrir
+    // (en un plan nuevo la guía parte en su primer valor por defecto).
+    if (guiaSel && indSel) {
+      const curVal = (indSel.value === "__otro__") ? (indOtro ? indOtro.value : "") : indSel.value;
+      indSel.innerHTML = indicadorOptionsHTML(guiaSel.value, curVal);
+    }
+    syncOtro();
     renderNquireHint(box);
     const bindRm = () => box.querySelectorAll("[data-reprm]").forEach(b => b.onclick = () => b.closest("tr").remove());
     box.querySelectorAll("[data-repadd]").forEach(b => b.onclick = () => {
