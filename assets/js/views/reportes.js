@@ -100,33 +100,59 @@
   }
 
   function repCapacitacion() {
-    const acts = S().all("actividades").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-    const total = acts.reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0);
-    const rows = acts.map(a => [ui().fechaCL(a.fecha), esc(a.actividad || ""), esc(a.tipo || ""),
-      esc(a.estamento || ""), (parseInt(a.personasCapacitadas) || 0), esc(a.cobertura || ""), esc(a.estado || "")]);
+    const acts = S().all("actividades");
+    const num = v => parseInt(v) || 0;
+    const total = acts.reduce((n, a) => n + num(a.personasCapacitadas), 0);
+    const pctT = n => total ? Math.round(n / total * 100) + "%" : "—";
+    // Producción por estamento (a quién se capacitó)
+    const byEst = {}; acts.forEach(a => { const e = a.estamento || "Sin estamento"; byEst[e] = (byEst[e] || 0) + num(a.personasCapacitadas); });
+    const estRows = Object.keys(byEst).sort((a, b) => byEst[b] - byEst[a]).map(e => [esc(e), byEst[e], pctT(byEst[e])]);
+    // Por tipo de actividad
+    const byTipo = {}; acts.forEach(a => { const t = a.tipo || "Sin tipo"; (byTipo[t] = byTipo[t] || { n: 0, cap: 0 }).n++; byTipo[t].cap += num(a.personasCapacitadas); });
+    const tipoRows = Object.keys(byTipo).sort((a, b) => byTipo[b].cap - byTipo[a].cap).map(t => [esc(t), byTipo[t].n, byTipo[t].cap]);
+    // Decisión: cuántas quedan pendientes
+    const realizadas = acts.filter(a => /realiz|complet|ejecut|hecho/i.test(a.estado || "")).length;
+    const pend = acts.length - realizadas;
+    const estamentos = Object.keys(byEst).filter(e => e !== "Sin estamento").length;
     return {
       titulo: "Reporte de capacitación y cobertura", periodo: periodoActual(),
-      body: kpiRow([{ v: acts.length, l: "Actividades" }, { v: total, l: "Personas capacitadas" }]) +
-        `<h3>Actividades de capacitación</h3>` +
-        table(["Fecha", "Actividad", "Tipo", "Estamento", "Capacitados", "Cobertura", "Estado"], rows),
+      body: kpiRow([
+        { v: acts.length, l: "Actividades" }, { v: total, l: "Personas capacitadas" },
+        { v: estamentos, l: "Estamentos alcanzados" }, { v: pend, l: "Actividades pendientes" }
+      ]) + `<h3>Producción por estamento</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">A quiénes llegó la capacitación. El detalle de cada actividad está en la exportación a Excel.</p>`
+        + table(["Estamento", "Personas capacitadas", "% del total"], estRows)
+        + `<h3>Por tipo de actividad</h3>` + table(["Tipo", "Actividades", "Personas capacitadas"], tipoRows),
       excel: { headers: ["Fecha", "Actividad", "Tipo", "Estamento", "Capacitados", "Cobertura", "Estado"],
-        rows: acts.map(a => ({ Fecha: ui().fechaCL(a.fecha), Actividad: a.actividad, Tipo: a.tipo,
-          Estamento: a.estamento, Capacitados: parseInt(a.personasCapacitadas) || 0, Cobertura: a.cobertura, Estado: a.estado })) }
+        rows: acts.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(a => ({ Fecha: ui().fechaCL(a.fecha), Actividad: a.actividad, Tipo: a.tipo,
+          Estamento: a.estamento, Capacitados: num(a.personasCapacitadas), Cobertura: a.cobertura, Estado: a.estado })) }
     };
   }
 
   function repColaboracion() {
-    const cols = S().all("colaboraciones").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-    const forms = cols.filter(c => c.nParticipantes).reduce((n, c) => n + (parseInt(c.nParticipantes) || 0), 0);
-    const rows = cols.map(c => [ui().fechaCL(c.fecha), esc(c.institucion || ""), esc(c.tipo || ""),
-      esc(c.rolUBPC || ""), esc(c.pilar || ""), (c.nParticipantes || "—"), esc(c.estado || "")]);
+    const cols = S().all("colaboraciones");
+    const num = v => parseInt(v) || 0;
+    const forms = cols.reduce((n, c) => n + num(c.nParticipantes), 0);
+    const pctT = n => cols.length ? Math.round(n / cols.length * 100) + "%" : "—";
+    const instituciones = new Set(cols.map(c => (c.institucion || "").trim()).filter(Boolean)).size;
+    // Por pilar del programa (dónde aporta la UBPC)
+    const byPilar = {}; cols.forEach(c => { const p = c.pilar || "Sin pilar"; byPilar[p] = (byPilar[p] || 0) + 1; });
+    const pilarRows = Object.keys(byPilar).sort((a, b) => byPilar[b] - byPilar[a]).map(p => [esc(p), byPilar[p], pctT(byPilar[p])]);
+    // Por tipo de colaboración
+    const byTipo = {}; cols.forEach(c => { const t = c.tipo || "Sin tipo"; byTipo[t] = (byTipo[t] || 0) + 1; });
+    const tipoRows = Object.keys(byTipo).sort((a, b) => byTipo[b] - byTipo[a]).map(t => [esc(t), byTipo[t], pctT(byTipo[t])]);
+    const pilares = Object.keys(byPilar).filter(p => p !== "Sin pilar").length;
     return {
       titulo: "Reporte de la Red de Colaboración", periodo: periodoActual(),
-      body: kpiRow([{ v: cols.length, l: "Colaboraciones" }, { v: forms, l: "Participantes formativos" }]) +
-        `<h3>Colaboraciones registradas</h3>` +
-        table(["Fecha", "Institución", "Tipo", "Rol UBPC", "Pilar", "Participantes", "Estado"], rows),
+      body: kpiRow([
+        { v: cols.length, l: "Colaboraciones" }, { v: forms, l: "Participantes formativos" },
+        { v: instituciones, l: "Instituciones" }, { v: pilares, l: "Pilares cubiertos" }
+      ]) + `<h3>Aporte por pilar del programa</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Dónde está aportando la UBPC. El detalle de cada colaboración está en la exportación a Excel.</p>`
+        + table(["Pilar", "Colaboraciones", "% del total"], pilarRows)
+        + `<h3>Por tipo de colaboración</h3>` + table(["Tipo", "Colaboraciones", "% del total"], tipoRows),
       excel: { headers: ["Fecha", "Institución", "Tipo", "Rol UBPC", "Pilar", "Participantes", "Estado"],
-        rows: cols.map(c => ({ Fecha: ui().fechaCL(c.fecha), "Institución": c.institucion, Tipo: c.tipo,
+        rows: cols.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(c => ({ Fecha: ui().fechaCL(c.fecha), "Institución": c.institucion, Tipo: c.tipo,
           "Rol UBPC": c.rolUBPC, Pilar: c.pilar, Participantes: c.nParticipantes || "", Estado: c.estado })) }
     };
   }
@@ -281,9 +307,10 @@
     const tipoRows = Object.keys(porTipo).sort((a, b) => porTipo[b] - porTipo[a])
       .map(t => [esc(t), porTipo[t], piezas.length ? Math.round(porTipo[t] / piezas.length * 100) + "%" : "—"]);
 
-    // Detalle completo de evidencia entregada
-    const detRows = items.map(i => [ui().fechaCL(i.fecha), esc(i.canal), esc(i.tipo),
-      esc(i.titulo), esc(i.area || "—"), esc(i.fuente || "—")]);
+    // Áreas / temas abordados (de las piezas científicas y los boletines clínicos)
+    const porArea = {}; items.forEach(i => { const a = (i.area && String(i.area).trim()) ? i.area.trim() : "General / sin área"; porArea[a] = (porArea[a] || 0) + 1; });
+    const areaRows = Object.keys(porArea).sort((a, b) => porArea[b] - porArea[a])
+      .map(a => [esc(a), porArea[a], pct(porArea[a])]);
 
     return {
       titulo: "Reporte de evidencia entregada", periodo: periodoActual(),
@@ -294,10 +321,11 @@
         { v: edsClin.length, l: "Boletines EVI Clínico" }
       ]) + `<h3>Cantidad por canal de difusión</h3>` +
         table(["Canal", "Cantidad", "% del total", "Detalle"], canalRows) +
-        `<h3>Cantidad por tipo de evidencia científica</h3>` +
+        `<h3>Tipo de evidencia científica enviada</h3>` +
         table(["Tipo de evidencia", "Cantidad", "% de las piezas"], tipoRows) +
-        `<h3>Detalle de evidencia entregada</h3>` +
-        table(["Fecha", "Canal", "Tipo", "Título / trabajo", "Área / tema", "Autores / fuente"], detRows),
+        `<h3>Áreas / temas abordados</h3>` +
+        `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Guías o temas clínicos cubiertos por la evidencia difundida. El listado completo de cada evidencia está en la exportación a Excel.</p>` +
+        table(["Área / tema", "Evidencias", "% del total"], areaRows),
       excel: {
         headers: ["Fecha", "Canal", "Tipo", "Título", "Área/Tema", "Autores/Fuente", "Año"],
         rows: items.map(i => ({ Fecha: ui().fechaCL(i.fecha), Canal: i.canal, Tipo: i.tipo,
