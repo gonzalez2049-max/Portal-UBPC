@@ -297,14 +297,6 @@
       <div class="card" id="tendencia">${tendenciaHTML()}</div>
     </div>
 
-    <div class="section">
-      <div class="section__head">
-        <div><h2 class="section__title">Tablero de seguimiento</h2>
-        <p class="section__hint">Tareas pendientes, en curso y completadas.</p></div>
-      </div>
-      <div id="homeKanban"></div>
-    </div>
-
     <div class="grid grid--2" style="align-items:start">
       <div class="section" style="margin:0">
         <div class="section__head"><div><h2 class="section__title">Actividad reciente</h2>
@@ -449,7 +441,6 @@
 
   /* ---------- Binder del Home ---------- */
   function homeBind(root) {
-    U.components.kanban.mount(document.getElementById("homeKanban"), "coordinador");
     bindTendencia();
 
     const addHito = document.getElementById("addHito");
