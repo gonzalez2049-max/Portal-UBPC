@@ -279,6 +279,14 @@
       <p class="ico-fte__concl">${concl} <span class="kpi__sub">Jornada de referencia: ${j} h/mes.</span></p>
     </div>`;
   }
+  // Conclusión en una sola línea (vista compacta del índice)
+  function icoFTEline(rec) {
+    const j = icoJornada();
+    const req = Number(rec.demanda) / j, disp = Number(rec.horas) / j, deficit = req - disp;
+    return (deficit >= 0.2)
+      ? `Demanda ≈ <b>${fteFmt(req)} jornadas</b> vs <b>${fteFmt(disp)}</b> disponible → <b style="color:var(--danger)">falta ~${fteFmt(deficit)} jornada de EU referente</b>.`
+      : `Demanda ≈ <b>${fteFmt(req)} jornadas</b>; la capacidad disponible (${fteFmt(disp)}) alcanza este mes.`;
+  }
 
   /* ---- Evidencia de saturación con datos reales del portal (sin horas) ---- */
   function icoActividadMes(ym) {
@@ -548,14 +556,21 @@
           ${vari}
         </div>
       </div>
-      ${icoFTEcardHTML(last)}
-      <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 Evolución mensual</h4>
-      <div style="margin:.4rem 0">${chart}</div>
-      <div class="table-wrap"><table class="tbl"><thead><tr>
-        <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
-      </tr></thead><tbody>${rows}</tbody></table></div>
-      ${icoEvidenciaHTML()}
-      ${icoRecomendacionHTML()}`;
+      <p class="ico-concl-line">🧮 ${icoFTEline(last)}</p>
+
+      <details class="ico-mas">
+        <summary class="ico-mas__sum">📈 Ver evolución, jornadas, evidencia y recomendación</summary>
+        <div style="margin-top:.6rem">
+          ${icoFTEcardHTML(last)}
+          <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 Evolución mensual</h4>
+          <div style="margin:.4rem 0">${chart}</div>
+          <div class="table-wrap"><table class="tbl"><thead><tr>
+            <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
+          </tr></thead><tbody>${rows}</tbody></table></div>
+          ${icoEvidenciaHTML()}
+          ${icoRecomendacionHTML()}
+        </div>
+      </details>`;
 
     document.getElementById("ico-add").onclick = () => icoForm(null);
     document.getElementById("ico-params").onclick = () => icoParams();
