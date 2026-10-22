@@ -273,7 +273,11 @@
         <div class="card">
           <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Tendencia de cumplimiento global</h3>
             <p class="card__hint" style="margin:0">Evolución mensual por unidad</p></div>
-            <select class="select" id="nt-filtro" style="max-width:230px"><option>Todas</option>${unidades.map(x => `<option ${x === filtro ? "selected" : ""}>${u.esc(x)}</option>`).join("")}</select></div>
+            <div class="flex" style="gap:.7rem;align-items:center;flex-wrap:wrap">
+              <label class="kpi__sub" style="display:flex;align-items:center;gap:.35rem;font-weight:700;white-space:nowrap">⚙️ Estándar de cumplimiento
+                <input class="input" type="number" id="nt-estandar" min="1" max="100" step="1" value="${meta234()}" style="width:64px;padding:.25rem .4rem;text-align:center" title="Estándar/meta de cumplimiento NT 234 (oficial 85%)"> %</label>
+              <select class="select" id="nt-filtro" style="max-width:230px"><option>Todas</option>${unidades.map(x => `<option ${x === filtro ? "selected" : ""}>${u.esc(x)}</option>`).join("")}</select>
+            </div></div>
           ${trend}
         </div>
         <div class="section__head" style="margin-top:1.1rem"><div><h3 class="section__title" style="margin:0">${meds.length} registro(s)</h3><p class="section__hint">Historial editable del módulo</p></div>
@@ -281,6 +285,12 @@
         ${hist}`;
 
       document.getElementById("nt-filtro").onchange = e => { filtro = e.target.value; render(); };
+      const estInp = document.getElementById("nt-estandar");
+      if (estInp) estInp.onchange = () => {
+        let v = Math.round(Number(estInp.value) || 0);
+        if (v < 1 || v > 100) { v = 85; }
+        S().setConfig("nt234.meta", v); u.toast("Estándar de cumplimiento actualizado a " + v + "%", "ok"); render();
+      };
       document.getElementById("nt-new").onclick = () => formNT(null, render);
       box.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => formNT(S().get("nt234", b.dataset.edit), render));
       box.querySelectorAll("[data-del]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar esta medición?", () => { S().remove("nt234", b.dataset.del); render(); }));
@@ -548,7 +558,7 @@
       onMount(m) { m.querySelector("[data-save]").onclick = () => {
         const d = u.readForm(m);
         S().setConfig("nt234.responsable", d.responsable); S().setConfig("nt234.resolucion", d.resolucion);
-        S().setConfig("nt234.meta", Number(d.meta) || 90); S().setConfig("nt234.observaciones", d.observaciones || "");
+        S().setConfig("nt234.meta", Number(d.meta) || 85); S().setConfig("nt234.observaciones", d.observaciones || "");
         u.closeModal(); done();
       }; }
     });
