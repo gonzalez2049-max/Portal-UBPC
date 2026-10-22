@@ -184,10 +184,24 @@
     const NT = U.ntUtil || {};
     const meta = Number(S().getConfig("nt234.meta", 90)) || 90;
     const inst = NT.institNT ? NT.institNT() : { pct: null, unidades: 0 };
-    const rows = meds.slice()
-      .sort((a, b) => (a.unidad || "").localeCompare(b.unidad || "") || (a.periodo || "").localeCompare(b.periodo || ""))
-      .map(m => { const g = NT.globalNT ? NT.globalNT(m) : null;
-        return [esc(m.unidad || ""), esc(m.jefatura || ""), esc(m.periodo || ""), `<strong>${pctFmt(g)}</strong>`, meta + "%", esc(m.enviadoUnidad || "—")]; });
+    const gl = m => NT.globalNT ? NT.globalNT(m) : null;
+    const estNT = v => NT.estadoNT ? NT.estadoNT(v) : { label: v == null ? "Sin datos" : (v >= meta ? "En cumplimiento" : "Seguimiento"), color: "var(--text)", badge: "neutral" };
+    // Resumen por unidad (una fila por unidad, no por cada período)
+    const byUnidad = {};
+    meds.forEach(m => { const u = m.unidad || "—"; (byUnidad[u] = byUnidad[u] || []).push(m); });
+    const rows = Object.keys(byUnidad).sort().map(u => {
+      const arr = byUnidad[u].slice().sort((a, b) => (a.periodo || "").localeCompare(b.periodo || ""));
+      const vals = arr.map(gl).filter(v => v != null);
+      const ultimo = vals.length ? vals[vals.length - 1] : null;
+      const prom = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : null;
+      let tend = "→ —", tcol = "var(--text-muted)";
+      if (vals.length >= 2) { const d = Math.round((vals[vals.length - 1] - vals[vals.length - 2]) * 10) / 10; tend = d > 0 ? "▲ +" + d : (d < 0 ? "▼ " + d : "→ 0"); tcol = d > 0 ? "var(--verde)" : (d < 0 ? "var(--danger)" : "var(--text-muted)"); }
+      const jef = (arr.find(m => m.jefatura) || {}).jefatura || "";
+      const ultPer = arr.length ? (arr[arr.length - 1].periodo || "—") : "—";
+      const st = estNT(ultimo);
+      return [esc(u), esc(jef), esc(ultPer), `<strong style="color:${st.color}">${pctFmt(ultimo)}</strong>`, pctFmt(prom),
+        `<span style="color:${tcol};font-weight:700">${tend}</span>`, `<strong style="color:${st.color}">${esc(st.label)}</strong>`, vals.length];
+    });
     const planes = S().all("planesNT234");
     const planPend = planes.filter(p => !/entreg|complet|cerr/i.test((p.estado || "") + " " + (p.subestado || "")));
     const planRows = planes.map(p => [esc(p.unidad || ""), esc((p.estado || "") + (p.subestado ? " · " + p.subestado : "")),
@@ -201,7 +215,9 @@
         { v: pctFmt(inst.pct), l: "Cumplimiento institucional" }, { v: inst.unidades || 0, l: "Unidades medidas" },
         { v: meta + "%", l: "Meta institucional" }, { v: planPend.length, l: "Planes de mejora pendientes" }
       ]) + (responsable ? `<p class="muted" style="margin:.3rem 0">Responsable NT 234: <strong>${esc(responsable)}</strong></p>` : "")
-        + `<h3>Cumplimiento por unidad y período</h3>` + table(["Unidad", "Jefatura", "Período", "Cumplimiento", "Meta", "Enviado a la unidad"], rows)
+        + `<h3>Resumen por unidad</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Último resultado, promedio, tendencia y estado de cada unidad (meta ${meta}%). El detalle mes a mes está en la exportación a Excel.</p>`
+        + table(["Unidad", "Jefatura", "Último período", "Último %", "Promedio", "Tendencia", "Estado", "N° mediciones"], rows)
         + `<h3>Planes de mejora NT 234</h3>` + table(["Unidad", "Estado", "Plazo", "Responsable", "Indicadores"], planRows),
       excel: { headers: ["Unidad", "Jefatura", "Período", "Cumplimiento", "Meta", "Enviado"],
         rows: meds.map(m => ({ Unidad: m.unidad, Jefatura: m.jefatura, "Período": m.periodo,
