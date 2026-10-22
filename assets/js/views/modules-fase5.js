@@ -14,17 +14,18 @@
     { key: "planes", label: "Plan de Mejora · NT 234" },
     { key: "informe", label: "Informe A4" }
   ];
+  // Indicadores oficiales de la NT 234 (Programa de Supervisión de Adherencia).
+  // Estándar de cumplimiento 85% · periodicidad semestral.
   const NT_IND = [
-    { k: "riesgo", l: "Riesgo" }, { k: "piel", l: "Piel" },
-    { k: "cambiosPosicion", l: "Cambios de posición" }, { k: "prominenciasOseas", l: "Prominencias óseas" },
-    { k: "humedadHigiene", l: "Humedad / higiene" }, { k: "superficiesApoyo", l: "Superficies de apoyo" },
-    { k: "nutricion", l: "Nutrición" }, { k: "registroResponsable", l: "Registro responsable" }
+    { k: "valoracionRiesgo", l: "% de pacientes con aplicación de escala de valoración de riesgo de LPP", s: "Valoración de riesgo" },
+    { k: "indicacionMedidas", l: "% de pacientes con riesgo moderado/alto con las 2 medidas de prevención INDICADAS", s: "Indicación de medidas" },
+    { k: "ejecucionMedidas", l: "% de pacientes con riesgo moderado/alto con las 2 medidas de prevención EJECUTADAS", s: "Ejecución de medidas" }
   ];
   const MESES6 = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   // Color propio por mes (para diferenciar los períodos evaluados de un vistazo)
   const MES_COLOR6 = ["#1e9fe0", "#e0526f", "#37a04a", "#7a5cd0", "#12b5a5", "#e0912f", "#0891b2", "#be185d", "#0f8f83", "#ca8a04", "#5b34b0", "#1554b8"];
   function colorMes(pr) { const m = String(pr || "").match(/^\d{4}-(\d{2})/); return MES_COLOR6[(m ? Number(m[1]) - 1 : 0) % 12]; }
-  function meta234() { return Number(S().getConfig("nt234.meta", 90)); }
+  function meta234() { return Number(S().getConfig("nt234.meta", 85)); }
 
   // Redondeo a 1 decimal (evita el desfase de redondear a entero: 78,9 no se vuelve 79)
   function round1(n) { return Math.round(n * 10) / 10; }
@@ -51,9 +52,10 @@
     return null;
   }
   function estadoNT(pct) {
+    // Estándar oficial de la NT 234 = 85%.
     if (pct == null) return { k: "sd", label: "Sin datos", inter: "Sin datos", color: "var(--neutral)", badge: "neutral" };
-    if (pct >= 80) return { k: "verde", label: "En cumplimiento", inter: "Sin intervención", color: "var(--verde)", badge: "ok" };
-    if (pct >= 70) return { k: "amarillo", label: "En seguimiento", inter: "Seguimiento", color: "var(--naranjo)", badge: "warn" };
+    if (pct >= 85) return { k: "verde", label: "En cumplimiento", inter: "Sin intervención", color: "var(--verde)", badge: "ok" };
+    if (pct >= 75) return { k: "amarillo", label: "En seguimiento", inter: "Seguimiento", color: "var(--naranjo)", badge: "warn" };
     return { k: "rojo", label: "Intervención", inter: "Prioridad alta", color: "var(--danger)", badge: "danger" };
   }
   function periodoNT(p) {
@@ -264,7 +266,7 @@
         });
       });
       const hist = meds.length
-        ? `<div style="overflow-x:auto"><table class="tbl nt-hist"><thead><tr><th>Unidad</th>${NT_IND.map(i => `<th class="num">${u.esc(i.l)}</th>`).join("")}<th class="num">Cumpl. global</th><th>Enviado</th><th>Fecha envío</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        ? `<div style="overflow-x:auto"><table class="tbl nt-hist"><thead><tr><th>Unidad</th>${NT_IND.map(i => `<th class="num">${u.esc(i.s || i.l)}</th>`).join("")}<th class="num">Cumpl. global</th><th>Enviado</th><th>Fecha envío</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : u.empty("Sin mediciones registradas.", "Agrega la primera evaluación de la unidad.", "📊");
 
       box.innerHTML = `
@@ -416,8 +418,9 @@
   };
   const ntSubChip = s => { const c = NT_SUB_COLOR[s] || "var(--neutral)"; return `<span class="doc-estado" style="--ec:${c};font-size:.68rem;margin-top:.2rem">${U.ui.esc(s)}</span>`; };
   const NT_INDICADORES = [
-    "Valoración del riesgo (EMINA/Braden)", "Cambios de posición", "Uso de superficie de apoyo",
-    "Valoración de la piel", "Evaluación nutricional", "Prominencias óseas", "Registro responsable"
+    "Aplicación de escala de valoración de riesgo de LPP",
+    "Indicación de las 2 medidas de prevención (riesgo moderado/alto)",
+    "Ejecución de las 2 medidas de prevención (riesgo moderado/alto)"
   ];
   function ntIndRow(r) {
     const u = ui(); r = r || {};

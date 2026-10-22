@@ -216,7 +216,7 @@
   function repNT234() {
     const meds = S().all("nt234");
     const NT = U.ntUtil || {};
-    const meta = Number(S().getConfig("nt234.meta", 90)) || 90;
+    const meta = Number(S().getConfig("nt234.meta", 85)) || 90;
     const inst = NT.institNT ? NT.institNT() : { pct: null, unidades: 0 };
     const gl = m => NT.globalNT ? NT.globalNT(m) : null;
     const estNT = v => NT.estadoNT ? NT.estadoNT(v) : { label: v == null ? "Sin datos" : (v >= meta ? "En cumplimiento" : "Seguimiento"), color: "var(--text)", badge: "neutral" };
@@ -252,9 +252,9 @@
       let avg = null;
       if (anyN && sumN > 0) avg = Math.round(sumC / sumN * 1000) / 10;
       else if (vals.length) avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10;
-      return { l: ind.l, avg, n: vals.length };
+      return { l: ind.s || ind.l, full: ind.l, avg, n: vals.length };
     }).filter(x => x.n > 0).sort((a, b) => (a.avg == null ? 999 : a.avg) - (b.avg == null ? 999 : b.avg));
-    const indRows = indData.map(x => { const st = estNT(x.avg); return [esc(x.l),
+    const indRows = indData.map(x => { const st = estNT(x.avg); return [`<span title="${esc(x.full)}">${esc(x.l)}</span>`,
       `<strong style="color:${st.color}">${pctFmt(x.avg)}</strong>`, meta + "%",
       `<strong style="color:${st.color}">${esc(st.label)}</strong>`, x.n]; });
     const bajoMeta = indData.filter(x => x.avg != null && x.avg < meta);
@@ -273,9 +273,9 @@
         { v: pctFmt(inst.pct), l: "Cumplimiento institucional" }, { v: inst.unidades || 0, l: "Unidades medidas" },
         { v: (peor ? peor.l : "—"), l: "Indicador más débil" }, { v: bajoMeta.length, l: "Indicadores bajo meta" }
       ]) + (responsable ? `<p class="muted" style="margin:.3rem 0">Responsable NT 234: <strong>${esc(responsable)}</strong> · Meta institucional ${meta}%</p>` : "")
-        + `<h3>Cumplimiento por indicador (medidas preventivas · NT 234)</h3>`
-        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Indicadores de la pauta de las OO.TT, institucional. Ordenados del más débil al más fuerte para priorizar la intervención (meta ${meta}%).</p>`
-        + table(["Indicador (medida preventiva)", "Cumplimiento", "Meta", "Estado", "N° mediciones"], indRows)
+        + `<h3>Cumplimiento por indicador oficial · NT 234</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Los 3 indicadores de las OO.TT (valoración de riesgo, indicación y ejecución de medidas), institucional. Ordenados del más débil al más fuerte para priorizar dónde intervenir (estándar ${meta}%).</p>`
+        + table(["Indicador oficial", "Cumplimiento", "Estándar", "Estado", "N° mediciones"], indRows)
         + `<h3>Resumen por unidad</h3>`
         + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Cumplimiento global de cada unidad. El detalle mes a mes está en la exportación a Excel.</p>`
         + table(["Unidad", "Jefatura", "Último período", "Último %", "Promedio", "Tendencia", "Estado", "N° mediciones"], rows)
