@@ -22,7 +22,7 @@
     ],
     estamentos: ["Enfermería", "TENS", "Auxiliar de servicio", "Médico", "Kinesiología", "Multiestamento", "Otro"],
     prioridades: ["alta", "media", "baja"],
-    guiasArea: ["Caídas", "Lesiones por presión", "Accesos vasculares"],
+    guiasArea: ["Lesiones por presión", "Accesos vasculares", "Cuidados centrados en la persona y la familia"],
     pilares: ["Calidad y seguridad", "Gestión del cuidado", "Formación continua",
               "Evidencia científica", "Articulación institucional"],
     tiposColaboracion: ["Asesoría Técnica", "Colaboración interna", "Visita técnica",
@@ -196,6 +196,7 @@
     if (/\blpp\b|presion|presión|ulcer|escara/.test(n)) return "Lesiones por presión";
     if (/caid|caíd/.test(n)) return "Caídas";
     if (/vascular|\bdav\b|davp|davc|via central|vía central|torrente|cateter|catéter|acceso/.test(n)) return "Accesos vasculares";
+    if (/centrad|persona y (la )?familia|\bccpf\b|cuidados centrados/.test(n)) return "Cuidados centrados en la persona y la familia";
     return "General";
   }
 
@@ -248,10 +249,10 @@
      Estable por nombre de guía y consistente en todo el portal. No usa morado:
      ese color queda reservado para la línea de "Meta institucional". */
   const GUIA_COLORS = {
-    "Caídas":               "#e0526f",
     "Lesiones por presión": "#12b5a5",
     "Accesos vasculares":   "#e0912f",
-    "Dolor":                "#7a5cd0"
+    "Cuidados centrados en la persona y la familia": "#1e9fe0",
+    "Caídas":               "#e0526f"
   };
   const GUIA_PALETTE = ["#12b5a5", "#e0912f", "#e0526f", "#37a04a", "#1e9fe0", "#0891b2", "#be185d", "#8a6d3b"];
   function guiaColor(nombre) {

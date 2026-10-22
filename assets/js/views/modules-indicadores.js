@@ -735,15 +735,22 @@
     const u = ui();
     box.innerHTML = `
       <div id="ind-kpi"></div>
-      <div id="ind-evi"></div>
-      ${fichaCapacidadOperativa()}
-      ${datosConectados()}
-      <div class="section__head"><h2 class="section__title">Indicadores registrados</h2>
+      <div class="section__head"><div><h2 class="section__title">Indicadores y sus resultados</h2>
+        <p class="section__hint">Cada tarjeta muestra el <strong>resultado actual</strong> (número grande), la meta, el % de cumplimiento, el semáforo y la tendencia. Usa <strong>“+ Seguimiento”</strong> para registrar una nueva medición y <strong>“📄 Generar informe”</strong> para el reporte con el análisis.</p></div>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" id="ind-informe" title="Informe con resultados, cumplimiento, semáforo, tendencias y alertas">📄 Generar informe</button>
           <button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button>
         </div></div>
-      <div id="ind-list"></div>`;
+      <div id="ind-list"></div>
+
+      <details class="ind-apoyo" style="margin-top:1.4rem">
+        <summary class="ind-apoyo__sum">🧰 Apoyo y datos conectados <span class="ind-apoyo__hint">· recomendaciones EVI, Índice de Capacidad Operativa y datos de RNAO / NT 234</span></summary>
+        <div style="margin-top:.8rem">
+          <div id="ind-evi"></div>
+          ${fichaCapacidadOperativa()}
+          ${datosConectados()}
+        </div>
+      </details>`;
     const list = ordenados(S().all("indicadores"));
     const by = k => list.filter(i => semaforo(i) === k).length;
     document.getElementById("ind-kpi").innerHTML = `<div class="grid grid--kpi" style="margin-bottom:1.1rem">
@@ -918,7 +925,7 @@
 
     const commonTop = u.formHTML([
       { name: "nombre", label: "Nombre del indicador", required: true, full: true, value: rec.nombre || "", hint: "Escribe o elige uno oficial del Anexo 4 (abajo se autocompleta tipo y guía)." },
-      { name: "guia", label: "Guía / tema", type: "select", options: ["General"].concat(U.data.CAT.guiasArea), value: (U.data.guiaDeIndicador ? U.data.guiaDeIndicador(rec.nombre, rec.guia) : (rec.guia || "General")), hint: "Caídas, LPP, Accesos vasculares o General." },
+      { name: "guia", label: "Guía / tema", type: "select", options: ["General"].concat(U.data.CAT.guiasArea), value: (U.data.guiaDeIndicador ? U.data.guiaDeIndicador(rec.nombre, rec.guia) : (rec.guia || "General")), hint: "LPP, Accesos vasculares, Cuidados centrados en la persona y la familia, o General." },
       { name: "tipo", label: "Tipo de indicador", type: "select", options: TIPOS, value: tipo, hint: "Estructura = si algo existe · Proceso = cómo se hace · Resultado = efecto en el paciente · Impacto = efecto a largo plazo." },
       { name: "responsable", label: "Responsable", value: rec.responsable || "Enf. Coordinador/a UBPC", hint: "Quién mide y reporta este indicador." },
       { name: "objetivo", label: "Objetivo", type: "textarea", full: true, value: rec.objetivo || "", hint: "Qué se busca lograr o vigilar con este indicador (en una frase)." }
