@@ -71,30 +71,38 @@
   }
 
   function repRNAO() {
-    const evals = S().all("evaluacionesRNAO").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-    const gl = evals.map(CS().globalCumplimiento).filter(v => v != null);
+    const evals = S().all("evaluacionesRNAO");
+    const g = e => CS().globalCumplimiento(e);
+    const gl = evals.map(g).filter(v => v != null);
     const inst = gl.length ? Math.round(gl.reduce((a, b) => a + b, 0) / gl.length) : null;
-    const rows = evals.map(e => [
-      esc(e.guia || ""), esc(e.unidad || ""), esc(e.tipo || ""), esc(e.periodo || ""),
-      `<strong>${pctFmt(CS().globalCumplimiento(e))}</strong>`, (Number(e.meta) || 90) + "%"
-    ]);
+    const metaI = CS().metaInstitucional ? CS().metaInstitucional() : 80;
+    const est = v => v == null ? { l: "Sin datos", c: "var(--text-muted)" } : (v >= metaI ? { l: "En meta", c: "var(--verde)" } : (v >= metaI - 15 ? { l: "En seguimiento", c: "var(--naranjo)" } : { l: "Intervención", c: "var(--danger)" }));
+    const groupBy = key => {
+      const m = {}; evals.forEach(e => { const k = e[key] || "—"; const v = g(e); if (v == null) return; (m[k] = m[k] || []).push(v); });
+      return Object.keys(m).map(k => ({ k, avg: Math.round(m[k].reduce((a, b) => a + b, 0) / m[k].length), n: m[k].length })).sort((a, b) => a.avg - b.avg);
+    };
+    const guiaRows = groupBy("guia").map(x => { const s = est(x.avg); return [(U.data.guiaChip ? U.data.guiaChip(x.k) : esc(x.k)), `<strong style="color:${s.c}">${x.avg}%</strong>`, metaI + "%", `<strong style="color:${s.c}">${s.l}</strong>`, x.n]; });
+    const uniRows = groupBy("unidad").map(x => { const s = est(x.avg); return [(U.data.unidadChip ? U.data.unidadChip(x.k) : esc(x.k)), `<strong style="color:${s.c}">${x.avg}%</strong>`, metaI + "%", `<strong style="color:${s.c}">${s.l}</strong>`, x.n]; });
     const acc = S().all("accionesRNAO").filter(a => a.estado !== "Completado");
-    const accRows = acc.map(a => [esc(a.guia || ""), esc(a.unidad || ""), esc(a.indicadorOrigen || ""),
-      pctFmt(a.resultado), esc(a.responsable || ""), ui().fechaCL(a.fechaComprometida), esc(a.estado || "")]);
+    const accRows = acc.map(a => [(U.data.guiaChip ? U.data.guiaChip(a.guia) : esc(a.guia || "")), (U.data.unidadChip ? U.data.unidadChip(a.unidad) : esc(a.unidad || "")), esc(a.indicadorOrigen || ""),
+      pctFmt(a.resultado), esc(a.responsable || ""), ui().fechaCL(a.fechaComprometida)]);
+    const guias = new Set(evals.map(e => e.guia).filter(Boolean)).size;
+    const unidades = new Set(evals.map(e => e.unidad).filter(Boolean)).size;
     return {
       titulo: "Reporte del Programa RNAO", periodo: periodoActual(),
       body: kpiRow([
         { v: pctFmt(inst), l: "Cumplimiento institucional" },
-        { v: evals.length, l: "Evaluaciones" },
+        { v: guias, l: "Guías evaluadas" }, { v: unidades, l: "Unidades" },
         { v: acc.length, l: "Acciones de mejora pendientes" }
-      ]) + `<h3>Evaluaciones registradas</h3>` +
-        table(["Guía", "Unidad", "Tipo", "Periodo", "Cumplimiento", "Meta"], rows) +
-        `<h3>Acciones de mejora pendientes</h3>` +
-        table(["Guía", "Unidad", "Indicador", "Resultado", "Responsable", "Comprometida", "Estado"], accRows),
+      ]) + `<h3>Cumplimiento por guía</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Ordenado del más débil al más fuerte (meta ${metaI}%). El detalle por evaluación está en la exportación a Excel.</p>`
+        + table(["Guía", "Cumplimiento", "Meta", "Estado", "N° eval."], guiaRows)
+        + `<h3>Cumplimiento por unidad</h3>` + table(["Unidad", "Cumplimiento", "Meta", "Estado", "N° eval."], uniRows)
+        + `<h3>Acciones de mejora pendientes · dónde intervenir</h3>` + table(["Guía", "Unidad", "Indicador", "Resultado", "Responsable", "Comprometida"], accRows),
       excel: {
         headers: ["Guía", "Unidad", "Tipo", "Periodo", "Cumplimiento", "Meta"],
-        rows: evals.map(e => ({ "Guía": e.guia, Unidad: e.unidad, Tipo: e.tipo, Periodo: e.periodo,
-          Cumplimiento: pctFmt(CS().globalCumplimiento(e)), Meta: (Number(e.meta) || 90) + "%" }))
+        rows: evals.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(e => ({ "Guía": e.guia, Unidad: e.unidad, Tipo: e.tipo, Periodo: e.periodo,
+          Cumplimiento: pctFmt(g(e)), Meta: (Number(e.meta) || metaI) + "%" }))
       }
     };
   }
@@ -228,6 +236,30 @@
       return [esc(u), esc(jef), esc(ultPer), `<strong style="color:${st.color}">${pctFmt(ultimo)}</strong>`, pctFmt(prom),
         `<span style="color:${tcol};font-weight:700">${tend}</span>`, `<strong style="color:${st.color}">${esc(st.label)}</strong>`, vals.length];
     });
+    // Cumplimiento por INDICADOR de la pauta NT 234 (OO.TT) — institucional.
+    // Para cada indicador se promedia el cumplimiento de todas las mediciones,
+    // ponderado por N° de casos aplicables cuando existe. Se ordena del más
+    // débil al más fuerte para decidir dónde intervenir.
+    const NT_IND = NT.NT_IND || [];
+    const indData = NT_IND.map(ind => {
+      let sumC = 0, sumN = 0, anyN = false; const vals = [];
+      meds.forEach(m => {
+        const pct = m[ind.k], n = m[ind.k + "_n"];
+        const pv = (pct !== "" && pct != null && !isNaN(Number(pct))) ? Number(pct) : null;
+        const nv = (n !== "" && n != null && !isNaN(Number(n))) ? Number(n) : null;
+        if (pv != null) { vals.push(pv); if (nv != null && nv > 0) { sumC += pv / 100 * nv; sumN += nv; anyN = true; } }
+      });
+      let avg = null;
+      if (anyN && sumN > 0) avg = Math.round(sumC / sumN * 1000) / 10;
+      else if (vals.length) avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10;
+      return { l: ind.l, avg, n: vals.length };
+    }).filter(x => x.n > 0).sort((a, b) => (a.avg == null ? 999 : a.avg) - (b.avg == null ? 999 : b.avg));
+    const indRows = indData.map(x => { const st = estNT(x.avg); return [esc(x.l),
+      `<strong style="color:${st.color}">${pctFmt(x.avg)}</strong>`, meta + "%",
+      `<strong style="color:${st.color}">${esc(st.label)}</strong>`, x.n]; });
+    const bajoMeta = indData.filter(x => x.avg != null && x.avg < meta);
+    const peor = indData.find(x => x.avg != null);
+
     const planes = S().all("planesNT234");
     const planPend = planes.filter(p => !/entreg|complet|cerr/i.test((p.estado || "") + " " + (p.subestado || "")));
     const planRows = planes.map(p => [esc(p.unidad || ""), esc((p.estado || "") + (p.subestado ? " · " + p.subestado : "")),
@@ -239,10 +271,13 @@
       filtros: resolucion ? "Resolución: " + resolucion : "",
       body: kpiRow([
         { v: pctFmt(inst.pct), l: "Cumplimiento institucional" }, { v: inst.unidades || 0, l: "Unidades medidas" },
-        { v: meta + "%", l: "Meta institucional" }, { v: planPend.length, l: "Planes de mejora pendientes" }
-      ]) + (responsable ? `<p class="muted" style="margin:.3rem 0">Responsable NT 234: <strong>${esc(responsable)}</strong></p>` : "")
+        { v: (peor ? peor.l : "—"), l: "Indicador más débil" }, { v: bajoMeta.length, l: "Indicadores bajo meta" }
+      ]) + (responsable ? `<p class="muted" style="margin:.3rem 0">Responsable NT 234: <strong>${esc(responsable)}</strong> · Meta institucional ${meta}%</p>` : "")
+        + `<h3>Cumplimiento por indicador (medidas preventivas · NT 234)</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Indicadores de la pauta de las OO.TT, institucional. Ordenados del más débil al más fuerte para priorizar la intervención (meta ${meta}%).</p>`
+        + table(["Indicador (medida preventiva)", "Cumplimiento", "Meta", "Estado", "N° mediciones"], indRows)
         + `<h3>Resumen por unidad</h3>`
-        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Último resultado, promedio, tendencia y estado de cada unidad (meta ${meta}%). El detalle mes a mes está en la exportación a Excel.</p>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Cumplimiento global de cada unidad. El detalle mes a mes está en la exportación a Excel.</p>`
         + table(["Unidad", "Jefatura", "Último período", "Último %", "Promedio", "Tendencia", "Estado", "N° mediciones"], rows)
         + `<h3>Planes de mejora NT 234</h3>` + table(["Unidad", "Estado", "Plazo", "Responsable", "Indicadores"], planRows),
       excel: { headers: ["Unidad", "Jefatura", "Período", "Cumplimiento", "Meta", "Enviado"],
@@ -258,14 +293,25 @@
     const revisados = docs.filter(d => /s[íi]/i.test(d.revisadoUBP || "")).length;
     const pctRev = total ? Math.round(revisados / total * 100) : 0;
     const enProceso = docs.filter(d => /borrador|revisi|enviado/i.test(d.estado || "")).length;
-    const rows = docs.map(d => [`<span class="mono">${esc(d.codigo || "")}</span>`, esc(d.nombre || ""), esc(d.tipo || ""),
-      "v" + (d.version || "1"), esc(d.estado || ""), /s[íi]/i.test(d.revisadoUBP || "") ? "✔ Sí" : "—", ui().fechaCL(d.fecha)]);
+    const pctT = n => total ? Math.round(n / total * 100) + "%" : "—";
+    // Por tipo de documento
+    const byTipo = {}; docs.forEach(d => { const t = d.tipo || "Sin tipo"; (byTipo[t] = byTipo[t] || { n: 0, vig: 0 }).n++; if (/vigente/i.test(d.estado || "")) byTipo[t].vig++; });
+    const tipoRows = Object.keys(byTipo).sort((a, b) => byTipo[b].n - byTipo[a].n).map(t => [esc(t), byTipo[t].n, byTipo[t].vig, pctT(byTipo[t].n)]);
+    // Por estado (producción documental y qué falta)
+    const byEstado = {}; docs.forEach(d => { const e = d.estado || "Sin estado"; byEstado[e] = (byEstado[e] || 0) + 1; });
+    const estadoRows = Object.keys(byEstado).sort((a, b) => byEstado[b] - byEstado[a]).map(e => [esc(e), byEstado[e], pctT(byEstado[e])]);
+    const porRevisar = total - revisados;
     return {
       titulo: "Reporte de Gestión Documental", periodo: periodoActual(),
       body: kpiRow([
         { v: total, l: "Documentos" }, { v: vigentes, l: "Vigentes" },
-        { v: enProceso, l: "En proceso" }, { v: revisados + " · " + pctRev + "%", l: "Con V°B° UBPC" }
-      ]) + `<h3>Inventario documental</h3>` + table(["Código", "Documento", "Tipo", "Versión", "Estado", "V°B° UBPC", "Fecha"], rows),
+        { v: enProceso, l: "En proceso" }, { v: pctRev + "%", l: "Con V°B° UBPC" }
+      ]) + `<h3>Producción por tipo de documento</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Qué ha producido la UBPC y cuántos están vigentes. El inventario completo está en la exportación a Excel.</p>`
+        + table(["Tipo de documento", "Total", "Vigentes", "% del total"], tipoRows)
+        + `<h3>Por estado</h3>` + table(["Estado", "Documentos", "% del total"], estadoRows)
+        + `<h3>Validación UBPC · qué falta</h3>`
+        + kpiRow([{ v: revisados, l: "Con V°B° UBPC" }, { v: porRevisar, l: "Por revisar / validar" }]),
       excel: { headers: ["Código", "Documento", "Tipo", "Versión", "Estado", "V°B° UBPC", "Fecha"],
         rows: docs.map(d => ({ "Código": d.codigo, Documento: d.nombre, Tipo: d.tipo, "Versión": "v" + (d.version || "1"),
           Estado: d.estado, "V°B° UBPC": /s[íi]/i.test(d.revisadoUBP || "") ? "Sí" : "No", Fecha: ui().fechaCL(d.fecha) })) }

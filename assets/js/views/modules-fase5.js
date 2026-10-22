@@ -891,5 +891,5 @@
     const pct = Math.round(gs.reduce((a, b) => a + b, 0) / gs.length);
     return { pct, estado: estadoNT(pct), unidades: gs.length };
   }
-  U.ntUtil = { globalNT, estadoNT, periodosNT, institNT };
+  U.ntUtil = { globalNT, estadoNT, periodosNT, institNT, NT_IND };
 })();
