@@ -739,7 +739,10 @@
       ${fichaCapacidadOperativa()}
       ${datosConectados()}
       <div class="section__head"><h2 class="section__title">Indicadores registrados</h2>
-        <button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button></div>
+        <div class="btn-row">
+          <button class="btn btn--ghost btn--sm" id="ind-informe" title="Informe con resultados, cumplimiento, semáforo, tendencias y alertas">📄 Generar informe</button>
+          <button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button>
+        </div></div>
       <div id="ind-list"></div>`;
     const list = ordenados(S().all("indicadores"));
     const by = k => list.filter(i => semaforo(i) === k).length;
@@ -780,6 +783,8 @@
       lb.querySelectorAll("[data-idel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este indicador?", () => { S().remove("indicadores", b.dataset.idel); renderTab(); }));
     }
     document.getElementById("ind-new").onclick = () => ficha(null);
+    const infBtn = document.getElementById("ind-informe");
+    if (infBtn) infBtn.onclick = () => U.router.go("#/coord/reportes?rep=indicadores");
   }
 
   /* ---------- Estándar de cumplimiento legible ---------- */

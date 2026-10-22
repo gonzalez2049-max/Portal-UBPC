@@ -345,8 +345,10 @@
     box.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function reportesBind() {
+  function reportesBind(root, params) {
     document.querySelectorAll("[data-gen]").forEach(b => b.onclick = () => renderReport(b.dataset.gen));
+    // Enlace directo: #/coord/reportes?rep=indicadores abre ese reporte de inmediato.
+    if (params && params.rep && REPORTS.some(r => r.key === params.rep)) renderReport(params.rep);
   }
 
   U.coord.views.reportes = reportes;
