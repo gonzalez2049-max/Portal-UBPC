@@ -500,7 +500,7 @@
     const recs = icoOrdenados();
     const addBtn = `<div class="btn-row"><button class="btn btn--ghost btn--sm" id="ico-print" title="Informe imprimible para Subdirección">🖨️ Informe</button><button class="btn btn--ghost btn--sm" id="ico-params" title="Parámetros de estimación">⚙️ Parámetros</button><button class="btn btn--primary btn--sm" id="ico-add">+ Registrar mes</button></div>`;
     if (!recs.length) {
-      box.innerHTML = `<div class="ico-data__head"><h4>Seguimiento mensual</h4>${addBtn}</div>
+      box.innerHTML = `<div class="ico-data__head"><h4 class="ico-sec-title">📊 Resultado del mes</h4>${addBtn}</div>
         ${u.empty("Aún sin registros mensuales.", "Ingresa el primer mes o estímalo desde el portal para calcular el índice.", "🗓️")}
         ${icoEvidenciaHTML()}
         ${icoRecomendacionHTML()}`;
@@ -539,7 +539,7 @@
           <button class="btn-icon" data-icodel="${r.id}" title="Eliminar">🗑️</button></div></td></tr>`;
     }).join("");
 
-    box.innerHTML = `<div class="ico-data__head"><h4>Seguimiento mensual</h4>${addBtn}</div>
+    box.innerHTML = `<div class="ico-data__head"><h4 class="ico-sec-title">📊 Resultado del mes</h4>${addBtn}</div>
       <div class="ico-now ico-now--${est.k}">
         <div class="ico-now__val">${lp == null ? "—" : lp + "%"}</div>
         <div class="ico-now__meta">
@@ -549,7 +549,8 @@
         </div>
       </div>
       ${icoFTEcardHTML(last)}
-      <div style="margin:.6rem 0">${chart}</div>
+      <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 Evolución mensual</h4>
+      <div style="margin:.4rem 0">${chart}</div>
       <div class="table-wrap"><table class="tbl"><thead><tr>
         <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
       </tr></thead><tbody>${rows}</tbody></table></div>
@@ -596,38 +597,39 @@
           <span class="ico-ficha__soon ico-ficha__soon--live">🗓️ Actualización mensual</span>
         </div>
 
-        <div class="ico-class">
-          ${clase.map(c => `<div class="ico-cl"><span>${c[0]}</span><b>${c[1]}</b></div>`).join("")}
-        </div>
+        <div id="ico-data" class="ico-data"></div>
 
-        <div class="ico-grid">
-          <div class="ico-block">
-            <span class="ico-lbl">Objetivo</span>
-            <p class="narrativo" style="margin:.2rem 0 0">Determinar si las horas profesionales disponibles del Coordinador UBPC son suficientes para responder a la demanda técnica y fundamentar la necesidad de un/a enfermero/a referente.</p>
-          </div>
-          <div class="ico-block">
-            <span class="ico-lbl">Fórmula</span>
-            <div class="ico-formula">
-              <div class="ico-frac">
-                <span class="ico-frac__num">Demanda técnica mensual</span>
-                <span class="ico-frac__bar"></span>
-                <span class="ico-frac__den">Horas profesionales disponibles</span>
+        <details class="ico-tecnica">
+          <summary class="ico-tecnica__sum">📋 Ficha técnica — qué mide y cómo se lee</summary>
+          <div class="ico-grid" style="margin-top:.6rem">
+            <div class="ico-block">
+              <span class="ico-lbl">Objetivo</span>
+              <p class="narrativo" style="margin:.2rem 0 0">Determinar si las horas profesionales disponibles del Coordinador UBPC son suficientes para responder a la demanda técnica y fundamentar la necesidad de un/a enfermero/a referente.</p>
+            </div>
+            <div class="ico-block">
+              <span class="ico-lbl">Fórmula</span>
+              <div class="ico-formula">
+                <div class="ico-frac">
+                  <span class="ico-frac__num">Demanda técnica mensual</span>
+                  <span class="ico-frac__bar"></span>
+                  <span class="ico-frac__den">Horas profesionales disponibles</span>
+                </div>
+                <span class="ico-frac__x">× 100</span>
               </div>
-              <span class="ico-frac__x">× 100</span>
             </div>
           </div>
-        </div>
-
-        <div class="ico-block">
-          <span class="ico-lbl">Semáforo</span>
-          <div class="ico-sem">
-            ${bandas.map(b => `<div class="ico-sem__band ico-sem__band--${b[0]}">
-              <b>${b[1]}</b><span>${b[2]}</span></div>`).join("")}
+          <div class="ico-block" style="margin-top:.7rem">
+            <span class="ico-lbl">Cómo leer el resultado (semáforo)</span>
+            <div class="ico-sem">
+              ${bandas.map(b => `<div class="ico-sem__band ico-sem__band--${b[0]}">
+                <b>${b[1]}</b><span>${b[2]}</span></div>`).join("")}
+            </div>
+            <p class="kpi__sub" style="margin:.5rem 0 0">A menor índice, mayor holgura: un valor sobre 100% indica que la demanda técnica supera las horas profesionales disponibles.</p>
           </div>
-          <p class="kpi__sub" style="margin:.5rem 0 0">A menor índice, mayor holgura: un valor sobre 100% indica que la demanda técnica supera las horas profesionales disponibles.</p>
-        </div>
-
-        <div id="ico-data" class="ico-data"></div>
+          <div class="ico-class" style="margin-top:.7rem">
+            ${clase.map(c => `<div class="ico-cl"><span>${c[0]}</span><b>${c[1]}</b></div>`).join("")}
+          </div>
+        </details>
       </div>
     </details>`;
   }
