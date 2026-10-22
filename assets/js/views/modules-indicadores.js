@@ -679,7 +679,7 @@
     });
 
     // NT 234: series por unidad
-    const metaN = Number(S().getConfig("nt234.meta", 90)) || 90;
+    const metaN = Number(S().getConfig("nt234.meta", 85)) || 90;
     const grpN = {};
     S().all("nt234").forEach(m => {
       const g = NT.globalNT ? NT.globalNT(m) : null;
@@ -695,39 +695,45 @@
       if (d < 0) return { a: "↓ " + d, c: "var(--danger)" };
       return { a: "→ 0", c: "var(--text-muted)" };
     };
-    const estado = (v, meta) => v >= meta ? { l: "En meta", k: "ok" } : (v >= meta - 15 ? { l: "En seguimiento", k: "warn" } : { l: "Intervención", k: "danger" });
-    const serie = pts => `<div class="dc-serie">${pts.map(p => `<span class="dc-step">${u.esc(p.per)}: <b>${p.val}%</b></span>`).join('<span class="dc-arrow">→</span>')}</div>`;
+    const estado = (v, meta) => v >= meta ? { l: "En meta", k: "ok", c: "var(--verde)" } : (v >= meta - 15 ? { l: "En seguimiento", k: "warn", c: "var(--naranjo)" } : { l: "Intervención", k: "danger", c: "var(--danger)" });
 
-    const rowsR = Object.keys(grpR).sort().map(k => {
+    // Tarjeta tipo indicador (igual que los indicadores registrados)
+    const dcCard = (chips, last, meta, es, tr, pts, accent) => {
+      const spark = (pts.length > 1 && U.charts.sparkline) ? U.charts.sparkline(pts.map(p => p.val), { color: es.c, meta: meta }) : "";
+      return `<div class="card" style="border-top:4px solid ${accent}">
+        <div class="card__head" style="flex-wrap:wrap;gap:.3rem;align-items:center">${chips}<span class="badge badge--${es.k}">${es.l}</span></div>
+        <div class="flex" style="justify-content:space-between;align-items:flex-end;margin:.5rem 0 .2rem">
+          <div><div style="font-size:1.9rem;font-weight:800;font-family:var(--font-disp);color:${es.c};line-height:1">${last}%</div>
+            <div class="kpi__sub">Meta ${meta}% · ${pts.length} medición(es)</div></div>
+          <div class="right" style="font-weight:800;color:${tr.c}">${tr.a}</div>
+        </div>
+        ${spark ? `<div style="margin:.2rem 0 -.2rem">${spark}</div>` : ""}</div>`;
+    };
+
+    const cardsR = Object.keys(grpR).sort().map(k => {
       const g = grpR[k]; g.pts.sort((a, b) => a.ord.localeCompare(b.ord));
       const last = g.pts[g.pts.length - 1].val, tr = trend(g.pts), es = estado(last, metaR);
-      return `<tr><td>${U.data.guiaChip(g.guia)}<div style="margin-top:4px">${U.data.unidadChip(g.unidad)}</div></td>
-        <td>${serie(g.pts)}</td><td class="num"><b>${last}%</b></td><td class="num">≥ ${metaR}%</td>
-        <td><span class="badge badge--${es.k}">${es.l}</span></td><td class="num" style="color:${tr.c};font-weight:800">${tr.a}</td></tr>`;
+      return dcCard(U.data.guiaChip(g.guia) + " " + U.data.unidadChip(g.unidad), last, metaR, es, tr, g.pts, gColor(g.guia));
     }).join("");
-
-    const rowsN = Object.keys(grpN).sort().map(k => {
+    const cardsN = Object.keys(grpN).sort().map(k => {
       const g = grpN[k]; g.pts.sort((a, b) => a.ord.localeCompare(b.ord));
       const last = g.pts[g.pts.length - 1].val, tr = trend(g.pts), es = estado(last, metaN);
-      return `<tr><td>${U.data.unidadChip(g.unidad)}</td>
-        <td>${serie(g.pts)}</td><td class="num"><b>${last}%</b></td><td class="num">≥ ${metaN}%</td>
-        <td><span class="badge badge--${es.k}">${es.l}</span></td><td class="num" style="color:${tr.c};font-weight:800">${tr.a}</td></tr>`;
+      return dcCard(U.data.unidadChip(g.unidad), last, metaN, es, tr, g.pts, uColor(g.unidad));
     }).join("");
 
-    if (!rowsR && !rowsN) return "";
-    const block = (titulo, color, link, linkLabel, headFirst, rows) => !rows ? "" : `
+    if (!cardsR && !cardsN) return "";
+    const block = (titulo, color, link, linkLabel, cards) => !cards ? "" : `
       <div class="dc-block">
         <div class="dc-block__hd"><span class="dc-block__pill" style="background:${color}">${titulo}</span>
           <a class="btn btn--ghost btn--sm" href="${link}">${linkLabel} →</a></div>
-        <div class="table-wrap"><table class="tbl"><thead><tr><th>${headFirst}</th><th>Serie por período</th><th class="right">Último</th><th class="right">Meta</th><th>Estado</th><th class="right">Tendencia</th></tr></thead>
-        <tbody>${rows}</tbody></table></div></div>`;
+        <div class="grid grid--3">${cards}</div></div>`;
 
     return `<details class="dc" open>
       <summary class="dc__sum"><span class="dc__ic">📡</span><span class="dc__t">Datos conectados · RNAO / NT 234</span>
         <span class="dc__hint">Se toman solos de esos módulos · solo lectura</span></summary>
-      <p class="kpi__sub" style="margin:.4rem .2rem .7rem">Estos valores se actualizan automáticamente cuando registras una nueva medición en RNAO o en la NT 234. Aquí los ves período a período para ir llevando el dato.</p>
-      ${block("RNAO · Guías BPSO", "#0d6ea8", "#/coord/m3?tab=evaluaciones", "Ir a RNAO", "Guía · Unidad", rowsR)}
-      ${block("NT 234 · Prevención de LPP", "#0f8f83", "#/coord/m6?tab=seguimiento", "Ir a NT 234", "Unidad", rowsN)}
+      <p class="kpi__sub" style="margin:.4rem .2rem .7rem">El resultado de cada guía/unidad se toma automáticamente de RNAO y de la NT 234. El número grande es el último valor; la flecha, la tendencia.</p>
+      ${block("RNAO · Guías BPSO", "#0d6ea8", "#/coord/m3?tab=evaluaciones", "Ir a RNAO", cardsR)}
+      ${block("NT 234 · Prevención de LPP", "#0f8f83", "#/coord/m6?tab=seguimiento", "Ir a NT 234", cardsN)}
     </details>`;
   }
 
@@ -1143,7 +1149,7 @@
     });
     if (S().all("nt234").length) recs.push({ nombre: "Cumplimiento NT 234 (institucional)", tipo: "Resultado", fuente: "NT 234",
       prefill: { nombre: "Cumplimiento NT 234 (institucional)", tipo: "Resultado", objetivo: "Cumplimiento promedio de la Norma Técnica 234.",
-        fuenteDatos: "Módulo NT 234", periodicidad: "Semestral", sentido: "Mayor es mejor", meta: Number(S().getConfig("nt234.meta", 90)),
+        fuenteDatos: "Módulo NT 234", periodicidad: "Semestral", sentido: "Mayor es mejor", meta: Number(S().getConfig("nt234.meta", 85)),
         lineaBase: Math.round(S().all("nt234").reduce((a, b) => a + (Number(b.porcentaje) || 0), 0) / S().all("nt234").length) } });
     const acts = S().all("actividades");
     if (acts.length) { const po = acts.reduce((n, a) => n + (parseInt(a.poblacionObjetivo) || 0), 0), pc = acts.reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0);
