@@ -728,13 +728,13 @@
           <a class="btn btn--ghost btn--sm" href="${link}">${linkLabel} →</a></div>
         <div class="grid grid--3">${cards}</div></div>`;
 
-    return `<details class="dc" open>
-      <summary class="dc__sum"><span class="dc__ic">📡</span><span class="dc__t">Datos conectados · RNAO / NT 234</span>
-        <span class="dc__hint">Se toman solos de esos módulos · solo lectura</span></summary>
+    return `<section class="dc">
+      <div class="dc__sum"><span class="dc__ic">📡</span><span class="dc__t">Datos conectados · RNAO / NT 234</span>
+        <span class="dc__hint">Se toman solos de esos módulos · solo lectura</span></div>
       <p class="kpi__sub" style="margin:.4rem .2rem .7rem">El resultado de cada guía/unidad se toma automáticamente de RNAO y de la NT 234. El número grande es el último valor; la flecha, la tendencia.</p>
       ${block("RNAO · Guías BPSO", "#0d6ea8", "#/coord/m3?tab=evaluaciones", "Ir a RNAO", cardsR)}
       ${block("NT 234 · Prevención de LPP", "#0f8f83", "#/coord/m6?tab=seguimiento", "Ir a NT 234", cardsN)}
-    </details>`;
+    </section>`;
   }
 
   function renderRegistrados(box) {
@@ -749,14 +749,13 @@
         </div></div>
       <div id="ind-list"></div>
 
-      <details class="ind-apoyo" style="margin-top:1.4rem">
-        <summary class="ind-apoyo__sum">🧰 Apoyo y datos conectados <span class="ind-apoyo__hint">· recomendaciones EVI, Índice de Capacidad Operativa y datos de RNAO / NT 234</span></summary>
-        <div style="margin-top:.8rem">
-          <div id="ind-evi"></div>
-          ${fichaCapacidadOperativa()}
-          ${datosConectados()}
-        </div>
-      </details>`;
+      <div class="ind-apoyo-wrap" style="margin-top:1.5rem">
+        <div class="section__head"><div><h2 class="section__title">🧰 Apoyo y datos conectados</h2>
+          <p class="section__hint">Recomendaciones de EVI, Índice de Capacidad Operativa y los datos que vienen de RNAO / NT 234.</p></div></div>
+        <div class="apoyo-sec apoyo-sec--evi"><div id="ind-evi"></div></div>
+        <div class="apoyo-sec apoyo-sec--ico">${fichaCapacidadOperativa()}</div>
+        <div class="apoyo-sec apoyo-sec--dc">${datosConectados()}</div>
+      </div>`;
     const list = ordenados(S().all("indicadores"));
     const by = k => list.filter(i => semaforo(i) === k).length;
     document.getElementById("ind-kpi").innerHTML = `<div class="grid grid--kpi" style="margin-bottom:1.1rem">
