@@ -41,6 +41,87 @@
   function pctFmt(v) { return v == null ? "—" : v + "%"; }
 
   /* ---------- Generadores de reporte ---------- */
+  function repInformeSDGC() {
+    const u = ui();
+    // Resumen ejecutivo
+    const evals = S().all("evaluacionesRNAO");
+    const gl = evals.map(CS().globalCumplimiento).filter(v => v != null);
+    const rnao = gl.length ? Math.round(gl.reduce((a, b) => a + b, 0) / gl.length) : null;
+    const NT = U.ntUtil || {};
+    const inst = NT.institNT ? NT.institNT() : { pct: null };
+    const IC = U.indicadoresCalc || {};
+    const inds = S().all("indicadores");
+    const enMeta = inds.filter(i => (IC.semaforo ? IC.semaforo(i) : "sd") === "verde").length;
+    const cap = S().all("actividades").reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0);
+    const evid = S().all("edicionesEVI").reduce((n, e) => n + ((e.evidencias || []).length), 0) + S().all("edicionesEVIClinico").length;
+    const docsVig = S().all("documentos").filter(d => /vigente/i.test(d.estado || "")).length;
+    // Intervenciones
+    const planesInt = S().all("planesIntervencion");
+    const planesNT = S().all("planesNT234");
+    const accRNAO = S().all("accionesRNAO").filter(a => a.estado !== "Completado");
+    const apoyo = S().all("apoyoMejora");
+    const apoyoActivo = apoyo.filter(a => !/finaliz|cerr/i.test(a.estado || "")).length;
+    const sols = S().all("solicitudes");
+    const totalInterv = planesInt.length + planesNT.length + accRNAO.length + apoyoActivo;
+    const planIntRows = planesInt.map(p => [
+      (U.data.guiaChip ? U.data.guiaChip(p.guia) : esc(p.guia || "")),
+      (U.data.unidadChip ? U.data.unidadChip(p.unidad) : esc(p.unidad || "")),
+      esc(p.objetivo || p.brecha || "—"),
+      (p.avance != null && p.avance !== "" ? p.avance + "%" : "—"),
+      esc(p.estadoCierre || "Abierto"), esc(p.coordinador || "—")]);
+
+    const sec = (n, title, rep) => `<h2 style="margin:16pt 0 2pt;padding-top:6pt;border-top:2px solid #0f8f83;color:#0f8f83">${n}. ${esc(title)}</h2>` + rep.body;
+
+    const body = `<p style="font-size:10.5pt;color:#334;margin:.2rem 0 .7rem">Informe de gestión de la <b>Unidad de Buenas Prácticas Clínicas (UBPC)</b> para la <b>Subdirección de Gestión del Cuidado (SDGC)</b>. Consolida, por área, lo trabajado en el período con sus <b>datos</b> e <b>intervenciones</b>.</p>`
+      + kpiRow([
+        { v: pctFmt(rnao), l: "Cumplimiento RNAO" },
+        { v: pctFmt(inst.pct), l: "Cumplimiento NT 234" },
+        { v: enMeta + "/" + inds.length, l: "Indicadores en meta" },
+        { v: cap, l: "Personas capacitadas" }
+      ]) + kpiRow([
+        { v: evid, l: "Evidencias entregadas" },
+        { v: docsVig, l: "Documentos vigentes" },
+        { v: S().all("colaboraciones").length, l: "Colaboraciones" },
+        { v: totalInterv, l: "Intervenciones" }
+      ])
+      + sec(1, "Programa RNAO / BPSO", repRNAO())
+      + sec(2, "Norma Técnica 234 · Prevención de LPP", repNT234())
+      + sec(3, "Indicadores UBPC", repIndicadores())
+      + sec(4, "Fortalecimiento y capacitación", repCapacitacion())
+      + sec(5, "Evidencia entregada", repEvidencia())
+      + sec(6, "Gestión documental", repDocumental())
+      + sec(7, "Red de colaboración", repColaboracion())
+      + `<h2 style="margin:16pt 0 2pt;padding-top:6pt;border-top:2px solid #0f8f83;color:#0f8f83">8. Intervenciones y gestión de apoyo</h2>`
+      + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Planes, acciones y procesos de apoyo gestionados por la UBPC.</p>`
+      + kpiRow([
+        { v: planesInt.length, l: "Planes de intervención RNAO" },
+        { v: planesNT.length, l: "Planes de mejora NT 234" },
+        { v: accRNAO.length, l: "Acciones de mejora pendientes" },
+        { v: apoyoActivo, l: "Procesos de apoyo activos" }
+      ])
+      + `<h3>Planes de intervención RNAO / BPSO</h3>`
+      + table(["Guía", "Unidad", "Objetivo / brecha", "Avance", "Estado", "Responsable"], planIntRows);
+
+    return {
+      titulo: "Informe de Gestión UBPC · SDGC", periodo: periodoActual(),
+      filtros: "Dirigido a: Subdirección de Gestión del Cuidado",
+      body: body,
+      excel: {
+        headers: ["Área", "Indicador", "Valor"],
+        rows: [
+          { "Área": "Programa RNAO", Indicador: "Cumplimiento institucional", Valor: pctFmt(rnao) },
+          { "Área": "Norma Técnica 234", Indicador: "Cumplimiento institucional", Valor: pctFmt(inst.pct) },
+          { "Área": "Indicadores UBPC", Indicador: "En meta", Valor: enMeta + "/" + inds.length },
+          { "Área": "Fortalecimiento", Indicador: "Personas capacitadas", Valor: cap },
+          { "Área": "Evidencia", Indicador: "Evidencias entregadas", Valor: evid },
+          { "Área": "Gestión documental", Indicador: "Documentos vigentes", Valor: docsVig },
+          { "Área": "Red de colaboración", Indicador: "Colaboraciones", Valor: S().all("colaboraciones").length },
+          { "Área": "Intervenciones", Indicador: "Total gestionadas", Valor: totalInterv }
+        ]
+      }
+    };
+  }
+
   function repConsolidado() {
     const evals = S().all("evaluacionesRNAO");
     const gl = evals.map(CS().globalCumplimiento).filter(v => v != null);
@@ -386,6 +467,7 @@
   }
 
   const REPORTS = [
+    { key: "sdgc", title: "Informe de Gestión UBPC · SDGC", icon: "📘", desc: "Informe completo de todo lo trabajado por la UBPC, por área, con datos e intervenciones, para entregar a la SDGC.", build: repInformeSDGC },
     { key: "consolidado", title: "Consolidado institucional", icon: "🏛️", desc: "Resumen ejecutivo de todos los programas de la UBPC.", build: repConsolidado },
     { key: "rnao", title: "Programa RNAO", icon: "🧭", desc: "Cumplimiento, evaluaciones y acciones de mejora.", build: repRNAO },
     { key: "nt234", title: "Norma Técnica 234", icon: "🛡️", desc: "Prevención de LPP: cumplimiento por unidad y planes de mejora.", build: repNT234 },
