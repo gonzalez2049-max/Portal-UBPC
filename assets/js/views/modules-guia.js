@@ -407,14 +407,37 @@
     });
   }
 
-  /* ---------- Agenda Coordinador (operativa) ---------- */
+  /* ---------- Agenda Coordinador: agenda + tarjetas de orientación ---------- */
+  function guiaTarjetas() {
+    return `<div class="section tk-box">
+        <div class="tk-box__eyebrow">Caja de herramientas del Coordinador</div>
+        <h2 class="tk-box__title">Cómo implementar, movilizar y sostener el Programa RNAO / BPSO</h2>
+        <p class="tk-box__sub">Ruta práctica del programa RNAO traducida al contexto operativo de un hospital público. Toca cada guía para ver un ejemplo.</p>
+        ${tkGrid(RNAO_TOOLKIT, "rnao")}
+      </div>
+      <div class="section tk-box tk-box--nt">
+        <div class="tk-box__eyebrow">Caja de herramientas del Coordinador</div>
+        <h2 class="tk-box__title">Cómo implementar y monitorear la Norma Técnica 234</h2>
+        <p class="tk-box__sub">Ruta práctica para la prevención de lesiones por presión y el cumplimiento de la NT 234. Toca cada guía para ver un ejemplo.</p>
+        ${tkGrid(NT_TOOLKIT, "nt")}
+      </div>`;
+  }
+  function guiaTarjetasBind() {
+    document.querySelectorAll("[data-tkset]").forEach(b => b.onclick = () => {
+      const data = b.dataset.tkset === "nt" ? NT_TOOLKIT : RNAO_TOOLKIT;
+      openToolkit(data[+b.dataset.tki]);
+    });
+  }
   function guia(params) {
     return `<div class="page-head"><h1>Agenda Coordinador</h1>
       <p>Tu agenda operativa para conducir la UBPC.</p></div>
-      <div id="agenda-body"></div>`;
+      <div id="agenda-body"></div>
+      <div id="coord-tarjetas" style="margin-top:1.4rem"></div>`;
   }
   function guiaBind(main, params) {
     if (U.coord.binders.agenda) U.coord.binders.agenda(main, params);
+    const t = document.getElementById("coord-tarjetas");
+    if (t) { t.innerHTML = guiaTarjetas(); guiaTarjetasBind(); }
   }
 
   U.coord.views.guia = guia;

@@ -399,14 +399,6 @@
           <div class="agc-grid agc-dow">${DOW.map(d => `<div class="agc-dow__c">${d}</div>`).join("")}</div>
           <div class="agc-grid agc-grid--big">${cells}</div>
           ${legend}
-        </div>
-        <div class="agc-below" style="margin-top:1rem">
-          ${vencHTML}
-          <div class="card">
-            <div class="section__head" style="margin-bottom:.4rem"><h3 class="card__title" style="margin:0">${panelTitle}</h3>
-              <div class="btn-row">${panelActions}</div></div>
-            ${panelBody}
-          </div>
         </div>`;
 
       document.getElementById("agc-prev").onclick = () => { monthOffset--; draw(); };
