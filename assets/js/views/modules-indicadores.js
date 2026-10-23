@@ -37,6 +37,11 @@
       numeradorDesc: "N° total de usuarios con riesgo moderado y alto que usan una Superficie Especial de Manejo de Presión",
       denominadorDesc: "N° total de usuarios con riesgo moderado y alto evaluados",
       fuenteDatos: "Ficha clínica / registro de enfermería · Pauta de cotejo", periodicidad: "Mensual", sentido: "Mayor es mejor", meta: 90 },
+    { tipo: "Proceso", codigoNquire: "ulcerprev_pro04", nombre: "Plan preventivo acorde al riesgo",
+      formula: "(Usuarios en riesgo con plan preventivo acorde a su nivel de riesgo / Total de usuarios en riesgo) × 100",
+      numeradorDesc: "N° de usuarios en riesgo con un plan preventivo de LPP acorde a su nivel de riesgo",
+      denominadorDesc: "N° total de usuarios en riesgo de desarrollar LPP",
+      fuenteDatos: "Ficha clínica / registro de enfermería · Pauta de cotejo", periodicidad: "Mensual", sentido: "Mayor es mejor", meta: 90 },
     { tipo: "Resultado", codigoNquire: "ulcermgt_out01", nombre: "Incidencia de LPP",
       formula: "(Usuarios que desarrollaron una o más LPP categoría II a IV durante el mes / Total de usuarios que egresaron del servicio clínico en el mes) × 100",
       numeradorDesc: "N° total de usuarios que desarrollaron una o más Lesiones por Presión categoría II a IV durante el mes de medición",
@@ -45,7 +50,7 @@
   ];
   function seedRnaoLPP() {
     try {
-      if (S().getConfig("seed.rnaoLPP.v1", false)) return;
+      if (S().getConfig("seed.rnaoLPP.v2", false)) return;
       const existentes = new Set(S().all("indicadores").map(i => i.codigoNquire).filter(Boolean));
       RNAO_LPP.forEach(def => {
         if (existentes.has(def.codigoNquire)) return;
@@ -54,7 +59,7 @@
           responsable: "Enf. Coordinador/a UBPC", fichaVersion: 1
         }, def), { silent: true });
       });
-      S().setConfig("seed.rnaoLPP.v1", true);
+      S().setConfig("seed.rnaoLPP.v2", true);
     } catch (e) {}
   }
   const SEM = {

@@ -49,6 +49,7 @@
       "Valoración de riesgo de LPP",
       "Reevaluación riesgo LPP",
       "Prevención LPP: uso superficie manejo de presión",
+      "Plan preventivo acorde al riesgo",
       "Incidencia LPP"
     ],
     "Accesos vasculares": [
@@ -72,6 +73,7 @@
     "Valoración de riesgo de LPP": "Proceso",
     "Reevaluación riesgo LPP": "Proceso",
     "Prevención LPP: uso superficie manejo de presión": "Proceso",
+    "Plan preventivo acorde al riesgo": "Proceso",
     "Incidencia LPP": "Resultado",
     // Accesos vasculares
     "Educación práctica a proveedores de salud": "Estructura",
@@ -89,6 +91,7 @@
     "Valoración de riesgo de LPP": { num: "N° pacientes con valoración riesgo LPP antes de 24 h del ingreso", den: "N° pacientes evaluados" },
     "Reevaluación riesgo LPP": { num: "N° pacientes hospitalizados revalorados según protocolo local", den: "N° pacientes evaluados" },
     "Prevención LPP: uso superficie manejo de presión": { num: "N° pacientes con riesgo moderado y alto con uso superficie manejo presión", den: "N° pacientes con riesgo moderado y alto evaluados" },
+    "Plan preventivo acorde al riesgo": { num: "N° usuarios en riesgo con plan preventivo acorde a su nivel de riesgo", den: "N° total usuarios en riesgo de desarrollar LPP" },
     "Incidencia LPP": { num: "N° pacientes con al menos una LPP categoría II a IV", den: "N° pacientes egresados del servicio clínico (alta + trasladados + fallecidos)" },
     "Educación práctica a proveedores de salud": { num: "N° proveedores de salud con educación práctica en inserción y/o mantenimiento de DAV", den: "N° proveedores de salud" },
     "Protocolo de cuidado multicomponente de DAVP": { num: "N° pacientes con DAVP con atención según protocolo", den: "N° pacientes con DAVP" },
