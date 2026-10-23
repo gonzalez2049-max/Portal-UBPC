@@ -70,9 +70,12 @@
       (p.avance != null && p.avance !== "" ? p.avance + "%" : "—"),
       esc(p.estadoCierre || "Abierto"), esc(p.coordinador || "—")]);
 
-    const sec = (n, title, rep) => `<h2 style="margin:16pt 0 2pt;padding-top:6pt;border-top:2px solid #0f8f83;color:#0f8f83">${n}. ${esc(title)}</h2>` + rep.body;
+    const prest = (n, title, desc) => `<h2 style="margin:18pt 0 1pt;padding-top:7pt;border-top:3px solid #0f8f83;color:#0f8f83;font-size:14.5pt">${n}. ${esc(title)}</h2>`
+      + (desc ? `<p class="muted" style="margin:.1rem 0 .5rem;font-size:12px">${esc(desc)}</p>` : "");
+    const prog = (name, rep) => `<p style="font-weight:800;font-size:11.5pt;color:#176ac0;margin:13pt 0 1pt">▸ ${esc(name)}</p>` + rep.body;
+    const concl = S().getConfig("informe.sdgc.conclusion", "");
 
-    const body = `<p style="font-size:10.5pt;color:#334;margin:.2rem 0 .7rem">Informe de gestión de la <b>Unidad de Buenas Prácticas Clínicas (UBPC)</b> para la <b>Subdirección de Gestión del Cuidado (SDGC)</b>. Consolida, por área, lo trabajado en el período con sus <b>datos</b> e <b>intervenciones</b>.</p>`
+    const body = `<p style="font-size:10.5pt;color:#334;margin:.2rem 0 .7rem">Informe de gestión de la <b>Unidad de Buenas Prácticas Clínicas (UBPC)</b> para la <b>Subdirección de Gestión del Cuidado (SDGC)</b>. Se presenta separado por <b>prestación</b>, con los <b>datos</b> y las <b>intervenciones</b> de cada una.</p>`
       + kpiRow([
         { v: pctFmt(rnao), l: "Cumplimiento RNAO" },
         { v: pctFmt(inst.pct), l: "Cumplimiento NT 234" },
@@ -84,23 +87,35 @@
         { v: S().all("colaboraciones").length, l: "Colaboraciones" },
         { v: totalInterv, l: "Intervenciones" }
       ])
-      + sec(1, "Programa RNAO / BPSO", repRNAO())
-      + sec(2, "Norma Técnica 234 · Prevención de LPP", repNT234())
-      + sec(3, "Indicadores UBPC", repIndicadores())
-      + sec(4, "Fortalecimiento y capacitación", repCapacitacion())
-      + sec(5, "Evidencia entregada", repEvidencia())
-      + sec(6, "Gestión documental", repDocumental())
-      + sec(7, "Red de colaboración", repColaboracion())
-      + `<h2 style="margin:16pt 0 2pt;padding-top:6pt;border-top:2px solid #0f8f83;color:#0f8f83">8. Intervenciones y gestión de apoyo</h2>`
-      + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Planes, acciones y procesos de apoyo gestionados por la UBPC.</p>`
+
+      + prest(1, "Apoyo y mejora continua en gestión del cuidado", "Prevención de LPP (NT 234), indicadores de cuidado, intervenciones y articulación institucional.")
+      + prog("Norma Técnica 234 · Prevención de LPP", repNT234())
+      + prog("Indicadores de cuidado (UBPC)", repIndicadores())
+      + `<p style="font-weight:800;font-size:11.5pt;color:#176ac0;margin:13pt 0 1pt">▸ Intervenciones y gestión de apoyo</p>`
+      + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12px">Acciones y procesos de apoyo gestionados por la UBPC.</p>`
       + kpiRow([
-        { v: planesInt.length, l: "Planes de intervención RNAO" },
-        { v: planesNT.length, l: "Planes de mejora NT 234" },
         { v: accRNAO.length, l: "Acciones de mejora pendientes" },
-        { v: apoyoActivo, l: "Procesos de apoyo activos" }
+        { v: apoyoActivo, l: "Procesos de apoyo activos" },
+        { v: sols.length, l: "Solicitudes gestionadas" },
+        { v: planesNT.length, l: "Planes de mejora NT 234" }
       ])
+      + prog("Articulación y red de colaboración", repColaboracion())
+
+      + prest(2, "Gestión Documental", "Producción documental de la UBPC y estado de validación.")
+      + repDocumental().body
+
+      + prest(3, "Programa RNAO / BPSO", "Implementación de Guías de Buenas Prácticas: cumplimiento, acciones y planes de intervención.")
+      + repRNAO().body
       + `<h3>Planes de intervención RNAO / BPSO</h3>`
-      + table(["Guía", "Unidad", "Objetivo / brecha", "Avance", "Estado", "Responsable"], planIntRows);
+      + table(["Guía", "Unidad", "Objetivo / brecha", "Avance", "Estado", "Responsable"], planIntRows)
+
+      + prest(4, "Programa de fortalecimiento Buenas Prácticas", "Capacitación, difusión de evidencia y reconocimiento de los equipos.")
+      + prog("Capacitación y cobertura", repCapacitacion())
+      + prog("Evidencia entregada", repEvidencia())
+
+      + `<h2 style="margin:18pt 0 1pt;padding-top:7pt;border-top:3px solid #176ac0;color:#176ac0;font-size:14.5pt">Conclusiones y solicitudes a la SDGC</h2>`
+      + `<p class="muted no-print" style="margin:.1rem 0 .4rem;font-size:12px">Escribe aquí tus conclusiones y solicitudes a la Subdirección de Gestión del Cuidado. Se guarda sola y aparece en el PDF / Word.</p>`
+      + `<div class="rep-concl" contenteditable="true" data-concl="informe.sdgc.conclusion">${concl ? esc(concl).replace(/\r?\n/g, "<br>") : ""}</div>`;
 
     return {
       titulo: "Informe de Gestión UBPC · SDGC", periodo: periodoActual(),
@@ -514,6 +529,9 @@
     box.querySelector("[data-excel]").onclick = () => rep.excel
       ? ui().exportExcel("reporte-" + key + "-ubpc", rep.excel.rows, rep.excel.headers, rep.titulo)
       : ui().toast("Este reporte no tiene tabla exportable", "danger");
+    // Conclusión editable (se guarda sola en la configuración)
+    const ce = box.querySelector("[data-concl]");
+    if (ce) ce.addEventListener("blur", () => { try { S().setConfig(ce.dataset.concl, ce.innerText.trim()); ui().toast("Conclusión guardada", "ok"); } catch (e) {} });
     box.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
