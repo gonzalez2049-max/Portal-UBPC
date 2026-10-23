@@ -407,23 +407,13 @@
     });
   }
 
-  /* ---------- Centro del Coordinador: Agenda (operativa) + Guía (consulta) ---------- */
-  const HUB_TABS = [
-    { key: "agenda", label: "Agenda" },
-    { key: "guia", label: "Guía del Coordinador" }
-  ];
+  /* ---------- Agenda Coordinador (operativa) ---------- */
   function guia(params) {
-    const tab = (params && params.tab) || "agenda";
-    return `<div class="page-head"><h1>Centro del Coordinador</h1>
-      <p>Tu agenda operativa y la guía práctica para conducir la UBPC, en un solo lugar.</p></div>
-      ${U.components.resource.tabsBar("coord", "guia", HUB_TABS, tab)}<div id="coord-hub-body"></div>`;
+    return `<div class="page-head"><h1>Agenda Coordinador</h1>
+      <p>Tu agenda operativa para conducir la UBPC.</p></div>
+      <div id="agenda-body"></div>`;
   }
   function guiaBind(main, params) {
-    const tab = (params && params.tab) || "agenda";
-    const box = document.getElementById("coord-hub-body");
-    if (!box) return;
-    if (tab === "guia") { box.innerHTML = guiaSections(); guiaContentBind(); return; }
-    box.innerHTML = `<div id="agenda-body"></div>`;
     if (U.coord.binders.agenda) U.coord.binders.agenda(main, params);
   }
 
