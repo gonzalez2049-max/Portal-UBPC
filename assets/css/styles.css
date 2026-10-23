@@ -2323,7 +2323,9 @@ body.night .ico-cl, body.night .ico-block{ background:#132621; border-color:rgba
 .ico-data{ margin-top:1rem; border-top:1px dashed var(--border,#e0e7e4); padding-top:1rem; }
 .ico-data__head{ display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.7rem; }
 .ico-data__head h4{ margin:0; font-size:1.02rem; color:#153833; }
-.ico-now{ display:flex; align-items:center; gap:1rem; border-radius:14px; padding:.85rem 1rem; border:1px solid; }
+.ico-now{ display:flex; align-items:center; gap:1rem; border-radius:14px; padding:.85rem 1rem; border:1px solid; flex-wrap:wrap; }
+.ico-now__concl{ flex:1 1 240px; min-width:210px; font-size:13px; line-height:1.4; padding-left:1rem; border-left:1px solid rgba(0,0,0,.12); }
+@media (max-width:640px){ .ico-now__concl{ border-left:none; padding-left:0; border-top:1px solid rgba(0,0,0,.1); padding-top:.5rem; } }
 .ico-now--ok{ background:#e4f6ec; border-color:#bfe6cd; }
 .ico-now--warn{ background:#fbf1de; border-color:#f0dcb4; }
 .ico-now--danger{ background:#fbe6ea; border-color:#f2c9d1; }

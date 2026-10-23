@@ -555,8 +555,8 @@
           <div class="kpi__sub">${u.esc(icoPeriodoLabel(last.periodo))} · demanda ${u.esc(last.demanda)} h ÷ disponibles ${u.esc(last.horas)} h</div>
           ${vari}
         </div>
+        <div class="ico-now__concl">🧮 ${icoFTEline(last)}</div>
       </div>
-      <p class="ico-concl-line">🧮 ${icoFTEline(last)}</p>
 
       <details class="ico-mas">
         <summary class="ico-mas__sum">📈 Ver evolución, jornadas, evidencia y recomendación</summary>
