@@ -565,8 +565,8 @@
         <p class="pf-help" style="margin:.1rem 0 .6rem">Seguimiento periódico de la adopción de la recomendación.</p>
         <div class="pf-grid">
           ${pinFld("frecuenciaSeg", "Frecuencia de seguimiento", "Cada cuánto se revisa el plan.", { value: data.frecuenciaSeg, type: "select", options: ["—", "Semanal", "Quincenal", "Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"] })}
-          ${pinFld("avance", "Avance global (%)", "Estimación del avance total del plan.", { value: data.avance, type: "number" })}
         </div>
+        <div class="pf-help" style="margin:.1rem 0 .4rem;padding:.5rem .75rem;border-radius:10px;background:var(--surface-2)">📊 El <b>avance del plan</b> se calcula automáticamente según el estado de las acciones (Completado = 100%, En curso = 50%). No necesitas estimarlo a mano.</div>
         <div class="pf-rep-lbl">Seguimientos cronológicos <span class="pf-help">Registra cada revisión con fecha, avance y estado.</span></div>
         ${pinRepTable("seguimientos", data.seguimientos)}</section>
       <section class="pf-section">${pinSecH(6, "Resultados esperados y cierre")}
@@ -706,19 +706,32 @@
   function gTag(guia) {
     return U.data.guiaChip ? U.data.guiaChip(guia) : `<span class="tag">${ui().esc(guia || "Guía")}</span>`;
   }
+  // Avance del plan = cuánto lleva completo, según el estado de sus acciones
+  // (Completado = 1, En curso = 0,5). Un plan cerrado cuenta como 100%.
+  function planAvance(pl) {
+    const accs = pl.acciones || [];
+    const done = accs.filter(a => /complet/i.test(a.estado || "")).length;
+    const curso = accs.filter(a => /curso/i.test(a.estado || "")).length;
+    const pct = accs.length ? Math.round((done + curso * 0.5) / accs.length * 100) : 0;
+    return { pct: pl.estadoCierre === "Cerrado" ? 100 : pct, done, curso, total: accs.length };
+  }
   function planCard(pl) {
     const u = ui();
     const cerrado = pl.estadoCierre === "Cerrado";
-    const av = pinNum(pl.avance);
-    const color = cerrado ? "var(--verde)" : (av != null && av >= 70 ? "var(--verde)" : av != null && av >= 40 ? "var(--naranjo)" : "var(--danger)");
+    const a = planAvance(pl);
+    const color = cerrado || a.pct >= 70 ? "var(--verde)" : (a.pct >= 40 ? "var(--naranjo)" : (a.pct > 0 ? "var(--naranjo)" : "var(--neutral)"));
+    const avDetalle = a.total ? `${a.done} de ${a.total} acción(es) completada(s)${a.curso ? " · " + a.curso + " en curso" : ""}` : "Sin acciones registradas aún";
     return `<div class="card" style="border-top:4px solid ${color}">
       <div class="card__head"><div>${gTag(pl.guia)} ${uniTag(pl.unidad)}</div>
         <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span></div>
       <h4 class="doc-card__title" style="margin:.4rem 0 .2rem">${u.esc(pl.indicador || pl.objetivo || "Plan de intervención")}</h4>
-      <div class="kpi__sub">Línea base ${pinPct(pl.lineaBase)} · Meta ${pinPct(pl.meta)}${pl.brecha ? " · Brecha: " + u.esc(pl.brecha) + (pl.brechaPct !== "" && pl.brechaPct != null ? " (" + pinPct(pl.brechaPct) + ")" : "") : ""}</div>
-      <div class="pin-prog"><div class="pin-prog__bar" style="width:${av != null ? Math.min(100, Math.max(0, av)) : 0}%;background:${color}"></div></div>
-      <div class="kpi__sub">Avance ${av != null ? av + "%" : "—"} · ${(pl.acciones || []).length} acción(es) · ${(pl.seguimientos || []).length} seguimiento(s)${(pl.frecuenciaSeg && pl.frecuenciaSeg !== "—") ? " · Seguim. " + u.esc(pl.frecuenciaSeg).toLowerCase() : ""}</div>
-      ${(() => { const d = duracionPlan(pl.plazoInicio, pl.plazoFin); return d ? `<div class="kpi__sub">⏱️ Plazo estimado: ${u.esc(d.txt)}${pl.plazoInicio && pl.plazoFin ? " · " + u.fechaCL(pl.plazoInicio) + " → " + u.fechaCL(pl.plazoFin) : ""}</div>` : ""; })()}
+      ${pl.brecha ? `<div class="kpi__sub">Meta ${pinPct(pl.meta)} · Brecha: ${u.esc(pl.brecha)}${pl.brechaPct !== "" && pl.brechaPct != null ? " (" + pinPct(pl.brechaPct) + ")" : ""}</div>` : `<div class="kpi__sub">Meta ${pinPct(pl.meta)}</div>`}
+      <div class="pin-avance">
+        <div class="pin-avance__top"><span>Avance del plan</span><b style="color:${color === "var(--neutral)" ? "var(--text-2)" : color}">${a.pct}%</b></div>
+        <div class="pin-prog"><div class="pin-prog__bar" style="width:${a.pct}%;background:${color}"></div></div>
+        <div class="kpi__sub">${avDetalle}</div>
+      </div>
+      ${(() => { const d = duracionPlan(pl.plazoInicio, pl.plazoFin); return d ? `<div class="kpi__sub">⏱️ ${pl.plazoInicio && pl.plazoFin ? u.fechaCL(pl.plazoInicio) + " → " + u.fechaCL(pl.plazoFin) : u.esc(d.txt)}</div>` : ""; })()}
       <div class="btn-row" style="margin-top:.6rem;flex-wrap:wrap">
         <button class="btn btn--primary btn--sm" data-plopen="${pl.id}">Abrir</button>
         <button class="btn btn--ghost btn--sm" data-pldoc="${pl.id}" title="Documento Plan de Mejora vinculado">📄 Documento</button>

@@ -1585,6 +1585,15 @@
     const acc = (plan.acciones || []).filter(a => (a.accion || "").trim());
     const acts = (plan.actividades || []).filter(a => (a.actividad || "").trim());
     const segs = (plan.seguimientos || []).filter(s => (s.descripcion || s.fecha || "").trim());
+    // Avance global calculado automáticamente según el estado de las acciones
+    // (Completado = 100%, En curso = 50%). Si el plan está cerrado, 100%.
+    const avanceCalc = (() => {
+      if (plan.estadoCierre === "Cerrado") return 100;
+      if (!acc.length) return 0;
+      const done = acc.filter(a => /complet/i.test(a.estado || "")).length;
+      const curso = acc.filter(a => /curso/i.test(a.estado || "")).length;
+      return Math.round((done + curso * 0.5) / acc.length * 100);
+    })();
     // Responsables y medios de verificación: se consolidan SIN repetir y se
     // presentan como lista con viñetas (documento formal, legible).
     const uniq = arr => [...new Set(arr.map(s => (s || "").trim()).filter(Boolean))];
@@ -1713,7 +1722,7 @@
       <p style="color:#5a6b84;font-size:9.5pt;margin:.1rem 0 .4rem">Seguimiento periódico de la adopción e indicador de éxito para el cierre de la brecha.</p>
       ${ficha([
         kv("Frecuencia de seguimiento", (plan.frecuenciaSeg && plan.frecuenciaSeg !== "—") ? e(plan.frecuenciaSeg) : "—"),
-        kv("Avance global", pct(plan.avance)),
+        kv("Avance global", pct(avanceCalc) + ` <span style="color:#5a6b84;font-size:8.5pt">(${acc.filter(a => /complet/i.test(a.estado || "")).length} de ${acc.length} acción(es) completada(s))</span>`),
         kv("Indicador de éxito", indicadorNquireCell(plan, e)),
         kv("Meta de cumplimiento", pct(plan.meta)),
         kv("Medios de verificación", (acc.length || acts.length) ? "Según el verificador indicado en cada acción." : listCell(verifList))

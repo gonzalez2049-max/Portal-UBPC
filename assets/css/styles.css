@@ -1506,6 +1506,11 @@ body.night .doc-linked{ background:#122436; border-color:rgba(255,255,255,.1); c
 .pin-prog{ height:8px; border-radius:999px; background:var(--surface-2,#eef2f1); overflow:hidden; margin:.5rem 0 .3rem; }
 .pin-prog__bar{ height:100%; border-radius:999px; transition:width .3s ease; }
 body.night .pin-prog{ background:rgba(255,255,255,.1); }
+.pin-avance{ margin:.55rem 0 .2rem; }
+.pin-avance__top{ display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; font-size:.92rem; }
+.pin-avance__top span{ color:var(--text-2); font-weight:600; }
+.pin-avance__top b{ font-size:1.15rem; font-weight:800; }
+.pin-avance .pin-prog{ margin:.3rem 0 .25rem; }
 
 .doc-tb__color{ display:inline-flex; align-items:center; cursor:pointer; position:relative; font-weight:800;
   padding:.15rem .4rem; border-radius:8px; }
