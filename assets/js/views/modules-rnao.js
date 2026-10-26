@@ -719,7 +719,7 @@
     const u = ui();
     const cerrado = pl.estadoCierre === "Cerrado";
     const a = planAvance(pl);
-    const color = cerrado || a.pct >= 70 ? "var(--verde)" : (a.pct >= 40 ? "var(--naranjo)" : (a.pct > 0 ? "var(--naranjo)" : "var(--neutral)"));
+    const color = cerrado || a.pct >= 70 ? "var(--verde)" : (a.pct >= 40 ? "var(--naranjo)" : "var(--danger)");
     const avDetalle = a.total ? `${a.done} de ${a.total} acción(es) completada(s)${a.curso ? " · " + a.curso + " en curso" : ""}` : "Sin acciones registradas aún";
     return `<div class="card" style="border-top:4px solid ${color}">
       <div class="card__head"><div>${gTag(pl.guia)} ${uniTag(pl.unidad)}</div>
@@ -727,7 +727,7 @@
       <h4 class="doc-card__title" style="margin:.4rem 0 .2rem">${u.esc(pl.indicador || pl.objetivo || "Plan de intervención")}</h4>
       ${pl.brecha ? `<div class="kpi__sub">Meta ${pinPct(pl.meta)} · Brecha: ${u.esc(pl.brecha)}${pl.brechaPct !== "" && pl.brechaPct != null ? " (" + pinPct(pl.brechaPct) + ")" : ""}</div>` : `<div class="kpi__sub">Meta ${pinPct(pl.meta)}</div>`}
       <div class="pin-avance">
-        <div class="pin-avance__top"><span>Avance del plan</span><b style="color:${color === "var(--neutral)" ? "var(--text-2)" : color}">${a.pct}%</b></div>
+        <div class="pin-avance__top"><span>Avance del plan</span><b style="color:${color}">${a.pct}%</b></div>
         <div class="pin-prog"><div class="pin-prog__bar" style="width:${a.pct}%;background:${color}"></div></div>
         <div class="kpi__sub">${avDetalle}</div>
       </div>
