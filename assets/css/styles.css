@@ -417,6 +417,24 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .reporte h3 { page-break-after: avoid; }
   .rep-tbl tr, .rep-kpi { page-break-inside: avoid; }
   .rep-firma { page-break-inside: avoid; }
+  /* Compactar el reporte para que quepa en UNA hoja A4 */
+  .app__main { padding: 9mm 11mm !important; }
+  .reporte { font-size: 10px; }
+  .reporte p { margin: .2rem 0; }
+  .reporte h3 { font-size: 1rem; margin: .5rem 0 .25rem; }
+  .rep-hd { padding-bottom: .45rem; margin: .1rem 0 .5rem; }
+  .rep-logo { width: 40px; height: 40px; }
+  .rep-hd__title { font-size: 1rem; }
+  .rep-hd__meta { font-size: 10.5px; }
+  .rep-kpis { gap: .4rem; margin: .45rem 0; flex-wrap: nowrap; }
+  .rep-kpi { padding: .32rem .5rem; min-width: 0; border-left-width: 3px; }
+  .rep-kpi__v { font-size: 1.1rem; }
+  .rep-kpi__l { font-size: 9px; }
+  .rep-tbl { font-size: 10px; margin: .2rem 0 .5rem; }
+  .rep-tbl th { padding: .28rem .45rem; }
+  .rep-tbl td { padding: .26rem .45rem; }
+  .rep-firma { margin-top: 1.2rem; }
+  .rep-concl { min-height: 54px; font-size: 9.5pt; padding: .45rem .6rem; }
 }
 
 /* ============================================================
@@ -1211,10 +1229,10 @@ body.night .kpi__ico{ background:rgba(18,181,165,.2); }
   display:grid; place-items:center; font-family:var(--font-disp); font-weight:700; font-size:12px; }
 .rep-hd__title{ font-family:var(--font-disp); font-size:1.15rem; font-weight:700; color:#0d5044; margin-bottom:.2rem; }
 .rep-hd__meta{ text-align:right; font-size:12.5px; color:var(--text-2); }
-.rep-kpis{ display:flex; gap:.7rem; margin:1rem 0; flex-wrap:wrap; }
-.rep-kpi{ flex:1; min-width:130px; border:1px solid var(--border); border-radius:10px; padding:.6rem .8rem; border-left:4px solid #12b5a5; }
-.rep-kpi__v{ font-family:var(--font-disp); font-size:1.5rem; font-weight:700; color:#153833; }
-.rep-kpi__l{ font-size:12px; color:var(--text-muted); }
+.rep-kpis{ display:flex; gap:.5rem; margin:.7rem 0; flex-wrap:wrap; }
+.rep-kpi{ flex:1; min-width:108px; border:1px solid var(--border); border-radius:9px; padding:.4rem .6rem; border-left:3px solid #12b5a5; }
+.rep-kpi__v{ font-family:var(--font-disp); font-size:1.2rem; font-weight:700; color:#153833; line-height:1.15; }
+.rep-kpi__l{ font-size:10.5px; color:var(--text-muted); line-height:1.2; }
 .rep-tbl{ border-collapse:collapse; width:100%; font-size:13px; margin:.3rem 0 .8rem; }
 .rep-tbl th{ background:#0f8f83; color:#fff; text-align:left; padding:.45rem .6rem; }
 .rep-tbl td{ padding:.4rem .6rem; border-bottom:1px solid var(--border); }
