@@ -599,7 +599,7 @@
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
-        <strong>${esc(rep.titulo)}</strong>
+        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v9</span></strong>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" data-print>🖨️ Imprimir / PDF</button>
           <button class="btn btn--ghost btn--sm" data-word>📄 Word</button>
