@@ -229,14 +229,16 @@
   }
 
   // Exporta contenido HTML a Word (.doc que abre en Word)
-  function exportWord(filename, title, innerHTML) {
+  function exportWord(filename, title, innerHTML, extraCSS) {
+    // Tamaño de página A4 con márgenes, para que el Word se vea como el PDF.
+    const page = `<style>@page WordSection1{size:21cm 29.7cm;margin:1.4cm 1.6cm}div.WordSection1{page:WordSection1}</style>`;
     const styles = `<style>body{font-family:'Segoe UI',Arial,sans-serif;color:#17263d;font-size:11pt}
       h1,h2,h3{font-family:'Georgia',serif;color:#0d5044} table{border-collapse:collapse;width:100%;font-size:10pt}
-      th{background:#0f8f83;color:#fff;text-align:left;padding:6px;border:1px solid #bbb}
-      td{padding:5px;border:1px solid #ddd} .muted{color:#5a6b84}</style>`;
+      th{background:#0f8f83;color:#fff;text-align:center;padding:6px;border:1px solid #0f8f83}
+      td{padding:5px;border:1px solid #ddd;text-align:justify;vertical-align:top} .muted{color:#5a6b84}</style>`;
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"
-      xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(title || "")}</title>${styles}</head>
-      <body>${innerHTML}</body></html>`;
+      xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(title || "")}</title>${page}${styles}${extraCSS || ""}</head>
+      <body><div class="WordSection1">${innerHTML}</div></body></html>`;
     download(filename.replace(/\.\w+$/, "") + ".doc", "﻿" + html, "application/msword");
   }
 
