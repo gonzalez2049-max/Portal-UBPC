@@ -63,12 +63,24 @@
     const apoyoActivo = apoyo.filter(a => !/finaliz|cerr/i.test(a.estado || "")).length;
     const sols = S().all("solicitudes");
     const totalInterv = planesInt.length + planesNT.length + accRNAO.length + apoyoActivo;
-    const planIntRows = planesInt.map(p => [
-      (U.data.guiaChip ? U.data.guiaChip(p.guia) : esc(p.guia || "")),
-      (U.data.unidadChip ? U.data.unidadChip(p.unidad) : esc(p.unidad || "")),
-      esc(p.objetivo || p.brecha || "—"),
-      (p.avance != null && p.avance !== "" ? p.avance + "%" : "—"),
-      esc(p.estadoCierre || "Abierto"), esc(p.coordinador || "—")]);
+    const avPlanInt = p => {
+      if (p.estadoCierre === "Cerrado") return 100;
+      const ac = (p.acciones || []).filter(x => (x.accion || "").trim());
+      if (!ac.length) return null;
+      const done = ac.filter(x => /complet/i.test(x.estado || "")).length;
+      const curso = ac.filter(x => /curso/i.test(x.estado || "")).length;
+      return Math.round((done + curso * 0.5) / ac.length * 100);
+    };
+    const planIntRows = planesInt.map(p => {
+      const av = avPlanInt(p);
+      const rec = (p.recomendacion && String(p.recomendacion).trim()) || p.indicador || p.brecha || p.objetivo || "—";
+      return [
+        (U.data.unidadChip ? U.data.unidadChip(p.unidad) : esc(p.unidad || "")),
+        (U.data.guiaChip ? U.data.guiaChip(p.guia) : esc(p.guia || "")),
+        esc(rec),
+        (av == null ? "—" : av + "%"),
+        esc(p.estadoCierre || "Abierto"), esc(p.coordinador || "—")];
+    });
 
     const prest = (n, title, desc) => `<h2 style="margin:18pt 0 1pt;padding-top:7pt;border-top:3px solid #0f8f83;color:#0f8f83;font-size:14.5pt">${n}. ${esc(title)}</h2>`
       + (desc ? `<p class="muted" style="margin:.1rem 0 .5rem;font-size:12px">${esc(desc)}</p>` : "");
@@ -106,8 +118,8 @@
 
       + prest(3, "Programa RNAO / BPSO", "Implementación de Guías de Buenas Prácticas: cumplimiento, acciones y planes de intervención.")
       + repRNAO().body
-      + `<h3>Planes de intervención RNAO / BPSO</h3>`
-      + table(["Guía", "Unidad", "Objetivo / brecha", "Avance", "Estado", "Responsable"], planIntRows)
+      + `<h3>Planes de intervención RNAO / BPSO · recomendación trabajada por unidad</h3>`
+      + table(["Unidad", "Guía", "Recomendación trabajada", "Avance", "Estado", "Responsable"], planIntRows)
 
       + prest(4, "Programa de fortalecimiento Buenas Prácticas", "Capacitación, difusión de evidencia y reconocimiento de los equipos.")
       + prog("Capacitación y cobertura", repCapacitacion())
@@ -179,9 +191,29 @@
     };
     const guiaRows = groupBy("guia").map(x => { const s = est(x.avg); return [(U.data.guiaChip ? U.data.guiaChip(x.k) : esc(x.k)), `<strong style="color:${s.c}">${x.avg}%</strong>`, metaI + "%", `<strong style="color:${s.c}">${s.l}</strong>`, x.n]; });
     const uniRows = groupBy("unidad").map(x => { const s = est(x.avg); return [(U.data.unidadChip ? U.data.unidadChip(x.k) : esc(x.k)), `<strong style="color:${s.c}">${x.avg}%</strong>`, metaI + "%", `<strong style="color:${s.c}">${s.l}</strong>`, x.n]; });
-    const acc = S().all("accionesRNAO").filter(a => a.estado !== "Completado");
-    const accRows = acc.map(a => [(U.data.guiaChip ? U.data.guiaChip(a.guia) : esc(a.guia || "")), (U.data.unidadChip ? U.data.unidadChip(a.unidad) : esc(a.unidad || "")), esc(a.indicadorOrigen || ""),
-      pctFmt(a.resultado), esc(a.responsable || ""), ui().fechaCL(a.fechaComprometida)]);
+    // "Dónde intervenir": la recomendación que se está trabajando por unidad
+    // (planes de intervención RNAO/BPSO abiertos). El avance se calcula según
+    // el estado de las acciones del plan (Completado = 100%, En curso = 50%).
+    const avPlan = p => {
+      if (p.estadoCierre === "Cerrado") return 100;
+      const ac = (p.acciones || []).filter(x => (x.accion || "").trim());
+      if (!ac.length) return null;
+      const done = ac.filter(x => /complet/i.test(x.estado || "")).length;
+      const curso = ac.filter(x => /curso/i.test(x.estado || "")).length;
+      return Math.round((done + curso * 0.5) / ac.length * 100);
+    };
+    const acc = S().all("planesIntervencion").filter(p => p.estadoCierre !== "Cerrado");
+    const accRows = acc.slice()
+      .sort((a, b) => (a.unidad || "~").localeCompare(b.unidad || "~") || (a.guia || "").localeCompare(b.guia || ""))
+      .map(p => {
+        const av = avPlan(p);
+        const rec = (p.recomendacion && String(p.recomendacion).trim()) || p.indicador || p.brecha || p.objetivo || "—";
+        return [(U.data.unidadChip ? U.data.unidadChip(p.unidad) : esc(p.unidad || "")),
+          (U.data.guiaChip ? U.data.guiaChip(p.guia) : esc(p.guia || "")),
+          esc(rec),
+          av == null ? '<span class="muted">—</span>' : `<strong>${av}%</strong>`,
+          esc(p.coordinador || "—")];
+      });
     const guias = new Set(evals.map(e => e.guia).filter(Boolean)).size;
     const unidades = new Set(evals.map(e => e.unidad).filter(Boolean)).size;
     return {
@@ -189,12 +221,14 @@
       body: kpiRow([
         { v: pctFmt(inst), l: "Cumplimiento institucional" },
         { v: guias, l: "Guías evaluadas" }, { v: unidades, l: "Unidades" },
-        { v: acc.length, l: "Acciones de mejora pendientes" }
+        { v: acc.length, l: "Recomendaciones en intervención" }
       ]) + `<h3>Cumplimiento por guía</h3>`
         + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Ordenado del más débil al más fuerte (meta ${metaI}%). El detalle por evaluación está en la exportación a Excel.</p>`
         + table(["Guía", "Cumplimiento", "Meta", "Estado", "N° eval."], guiaRows)
         + `<h3>Cumplimiento por unidad</h3>` + table(["Unidad", "Cumplimiento", "Meta", "Estado", "N° eval."], uniRows)
-        + `<h3>Acciones de mejora pendientes · dónde intervenir</h3>` + table(["Guía", "Unidad", "Indicador", "Resultado", "Responsable", "Comprometida"], accRows),
+        + `<h3>Acciones de mejora · recomendación trabajada por unidad</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Planes de intervención RNAO/BPSO abiertos: la recomendación que se está trabajando en cada unidad y su avance.</p>`
+        + table(["Unidad", "Guía", "Recomendación trabajada", "Avance", "Responsable"], accRows),
       excel: {
         headers: ["Guía", "Unidad", "Tipo", "Periodo", "Cumplimiento", "Meta"],
         rows: evals.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(e => ({ "Guía": e.guia, Unidad: e.unidad, Tipo: e.tipo, Periodo: e.periodo,
