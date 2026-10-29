@@ -43,10 +43,14 @@
     return `<table class="rep-kpis"><tbody><tr>${items.map(i => `<td class="rep-kpi" style="width:${w}%">
       <div class="rep-kpi__v">${i.v}</div><div class="rep-kpi__l">${esc(i.l)}</div></td>`).join("")}</tr></tbody></table>`;
   }
-  function table(headers, rows) {
+  // Alineación por columna: por defecto todo CENTRADO (números y datos cortos
+  // quedan alineados bajo el título). Para columnas de texto largo se pasa "j"
+  // (justificado) o "l" (izquierda) en el arreglo `aligns`.
+  function table(headers, rows, aligns) {
     if (!rows.length) return `<p class="muted">Sin datos para el período.</p>`;
+    const al = i => { const a = aligns && aligns[i]; return a === "l" ? "left" : a === "j" ? "justify" : "center"; };
     return `<table class="rep-tbl"><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
-      <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c == null ? "" : c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+      <tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td style="text-align:${al(i)}">${c == null ? "" : c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   }
   function pctFmt(v) { return v == null ? "—" : v + "%"; }
 
@@ -71,7 +75,7 @@
     .rep-kpi__l{font-size:8.5pt;color:#5a6b84}
     .rep-tbl{border-collapse:collapse;width:100%;font-size:10pt;margin:4pt 0 8pt}
     .rep-tbl th{background:#0f8f83;color:#fff;text-align:center;padding:5pt 6pt;border:1px solid #0f8f83}
-    .rep-tbl td{padding:4pt 6pt;border:1px solid #d7e0ea;text-align:justify;vertical-align:top}
+    .rep-tbl td{padding:4pt 6pt;border:1px solid #d7e0ea;text-align:center;vertical-align:middle}
     .rep-firma{width:100%;border-collapse:collapse;margin-top:20pt}
     .rep-firma td{border:none} .rep-firma__box{width:260px;text-align:center}
     .rep-firma__line{border-top:1px solid #17263d;padding-top:3pt;font-weight:600}
@@ -169,7 +173,7 @@
       + prest(3, "Programa RNAO / BPSO", "Implementación de Guías de Buenas Prácticas: cumplimiento, acciones y planes de intervención.")
       + repRNAO().body
       + `<h3>Planes de intervención RNAO / BPSO · recomendación trabajada por unidad</h3>`
-      + table(["Unidad", "Guía", "Recomendación trabajada", "Avance", "Estado", "Responsable"], planIntRows)
+      + table(["Unidad", "Guía", "Recomendación trabajada", "Avance", "Estado", "Responsable"], planIntRows, ["c", "c", "j", "c", "c", "c"])
 
       + prest(4, "Programa de fortalecimiento Buenas Prácticas", "Capacitación, difusión de evidencia y reconocimiento de los equipos.")
       + prog("Capacitación y cobertura", repCapacitacion())
@@ -278,7 +282,7 @@
         + `<h3>Cumplimiento por unidad</h3>` + table(["Unidad", "Cumplimiento", "Meta", "Estado", "N° eval."], uniRows)
         + `<h3>Acciones de mejora · recomendación trabajada por unidad</h3>`
         + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Planes de intervención RNAO/BPSO abiertos: la recomendación que se está trabajando en cada unidad y su avance.</p>`
-        + table(["Unidad", "Guía", "Recomendación trabajada", "Avance", "Responsable"], accRows),
+        + table(["Unidad", "Guía", "Recomendación trabajada", "Avance", "Responsable"], accRows, ["c", "c", "j", "c", "c"]),
       excel: {
         headers: ["Guía", "Unidad", "Tipo", "Periodo", "Cumplimiento", "Meta"],
         rows: evals.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(e => ({ "Guía": e.guia, Unidad: e.unidad, Tipo: e.tipo, Periodo: e.periodo,
@@ -612,7 +616,7 @@
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
-        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v10</span></strong>
+        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v11</span></strong>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" data-print>🖨️ Imprimir / PDF</button>
           <button class="btn btn--ghost btn--sm" data-word>📄 Word</button>

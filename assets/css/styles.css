@@ -1259,7 +1259,7 @@ body.night .kpi__ico{ background:rgba(18,181,165,.2); }
 .rep-kpi__l{ font-size:10.5px; color:var(--text-muted); line-height:1.2; }
 .rep-tbl{ border-collapse:collapse; width:100%; font-size:13px; margin:.3rem 0 .8rem; }
 .rep-tbl th{ background:#0f8f83; color:#fff; text-align:center; padding:.45rem .6rem; }
-.rep-tbl td{ padding:.4rem .6rem; border-bottom:1px solid var(--border); text-align:justify; vertical-align:top; }
+.rep-tbl td{ padding:.4rem .6rem; border-bottom:1px solid var(--border); text-align:center; vertical-align:middle; }
 /* Firma alineada a la derecha mediante celda espaciadora */
 .rep-firma{ width:100%; border-collapse:collapse; margin-top:2.4rem; }
 .rep-firma td{ border:none; }
