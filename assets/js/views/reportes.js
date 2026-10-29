@@ -298,6 +298,16 @@
     // Por tipo de actividad
     const byTipo = {}; acts.forEach(a => { const t = a.tipo || "Sin tipo"; (byTipo[t] = byTipo[t] || { n: 0, cap: 0 }).n++; byTipo[t].cap += num(a.personasCapacitadas); });
     const tipoRows = Object.keys(byTipo).sort((a, b) => byTipo[b].cap - byTipo[a].cap).map(t => [esc(t), byTipo[t].n, byTipo[t].cap]);
+    // Por programa: cursos y participantes asociados a BPSO vs NT 234
+    // (las actividades sin programa marcado cuentan como BPSO).
+    const esNT = a => a.programa === "NT 234";
+    const bpso = acts.filter(a => !esNT(a)), nt = acts.filter(esNT);
+    const capDe = arr => arr.reduce((n, a) => n + num(a.personasCapacitadas), 0);
+    const prom = arr => arr.length ? Math.round(capDe(arr) / arr.length) : 0;
+    const progRows = [
+      ["RNAO / BPSO", bpso.length, capDe(bpso), bpso.length ? prom(bpso) : "—"],
+      ["Norma Técnica 234", nt.length, capDe(nt), nt.length ? prom(nt) : "—"]
+    ];
     // Decisión: cuántas quedan pendientes
     const realizadas = acts.filter(a => /realiz|complet|ejecut|hecho/i.test(a.estado || "")).length;
     const pend = acts.length - realizadas;
@@ -307,12 +317,15 @@
       body: kpiRow([
         { v: acts.length, l: "Actividades" }, { v: total, l: "Personas capacitadas" },
         { v: estamentos, l: "Estamentos alcanzados" }, { v: pend, l: "Actividades pendientes" }
-      ]) + `<h3>Producción por estamento</h3>`
+      ]) + `<h3>Capacitación por programa</h3>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Cursos y participantes asociados a cada programa (RNAO/BPSO y Norma Técnica 234).</p>`
+        + table(["Programa", "Cursos / actividades", "Participantes", "Promedio por curso"], progRows)
+        + `<h3>Producción por estamento</h3>`
         + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">A quiénes llegó la capacitación. El detalle de cada actividad está en la exportación a Excel.</p>`
         + table(["Estamento", "Personas capacitadas", "% del total"], estRows)
         + `<h3>Por tipo de actividad</h3>` + table(["Tipo", "Actividades", "Personas capacitadas"], tipoRows),
-      excel: { headers: ["Fecha", "Actividad", "Tipo", "Estamento", "Capacitados", "Cobertura", "Estado"],
-        rows: acts.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(a => ({ Fecha: ui().fechaCL(a.fecha), Actividad: a.actividad, Tipo: a.tipo,
+      excel: { headers: ["Fecha", "Actividad", "Programa", "Tipo", "Estamento", "Capacitados", "Cobertura", "Estado"],
+        rows: acts.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(a => ({ Fecha: ui().fechaCL(a.fecha), Actividad: a.actividad, Programa: a.programa || "BPSO", Tipo: a.tipo,
           Estamento: a.estamento, Capacitados: num(a.personasCapacitadas), Cobertura: a.cobertura, Estado: a.estado })) }
     };
   }
@@ -599,7 +612,7 @@
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
-        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v9</span></strong>
+        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v10</span></strong>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" data-print>🖨️ Imprimir / PDF</button>
           <button class="btn btn--ghost btn--sm" data-word>📄 Word</button>
