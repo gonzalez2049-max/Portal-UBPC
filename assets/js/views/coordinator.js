@@ -232,6 +232,12 @@
       ? st.alertas.slice(0, 3).map((a, i) => `<div class="hh-al ${["d","w","i"][i] || "i"}"><span class="dot"></span>${u.esc(a)}</div>`).join("")
       : `<div class="hh-al ok"><span class="dot"></span>No existen alertas activas</div>`;
 
+    // Decisión: qué guía reforzar primero (barras vs meta, de menor a mayor %).
+    const guiasConDato = guias.filter(g => g.hasData).slice().sort((a, b) => a.pct - b.pct);
+    const guiaBars = guiasConDato.length
+      ? `<div class="card">${U.charts.bars(guiasConDato.map(g => ({ label: g.label, value: g.pct })), { meta: st.metaInst, metaMarker: true })}</div>`
+      : "";
+
     const hero = `
     <section class="home-hero">
       <div class="hh-welcome">
@@ -286,6 +292,12 @@
     ${hero}
 
     ${focusPanel()}
+
+    ${guiaBars ? `<div class="section">
+      <div class="section__head"><div><h2 class="section__title">Cumplimiento por guía · dónde reforzar primero</h2>
+        <p class="section__hint">Ordenado de menor a mayor cumplimiento. La línea punteada marca la meta institucional (${st.metaInst}%).</p></div></div>
+      ${guiaBars}
+    </div>` : ""}
 
     <div class="section">
       <div class="section__head"><h2 class="section__title">Indicadores de actividad</h2></div>
