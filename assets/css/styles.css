@@ -1248,6 +1248,15 @@ body.night .kpi__ico{ background:rgba(18,181,165,.2); }
 .seg-empty{ border:1px dashed var(--border); border-radius:12px; padding:1rem; text-align:center;
   color:var(--text-muted); font-size:.92rem; background:var(--surface-2); }
 .seg-empty .btn{ margin-left:.3rem; }
+.fase-cmp{ display:flex; align-items:stretch; gap:.6rem; flex-wrap:wrap; margin:.2rem 0 .4rem; }
+.fase-cmp__box{ flex:1; min-width:120px; border:1px solid var(--border); border-radius:12px; padding:.55rem .7rem;
+  display:flex; flex-direction:column; justify-content:space-between; gap:.25rem; background:var(--surface); }
+.fase-cmp__box span{ font-size:12px; color:var(--text-2); font-weight:600; line-height:1.15; }
+.fase-cmp__box span small{ color:var(--text-muted); font-weight:500; }
+.fase-cmp__box b{ font-size:1.7rem; font-weight:800; font-family:var(--font-disp); line-height:1; }
+.fase-cmp__arr{ align-self:center; font-size:1.3rem; color:var(--text-muted); font-weight:800; }
+.fase-cmp__delta{ align-self:center; font-weight:800; font-size:1rem; text-align:center; min-width:90px; line-height:1.2; }
+@media (max-width:520px){ .fase-cmp__arr{ transform:rotate(90deg); } }
 @media (max-width:640px){
   .seg-top{ flex-direction:column; align-items:stretch; }
   .seg-top__f{ justify-content:space-between; }

@@ -1124,9 +1124,35 @@
 
   function detalle(ind, done) {
     const u = ui(); const sem = SEM[semaforo(ind)]; const cur = currentValue(ind); const t = tendencia(ind); const s = serie(ind);
-    const chart = s.length > 1
-      ? U.charts.lineChart({ labels: s.map(x => x.periodo || ""), series: [{ name: ind.nombre || "Indicador", color: sem.c, values: s.map(x => x.valor) }], meta: Number(ind.meta) })
-      : u.empty("Aún no hay serie de seguimiento.", "Agrega períodos para ver la tendencia.", "📈");
+    // La FASE es parte del dato: se separa la serie por fase (Pre / Post /
+    // Seguimiento) para ver "cómo estábamos" vs "cómo vamos" en el mismo gráfico.
+    const FASE_COLOR = { "Pre implementación": "#8a93a6", "Post implementación": "#37a04a", "Seguimiento": sem.c };
+    const FASE_ORDEN = ["Pre implementación", "Post implementación", "Seguimiento"];
+    const puntos = [];
+    if (ind.lineaBase !== "" && ind.lineaBase != null) puntos.push({ periodo: "Línea base", valor: Number(ind.lineaBase), fase: "Pre implementación" });
+    (ind.seguimientos || []).filter(x => x.valor !== "" && x.valor != null).forEach(x => puntos.push({ periodo: x.periodo || "", valor: Number(x.valor), fase: x.fase || "Seguimiento" }));
+    puntos.sort((a, b) => a.periodo === "Línea base" ? -1 : b.periodo === "Línea base" ? 1 : String(a.periodo).localeCompare(String(b.periodo)));
+    const labels = puntos.map(p => p.periodo || "—");
+    const series = FASE_ORDEN.filter(f => puntos.some(p => p.fase === f))
+      .map(f => ({ name: f, color: FASE_COLOR[f], values: puntos.map(p => p.fase === f ? p.valor : null) }));
+    const chart = puntos.length > 1
+      ? U.charts.lineChart({ labels, series, meta: Number(ind.meta) })
+      : u.empty("Aún no hay serie de seguimiento.", "Agrega períodos (con su fase) para ver el antes y el después.", "📈");
+    // Comparación antes/ahora: promedio de las mediciones Pre vs el último valor
+    const pre = puntos.filter(p => p.fase === "Pre implementación");
+    const preVal = pre.length ? Math.round(pre.reduce((a, b) => a + b.valor, 0) / pre.length) : null;
+    const ahora = puntos.length ? puntos[puntos.length - 1] : null;
+    const ahoraVal = ahora ? ahora.valor : null;
+    const delta = (preVal != null && ahoraVal != null) ? ahoraVal - preVal : null;
+    const mejor = delta == null ? null : (menorMejor(ind) ? delta < 0 : delta > 0);
+    const compara = (preVal != null || ahoraVal != null)
+      ? `<div class="fase-cmp">
+          <div class="fase-cmp__box"><span>Cómo estábamos<br><small>pre implementación</small></span><b style="color:${FASE_COLOR['Pre implementación']}">${preVal == null ? "—" : preVal + "%"}</b></div>
+          <div class="fase-cmp__arr">→</div>
+          <div class="fase-cmp__box"><span>Cómo vamos<br><small>último registro</small></span><b style="color:${sem.c}">${ahoraVal == null ? "—" : ahoraVal + "%"}</b></div>
+          ${delta != null ? `<div class="fase-cmp__delta" style="color:${mejor ? "var(--verde)" : "var(--danger)"}">${delta > 0 ? "+" : ""}${delta} pts<br>${mejor ? "▲ mejoró" : (delta === 0 ? "→ igual" : "▼ empeoró")}</div>` : ""}
+        </div>${preVal == null ? `<p class="kpi__sub" style="margin:.1rem 0 .3rem">💡 Registra una medición con fase <strong>Pre implementación</strong> para comparar el antes y el después.</p>` : ""}`
+      : "";
     const alerta = semaforo(ind) === "rojo"
       ? `<div class="badge badge--danger" style="margin:.4rem 0">🔴 Bajo la meta: requiere intervención</div>`
       : (semaforo(ind) === "amarillo" ? `<div class="badge badge--warn" style="margin:.4rem 0">🟡 En seguimiento</div>` : "");
@@ -1152,6 +1178,7 @@
         ${(ind.seguimientos && ind.seguimientos.length) ? `<h4 style="margin:.6rem 0 .2rem">Mediciones registradas · reporte NQUIRE</h4>
           <div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th>Unidad</th><th>Fase</th><th class="right">Numerador</th><th class="right">Denominador</th><th class="right">Resultado</th></tr></thead>
           <tbody>${ind.seguimientos.slice().reverse().map(s => `<tr><td>${u.esc(s.periodo || "—")}</td><td>${u.esc(s.unidad || "General")}</td><td>${u.esc(s.fase || "Seguimiento")}</td><td class="num">${s.numerador != null ? s.numerador : "—"}</td><td class="num">${s.denominador != null ? s.denominador : "—"}</td><td class="num"><strong>${s.valor != null ? s.valor + "%" : "—"}</strong></td></tr>`).join("")}</tbody></table></div>` : ""}
+        <h4 style="margin:.6rem 0 .2rem">Antes vs. ahora (por fase)</h4>${compara}
         <h4 style="margin:.6rem 0 .2rem">Tendencia</h4>${chart}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
         <button class="btn btn--primary" data-seg>+ Seguimiento</button>`,
