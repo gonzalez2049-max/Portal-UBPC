@@ -408,9 +408,12 @@
       emptyMsg: "Aún no hay documentos registrados.",
       columns: [
         { key: "codigo", label: "Código", mono: true, width: "150px" },
-        { key: "nombre", label: "Documento" },
+        { key: "nombre", label: "Documento", render: (r, u) => {
+          const meta = [r.unidadResponsable, r.responsable].filter(Boolean).map(x => u.esc(x)).join(" · ");
+          return `<div style="font-weight:700;line-height:1.25">${u.esc(r.nombre || "—")}</div>${meta ? `<div class="kpi__sub">🏥 ${meta}</div>` : ""}`;
+        } },
         { key: "tipo", label: "Tipo", render: (r, u) => tipoDocChip(r.tipo, u) },
-        { key: "version", label: "Versión", render: (r, u) => `v${u.esc(r.version || "1")}` },
+        { key: "version", label: "Versión", center: true, render: (r, u) => `<span class="tag" style="font-weight:700">v${u.esc(r.version || "1")}</span>` },
         { key: "estado", label: "Estado", badge: true },
         { key: "revisadoUBP", label: "V°B° UBPC", center: true,
           render: r => /s[íi]/i.test(r.revisadoUBP || "") ? `<span class="badge badge--ok" title="Revisado por la UBPC${r.responsableRevision ? " · " + r.responsableRevision : ""}">✔ Sí</span>` : `<span class="badge badge--neutral" title="Sin V°B° de la UBPC">—</span>`,
