@@ -219,10 +219,13 @@
     // HERO BENTO (Nivel 1 — prioridad)
     const me = U.auth.current();
     const guias = cumplPorGuia();
-    const GC = [{ color: "#7fe0d0" }, { color: "#c9b6f5" }, { color: "#ffd98a" }];
-    const bloomSegs = guias.map((g, i) => ({ pct: g.pct, color: GC[i].color }));
+    // Colores del bloom por guía. Se accede en forma cíclica (módulo) para que
+    // nunca quede fuera de rango aunque cambie el número de guías.
+    const GC = [{ color: "#7fe0d0" }, { color: "#c9b6f5" }, { color: "#ffd98a" }, { color: "#8fd9f0" }, { color: "#f6a6c1" }, { color: "#a7e8b0" }];
+    const gcColor = i => GC[i % GC.length].color;
+    const bloomSegs = guias.map((g, i) => ({ pct: g.pct, color: gcColor(i) }));
     const bloomLegend = guias.map((g, i) => `
-      <div class="bloom-lg"><i style="background:${GC[i].color}"></i>
+      <div class="bloom-lg"><i style="background:${gcColor(i)}"></i>
       <span class="nm">${u.esc(g.label)}</span><span class="pc">${g.hasData ? g.pct + "%" : "—"}</span></div>`).join("");
     const globalColor = st.global == null ? "#ffffff" : (st.global >= st.metaInst ? "#eafff7" : "#fff");
     const heroAlertas = st.alertas.length
