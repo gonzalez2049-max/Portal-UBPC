@@ -377,7 +377,22 @@
         </div>
         <div class="pin-prog" style="margin:.5rem 0 .7rem"><div class="pin-prog__bar" style="width:${pctRev}%;background:${pctRev >= 70 ? "var(--verde)" : "var(--naranjo)"}"></div></div>
         <div>${chips}</div>
-      </div>`;
+      </div>
+      ${(() => {
+        const estColor = e => /vigente/i.test(e) ? "var(--verde)" : /borrador|revisi|enviado/i.test(e) ? "var(--naranjo)" : /obsoleto/i.test(e) ? "#8a94a6" : "var(--celeste)";
+        const items = CAT().estadosDoc.map(e => ({ label: e, value: by(e) })).filter(x => x.value > 0);
+        if (!items.length) return "";
+        const maxD = Math.max.apply(0, items.map(i => i.value).concat([1]));
+        const porAvanzar = enProceso;
+        return `<div class="card" style="margin-bottom:1rem">
+          <h3 class="card__title">Documentos por estado · qué avanzar</h3>
+          <p class="card__hint" style="margin:.1rem 0 .55rem">${porAvanzar ? `Hay <strong>${porAvanzar}</strong> documento(s) en borrador/revisión por avanzar a vigente.` : "Sin documentos pendientes de avanzar."}</p>
+          <div class="bars">${items.map(i => `<div style="margin-bottom:.55rem">
+            <div class="flex" style="justify-content:space-between;font-size:13px;font-weight:600"><span><span class="bars__dot" style="background:${estColor(i.label)}"></span>${u.esc(i.label)}</span><span><b>${i.value}</b></span></div>
+            <div style="background:var(--chart-track,#e9eff7);border-radius:6px;height:13px;overflow:hidden">
+              <div style="width:${Math.round(i.value / maxD * 100)}%;height:100%;background:${estColor(i.label)};border-radius:6px"></div></div></div>`).join("")}</div>
+        </div>`;
+      })()}`;
   }
 
   function documentosTab(box) {
