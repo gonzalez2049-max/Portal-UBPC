@@ -124,15 +124,18 @@
   }
 
   /* ---------- KPI helper ---------- */
-  function kpi(label, value, sub, kind, icon) {
-    return `<div class="card kpi ${kind ? "kpi--" + kind : ""}">
-      <div class="kpi__top">
+  // Con `href` la tarjeta es accionable: se vuelve un enlace al módulo donde se
+  // actúa, con una pista "Ir →".
+  function kpi(label, value, sub, kind, icon, href) {
+    const cls = `card kpi ${kind ? "kpi--" + kind : ""}${href ? " kpi--link" : ""}`;
+    const inner = `<div class="kpi__top">
         <div class="kpi__label">${ui().esc(label)}</div>
         ${icon ? `<span class="kpi__ico kpi__ico--${kind || "info"}">${icon}</span>` : ""}
       </div>
       <div class="kpi__value">${value}</div>
       <div class="kpi__sub">${ui().esc(sub)}</div>
-    </div>`;
+      ${href ? `<div class="kpi__go">Ir →</div>` : ""}`;
+    return href ? `<a class="${cls}" href="${href}">${inner}</a>` : `<div class="${cls}">${inner}</div>`;
   }
 
   /* ---------- Panel "Requiere tu atención" (acciones pendientes) ---------- */
@@ -279,13 +282,13 @@
     // Compat: n1 ya no se usa (integrado en el hero)
     const n1 = "";
 
-    // NIVEL 2
+    // NIVEL 2 — accionable: cada tarjeta lleva a su módulo (toca → ir).
     const n2 = `<div class="grid grid--kpi">
-      ${kpi("Procesos activos", st.procesosActivos, st.procesosActivos ? "En desarrollo actualmente" : "Aún sin procesos registrados", "info", "🤝")}
-      ${kpi("Documentos pendientes", st.docPendientes, st.docPendientes ? st.docPendientes + " requieren validación" : "Sin documentos pendientes", st.docPendientes ? "warn" : "ok", "📄")}
-      ${kpi("Guías BPSO activas", st.guiasActivas, st.guiasActivas ? st.guiasActivas + " guías en implementación" : "0 guías activas · Aún sin registros", st.guiasActivas ? "ok" : "neutral", "🧭")}
-      ${kpi("Personas capacitadas", st.personasCapacitadas, st.personasCapacitadas ? "Total acumulado registrado" : "Aún sin capacitaciones", "info", "🎓")}
-      ${kpi("Cobertura institucional", st.cobertura, st.cobertura ? st.cobertura + " unidades con actividad registrada" : "Sin cobertura registrada", "ok", "🏥")}
+      ${kpi("Documentos pendientes", st.docPendientes, st.docPendientes ? st.docPendientes + " por validar" : "Sin documentos pendientes", st.docPendientes ? "warn" : "ok", "📄", "#/coord/m2?tab=documentos")}
+      ${kpi("Procesos activos", st.procesosActivos, st.procesosActivos ? "En desarrollo actualmente" : "Aún sin procesos registrados", "info", "🤝", "#/coord/enlace")}
+      ${kpi("Guías BPSO activas", st.guiasActivas, st.guiasActivas ? st.guiasActivas + " en implementación" : "0 guías activas", st.guiasActivas ? "ok" : "neutral", "🧭", "#/coord/m3?tab=seguimiento")}
+      ${kpi("Personas capacitadas", st.personasCapacitadas, st.personasCapacitadas ? "Total acumulado" : "Aún sin capacitaciones", "info", "🎓", "#/coord/m4?tab=capbpso")}
+      ${kpi("Cobertura institucional", st.cobertura, st.cobertura ? st.cobertura + " unidades con actividad" : "Sin cobertura registrada", "ok", "🏥", "#/coord/m3?tab=evaluaciones")}
     </div>`;
 
     return `
@@ -300,11 +303,6 @@
     </div>` : ""}
 
     <div class="section">
-      <div class="section__head"><h2 class="section__title">Indicadores de actividad</h2></div>
-      ${n2}
-    </div>
-
-    <div class="section">
       <div class="section__head">
         <div><h2 class="section__title">Tendencia de cumplimiento</h2>
         <p class="section__hint">Evolución de los resultados durante los últimos períodos.</p></div>
@@ -312,20 +310,19 @@
       <div class="card" id="tendencia">${tendenciaHTML()}</div>
     </div>
 
-    <div class="grid grid--2" style="align-items:start">
-      <div class="section" style="margin:0">
-        <div class="section__head"><div><h2 class="section__title">Actividad reciente</h2>
-          <p class="section__hint">Últimos movimientos registrados en el portal.</p></div></div>
-        <div class="card home-scroll">${actividadHTML()}</div>
+    <div class="section">
+      <div class="section__head"><div><h2 class="section__title">Estado por área · toca para ir al módulo</h2>
+        <p class="section__hint">Cada tarjeta te lleva a donde se actúa.</p></div></div>
+      ${n2}
+    </div>
+
+    <div class="section">
+      <div class="section__head">
+        <div><h2 class="section__title">Línea de tiempo de hitos</h2>
+        <p class="section__hint">Principales avances de la UBPC.</p></div>
+        <button class="btn btn--primary btn--sm" id="addHito">+ Nuevo hito</button>
       </div>
-      <div class="section" style="margin:0">
-        <div class="section__head">
-          <div><h2 class="section__title">Línea de tiempo de hitos</h2>
-          <p class="section__hint">Principales avances de la UBPC.</p></div>
-          <button class="btn btn--primary btn--sm" id="addHito">+ Nuevo hito</button>
-        </div>
-        <div class="card home-scroll" id="timelineBox">${timelineHTML()}</div>
-      </div>
+      <div class="card home-scroll" id="timelineBox">${timelineHTML()}</div>
     </div>`;
   }
 
