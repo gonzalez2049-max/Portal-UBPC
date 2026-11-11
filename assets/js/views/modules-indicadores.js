@@ -792,25 +792,34 @@
     const lb = document.getElementById("ind-list");
     if (!list.length) { lb.innerHTML = u.empty("Aún no hay indicadores registrados.", "Crea uno o usa las recomendaciones de EVI.", "📏"); }
     else {
-      // Agrupar por TEMA/guía (LPP, Caídas, Accesos…) y, dentro, por TIPO (Estructura/Proceso/Resultado).
+      // Orden "peor primero": prioriza lo que requiere acción (rojo → amarillo →
+      // sin datos → verde), y dentro por menor cumplimiento. Pensado para DECIDIR
+      // dónde intervenir, no para listar.
+      const semRank = { rojo: 0, amarillo: 1, sd: 2, verde: 3 };
+      const worstFirst = (a, b) => (semRank[semaforo(a)] - semRank[semaforo(b)])
+        || ((cumplimiento(a) == null ? 999 : cumplimiento(a)) - (cumplimiento(b) == null ? 999 : cumplimiento(b)))
+        || String(a.nombre || "").localeCompare(String(b.nombre || ""));
+      // Sección de prioridad: lo que está bajo meta, del más crítico al menos.
+      const prioridad = list.filter(i => semaforo(i) === "rojo" || semaforo(i) === "amarillo").sort(worstFirst);
+      const prioHTML = prioridad.length
+        ? `<section class="ind-prio">
+            <div class="ind-prio__hd">⚠️ Dónde intervenir <span class="muted">· ${prioridad.length} bajo meta, del más crítico al menos</span></div>
+            ${prioridad.map(indRow).join("")}</section>`
+        : `<section class="ind-prio ind-prio--ok">✅ Todos los indicadores con datos están en meta.</section>`;
+      // Listado compacto por guía.
       const temaDe = i => U.data.guiaDeIndicador ? U.data.guiaDeIndicador(i.nombre, i.guia) : ((i.guia && String(i.guia).trim()) ? String(i.guia).trim() : "General");
       const byGuia = {}; list.forEach(i => { const g = temaDe(i); (byGuia[g] = byGuia[g] || []).push(i); });
       const ordenTemas = (U.data.CAT.guiasArea || []).concat(["General"]).filter(t => byGuia[t])
         .concat(Object.keys(byGuia).filter(t => !((U.data.CAT.guiasArea || []).concat(["General"]).includes(t))));
-      lb.innerHTML = ordenTemas.map(tema => {
-        const arr = byGuia[tema];
+      const guiaHTML = ordenTemas.map(tema => {
+        const arr = byGuia[tema].slice().sort(worstFirst);
         const gc = (U.data.guiaColor ? U.data.guiaColor(tema) : "#12b5a5");
-        const byTipo = {}; arr.forEach(i => { const t = i.tipo || "Otros"; (byTipo[t] = byTipo[t] || []).push(i); });
-        const bloques = TIPOS.concat(["Otros"]).filter(t => byTipo[t]).map(t => {
-          const c = TIPO_COLOR[t] || "#8a94a6";
-          return `<div class="ind-tipo">
-            <div class="ind-tipo__lbl"><span class="ind-tipo__dot" style="background:${c}"></span>Indicadores de ${u.esc(t)} <span class="ind-tipo__n">${byTipo[t].length}</span></div>
-            <div class="grid grid--3">${byTipo[t].map(card).join("")}</div></div>`;
-        }).join("");
-        return `<section class="ind-tema" style="--gc:${gc}">
-          <div class="ind-tema__hd"><span class="ind-tema__pill">${u.esc(tema)}</span><span class="ind-tema__n">${arr.length} indicador(es)</span></div>
-          ${bloques}</section>`;
+        return `<section class="ind-tema2">
+          <div class="ind-tema2__hd" style="border-left:4px solid ${gc}">${U.data.guiaChip ? U.data.guiaChip(tema) : u.esc(tema)} <span class="muted" style="font-size:12px">${arr.length} indicador(es)</span></div>
+          ${arr.map(indRow).join("")}</section>`;
       }).join("");
+      const allOpen = prioridad.length === 0 ? " open" : "";
+      lb.innerHTML = prioHTML + `<details class="ind-all"${allOpen}><summary>📋 Ver todos los indicadores por guía (${list.length})</summary>${guiaHTML}</details>`;
       lb.querySelectorAll("[data-idet]").forEach(b => b.onclick = () => detalle(S().get("indicadores", b.dataset.idet)));
       lb.querySelectorAll("[data-ied]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.ied)));
       lb.querySelectorAll("[data-iseg]").forEach(b => b.onclick = () => addSeguimiento(S().get("indicadores", b.dataset.iseg)));
@@ -912,6 +921,31 @@
     return `<div class="card kpi ${kind ? "kpi--" + kind : ""}"><div class="kpi__top"><div class="kpi__label">${u.esc(label)}</div>
       <span class="kpi__ico kpi__ico--${kind}">${icon}</span></div>
       <div class="kpi__value">${value}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
+  }
+
+  // Fila compacta y densa (para visualizar y decidir, no tarjetas grandes).
+  function indRow(ind) {
+    const u = ui();
+    const semK = semaforo(ind); const sem = SEM[semK];
+    const cur = currentValue(ind); const cumpl = cumplimiento(ind); const t = tendencia(ind);
+    const pi = proximaInfo(ind);
+    const prox = pi ? (pi.overdue ? ` · <span style="color:var(--danger);font-weight:700">medición pendiente</span>`
+      : (pi.soon ? ` · <span style="color:var(--naranjo);font-weight:700">próx. ${u.esc(pi.label)}</span>` : "")) : "";
+    const tcol = t.fav == null ? "var(--text-2)" : (t.fav ? "var(--verde)" : "var(--danger)");
+    const tc = TIPO_COLOR[ind.tipo] || "#8a94a6";
+    return `<div class="ind-row" style="border-left-color:${sem.c}">
+      <div class="ind-row__main">
+        <div class="ind-row__name">${u.esc(ind.nombre || "Indicador")}</div>
+        <div class="ind-row__sub"><span class="tag tag--xs" style="background:${tc}22;color:${tc}">${u.esc(ind.tipo || "—")}</span>${/rnao|bpso/i.test(ind.programa || "") ? ' <span class="tag tag--xs" style="background:#0d6ea81f;color:#0d6ea8">🦉 RNAO</span>' : ""} <span>${u.esc(ind.guia || "General")}</span>${prox}</div>
+      </div>
+      <div class="ind-row__val" style="color:${sem.c}">${cur == null ? "—" : cur + "%"}<span class="ind-row__meta">meta ${ind.meta != null && ind.meta !== "" ? ind.meta + "%" : "—"}${cumpl != null ? " · " + cumpl + "% cumpl" : ""}</span></div>
+      <div class="ind-row__trend"><span class="badge badge--${sem.k}">${sem.l}</span><span style="color:${tcol};font-weight:800">${t.arrow} ${u.esc(t.txt)}</span></div>
+      <div class="ind-row__act">
+        <button class="btn btn--ghost btn--sm" data-idet="${ind.id}">Ver</button>
+        <button class="btn btn--ghost btn--sm" data-iseg="${ind.id}">+ Medición</button>
+        <button class="btn-icon" data-ied="${ind.id}" title="Editar">✏️</button>
+        <button class="btn-icon" data-idel="${ind.id}" title="Eliminar">🗑️</button>
+      </div></div>`;
   }
 
   function card(ind) {
