@@ -222,13 +222,20 @@
     // HERO BENTO (Nivel 1 — prioridad)
     const me = U.auth.current();
     const guias = cumplPorGuia();
-    // Colores del bloom por guía. Se accede en forma cíclica (módulo) para que
-    // nunca quede fuera de rango aunque cambie el número de guías.
-    const GC = [{ color: "#7fe0d0" }, { color: "#c9b6f5" }, { color: "#ffd98a" }, { color: "#8fd9f0" }, { color: "#f6a6c1" }, { color: "#a7e8b0" }];
-    const gcColor = i => GC[i % GC.length].color;
-    const bloomSegs = guias.map((g, i) => ({ pct: g.pct, color: gcColor(i) }));
+    // Color del bloom por guía = tono CLARO del color de identidad de cada guía
+    // (teal=LPP, naranjo=Accesos, morado=Dolor, azul=Cuidados), para que coincida
+    // con sus chips y gráficos y no se repitan/crucen colores en el portal.
+    const GUIA_BLOOM = {
+      "Lesiones por presión": "#7fe0d0",
+      "Accesos vasculares": "#ffc178",
+      "Dolor": "#c9b6f5",
+      "Cuidados centrados en la persona y la familia": "#8fd9f0"
+    };
+    const bloomPalette = ["#7fe0d0", "#ffc178", "#c9b6f5", "#8fd9f0", "#f6a6c1", "#a7e8b0"];
+    const gcColor = (g, i) => GUIA_BLOOM[g] || bloomPalette[i % bloomPalette.length];
+    const bloomSegs = guias.map((g, i) => ({ pct: g.pct, color: gcColor(g.label, i) }));
     const bloomLegend = guias.map((g, i) => `
-      <div class="bloom-lg"><i style="background:${gcColor(i)}"></i>
+      <div class="bloom-lg"><i style="background:${gcColor(g.label, i)}"></i>
       <span class="nm">${u.esc(g.label)}</span><span class="pc">${g.hasData ? g.pct + "%" : "—"}</span></div>`).join("");
     const globalColor = st.global == null ? "#ffffff" : (st.global >= st.metaInst ? "#eafff7" : "#fff");
     const heroAlertas = st.alertas.length
