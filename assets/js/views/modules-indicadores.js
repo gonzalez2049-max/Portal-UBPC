@@ -945,7 +945,7 @@
   }
 
   /* ---------- Ficha adaptable por tipo ---------- */
-  function ficha(rec, prefill) {
+  function ficha(rec, prefill, done) {
     const u = ui(); rec = rec || prefill || {};
     let tipo = rec.tipo || "Resultado";
     let segs = rec.seguimientos ? JSON.parse(JSON.stringify(rec.seguimientos)) : [];
@@ -1063,13 +1063,13 @@
             d.fichaHist = [{ version: 1, fecha: new Date().toISOString(), por: me ? me.nombre : "—", cambio: "Creación de la ficha" }];
             S().insert("indicadores", d);
           }
-          u.closeModal(); u.toast("Indicador guardado", "ok"); renderTab();
+          u.closeModal(); u.toast("Indicador guardado", "ok"); (typeof done === "function" ? done : renderTab)();
         };
       }
     });
   }
 
-  function addSeguimiento(ind) {
+  function addSeguimiento(ind, done, preUnidad) {
     const u = ui();
     const estructura = ind.tipo === "Estructura";
     const ym = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); })();
@@ -1080,6 +1080,7 @@
           : `<p class="card__hint">Ingresa los <strong>dos datos que pide NQUIRE</strong>: el <strong>numerador</strong> (los que cumplen) y el <strong>denominador</strong> (el total). El portal calcula el <strong>resultado (%)</strong> automáticamente.</p>`) +
         u.formHTML([
           { name: "periodo", label: "Período (mes que reportas)", type: "month", value: ym, hint: "Mes al que corresponde la medición, en formato AAAA-MM (ej. 2026-09). Es el período que reportas a NQUIRE." },
+          { name: "unidad", label: "Unidad clínica", type: "select", options: ["General / Institucional"].concat(U.data.CAT.unidades), value: preUnidad || "General / Institucional", hint: "Unidad donde se midió. Deja 'General / Institucional' si el dato es global." },
           { name: "fecha", label: "Fecha en que registras la medición", type: "date", value: u.hoyISO(), hint: "Día en que ingresas el dato. Se usa para avisar la próxima medición." },
           estructura ? null : { name: "numerador", label: "Numerador (los que cumplen)", type: "number", full: true, hint: (ind.numeradorDesc ? ind.numeradorDesc + "." : "") + " Cuántos casos cumplen la condición del indicador." },
           estructura ? null : { name: "denominador", label: "Denominador (el total)", type: "number", full: true, hint: (ind.denominadorDesc ? ind.denominadorDesc + "." : "") + " Total de casos sobre el que se mide." },
@@ -1106,19 +1107,20 @@
           const entry = { periodo: d.periodo, valor: valor, fecha: d.fecha || "" };
           if (num != null) entry.numerador = num;
           if (den != null) entry.denominador = den;
+          if (d.unidad && d.unidad !== "General / Institucional") entry.unidad = d.unidad;
           const segs = (ind.seguimientos || []).concat([entry]);
           const patch = { seguimientos: segs };
           if (num != null) patch.numerador = num;   // refleja el último período (para el panel RNAO y el semáforo)
           if (den != null) patch.denominador = den;
           if (d.fecha) patch.fechaMedicion = d.fecha;
           S().update("indicadores", ind.id, patch);
-          u.closeModal(); u.toast("Medición registrada", "ok"); renderTab();
+          u.closeModal(); u.toast("Medición registrada", "ok"); (typeof done === "function" ? done : renderTab)();
         };
       }
     });
   }
 
-  function detalle(ind) {
+  function detalle(ind, done) {
     const u = ui(); const sem = SEM[semaforo(ind)]; const cur = currentValue(ind); const t = tendencia(ind); const s = serie(ind);
     const chart = s.length > 1
       ? U.charts.lineChart({ labels: s.map(x => x.periodo || ""), series: [{ name: ind.nombre || "Indicador", color: sem.c, values: s.map(x => x.valor) }], meta: Number(ind.meta) })
@@ -1146,12 +1148,12 @@
         <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Objetivo</span><p class="narrativo">${u.esc(ind.objetivo || "—")}</p></div>
         ${(ind.metodologia || "").trim() ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Metodología de evaluación</span><ol class="mtx-crit">${ind.metodologia.split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(x => `<li>${u.esc(x)}</li>`).join("")}</ol></div>` : ""}
         ${(ind.seguimientos && ind.seguimientos.length) ? `<h4 style="margin:.6rem 0 .2rem">Mediciones registradas · reporte NQUIRE</h4>
-          <div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th class="right">Numerador</th><th class="right">Denominador</th><th class="right">Resultado</th></tr></thead>
-          <tbody>${ind.seguimientos.slice().reverse().map(s => `<tr><td>${u.esc(s.periodo || "—")}</td><td class="num">${s.numerador != null ? s.numerador : "—"}</td><td class="num">${s.denominador != null ? s.denominador : "—"}</td><td class="num"><strong>${s.valor != null ? s.valor + "%" : "—"}</strong></td></tr>`).join("")}</tbody></table></div>` : ""}
+          <div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th>Unidad</th><th class="right">Numerador</th><th class="right">Denominador</th><th class="right">Resultado</th></tr></thead>
+          <tbody>${ind.seguimientos.slice().reverse().map(s => `<tr><td>${u.esc(s.periodo || "—")}</td><td>${u.esc(s.unidad || "General")}</td><td class="num">${s.numerador != null ? s.numerador : "—"}</td><td class="num">${s.denominador != null ? s.denominador : "—"}</td><td class="num"><strong>${s.valor != null ? s.valor + "%" : "—"}</strong></td></tr>`).join("")}</tbody></table></div>` : ""}
         <h4 style="margin:.6rem 0 .2rem">Tendencia</h4>${chart}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
         <button class="btn btn--primary" data-seg>+ Seguimiento</button>`,
-      onMount(m) { m.querySelector("[data-seg]").onclick = () => { u.closeModal(); addSeguimiento(ind); }; }
+      onMount(m) { m.querySelector("[data-seg]").onclick = () => { u.closeModal(); addSeguimiento(ind, done); }; }
     });
   }
 
@@ -1214,4 +1216,7 @@
 
   /* Cálculos expuestos para reportes u otros módulos */
   U.indicadoresCalc = { currentValue, semaforo, cumplimiento, serie, tendencia, SEM, TIPO_COLOR };
+  // API reutilizable para que RNAO/BPSO use la MISMA fuente de datos y formularios
+  // (registro mensual, evolución y ficha). Así ambos módulos quedan sincronizados.
+  U.indicadoresApi = { registrarMedicion: addSeguimiento, verEvolucion: detalle, editarFicha: ficha, seedRnaoLPP: seedRnaoLPP };
 })();

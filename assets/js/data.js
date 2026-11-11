@@ -22,7 +22,7 @@
     ],
     estamentos: ["Enfermería", "TENS", "Auxiliar de servicio", "Médico", "Kinesiología", "Multiestamento", "Otro"],
     prioridades: ["alta", "media", "baja"],
-    guiasArea: ["Lesiones por presión", "Accesos vasculares", "Cuidados centrados en la persona y la familia"],
+    guiasArea: ["Lesiones por presión", "Accesos vasculares", "Dolor", "Cuidados centrados en la persona y la familia"],
     pilares: ["Calidad y seguridad", "Gestión del cuidado", "Formación continua",
               "Evidencia científica", "Articulación institucional"],
     tiposColaboracion: ["Asesoría Técnica", "Colaboración interna", "Visita técnica",
@@ -255,6 +255,7 @@
     "Lesiones por presión": "#12b5a5",
     "Accesos vasculares":   "#e0912f",
     "Cuidados centrados en la persona y la familia": "#1e9fe0",
+    "Dolor":                "#7a5cd0",
     "Caídas":               "#e0526f"
   };
   const GUIA_PALETTE = ["#12b5a5", "#e0912f", "#e0526f", "#37a04a", "#1e9fe0", "#0891b2", "#be185d", "#8a6d3b"];

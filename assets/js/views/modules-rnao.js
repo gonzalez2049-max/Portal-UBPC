@@ -12,6 +12,7 @@
   const docRoute = docId => (U.auth.isReferente && U.auth.isReferente()) ? ("#/ref/docs?doc=" + docId) : ("#/coord/m2?tab=docs&doc=" + docId);
 
   const TABS = [
+    { key: "seguimiento", label: "Seguimiento de guías" },
     { key: "dashboard", label: "Dashboard" },
     { key: "evaluaciones", label: "Línea base y seguimiento" },
     { key: "planes", label: "Plan de Intervención RNAO/BPSO" },
@@ -19,19 +20,148 @@
     { key: "champion", label: "Red Champion" },
     { key: "indice", label: "Índice de implementación" }
   ];
+  // Unidad seleccionada en el filtro del seguimiento por guía (se conserva en sesión).
+  let segFiltroUnidad = "Todas las unidades";
 
   function m3(params) {
-    const tab = (params && params.tab) || "dashboard";
+    const tab = (params && params.tab) || "seguimiento";
     return `<div class="page-head"><h1>Programa RNAO / BPSO</h1>
       <p>Implementación de Guías de Buenas Prácticas (BPSO): evaluación, seguimiento y mejora continua.</p></div>
       ${U.components.resource.tabsBar("coord", "m3", TABS, tab)}
       <div id="m3-body"></div>`;
   }
   function m3Bind(main, params) {
-    const tab = (params && params.tab) || "dashboard";
+    const tab = (params && params.tab) || "seguimiento";
     const box = document.getElementById("m3-body");
-    const fns = { dashboard, evaluaciones, planes: b => planesTab(b, params), guias: guiasTab, champion: championTab, indice: indiceTab };
-    (fns[tab] || dashboard)(box);
+    const fns = { seguimiento: seguimientoGuias, dashboard, evaluaciones, planes: b => planesTab(b, params), guias: guiasTab, champion: championTab, indice: indiceTab };
+    (fns[tab] || seguimientoGuias)(box);
+  }
+
+  /* ============================================================
+     SEGUIMIENTO DE GUÍAS — pantalla principal de RNAO/BPSO.
+     Reutiliza la MISMA fuente de datos que el módulo Indicadores
+     (colección "indicadores" + U.indicadoresCalc + U.indicadoresApi),
+     por lo que ambos módulos quedan sincronizados automáticamente.
+     Organiza los indicadores por guía clínica, con registro mensual
+     (num/den → % automático), tarjetas, tendencia, gráficos y filtro
+     por unidad clínica. No duplica ni modifica datos históricos.
+     ============================================================ */
+  function segViewFor(ind) {
+    // Vista del indicador según el filtro de unidad: si hay una unidad
+    // seleccionada, se calcula solo con sus mediciones; "Todas" usa la serie completa.
+    if (segFiltroUnidad === "Todas las unidades") return ind;
+    const segs = (ind.seguimientos || []).filter(s => (s.unidad || "") === segFiltroUnidad);
+    return Object.assign({}, ind, { seguimientos: segs, lineaBase: "", numerador: null, denominador: null });
+  }
+  function segIndCard(ind) {
+    const u = ui(); const IC = U.indicadoresCalc || {};
+    const v = segViewFor(ind);
+    const sem = (IC.SEM && IC.SEM[IC.semaforo(v)]) || { k: "neutral", l: "Sin datos", c: "var(--neutral)" };
+    const cur = IC.currentValue ? IC.currentValue(v) : null;
+    const cmp = IC.cumplimiento ? IC.cumplimiento(v) : null;
+    const t = IC.tendencia ? IC.tendencia(v) : { arrow: "→", txt: "", fav: null };
+    const s = IC.serie ? IC.serie(v) : [];
+    const spark = (s.length > 1 && U.charts.sparkline) ? U.charts.sparkline(s.map(x => x.valor), { color: sem.c, meta: Number(ind.meta) }) : "";
+    const tipoC = (IC.TIPO_COLOR && IC.TIPO_COLOR[ind.tipo]) || "#5f7d76";
+    return `<div class="card" style="border-top:4px solid ${sem.c}">
+      <div class="card__head" style="flex-wrap:wrap;gap:.3rem">
+        <span class="tag" style="background:${tipoC}22;color:${tipoC}">${u.esc(ind.tipo || "")}</span>
+        <span class="badge badge--${sem.k}">${sem.l}</span></div>
+      <h4 class="doc-card__title" style="margin:.4rem 0 .2rem;font-size:.98rem">${u.esc(ind.nombre || "Indicador")}</h4>
+      <div class="flex" style="justify-content:space-between;align-items:flex-end;margin:.3rem 0 .2rem">
+        <div><div style="font-size:1.9rem;font-weight:800;font-family:var(--font-disp);color:${sem.c};line-height:1">${cur == null ? "—" : cur + "%"}</div>
+          <div class="kpi__sub">Meta ${ind.meta != null && ind.meta !== "" ? ind.meta + "%" : "—"}${cmp != null ? " · Cumpl. " + cmp + "%" : ""}</div></div>
+        <div class="right" style="font-weight:800;color:${t.fav == null ? "var(--text-2)" : (t.fav ? "var(--verde)" : "var(--danger)")}">${t.arrow} ${u.esc(t.txt || "")}</div>
+      </div>
+      ${spark ? `<div style="margin:.2rem 0 .3rem">${spark}</div>` : ""}
+      <div class="btn-row" style="flex-wrap:wrap;gap:.35rem">
+        <button class="btn btn--primary btn--sm" data-segreg="${ind.id}">+ Registro mensual</button>
+        <button class="btn btn--ghost btn--sm" data-segevo="${ind.id}">📈 Ver evolución</button>
+      </div></div>`;
+  }
+  function seguimientoGuias(box) {
+    const u = ui();
+    const refresh = () => seguimientoGuias(box);
+    // Siembra los indicadores oficiales RNAO/BPSO · LPP si aún no existen
+    // (mismo seed del módulo Indicadores; no duplica por codigoNquire).
+    try { if (U.indicadoresApi && U.indicadoresApi.seedRnaoLPP) U.indicadoresApi.seedRnaoLPP(); } catch (e) {}
+    const inds = S().all("indicadores");
+    // Unidades clínicas con mediciones registradas (para el filtro)
+    const units = new Set();
+    inds.forEach(i => (i.seguimientos || []).forEach(s => { if (s.unidad) units.add(s.unidad); }));
+    const unitOptions = ["Todas las unidades"].concat(Array.from(units).sort());
+    if (unitOptions.indexOf(segFiltroUnidad) === -1) segFiltroUnidad = "Todas las unidades";
+
+    const secciones = U.data.CAT.guiasArea.map(g => {
+      const list = inds.filter(i => (i.guia || "") === g).sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
+      const color = U.data.guiaColor(g);
+      const cuerpo = list.length
+        ? `<div class="grid grid--3">${list.map(segIndCard).join("")}</div>`
+        : `<div class="seg-empty">Aún no hay indicadores en esta guía. <button class="btn btn--ghost btn--sm" data-segnew="${u.esc(g)}">+ Registrar indicador</button></div>`;
+      return `<section class="seg-guia">
+        <div class="seg-guia__hd" style="border-left:4px solid ${color}">
+          ${U.data.guiaChip(g)} <span class="muted" style="font-size:12.5px">${list.length} indicador(es)</span>
+          <button class="btn btn--ghost btn--sm" data-segnew="${u.esc(g)}" style="margin-left:auto">+ Indicador</button></div>
+        ${cuerpo}</section>`;
+    }).join("");
+
+    // Indicadores que no pertenecen a ninguna de las guías (General, NT 234, etc.):
+    // se muestran para no ocultar ni "perder" ninguno.
+    const otros = inds.filter(i => U.data.CAT.guiasArea.indexOf(i.guia || "") === -1)
+      .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
+    const seccionOtros = otros.length ? `<section class="seg-guia">
+      <div class="seg-guia__hd" style="border-left:4px solid var(--neutral)">
+        <span class="tag" style="background:var(--surface-2);color:var(--text-2)">Otros / General</span>
+        <span class="muted" style="font-size:12.5px">${otros.length} indicador(es)</span></div>
+      <div class="grid grid--3">${otros.map(segIndCard).join("")}</div></section>` : "";
+
+    box.innerHTML = `
+      <div class="seg-top">
+        <div class="seg-top__f">
+          <label class="seg-flbl">🏥 Unidad clínica</label>
+          <select id="seg-unidad" class="seg-select">${unitOptions.map(o => `<option${o === segFiltroUnidad ? " selected" : ""}>${u.esc(o)}</option>`).join("")}</select>
+        </div>
+        <button class="btn btn--primary btn--sm" id="seg-reg">+ Registrar medición</button>
+      </div>
+      <p class="section__hint" style="margin:.2rem 0 .8rem">Pantalla principal de seguimiento de las <strong>guías de buenas prácticas</strong>. Los indicadores son la <strong>misma fuente única</strong> del módulo Indicadores: lo que registras aquí se refleja allá y viceversa. ${segFiltroUnidad !== "Todas las unidades" ? `Mostrando <strong>${u.esc(segFiltroUnidad)}</strong>.` : "Mostrando el consolidado de todas las unidades."}</p>
+      ${secciones}${seccionOtros}`;
+
+    const sel = box.querySelector("#seg-unidad");
+    if (sel) sel.onchange = () => { segFiltroUnidad = sel.value; refresh(); };
+    const api = U.indicadoresApi || {};
+    const preU = segFiltroUnidad !== "Todas las unidades" ? segFiltroUnidad : "";
+    box.querySelectorAll("[data-segreg]").forEach(b => b.onclick = () => api.registrarMedicion && api.registrarMedicion(S().get("indicadores", b.dataset.segreg), refresh, preU));
+    box.querySelectorAll("[data-segevo]").forEach(b => b.onclick = () => api.verEvolucion && api.verEvolucion(S().get("indicadores", b.dataset.segevo), refresh));
+    box.querySelectorAll("[data-segnew]").forEach(b => b.onclick = () => api.editarFicha && api.editarFicha(null, { guia: b.dataset.segnew }, refresh));
+    const regBtn = box.querySelector("#seg-reg");
+    if (regBtn) regBtn.onclick = () => segElegirIndicador(inds, refresh, preU);
+  }
+  // Selector de indicador para el botón "Registrar medición" (elige guía → indicador).
+  function segElegirIndicador(inds, refresh, preU) {
+    const u = ui();
+    if (!inds.length) { u.toast("Primero registra un indicador en alguna guía", "danger"); return; }
+    const grupos = U.data.CAT.guiasArea.map(g => {
+      const list = inds.filter(i => (i.guia || "") === g);
+      if (!list.length) return "";
+      return `<optgroup label="${u.esc(g)}">${list.map(i => `<option value="${i.id}">${u.esc(i.nombre || "Indicador")}</option>`).join("")}</optgroup>`;
+    }).join("");
+    const otros = inds.filter(i => U.data.CAT.guiasArea.indexOf(i.guia || "") === -1);
+    const otrosHTML = otros.length ? `<optgroup label="Otros / General">${otros.map(i => `<option value="${i.id}">${u.esc(i.nombre || "Indicador")}</option>`).join("")}</optgroup>` : "";
+    u.modal({
+      title: "Registrar medición mensual",
+      body: `<p class="card__hint">Elige el indicador que vas a medir. Luego ingresas unidad, mes, numerador y denominador (el % se calcula solo).</p>
+        <label class="seg-flbl" style="display:block;margin:.2rem 0">Indicador</label>
+        <select id="seg-pick" class="seg-select" style="width:100%">${grupos}${otrosHTML}</select>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-go>Continuar</button>`,
+      onMount(m) {
+        m.querySelector("[data-go]").onclick = () => {
+          const id = m.querySelector("#seg-pick").value;
+          u.closeModal();
+          const ind = S().get("indicadores", id);
+          if (ind && U.indicadoresApi && U.indicadoresApi.registrarMedicion) U.indicadoresApi.registrarMedicion(ind, refresh, preU);
+        };
+      }
+    });
   }
 
   /* ---------- Utilidades de cálculo ---------- */
