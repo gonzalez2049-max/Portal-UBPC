@@ -250,6 +250,20 @@
         ? U.charts.lineChart({ labels, series: [{ name: filtro === "Todas" ? "Cumplimiento institucional" : filtro, color: "var(--danger)", values: serie }], meta: meta234() })
         : `<p class="muted">Registra mediciones para ver la tendencia.</p>`;
 
+      // Decisión: comparación por unidad (último dato de cada una) vs estándar,
+      // ordenada de menor a mayor para priorizar dónde intervenir.
+      const porUnidad = unidades.map(un => {
+        const l = meds.filter(m => m.unidad === un).slice().sort((a, b) => String(a.periodo || "").localeCompare(String(b.periodo || "")));
+        const vals = l.map(globalNT).filter(v => v != null);
+        return { label: un, value: vals.length ? Math.round(vals[vals.length - 1]) : null };
+      }).filter(x => x.value != null).sort((a, b) => a.value - b.value);
+      const barsUnidad = porUnidad.length
+        ? `<div class="card" style="margin-top:1rem">
+            <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Cumplimiento por unidad · dónde intervenir primero</h3>
+              <p class="card__hint" style="margin:0">Último dato de cada unidad, de menor a mayor. La línea punteada marca el estándar (${meta234()}%).</p></div></div>
+            ${U.charts.bars(porUnidad, { meta: meta234(), metaMarker: true })}</div>`
+        : "";
+
       let rows = "";
       periodos.slice().reverse().forEach(pr => {
         const pc = colorMes(pr);
@@ -280,6 +294,7 @@
             </div></div>
           ${trend}
         </div>
+        ${barsUnidad}
         <div class="section__head" style="margin-top:1.1rem"><div><h3 class="section__title" style="margin:0">${meds.length} registro(s)</h3><p class="section__hint">Historial editable del módulo</p></div>
           <button class="btn btn--primary btn--sm" id="nt-new">+ Agregar registro</button></div>
         ${hist}`;
