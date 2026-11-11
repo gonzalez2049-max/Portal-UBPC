@@ -1,6 +1,6 @@
 /* ============================================================
    MÓDULO 3 — PROGRAMA RNAO (Fase 3)
-   Guías BPSO · Línea base y seguimiento · Dashboard ·
+   Guías BPSO · Seguimiento de guías · Evaluación de la guía · Dashboard ·
    Acciones de mejora · Red Champion · Índice de implementación
    ============================================================ */
 (function () {
@@ -14,7 +14,7 @@
   const TABS = [
     { key: "seguimiento", label: "Seguimiento de guías" },
     { key: "dashboard", label: "Dashboard" },
-    { key: "evaluaciones", label: "Línea base y seguimiento" },
+    { key: "evaluaciones", label: "Evaluación de la guía" },
     { key: "planes", label: "Plan de Intervención RNAO/BPSO" },
     { key: "guias", label: "Guías BPSO" },
     { key: "champion", label: "Red Champion" },
@@ -187,7 +187,7 @@
     const u = ui();
     const evals = S().all("evaluacionesRNAO").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
     box.innerHTML = `<div class="section__head">
-        <p class="section__hint">Cada evaluación se consolida en una sola tarjeta. Los indicadores se ordenan del menor al mayor cumplimiento.</p>
+        <p class="section__hint"><strong>Cumplimiento global</strong> de cada guía por evaluación (línea base y seguimiento institucional). Para el detalle indicador por indicador usa la pestaña <em>“Seguimiento de guías”</em>. Cada evaluación se consolida en una tarjeta, ordenada del menor al mayor cumplimiento.</p>
         <button class="btn btn--primary btn--sm" id="newEval">+ Nueva evaluación</button>
       </div>
       ${evals.length ? `<div class="grid grid--3" id="eval-cards">${evals.map(evalCard).join("")}</div>`
@@ -878,7 +878,7 @@
         <button class="btn btn--primary btn--sm" id="newPlan">+ Nuevo plan</button>
       </div>
       ${planes.length ? `<div class="grid grid--3">${planes.map(planCard).join("")}</div>`
-        : u.empty("Aún no hay planes de intervención.", "Crea uno aquí, o genéralo desde un indicador bajo la meta en “Línea base y seguimiento”.", "🧭")}`;
+        : u.empty("Aún no hay planes de intervención.", "Crea uno aquí, o genéralo desde un indicador bajo la meta en “Evaluación de la guía”.", "🧭")}`;
     document.getElementById("newPlan").onclick = () => openPlanEditor(box, null);
     box.querySelectorAll("[data-plopen]").forEach(b => b.onclick = () => openPlanEditor(box, S().get("planesIntervencion", b.dataset.plopen)));
     box.querySelectorAll("[data-pldoc]").forEach(b => b.onclick = () => {
