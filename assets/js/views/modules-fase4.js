@@ -231,7 +231,23 @@
             <div style="background:var(--chart-track,#e9eff7);border-radius:6px;height:12px;overflow:hidden">
               <div style="width:${Math.round(i.value / maxEst * 100)}%;height:100%;background:var(--celeste);border-radius:6px"></div></div></div>`).join("")}</div>
         </div>
-      </div>`;
+      </div>
+      ${(() => {
+        const esNT = a => a.programa === "NT 234";
+        const todas = S().all("actividades");  // comparación siempre sobre el total, no el filtro de la pestaña
+        const prog = [{ label: "RNAO / BPSO", c: "#0d6ea8", arr: todas.filter(a => !esNT(a)) },
+          { label: "Norma Técnica 234", c: "#0f8f83", arr: todas.filter(esNT) }]
+          .map(x => ({ label: x.label, c: x.c, n: x.arr.length, cap: x.arr.reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0) }));
+        const maxP = Math.max.apply(0, prog.map(p => p.cap).concat([1]));
+        return `<div class="card" style="margin-bottom:1.1rem">
+          <h3 class="card__title">Capacitación por programa</h3>
+          <p class="card__hint" style="margin:.1rem 0 .55rem">Cursos y personas capacitadas en RNAO/BPSO vs Norma Técnica 234 (dónde reforzar la formación).</p>
+          <div class="bars">${prog.map(pr => `<div style="margin-bottom:.6rem">
+            <div class="flex" style="justify-content:space-between;font-size:13px;font-weight:600"><span><span class="bars__dot" style="background:${pr.c}"></span>${u.esc(pr.label)}</span><span><b>${pr.cap}</b> personas · ${pr.n} curso(s)</span></div>
+            <div style="background:var(--chart-track,#e9eff7);border-radius:6px;height:14px;overflow:hidden">
+              <div style="width:${Math.round(pr.cap / maxP * 100)}%;height:100%;background:${pr.c};border-radius:6px"></div></div></div>`).join("")}</div>
+        </div>`;
+      })()}`;
   }
 
   function actividades(box, programa) {
