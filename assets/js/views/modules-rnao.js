@@ -63,7 +63,7 @@
     const s = IC.serie ? IC.serie(v) : [];
     const spark = (s.length > 1 && U.charts.sparkline) ? U.charts.sparkline(s.map(x => x.valor), { color: sem.c, meta: Number(ind.meta) }) : "";
     const tipoC = (IC.TIPO_COLOR && IC.TIPO_COLOR[ind.tipo]) || "#5f7d76";
-    return `<div class="card" style="border-top:4px solid ${sem.c}">
+    return `<div class="card" style="border-left:4px solid ${sem.c}">
       <div class="card__head" style="flex-wrap:wrap;gap:.3rem">
         <span class="tag" style="background:${tipoC}22;color:${tipoC}">${u.esc(ind.tipo || "")}</span>
         <span class="badge badge--${sem.k}">${sem.l}</span></div>
@@ -215,7 +215,7 @@
     // grande conserva su color de semáforo para leer el desempeño. La guía se
     // distingue por una etiqueta con su color propio.
     const gc = U.data.guiaColor(e.guia);
-    return `<div class="card" style="border-top:4px solid var(--verde)">
+    return `<div class="card" style="border-left:4px solid var(--verde)">
       <div class="card__head"><div>
         ${U.data.guiaChip(e.guia)}
         <span class="tag" style="background:var(--surface-2);color:var(--text-2)">${u.esc(e.tipo || "")}</span>
@@ -424,7 +424,7 @@
         <td class="num"><strong style="color:${s.c}">${cur == null ? "—" : cur + "%"}</strong></td>
         <td><span class="badge badge--${s.k}">${s.l}</span></td></tr>`;
     }).join("");
-    return `<div class="card" style="margin-top:1rem;border-top:4px solid #0d6ea8">
+    return `<div class="card" style="margin-top:1rem;border-left:4px solid #0d6ea8">
       <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title">🦉 Indicadores RNAO / BPSO</h3>
         <p class="kpi__sub">Resultado actual de los indicadores del programa. Registra o edita sus mediciones en Indicadores UBPC.</p></div>
         <a class="btn btn--ghost btn--sm" href="#/coord/indicadores">Ir a Indicadores →</a></div>
@@ -846,7 +846,7 @@
     const a = planAvance(pl);
     const color = cerrado || a.pct >= 70 ? "var(--verde)" : (a.pct >= 40 ? "var(--naranjo)" : "var(--danger)");
     const avDetalle = a.total ? `${a.done} de ${a.total} acción(es) completada(s)${a.curso ? " · " + a.curso + " en curso" : ""}` : "Sin acciones registradas aún";
-    return `<div class="card" style="border-top:4px solid ${color}">
+    return `<div class="card" style="border-left:4px solid ${color}">
       <div class="card__head"><div>${gTag(pl.guia)} ${uniTag(pl.unidad)}</div>
         <span class="badge badge--${cerrado ? "ok" : "warn"}">${cerrado ? "Cerrado" : "Abierto"}</span></div>
       <h4 class="doc-card__title" style="margin:.4rem 0 .2rem">${u.esc(pl.indicador || pl.objetivo || "Plan de intervención")}</h4>

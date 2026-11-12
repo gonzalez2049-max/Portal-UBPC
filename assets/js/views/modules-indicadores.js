@@ -722,7 +722,7 @@
     // Tarjeta tipo indicador (igual que los indicadores registrados)
     const dcCard = (chips, last, meta, es, tr, pts, accent) => {
       const spark = (pts.length > 1 && U.charts.sparkline) ? U.charts.sparkline(pts.map(p => p.val), { color: es.c, meta: meta }) : "";
-      return `<div class="card" style="border-top:4px solid ${accent}">
+      return `<div class="card" style="border-left:4px solid ${accent}">
         <div class="card__head" style="flex-wrap:wrap;gap:.3rem;align-items:center">${chips}<span class="badge badge--${es.k}">${es.l}</span></div>
         <div class="flex" style="justify-content:space-between;align-items:flex-end;margin:.5rem 0 .2rem">
           <div><div style="font-size:1.9rem;font-weight:800;font-family:var(--font-disp);color:${es.c};line-height:1">${last}%</div>
@@ -953,7 +953,7 @@
     const sem = SEM[semaforo(ind)]; const cur = currentValue(ind); const cumpl = cumplimiento(ind); const t = tendencia(ind);
     const s = serie(ind);
     const spark = s.length > 1 ? U.charts.sparkline(s.map(x => x.valor), { color: sem.c, meta: Number(ind.meta) }) : "";
-    return `<div class="card" style="border-top:4px solid ${TIPO_COLOR[ind.tipo] || "#12b5a5"}">
+    return `<div class="card" style="border-left:4px solid ${TIPO_COLOR[ind.tipo] || "#12b5a5"}">
       <div class="card__head"><span class="tag" style="background:${TIPO_COLOR[ind.tipo]}22;color:${TIPO_COLOR[ind.tipo]}">${u.esc(ind.tipo || "—")}</span>
         <span class="badge badge--${sem.k}">${sem.l}</span></div>
       <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.25rem">

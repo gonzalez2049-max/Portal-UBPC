@@ -59,6 +59,7 @@
       m.classList.remove("view-enter");
       void m.offsetWidth;                 // reinicia la animación
       m.innerHTML = mainHTML;
+      m.setAttribute("data-mod", viewKey);
       m.classList.add("view-enter");
       binder();
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -67,6 +68,7 @@
       // Primera carga o cambio de perfil: se construye el layout completo.
       root.innerHTML = layout(portal, config, viewKey, session, mainHTML);
       bindLayout(portal, config, session);
+      { const m = el("view-main"); if (m) m.setAttribute("data-mod", viewKey); }
       if (routeKey !== _lastRoute) { const m = el("view-main"); if (m) m.classList.add("view-enter"); }
       binder();
       window.scrollTo(0, 0);

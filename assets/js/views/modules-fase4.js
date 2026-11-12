@@ -409,7 +409,7 @@
   }
   function evicCard(e) {
     const u = ui();
-    return `<div class="card" style="border-top:4px solid #12b5a5">
+    return `<div class="card" style="border-left:4px solid #12b5a5">
       <div class="card__head"><div><span class="mono">${u.esc(e.codigo || "")}</span>
         <div class="card__title">Boletín N.º ${u.esc(e.numeroEdicion || "—")}</div></div>
         <span class="kpi__sub">${u.fechaCL(e.fecha)}</span></div>
@@ -461,7 +461,7 @@
   function ediCard(e) {
     const u = ui();
     const evs = e.evidencias || [];
-    return `<div class="card" style="border-top:4px solid var(--c-morado)">
+    return `<div class="card" style="border-left:4px solid var(--c-morado)">
       <div class="card__head"><div><span class="mono">${u.esc(e.codigo || "")}</span>
         <div class="card__title">Edición N.º ${u.esc(e.numeroEdicion || "—")} · v${u.esc(e.version || "1")}</div></div>
         <span class="kpi__sub">${u.fechaCL(e.fechaEnvio)}</span></div>
