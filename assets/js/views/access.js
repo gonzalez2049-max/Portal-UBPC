@@ -128,7 +128,13 @@
 
   function access() {
     if (!hasEntered()) return entranceScreen();
-    const perfiles = U.auth.perfiles();
+    let perfiles = U.auth.perfiles();
+    // Si un rol ya tiene un perfil REAL (no placeholder), se ocultan los perfiles
+    // por defecto de ese rol para no mostrar duplicados (p. ej. tras restaurar
+    // los datos desde la nube junto a los perfiles sembrados localmente).
+    const realPorRol = {};
+    perfiles.forEach(p => { if (!p.esPlaceholder) realPorRol[p.rol] = true; });
+    perfiles = perfiles.filter(p => !(p.esPlaceholder && realPorRol[p.rol]));
     const coord = perfiles.filter(p => p.rol === "coordinador");
     const ref = perfiles.filter(p => p.rol === "referente");
     const otros = perfiles.filter(p => p.rol !== "coordinador" && p.rol !== "referente");
@@ -286,8 +292,18 @@
              <input type="hidden" name="foto" value="${ui.esc(u.foto || "")}">
              ${ui.formHTML(fields, u)}`,
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button>
+               <button class="btn btn--ghost btn--sm" data-del style="color:var(--danger)">🗑️ Eliminar</button>
                <button class="btn btn--primary" data-save>Guardar cambios</button>`,
       onMount(m) {
+        const delBtn = m.querySelector("[data-del]");
+        if (delBtn) delBtn.onclick = () => {
+          if (U.store.all("usuarios").length <= 1) { ui.toast("Debe quedar al menos un perfil.", "danger"); return; }
+          ui.confirmDelete("¿Eliminar el perfil “" + (u.nombre || "") + "”? Esta acción no se puede deshacer.", () => {
+            U.store.remove("usuarios", id);
+            ui.closeModal(); ui.toast("Perfil eliminado", "ok");
+            if (onDone) onDone(); else U.router.render();
+          });
+        };
         const prev = m.querySelector("#prevAvatar");
         const hidden = m.querySelector("input[name=foto]");
         const clearBtn = m.querySelector("#pfClear");
