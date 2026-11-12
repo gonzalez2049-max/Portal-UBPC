@@ -299,7 +299,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 /* overflow-x:clip (no 'hidden') recorta el desborde horizontal SIN convertir a
    .app__main en un contenedor de scroll — así los elementos sticky (como la
    barra de herramientas del editor) se fijan respecto a la ventana. */
-.app__main { padding: 1.3rem 1.5rem 3rem; min-width: 0; overflow-x: clip; max-width: 1240px; margin-inline: auto; width: 100%; }
+.app__main { padding: 1.3rem 1.5rem 3rem; min-width: 0; overflow-x: clip; }
 .page-head { margin-bottom: 1.1rem; }
 .page-head h1 { font-size: 1.45rem; margin:0; }
 .page-head p { color: var(--text-muted); font-size: 14px; margin:.2rem 0 0; }
@@ -418,7 +418,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .rep-tbl tr, .rep-kpi { page-break-inside: avoid; }
   .rep-firma { page-break-inside: avoid; }
   /* Compactar el reporte para que quepa en UNA hoja A4 */
-  .app__main { padding: 9mm 11mm !important; max-width: none !important; }
+  .app__main { padding: 9mm 11mm !important; }
   .reporte { font-size: 10px; }
   .reporte p { margin: .2rem 0; }
   .reporte h3 { font-size: 1rem; margin: .5rem 0 .25rem; }
