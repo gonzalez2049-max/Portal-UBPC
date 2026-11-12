@@ -480,7 +480,6 @@
     const focos = [];
     if (guiaAtencion) focos.push(focoItem("🎯", "Guía prioritaria", `${u.esc(guiaAtencion.label)} · <strong style="color:${sem(guiaAtencion.value)}">${guiaAtencion.value}%</strong>`, sem(guiaAtencion.value), R));
     if (unidadApoyo) focos.push(focoItem("🏥", "Unidad que necesita apoyo", `${u.esc(unidadApoyo.label)} · <strong style="color:${sem(unidadApoyo.value)}">${unidadApoyo.value}%</strong>`, sem(unidadApoyo.value), R));
-    bajoMeta.slice(0, 2).forEach(i => focos.push(focoItem("📉", i.nombre, `${u.esc(i.guia || "")} · ${u.esc(i.unidad || "")} — <strong style="color:var(--danger)">${i.pct}%</strong>`, "var(--danger)", R)));
     if (accVenc.length) focos.push(focoItem("⏰", accVenc.length + " acción(es) de mejora vencida(s)", "Revisa y actualiza los plazos", "var(--danger)", "#/coord/m3?tab=planes"));
     if (!focos.length) focos.push(`<div class="badge badge--ok" style="margin:.4rem">✅ Todo dentro de meta · sin focos críticos.</div>`);
 
@@ -504,27 +503,23 @@
         </div>
       </div>
 
-      <div class="grid grid--2" style="margin-top:1rem;align-items:start">
-        <div class="card">
-          <h3 class="card__title">🎯 Dónde enfocar ahora</h3>
-          <p class="kpi__sub" style="margin:-.3rem 0 .6rem">Lo prioritario primero. Toca para ir a la evaluación o al plan.</p>
-          <div class="foco-list">${focos.join("")}</div>
-        </div>
-        <div class="card">
-          <h3 class="card__title">📊 Comparativa · meta ${metaI}%</h3>
-          <p class="kpi__sub" style="margin:-.3rem 0 .5rem">De menor a mayor cumplimiento.</p>
-          <div class="kpi__label" style="margin:.3rem 0 .2rem">Por guía</div>
-          ${porGuia.length ? U.charts.bars(porGuia, { meta: metaI, colorBy: "item", metaMarker: true }) : u.empty("Sin datos por guía.")}
-          <div class="kpi__label" style="margin:1rem 0 .2rem">Por unidad <span class="kpi__sub" style="font-weight:600">· cada unidad con su color</span></div>
-          ${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI, colorBy: "item", metaMarker: true }) : u.empty("Sin datos por unidad.")}
+      <div class="card" style="margin-top:1rem">
+        <h3 class="card__title">🎯 Dónde enfocar ahora</h3>
+        <p class="kpi__sub" style="margin:-.3rem 0 .6rem">Lo prioritario primero. Toca para ir a la evaluación o al plan.</p>
+        <div class="foco-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.55rem">${focos.join("")}</div>
+      </div>
+
+      <div class="card" style="margin-top:1rem">
+        <h3 class="card__title">📊 Comparativa · meta ${metaI}%</h3>
+        <p class="kpi__sub" style="margin:-.3rem 0 .6rem">De menor a mayor cumplimiento. La línea punteada marca la meta; el chip indica si está en meta.</p>
+        <div class="grid grid--2" style="align-items:start;gap:1.4rem">
+          <div><div class="kpi__label" style="margin:0 0 .3rem">Por guía</div>
+            ${porGuia.length ? U.charts.bars(porGuia, { meta: metaI, colorBy: "item", metaMarker: true }) : u.empty("Sin datos por guía.")}</div>
+          <div><div class="kpi__label" style="margin:0 0 .3rem">Por unidad <span class="kpi__sub" style="font-weight:600">· cada unidad con su color</span></div>
+            ${porUnidad.length ? U.charts.bars(porUnidad, { meta: metaI, colorBy: "item", metaMarker: true }) : u.empty("Sin datos por unidad.")}</div>
         </div>
       </div>
 
-      ${bajoMeta.length ? `<details class="rnao-det" style="margin-top:1rem">
-        <summary>📉 Ver los ${bajoMeta.length} indicador(es) bajo meta</summary>
-        <div class="table-wrap" style="margin-top:.6rem"><table class="tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Guía · Unidad</th><th class="right">%</th></tr></thead><tbody>
-          ${bajoMeta.map(c => `<tr><td>${u.esc(c.nombre)}</td><td>${indTipoChip(c.nombre)}</td><td class="kpi__sub">${u.esc(c.guia || "")} · ${u.esc(c.unidad || "")}</td><td class="num"><strong style="color:${sem(c.pct)}">${c.pct}%</strong></td></tr>`).join("")}
-        </tbody></table></div></details>` : `<div class="card" style="margin-top:1rem"><span class="badge badge--ok">✅ Todos los indicadores están en meta.</span></div>`}
       ${rnaoIndPanel()}`;
   }
 
