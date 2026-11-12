@@ -114,7 +114,7 @@
             ${cols.map(c => `<td class="${c.num ? "num" : ""}${c.center ? " res-center" : ""}">${cell(c, rec)}</td>`).join("")}
             <td class="acciones"><div class="btn-row" style="justify-content:flex-end">
               ${(cfg.rowActions || []).map((a, i) =>
-                (!a.show || a.show(rec)) ? `<button class="btn-icon" data-act="${i}" data-id="${rec.id}" title="${u.esc(a.title)}">${a.ico}</button>` : "").join("")}
+                (!a.show || a.show(rec)) ? `<button class="${a.label ? "btn btn--primary btn--sm res-act" : "btn-icon"}" data-act="${i}" data-id="${rec.id}" title="${u.esc(a.title)}">${a.ico}${a.label ? ` ${u.esc(a.label)}` : ""}</button>` : "").join("")}
               ${canEdit ? `<button class="btn-icon" data-edit="${rec.id}" title="Editar">✏️</button>` : ""}
               ${canEdit && (!cfg.canDelete || cfg.canDelete(rec)) ? `<button class="btn-icon" data-del="${rec.id}" title="Eliminar">🗑️</button>` : ""}
               ${cfg.detail ? `<button class="btn-icon" data-detail="${rec.id}" title="Ver detalle">👁️</button>` : ""}

@@ -1166,7 +1166,7 @@
       <div id="ch-kpis" style="margin-bottom:1rem"></div>
       <div class="section">
         <div class="section__head"><div><h3 class="section__title">Red de Champions</h3>
-          <p class="section__hint">Referentes clínicos por unidad y guía. Usa <strong>📋</strong> para ver y registrar su participación.</p></div></div>
+          <p class="section__hint">Referentes clínicos por unidad y guía. Usa <strong>➕ Participación</strong> para registrar su actividad, o 👁️ para ver su ficha.</p></div></div>
         <div id="ch-registry"></div>
       </div>
       <div class="section">
@@ -1232,15 +1232,16 @@
       emptyMsg: "Aún no hay Champions registrados.",
       afterChange: () => renderChampion(box),
       columns: [
-        { key: "nombre", label: "Nombre" },
-        { key: "estamento", label: "Estamento", render: (r, uu) => r.estamento ? `<span class="tag">${uu.esc(r.estamento)}</span>` : `<span class="muted">—</span>`, exportVal: r => r.estamento || "" },
-        { key: "unidad", label: "Unidad" },
+        { key: "nombre", label: "Champion", render: (r, uu) => {
+          const meta = [r.estamento, r.unidad, r.guia].filter(Boolean).map(x => uu.esc(x)).join(" · ");
+          return `<div style="font-weight:700;line-height:1.25">${uu.esc(r.nombre || "—")}</div>${meta ? `<div class="kpi__sub">${meta}</div>` : ""}`;
+        }, exportVal: r => r.nombre || "" },
         { key: "turno", label: "Jornada", center: true, render: (r, uu) => { if (!r.turno) return `<span class="muted">—</span>`; const c = jornadaColor(r.turno); return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}66;font-weight:800">${uu.esc(r.turno)}</span>`; }, exportVal: r => r.turno || "" },
-        { key: "guia", label: "Guía", render: r => U.data.guiaChip(r.guia) },
-        { key: "part", label: "Participaciones", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${fmtDur(s.horas)}`; }, exportVal: r => champStats(r.id).total },
-        { key: "ultima", label: "Última", center: true, render: (r, uu) => { const s = champStats(r.id); return s.ultima ? `${uu.fechaCL(s.ultima)}<br><span class="kpi__sub">hace ${s.dias} d</span>` : "—"; }, exportVal: r => { const s = champStats(r.id); return s.ultima ? ui().fechaCL(s.ultima) : ""; } },
-        { key: "nivel", label: "Actividad", center: true, render: r => { const n = NIVEL[champStats(r.id).nivel]; return `<span class="doc-estado" style="--ec:${n.color}">${n.ic} ${n.label}</span>`; }, exportVal: r => NIVEL[champStats(r.id).nivel].label },
-        { key: "estado", label: "Estado", badge: true }
+        { key: "part", label: "Participación", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${fmtDur(s.horas)}<br><span class="kpi__sub">${s.ultima ? "hace " + s.dias + " d" : "sin actividad aún"}</span>`; }, exportVal: r => champStats(r.id).total },
+        { key: "estado", label: "Estado", center: true, render: r => {
+          if (r.estado === "Inactivo") return `<span class="doc-estado" style="--ec:#9aa5b1">💤 Inactivo</span>`;
+          const n = NIVEL[champStats(r.id).nivel]; return `<span class="doc-estado" style="--ec:${n.color}">${n.ic} ${n.label}</span>`;
+        }, exportVal: r => r.estado === "Inactivo" ? "Inactivo" : NIVEL[champStats(r.id).nivel].label }
       ],
       fields: [
         { name: "nombre", label: "Nombre", required: true, full: true },
@@ -1258,7 +1259,7 @@
       defaults: () => ({ estado: "Activo" }),
       detail: (rec) => championDetalle(rec, box),
       rowActions: [
-        { ico: "📋", title: "Ver / registrar participación", fn: (rec) => bitacoraModal(rec, box) }
+        { ico: "➕", label: "Participación", title: "Registrar participación del champion", fn: (rec) => bitacoraModal(rec, box) }
       ]
     });
   }
