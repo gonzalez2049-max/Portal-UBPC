@@ -1297,30 +1297,6 @@ a.kpi--link:hover,a.kpi--link:focus-visible{ transform:translateY(-2px); box-sha
 /* Acción de fila con texto (p. ej. "Registrar participación") */
 .res-act{ white-space:nowrap; }
 
-/* ============================================================
-   HILO CONDUCTOR DE COLOR POR MÓDULO
-   Cada módulo tiene un color característico; sus tarjetas lo llevan
-   en el borde IZQUIERDO (mismo lado en todo el portal). Las tarjetas
-   con color propio (KPI de estado) o del hero quedan excluidas.
-   ============================================================ */
-#view-main{ --mod-accent:#0f8f83; }
-#view-main[data-mod="home"]        { --mod-accent:#0f8f83; } /* Inicio · teal */
-#view-main[data-mod="guia"]        { --mod-accent:#7a5cd0; } /* Agenda · morado */
-#view-main[data-mod="m1"]          { --mod-accent:#e0912f; } /* Apoyo y Mejora · naranjo */
-#view-main[data-mod="m2"]          { --mod-accent:#0d6ea8; } /* Gestión Documental · azul */
-#view-main[data-mod="m3"]          { --mod-accent:#12b5a5; } /* RNAO/BPSO · teal claro */
-#view-main[data-mod="m4"]          { --mod-accent:#e0526f; } /* Fortalecimiento BP · rosa */
-#view-main[data-mod="m5"]          { --mod-accent:#37a04a; } /* Articulación · verde */
-#view-main[data-mod="m6"]          { --mod-accent:#0f8f83; } /* NT 234 · teal */
-#view-main[data-mod="indicadores"] { --mod-accent:#1e9fe0; } /* Indicadores · celeste */
-#view-main[data-mod="enlace"]      { --mod-accent:#b8355a; } /* Enlace Referente · vino */
-#view-main[data-mod="reportes"]    { --mod-accent:#176ac0; } /* Reportes · azul fuerte */
-#view-main[data-mod="usuarios"]    { --mod-accent:#8a6d3b; }
-#view-main[data-mod="config"]      { --mod-accent:#5f7d76; }
-#view-main[data-mod="inicio"]      { --mod-accent:#0f8f83; } /* Referente · inicio */
-#view-main .card:not(.kpi):not(.hh-bloom):not(.hh-prox):not(.hh-alerts):not(.agc-cal-card):not(.agc-venc){
-  border-left:4px solid var(--mod-accent);
-}
 @media (max-width:640px){
   .seg-top{ flex-direction:column; align-items:stretch; }
   .seg-top__f{ justify-content:space-between; }
