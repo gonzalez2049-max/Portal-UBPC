@@ -514,11 +514,8 @@
   // juntos en una sola pantalla, porque son parte del acta de la misma reunión.
   function m5ReunionesAcuerdos(box) {
     box.innerHTML = `
-      <div class="card" style="border-left:4px solid var(--celeste);margin-bottom:1rem">
-        <p class="card__hint" style="margin:0">📋 Actas de reunión y sus acuerdos, en un solo lugar. Registra la <strong>reunión</strong> (recibe código UBPC-REU) y, desde su fila con 🤝, genera los <strong>acuerdos o acciones</strong> que quedaron comprometidos. Abajo ves todos los acuerdos con su reunión de origen.</p>
-      </div>
-      <div class="section__head"><div><h3 class="section__title" style="margin:0">Reuniones (actas)</h3>
-        <p class="section__hint">Cada reunión muestra los acuerdos que salieron de ella.</p></div></div>
+      <div class="section__head"><div><h3 class="section__title" style="margin:0">Reuniones y actas</h3>
+        <p class="section__hint">Registro simple: tema, fecha, participantes y el documento/acta de respaldo. Si quedaron compromisos, usa <strong>🤝 Acuerdo</strong> en la fila.</p></div></div>
       <div id="m5-reuniones"></div>
       <div class="section__head" style="margin-top:1.6rem"><div><h3 class="section__title" style="margin:0">Acuerdos y acciones</h3>
         <p class="section__hint">Compromisos derivados de las reuniones. Código UBPC-ACU.</p></div></div>
@@ -575,8 +572,9 @@
         </div>
         <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Tema</span>
           <p class="narrativo">${u.esc(rec.tema || "—")}</p></div>
-        <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Temas a tratar / objetivo</span>
-          <p class="narrativo">${u.esc(rec.objetivo || "—")}</p></div>
+        ${rec.participantes ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Participantes</span><p class="narrativo">${u.esc(rec.participantes)}</p></div>` : ""}
+        ${rec.respaldo ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Documento / acta</span><p><a class="btn btn--ghost btn--sm" href="${u.esc(rec.respaldo)}" target="_blank" rel="noopener">📎 Abrir documento</a></p></div>` : ""}
+        ${rec.objetivo ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Temas tratados / notas</span><p class="narrativo">${u.esc(rec.objetivo)}</p></div>` : ""}
         ${rec.resultado ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Resultado / próxima acción</span><p class="narrativo">${u.esc(rec.resultado)}</p></div>` : ""}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
     });
@@ -585,22 +583,29 @@
 
   function m5Reuniones(box, onAcuerdo) {
     R().mount(box, {
-      collection: "reuniones", title: "Reunión", icon: "📅", withCode: true, wideForm: true,
-      hint: "Participaciones y reuniones. Cada una recibe código UBPC-REU-AAAA-000.",
-      newLabel: "Nueva reunión",
+      collection: "reuniones", title: "Reunión / acta", icon: "📅", withCode: true, wideForm: true,
+      hint: "Cada registro recibe código UBPC-REU-AAAA-000.",
+      newLabel: "Nueva reunión / acta",
       emptyMsg: "Aún no hay reuniones registradas.",
+      // Registro simple: fecha, tema, participantes y el documento/acta de respaldo.
       columns: [
-        { key: "codigo", label: "Código", mono: true, width: "150px" },
         { key: "fecha", label: "Fecha", date: true },
-        { key: "tema", label: "Tema o título" },
-        { key: "objetivo", label: "Temas a tratar", render: (r, u) => reunionTemasCol(r, u) },
-        { key: "responsable", label: "Responsable" },
-        { key: "acuerdos", label: "Acuerdos / acciones", render: (r, u) => acuerdosDeReunion(r, u) }
+        { key: "tema", label: "Tema o título", render: (r, u) => `<div style="font-weight:700;line-height:1.25">${u.esc(r.tema || "—")}</div>${r.codigo ? `<div class="kpi__sub mono">${u.esc(r.codigo)}</div>` : ""}` },
+        { key: "participantes", label: "Participantes", render: (r, u) => { const t = r.participantes || r.responsable || ""; return t ? `<span title="${u.esc(t)}">${u.esc(t.length > 54 ? t.slice(0, 54) + "…" : t)}</span>` : `<span class="muted">—</span>`; }, exportVal: r => r.participantes || r.responsable || "" },
+        { key: "respaldo", label: "Documento / acta", center: true, render: (r, u) => r.respaldo ? `<a class="btn btn--ghost btn--sm" href="${u.esc(r.respaldo)}" target="_blank" rel="noopener">📎 Abrir</a>` : `<span class="muted">—</span>`, exportVal: r => r.respaldo || "" }
       ],
-      fields: reunionFields(["Reunión interna", "Reunión institucional", "Comité", "Mesa técnica", "Participación", "Otra"]),
+      fields: [
+        { name: "tema", label: "Tema o título", required: true, full: true, hint: "De qué trató la reunión o acta." },
+        { name: "fecha", label: "Fecha", type: "date", required: true },
+        { name: "participantes", label: "Participantes", type: "textarea", full: true, hint: "Quiénes asistieron (nombres o equipos)." },
+        { name: "respaldo", label: "Documento / acta (enlace)", full: true, hint: "Pega el enlace al acta o documento de respaldo (Drive, SharePoint, etc.)." },
+        { name: "tipo", label: "Tipo", type: "select", options: ["Reunión interna", "Reunión institucional", "Comité", "Mesa técnica", "Participación", "Otra"] },
+        { name: "objetivo", label: "Temas tratados / notas", type: "textarea", full: true, hint: "Opcional: puntos tratados o acuerdos clave." },
+        { name: "resultado", label: "Resultado / próxima acción", type: "textarea", full: true }
+      ],
       defaults: () => ({ fecha: ui().hoyISO() }),
       detail: (rec) => reunionDetalle(rec),
-      rowActions: [{ ico: "🤝", title: "Generar acuerdo desde la reunión", fn: (rec) => crearAcuerdoDesde(rec, onAcuerdo) }]
+      rowActions: [{ ico: "🤝", label: "Acuerdo", title: "Generar acuerdo desde la reunión", fn: (rec) => crearAcuerdoDesde(rec, onAcuerdo) }]
     });
   }
   // Registro maestro: vincula automáticamente los Documentos UBPC (estación
