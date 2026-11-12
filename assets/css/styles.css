@@ -1318,7 +1318,7 @@ a.kpi--link:hover,a.kpi--link:focus-visible{ transform:translateY(-2px); box-sha
 #view-main[data-mod="usuarios"]    { --mod-accent:#8a6d3b; }
 #view-main[data-mod="config"]      { --mod-accent:#5f7d76; }
 #view-main[data-mod="inicio"]      { --mod-accent:#0f8f83; } /* Referente · inicio */
-#view-main .card:not(.kpi):not(.hh-bloom):not(.hh-prox):not(.hh-alerts){
+#view-main .card:not(.kpi):not(.hh-bloom):not(.hh-prox):not(.hh-alerts):not(.agc-cal-card):not(.agc-venc){
   border-left:4px solid var(--mod-accent);
 }
 @media (max-width:640px){
