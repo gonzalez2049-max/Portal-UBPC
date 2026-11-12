@@ -255,13 +255,13 @@
       const porUnidad = unidades.map(un => {
         const l = meds.filter(m => m.unidad === un).slice().sort((a, b) => String(a.periodo || "").localeCompare(String(b.periodo || "")));
         const vals = l.map(globalNT).filter(v => v != null);
-        return { label: un, value: vals.length ? Math.round(vals[vals.length - 1]) : null };
+        return { label: un, value: vals.length ? Math.round(vals[vals.length - 1]) : null, color: U.data.unidadColor(un) };
       }).filter(x => x.value != null).sort((a, b) => a.value - b.value);
       const barsUnidad = porUnidad.length
         ? `<div class="card" style="margin-top:1rem">
             <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Cumplimiento por unidad · dónde intervenir primero</h3>
-              <p class="card__hint" style="margin:0">Último dato de cada unidad, de menor a mayor. La línea punteada marca el estándar (${meta234()}%).</p></div></div>
-            ${U.charts.bars(porUnidad, { meta: meta234(), metaMarker: true })}</div>`
+              <p class="card__hint" style="margin:0">Cada unidad con su color. Ordenadas de menor a mayor; la línea punteada marca el estándar (${meta234()}%) y el chip indica si está en meta.</p></div></div>
+            ${U.charts.bars(porUnidad, { meta: meta234(), metaMarker: true, colorBy: "item" })}</div>`
         : "";
 
       let rows = "";
