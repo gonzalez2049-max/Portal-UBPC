@@ -70,27 +70,43 @@
     } catch (e) {}
   }
 
-  // Elimina indicadores duplicados (mismo nombre): conserva el que tiene
-  // mediciones y borra las copias vacías "Sin datos". Si al que se conserva le
-  // falta el código NQUIRE, se lo traspasa desde la copia (para que la semilla
-  // no vuelva a recrearlo). No toca grupos donde más de uno tiene datos.
+  // Colapsa indicadores duplicados (mismo nombre) a UNA sola tarjeta.
+  // Conserva el que tiene más mediciones (o ficha más completa), FUSIONA en él
+  // las mediciones de las copias (sin repetir período+unidad), le traspasa el
+  // código NQUIRE y los datos de ficha que le falten, y elimina las copias.
+  // Así no quedan tarjetas repetidas aunque ambas tengan datos.
   function dedupeIndicadores() {
     try {
       const all = S().all("indicadores");
       const grupos = {};
       all.forEach(i => { const k = normNombre(i.nombre); (grupos[k] = grupos[k] || []).push(i); });
       let quitados = 0;
+      const nSeg = i => (i.seguimientos || []).filter(s => s.valor !== "" && s.valor != null).length;
+      const completitud = i => Object.keys(i || {}).filter(k => i[k] !== "" && i[k] != null).length;
+      const keySeg = s => (s.periodo || "") + "|" + (s.unidad || "General");
       Object.keys(grupos).forEach(k => {
         const g = grupos[k];
         if (g.length < 2) return;
-        const conDatos = g.filter(tieneDatos);
-        if (!conDatos.length) return; // ninguno tiene datos: no decidir por el usuario
-        const keep = conDatos.sort((a, b) => (b.seguimientos || []).length - (a.seguimientos || []).length)[0];
+        // Elegir el que se conserva: más mediciones; a igualdad, ficha más completa.
+        const keep = g.slice().sort((a, b) => (nSeg(b) - nSeg(a)) || (completitud(b) - completitud(a)))[0];
+        // Fusionar mediciones de todas las copias en el elegido (sin duplicar período+unidad).
+        const segs = (keep.seguimientos || []).slice();
+        const vistos = new Set(segs.map(keySeg));
         g.forEach(i => {
-          if (i.id === keep.id || tieneDatos(i)) return; // no borrar el elegido ni otro con datos
-          if (!keep.codigoNquire && i.codigoNquire) { S().update("indicadores", keep.id, { codigoNquire: i.codigoNquire }); keep.codigoNquire = i.codigoNquire; }
-          S().remove("indicadores", i.id); quitados++;
+          if (i.id === keep.id) return;
+          (i.seguimientos || []).forEach(s => { const kk = keySeg(s); if (!vistos.has(kk)) { vistos.add(kk); segs.push(s); } });
         });
+        segs.sort((a, b) => String(a.periodo || "").localeCompare(String(b.periodo || "")));
+        const patch = { seguimientos: segs };
+        // Traspasar al elegido lo que le falte (código NQUIRE, meta y campos de ficha).
+        const donante = g.find(i => i.id !== keep.id) || {};
+        ["codigoNquire", "meta", "formula", "numeradorDesc", "denominadorDesc", "fuenteDatos", "periodicidad", "sentido", "objetivo"].forEach(campo => {
+          if ((keep[campo] == null || keep[campo] === "") && donante[campo] != null && donante[campo] !== "") patch[campo] = donante[campo];
+        });
+        const ult = segs.filter(s => s.valor !== "" && s.valor != null).slice(-1)[0];
+        if (ult) { if (ult.numerador != null) patch.numerador = ult.numerador; if (ult.denominador != null) patch.denominador = ult.denominador; }
+        S().update("indicadores", keep.id, patch);
+        g.forEach(i => { if (i.id !== keep.id) { S().remove("indicadores", i.id); quitados++; } });
       });
       return quitados;
     } catch (e) { return 0; }
