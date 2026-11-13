@@ -48,12 +48,46 @@
       denominadorDesc: "N° total de usuarios que egresaron del servicio clínico durante el mes de medición",
       fuenteDatos: "Ficha clínica / notificación de LPP intrahospitalaria", periodicidad: "Mensual", sentido: "Menor es mejor", meta: 5 }
   ];
+  // Normaliza un nombre para comparar (sin tildes, minúsculas, espacios colapsados).
+  const normNombre = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+  const tieneDatos = i => (i.seguimientos || []).some(s => s.valor !== "" && s.valor != null);
+
+  // Elimina indicadores duplicados (mismo nombre): conserva el que tiene
+  // mediciones y borra las copias vacías "Sin datos". Si al que se conserva le
+  // falta el código NQUIRE, se lo traspasa desde la copia (para que la semilla
+  // no vuelva a recrearlo). No toca grupos donde más de uno tiene datos.
+  function dedupeIndicadores() {
+    try {
+      const all = S().all("indicadores");
+      const grupos = {};
+      all.forEach(i => { const k = normNombre(i.nombre); (grupos[k] = grupos[k] || []).push(i); });
+      let quitados = 0;
+      Object.keys(grupos).forEach(k => {
+        const g = grupos[k];
+        if (g.length < 2) return;
+        const conDatos = g.filter(tieneDatos);
+        if (!conDatos.length) return; // ninguno tiene datos: no decidir por el usuario
+        const keep = conDatos.sort((a, b) => (b.seguimientos || []).length - (a.seguimientos || []).length)[0];
+        g.forEach(i => {
+          if (i.id === keep.id || tieneDatos(i)) return; // no borrar el elegido ni otro con datos
+          if (!keep.codigoNquire && i.codigoNquire) { S().update("indicadores", keep.id, { codigoNquire: i.codigoNquire }); keep.codigoNquire = i.codigoNquire; }
+          S().remove("indicadores", i.id); quitados++;
+        });
+      });
+      return quitados;
+    } catch (e) { return 0; }
+  }
+
   function seedRnaoLPP() {
     try {
+      // Limpia duplicados previos antes de evaluar la semilla.
+      dedupeIndicadores();
       if (S().getConfig("seed.rnaoLPP.v2", false)) return;
       const existentes = new Set(S().all("indicadores").map(i => i.codigoNquire).filter(Boolean));
+      const nombres = new Set(S().all("indicadores").map(i => normNombre(i.nombre)));
       RNAO_LPP.forEach(def => {
-        if (existentes.has(def.codigoNquire)) return;
+        // No duplicar: ni por código NQUIRE ni por nombre ya existente.
+        if (existentes.has(def.codigoNquire) || nombres.has(normNombre(def.nombre))) return;
         S().insert("indicadores", Object.assign({
           programa: "RNAO / BPSO", guia: "Lesiones por presión",
           responsable: "Enf. Coordinador/a UBPC", fichaVersion: 1
@@ -70,11 +104,16 @@
   };
 
   /* ---------- Cálculos ---------- */
+  // Porcentaje conservando hasta 2 decimales (no se redondea a entero).
+  // Ej.: 11/99 → 11.11  ·  39/50 → 78  (no fuerza ".00" cuando es exacto).
+  const pct = (num, den) => (Number(den) > 0 ? Math.round((Number(num) / Number(den)) * 10000) / 100 : null);
+  // Redondeo de apoyo para diferencias/promedios (hasta 2 decimales).
+  const d2 = (n) => (n == null || n === "" ? n : Math.round(Number(n) * 100) / 100);
   function currentValue(ind) {
     const seg = (ind.seguimientos || []).filter(s => s.valor !== "" && s.valor != null);
     if (seg.length) return Number(seg[seg.length - 1].valor);
     const den = Number(ind.denominador);
-    if (den > 0) return Math.round(Number(ind.numerador) / den * 100);
+    if (den > 0) return pct(Number(ind.numerador), den);
     if (ind.lineaBase !== "" && ind.lineaBase != null) return Number(ind.lineaBase);
     return null;
   }
@@ -101,7 +140,7 @@
     const d = s[s.length - 1].valor - s[s.length - 2].valor;
     if (d === 0) return { arrow: "→", txt: "Estable", fav: null };
     const up = d > 0; const fav = menorMejor(ind) ? !up : up;
-    return { arrow: up ? "▲" : "▼", txt: (up ? "+" : "") + d + " pts", fav };
+    return { arrow: up ? "▲" : "▼", txt: (up ? "+" : "") + d2(d) + " pts", fav };
   }
 
   /* ============================================================
@@ -1010,7 +1049,7 @@
           const dd = (m.querySelector('[name="denominadorDesc"]') || {}).value || "Denominador";
           const nv = (m.querySelector('[name="numerador"]') || {}).value;
           const dv = (m.querySelector('[name="denominador"]') || {}).value;
-          const pctTxt = (dv && Number(dv) > 0 && nv !== "") ? " = <b>" + Math.round(Number(nv) / Number(dv) * 100) + "%</b>" : "";
+          const pctTxt = (dv && Number(dv) > 0 && nv !== "") ? " = <b>" + pct(Number(nv), Number(dv)) + "%</b>" : "";
           box.innerHTML = `<span class="ind-formula__lbl">Fórmula</span>
             <div class="ind-formula__eq"><span class="ind-frac"><span class="num">${u.esc(nd)}</span><span class="bar"></span><span class="den">${u.esc(dd)}</span></span>
             <span class="x">× 100</span>${pctTxt}</div>`;
@@ -1119,7 +1158,7 @@
           { name: "fecha", label: "Fecha en que registras la medición", type: "date", value: u.hoyISO(), hint: "Día en que ingresas el dato. Se usa para avisar la próxima medición." },
           estructura ? null : { name: "numerador", label: "Numerador (los que cumplen)", type: "number", full: true, hint: (ind.numeradorDesc ? ind.numeradorDesc + "." : "") + " Cuántos casos cumplen la condición del indicador." },
           estructura ? null : { name: "denominador", label: "Denominador (el total)", type: "number", full: true, hint: (ind.denominadorDesc ? ind.denominadorDesc + "." : "") + " Total de casos sobre el que se mide." },
-          { name: "valor", label: "Resultado (%)", type: "number", hint: estructura ? "Porcentaje o valor del período." : "Se calcula solo (numerador ÷ denominador × 100). Solo escríbelo a mano si no tienes numerador y denominador." }
+          { name: "valor", label: "Resultado (%)", type: "number", attrs: 'step="any"', hint: estructura ? "Porcentaje o valor del período (admite decimales)." : "Se calcula solo (numerador ÷ denominador × 100) y conserva los decimales. Solo escríbelo a mano si no tienes numerador y denominador." }
         ].filter(Boolean), {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar medición</button>`,
       onMount(m) {
@@ -1127,7 +1166,7 @@
         const calc = () => {
           if (!numI || !denI || !valI) return;
           const n = Number(numI.value), d = Number(denI.value);
-          if (numI.value !== "" && d > 0) { valI.value = Math.round(n / d * 100); valI.readOnly = true; valI.style.background = "var(--surface-2)"; }
+          if (numI.value !== "" && d > 0) { valI.value = pct(n, d); valI.readOnly = true; valI.style.background = "var(--surface-2)"; }
           else { valI.readOnly = false; valI.style.background = ""; }
         };
         if (numI) numI.addEventListener("input", calc);
@@ -1137,7 +1176,7 @@
           const d = u.readForm(m);
           const num = d.numerador !== "" && d.numerador != null ? Number(d.numerador) : null;
           const den = d.denominador !== "" && d.denominador != null ? Number(d.denominador) : null;
-          let valor = (num != null && den > 0) ? Math.round(num / den * 100) : (d.valor !== "" ? Number(d.valor) : null);
+          let valor = (num != null && den > 0) ? pct(num, den) : (d.valor !== "" ? d2(Number(d.valor)) : null);
           if (valor == null) { u.toast(estructura ? "Indica el resultado (%)" : "Indica numerador y denominador (o el %)", "danger"); return; }
           const entry = { periodo: d.periodo, valor: valor, fecha: d.fecha || "" };
           if (num != null) entry.numerador = num;
@@ -1151,6 +1190,73 @@
           if (d.fecha) patch.fechaMedicion = d.fecha;
           S().update("indicadores", ind.id, patch);
           u.closeModal(); u.toast("Medición registrada", "ok"); (typeof done === "function" ? done : renderTab)();
+        };
+      }
+    });
+  }
+
+  // Editar (o eliminar) una medición ya registrada. idx = posición en ind.seguimientos.
+  function editSeguimiento(ind, idx, done) {
+    const u = ui();
+    const seg = (ind.seguimientos || [])[idx];
+    if (!seg) return;
+    const estructura = ind.tipo === "Estructura";
+    u.modal({
+      title: "Editar medición · " + (ind.nombre || ""),
+      body: `<p class="card__hint">Corrige los datos de esta medición. El <strong>resultado (%)</strong> se recalcula solo y <strong>conserva los decimales</strong>.</p>` +
+        u.formHTML([
+          { name: "periodo", label: "Período (mes)", type: "month", value: seg.periodo || "", hint: "Mes al que corresponde la medición." },
+          { name: "unidad", label: "Unidad clínica", type: "select", options: ["General / Institucional"].concat(U.data.CAT.unidades), value: seg.unidad || "General / Institucional" },
+          { name: "fase", label: "Fase de la medición", type: "select", options: ["Pre implementación", "Post implementación", "Seguimiento"], value: seg.fase || "Seguimiento" },
+          { name: "fecha", label: "Fecha del registro", type: "date", value: seg.fecha || u.hoyISO() },
+          estructura ? null : { name: "numerador", label: "Numerador (los que cumplen)", type: "number", full: true, value: seg.numerador != null ? seg.numerador : "" },
+          estructura ? null : { name: "denominador", label: "Denominador (el total)", type: "number", full: true, value: seg.denominador != null ? seg.denominador : "" },
+          { name: "valor", label: "Resultado (%)", type: "number", attrs: 'step="any"', value: seg.valor != null ? seg.valor : "", hint: "Se calcula solo (numerador ÷ denominador × 100) y conserva los decimales." }
+        ].filter(Boolean), {}),
+      footer: `<button class="btn btn--ghost" data-del style="color:var(--danger)">🗑️ Eliminar</button>
+        <span style="flex:1"></span>
+        <button class="btn btn--ghost" data-close>Cancelar</button>
+        <button class="btn btn--primary" data-save>Guardar cambios</button>`,
+      onMount(m) {
+        const numI = m.querySelector('[name="numerador"]'), denI = m.querySelector('[name="denominador"]'), valI = m.querySelector('[name="valor"]');
+        const calc = () => {
+          if (!numI || !denI || !valI) return;
+          const n = Number(numI.value), d = Number(denI.value);
+          if (numI.value !== "" && d > 0) { valI.value = pct(n, d); valI.readOnly = true; valI.style.background = "var(--surface-2)"; }
+          else { valI.readOnly = false; valI.style.background = ""; }
+        };
+        if (numI) numI.addEventListener("input", calc);
+        if (denI) denI.addEventListener("input", calc);
+        const refresh = () => { u.closeModal(); (typeof done === "function" ? done : renderTab)(); };
+        m.querySelector("[data-del]").onclick = () => {
+          u.confirmDelete("¿Eliminar esta medición del " + (seg.periodo || "período") + "? Esta acción no se puede deshacer.", () => {
+            const segs = (ind.seguimientos || []).slice(); segs.splice(idx, 1);
+            const patch = { seguimientos: segs };
+            const last = segs.filter(s => s.valor !== "" && s.valor != null).slice(-1)[0];
+            patch.numerador = last && last.numerador != null ? last.numerador : "";
+            patch.denominador = last && last.denominador != null ? last.denominador : "";
+            S().update("indicadores", ind.id, patch);
+            u.toast("Medición eliminada", "ok"); refresh();
+          });
+        };
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          const num = d.numerador !== "" && d.numerador != null ? Number(d.numerador) : null;
+          const den = d.denominador !== "" && d.denominador != null ? Number(d.denominador) : null;
+          const valor = (num != null && den > 0) ? pct(num, den) : (d.valor !== "" ? d2(Number(d.valor)) : null);
+          if (valor == null) { u.toast(estructura ? "Indica el resultado (%)" : "Indica numerador y denominador (o el %)", "danger"); return; }
+          const segs = (ind.seguimientos || []).slice();
+          const entry = { periodo: d.periodo, valor: valor, fecha: d.fecha || "" };
+          if (num != null) entry.numerador = num;
+          if (den != null) entry.denominador = den;
+          if (d.unidad && d.unidad !== "General / Institucional") entry.unidad = d.unidad;
+          if (d.fase) entry.fase = d.fase;
+          segs[idx] = entry;
+          const patch = { seguimientos: segs };
+          const last = segs.filter(s => s.valor !== "" && s.valor != null).slice(-1)[0];
+          if (last) { patch.numerador = last.numerador != null ? last.numerador : ""; patch.denominador = last.denominador != null ? last.denominador : ""; if (last.fecha) patch.fechaMedicion = last.fecha; }
+          S().update("indicadores", ind.id, patch);
+          u.toast("Medición actualizada", "ok"); refresh();
         };
       }
     });
@@ -1209,14 +1315,17 @@
         </div>
         <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Objetivo</span><p class="narrativo">${u.esc(ind.objetivo || "—")}</p></div>
         ${(ind.metodologia || "").trim() ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Metodología de evaluación</span><ol class="mtx-crit">${ind.metodologia.split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(x => `<li>${u.esc(x)}</li>`).join("")}</ol></div>` : ""}
-        ${(ind.seguimientos && ind.seguimientos.length) ? `<h4 style="margin:.6rem 0 .2rem">Mediciones registradas · reporte NQUIRE</h4>
-          <div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th>Unidad</th><th>Fase</th><th class="right">Numerador</th><th class="right">Denominador</th><th class="right">Resultado</th></tr></thead>
-          <tbody>${ind.seguimientos.slice().reverse().map(s => `<tr><td>${u.esc(s.periodo || "—")}</td><td>${u.esc(s.unidad || "General")}</td><td>${u.esc(s.fase || "Seguimiento")}</td><td class="num">${s.numerador != null ? s.numerador : "—"}</td><td class="num">${s.denominador != null ? s.denominador : "—"}</td><td class="num"><strong>${s.valor != null ? s.valor + "%" : "—"}</strong></td></tr>`).join("")}</tbody></table></div>` : ""}
+        ${(ind.seguimientos && ind.seguimientos.length) ? `<h4 style="margin:.6rem 0 .2rem">Mediciones registradas · reporte NQUIRE <span class="kpi__sub" style="font-weight:600">· usa ✏️ para corregir o eliminar</span></h4>
+          <div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th>Unidad</th><th>Fase</th><th class="right">Numerador</th><th class="right">Denominador</th><th class="right">Resultado</th><th class="right">Editar</th></tr></thead>
+          <tbody>${ind.seguimientos.map((s, i) => ({ s, i })).reverse().map(({ s, i }) => `<tr><td>${u.esc(s.periodo || "—")}</td><td>${u.esc(s.unidad || "General")}</td><td>${u.esc(s.fase || "Seguimiento")}</td><td class="num">${s.numerador != null ? s.numerador : "—"}</td><td class="num">${s.denominador != null ? s.denominador : "—"}</td><td class="num"><strong>${s.valor != null ? s.valor + "%" : "—"}</strong></td><td class="num"><button class="btn-icon" data-editseg="${i}" title="Editar o eliminar esta medición">✏️</button></td></tr>`).join("")}</tbody></table></div>` : ""}
         <h4 style="margin:.6rem 0 .2rem">Antes vs. ahora (por fase)</h4>${compara}
         <h4 style="margin:.6rem 0 .2rem">Tendencia</h4>${chart}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
         <button class="btn btn--primary" data-seg>+ Seguimiento</button>`,
-      onMount(m) { m.querySelector("[data-seg]").onclick = () => { u.closeModal(); addSeguimiento(ind, done); }; }
+      onMount(m) {
+        m.querySelector("[data-seg]").onclick = () => { u.closeModal(); addSeguimiento(ind, done); };
+        m.querySelectorAll("[data-editseg]").forEach(b => b.onclick = () => { u.closeModal(); editSeguimiento(ind, Number(b.dataset.editseg), done); });
+      }
     });
   }
 
