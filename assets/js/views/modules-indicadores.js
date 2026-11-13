@@ -51,6 +51,24 @@
   // Normaliza un nombre para comparar (sin tildes, minúsculas, espacios colapsados).
   const normNombre = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
   const tieneDatos = i => (i.seguimientos || []).some(s => s.valor !== "" && s.valor != null);
+  // Meta institucional configurada por el coordinador (por defecto 80).
+  const metaInst = () => { const v = Number(S().getConfig("metaInstitucional", 80)); return (v >= 1 && v <= 100) ? v : 80; };
+  const esRnaoLPP = i => i && i.guia === "Lesiones por presión" && i.sentido === "Mayor es mejor";
+
+  // Ajusta la meta de los indicadores RNAO LPP (de proceso, "mayor es mejor")
+  // a la meta institucional configurada. Una sola vez corrige los que quedaron
+  // con los valores por defecto antiguos (90/95); respeta cualquier meta que el
+  // usuario haya escrito a mano distinta de esos.
+  function migrarMetaInst() {
+    try {
+      if (S().getConfig("migr.rnaoLPP.metaInst.v1", false)) return;
+      const mi = metaInst();
+      S().all("indicadores").forEach(i => {
+        if (esRnaoLPP(i) && (Number(i.meta) === 90 || Number(i.meta) === 95)) S().update("indicadores", i.id, { meta: mi });
+      });
+      S().setConfig("migr.rnaoLPP.metaInst.v1", true);
+    } catch (e) {}
+  }
 
   // Elimina indicadores duplicados (mismo nombre): conserva el que tiene
   // mediciones y borra las copias vacías "Sin datos". Si al que se conserva le
@@ -80,18 +98,23 @@
 
   function seedRnaoLPP() {
     try {
-      // Limpia duplicados previos antes de evaluar la semilla.
+      // Limpia duplicados previos y alinea metas a la institucional.
       dedupeIndicadores();
+      migrarMetaInst();
       if (S().getConfig("seed.rnaoLPP.v2", false)) return;
       const existentes = new Set(S().all("indicadores").map(i => i.codigoNquire).filter(Boolean));
       const nombres = new Set(S().all("indicadores").map(i => normNombre(i.nombre)));
+      const mi = metaInst();
       RNAO_LPP.forEach(def => {
         // No duplicar: ni por código NQUIRE ni por nombre ya existente.
         if (existentes.has(def.codigoNquire) || nombres.has(normNombre(def.nombre))) return;
-        S().insert("indicadores", Object.assign({
+        const rec = Object.assign({
           programa: "RNAO / BPSO", guia: "Lesiones por presión",
           responsable: "Enf. Coordinador/a UBPC", fichaVersion: 1
-        }, def), { silent: true });
+        }, def);
+        // Los indicadores de proceso siguen la meta institucional (la de incidencia se mantiene).
+        if (def.sentido === "Mayor es mejor") rec.meta = mi;
+        S().insert("indicadores", rec, { silent: true });
       });
       S().setConfig("seed.rnaoLPP.v2", true);
     } catch (e) {}
@@ -1390,5 +1413,12 @@
   U.indicadoresCalc = { currentValue, semaforo, cumplimiento, serie, tendencia, SEM, TIPO_COLOR };
   // API reutilizable para que RNAO/BPSO use la MISMA fuente de datos y formularios
   // (registro mensual, evolución y ficha). Así ambos módulos quedan sincronizados.
-  U.indicadoresApi = { registrarMedicion: addSeguimiento, verEvolucion: detalle, editarFicha: ficha, seedRnaoLPP: seedRnaoLPP };
+  // Iguala la meta de los indicadores RNAO LPP de proceso ("mayor es mejor")
+  // al valor dado. Devuelve cuántos indicadores se actualizaron.
+  function aplicarMetaInst(v) {
+    let n = 0;
+    try { S().all("indicadores").forEach(i => { if (esRnaoLPP(i)) { S().update("indicadores", i.id, { meta: Number(v) }); n++; } }); } catch (e) {}
+    return n;
+  }
+  U.indicadoresApi = { registrarMedicion: addSeguimiento, verEvolucion: detalle, editarFicha: ficha, seedRnaoLPP: seedRnaoLPP, aplicarMetaInst: aplicarMetaInst };
 })();

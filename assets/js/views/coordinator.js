@@ -760,16 +760,18 @@
       const v = Math.round(Number(document.getElementById("metaInstInput").value));
       if (!(v > 0 && v <= 100)) { u.toast("Ingresa una meta entre 1 y 100", "danger"); return; }
       const evals = S().all("evaluacionesRNAO");
+      const indRnao = S().all("indicadores").filter(i => i.guia === "Lesiones por presión" && i.sentido === "Mayor es mejor").length;
       u.modal({
         title: "Aplicar meta a todas las evaluaciones",
-        body: `<p class="narrativo">Se igualará la meta de las <strong>${evals.length}</strong> evaluación(es) registrada(s) a <strong>${v}%</strong>, y quedará como meta institucional del portal. ¿Continuar?</p>`,
+        body: `<p class="narrativo">Se igualará la meta de las <strong>${evals.length}</strong> evaluación(es) RNAO${indRnao ? ` y de los <strong>${indRnao}</strong> indicador(es) de proceso de LPP` : ""} a <strong>${v}%</strong>, y quedará como meta institucional del portal. ¿Continuar?</p>`,
         footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>Aplicar ${v}%</button>`,
         onMount(m) {
           m.querySelector("[data-ok]").onclick = () => {
             S().setConfig("metaInstitucional", v);
             evals.forEach(e => S().update("evaluacionesRNAO", e.id, { meta: v }));
+            if (U.indicadoresApi && U.indicadoresApi.aplicarMetaInst) U.indicadoresApi.aplicarMetaInst(v);
             u.closeModal();
-            u.toast("Meta aplicada a todas las evaluaciones", "ok");
+            u.toast("Meta aplicada a evaluaciones e indicadores", "ok");
             U.router.render();
           };
         }
