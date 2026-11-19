@@ -665,7 +665,17 @@
     const periodos = periodosInforme();
     if (!periodos.length) return null;
     const per = (perSel && periodos.indexOf(perSel) >= 0) ? perSel : periodos[periodos.length - 1];
-    const list = S().all("nt234").filter(m => m.periodo === per);
+    const meds = S().all("nt234");
+    // Cumplimiento del mes elegido. Si ese mes aún no tiene cumplimiento por
+    // unidad, se usa el último mes que SÍ lo tiene (hasta el mes elegido) para
+    // no dejar el informe a medias, dejándolo claramente etiquetado.
+    let list = meds.filter(m => m.periodo === per);
+    let cumplPer = per, cumplFallback = false;
+    if (!list.length) {
+      const psC = periodosNT(meds).filter(x => x <= per);
+      const cp = psC[psC.length - 1];
+      if (cp) { list = meds.filter(m => m.periodo === cp); cumplPer = cp; cumplFallback = true; }
+    }
     const hayEpi = S().all("epiLPP").some(r => r.periodo === per);
     if (!list.length && !hayEpi) return null;
     const tieneCumpl = list.length > 0;
@@ -673,7 +683,7 @@
     const prom = gl.length ? round1(gl.reduce((a, b) => a + b, 0) / gl.length) : 0;
     const by = k => list.filter(m => estadoNT(globalNT(m)).k === k).length;
     const meta = meta234();
-    const v = variacionNT(per);
+    const v = variacionNT(cumplPer);
     const varTxt = v ? `<span class="nt-inf__var nt-inf__var--${v.delta > 0 ? "up" : v.delta < 0 ? "down" : "eq"}">${v.delta > 0 ? "▲ +" + v.delta : v.delta < 0 ? "▼ " + v.delta : "= 0"} pts vs ${u.esc(periodoNTshort(v.prevPer))}</span>` : `<span class="nt-inf__var">Sin mes previo para comparar</span>`;
     const responsable = S().getConfig("nt234.responsable", "") || (U.auth.current() ? U.auth.current().nombre : "________________________");
     const resolucion = S().getConfig("nt234.resolucion", "");
@@ -692,6 +702,7 @@
           <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">En seguimiento</span><span class="nt-inf__k-val">${by("amarillo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
           <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">En cumplimiento</span><span class="nt-inf__k-val">${by("verde")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
         </div>
+        ${cumplFallback ? `<div class="nt-inf__meta" style="margin:2px auto 0">Cumplimiento por unidad · último registrado: <strong>${u.esc(periodoNT(cumplPer))}</strong> (aún sin registro de ${u.esc(periodoNT(per))})</div>` : ""}
         <div class="nt-inf__varline">Variación del cumplimiento global: ${varTxt}</div>
         <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th>Cumplimiento</th><th>Estado</th></tr></thead>
           <tbody>${filas}</tbody></table>`
