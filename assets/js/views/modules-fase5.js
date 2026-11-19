@@ -615,14 +615,26 @@
     .nt-inf__name{ font-weight:700;color:#17263d }
     .nt-inf__role{ color:#5a6b84;font-size:.78rem;margin-top:2px }`;
 
-  // Variación del cumplimiento global respecto al mes anterior
-  function variacionNT() {
+  // Períodos disponibles para el informe: unión del cumplimiento NT 234 y de la
+  // epidemiología de LPP (así, al registrar un mes en cualquiera de los dos, el
+  // informe lo ofrece).
+  function periodosInforme() {
+    const a = S().all("nt234").map(m => m.periodo).filter(Boolean);
+    const b = S().all("epiLPP").map(r => r.periodo).filter(Boolean);
+    return [...new Set(a.concat(b))].sort();
+  }
+
+  // Variación del cumplimiento global respecto al mes anterior (del período dado).
+  function variacionNT(perSel) {
     const meds = S().all("nt234"); const ps = periodosNT(meds);
     if (ps.length < 2) return null;
     const avg = per => { const l = meds.filter(m => m.periodo === per).map(globalNT).filter(v => v != null); return l.length ? Math.round(l.reduce((a, b) => a + b, 0) / l.length) : null; };
-    const a = avg(ps[ps.length - 1]), b = avg(ps[ps.length - 2]);
+    const cur = (perSel && ps.indexOf(perSel) >= 0) ? perSel : ps[ps.length - 1];
+    const idx = ps.indexOf(cur);
+    if (idx <= 0) return null;
+    const a = avg(ps[idx]), b = avg(ps[idx - 1]);
     if (a == null || b == null) return null;
-    return { delta: a - b, prevPer: ps[ps.length - 2] };
+    return { delta: a - b, prevPer: ps[idx - 1] };
   }
 
   // Bloque de Epidemiología LPP para el informe (mismo período)
@@ -648,15 +660,20 @@
         <tbody>${filas}</tbody></table>`;
   }
 
-  function informeInner() {
+  function informeInner(perSel) {
     const u = ui();
-    const { per, list } = medsUltimoPeriodo();
-    if (!list.length) return null;
+    const periodos = periodosInforme();
+    if (!periodos.length) return null;
+    const per = (perSel && periodos.indexOf(perSel) >= 0) ? perSel : periodos[periodos.length - 1];
+    const list = S().all("nt234").filter(m => m.periodo === per);
+    const hayEpi = S().all("epiLPP").some(r => r.periodo === per);
+    if (!list.length && !hayEpi) return null;
+    const tieneCumpl = list.length > 0;
     const gl = list.map(globalNT).filter(v => v != null);
     const prom = gl.length ? round1(gl.reduce((a, b) => a + b, 0) / gl.length) : 0;
     const by = k => list.filter(m => estadoNT(globalNT(m)).k === k).length;
     const meta = meta234();
-    const v = variacionNT();
+    const v = variacionNT(per);
     const varTxt = v ? `<span class="nt-inf__var nt-inf__var--${v.delta > 0 ? "up" : v.delta < 0 ? "down" : "eq"}">${v.delta > 0 ? "▲ +" + v.delta : v.delta < 0 ? "▼ " + v.delta : "= 0"} pts vs ${u.esc(periodoNTshort(v.prevPer))}</span>` : `<span class="nt-inf__var">Sin mes previo para comparar</span>`;
     const responsable = S().getConfig("nt234.responsable", "") || (U.auth.current() ? U.auth.current().nombre : "________________________");
     const resolucion = S().getConfig("nt234.resolucion", "");
@@ -668,6 +685,18 @@
         <td><strong>${g}%</strong></td><td><span style="font-weight:800;color:${e.color}">● ${u.esc(e.inter)}</span></td></tr>`;
     }).join("");
 
+    const cumplBloque = tieneCumpl
+      ? `<div class="nt-inf__kpis">
+          <div class="nt-inf__kpi ${prom >= meta ? "is-ok" : "is-danger"}"><span class="nt-inf__k-lab">Cumplimiento global</span><span class="nt-inf__k-val">${prom}%</span><span class="nt-inf__k-sub">Meta ${meta}%</span></div>
+          <div class="nt-inf__kpi is-danger"><span class="nt-inf__k-lab">Con intervención</span><span class="nt-inf__k-val">${by("rojo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
+          <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">En seguimiento</span><span class="nt-inf__k-val">${by("amarillo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
+          <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">En cumplimiento</span><span class="nt-inf__k-val">${by("verde")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
+        </div>
+        <div class="nt-inf__varline">Variación del cumplimiento global: ${varTxt}</div>
+        <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th>Cumplimiento</th><th>Estado</th></tr></thead>
+          <tbody>${filas}</tbody></table>`
+      : `<p class="nt-inf__meta" style="margin:12px auto">Aún no se registra el <strong>cumplimiento por unidad</strong> para este período. Se muestra la epidemiología registrada.</p>`;
+
     return `<div class="nt-inf">
       <div class="nt-inf__franja"></div>
       <div class="nt-inf__head">
@@ -676,15 +705,7 @@
         <div class="nt-inf__sub">Unidad de Buenas Prácticas Clínicas – UBPC · Hospital de Urgencia Asistencia Pública</div>
         <div class="nt-inf__meta">Periodo <strong>${u.esc(periodoNT(per))}</strong> · Emisión ${u.fechaCL(new Date())}${resolucion ? " · Resolución " + u.esc(resolucion) : ""}</div>
       </div>
-      <div class="nt-inf__kpis">
-        <div class="nt-inf__kpi ${prom >= meta ? "is-ok" : "is-danger"}"><span class="nt-inf__k-lab">Cumplimiento global</span><span class="nt-inf__k-val">${prom}%</span><span class="nt-inf__k-sub">Meta ${meta}%</span></div>
-        <div class="nt-inf__kpi is-danger"><span class="nt-inf__k-lab">Con intervención</span><span class="nt-inf__k-val">${by("rojo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
-        <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">En seguimiento</span><span class="nt-inf__k-val">${by("amarillo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
-        <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">En cumplimiento</span><span class="nt-inf__k-val">${by("verde")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
-      </div>
-      <div class="nt-inf__varline">Variación del cumplimiento global: ${varTxt}</div>
-      <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th>Cumplimiento</th><th>Estado</th></tr></thead>
-        <tbody>${filas}</tbody></table>
+      ${cumplBloque}
       ${informeEpiBlock(per)}
       <div class="nt-inf__obs">
         <div class="nt-inf__obs-t">Observaciones <span class="no-print" style="font-weight:400;color:#8a94a6;font-size:.78rem">(escribe directamente aquí)</span></div>
@@ -705,19 +726,30 @@
     </div>`;
   }
 
-  function informe234(box) {
+  function informe234(box, perSel) {
     const u = ui();
     if (!document.getElementById("nt-inf-style")) {
       const st = document.createElement("style"); st.id = "nt-inf-style"; st.textContent = NT_INF_CSS; document.head.appendChild(st);
     }
-    const inner = informeInner();
-    if (!inner) { box.innerHTML = u.empty("Sin datos para el informe.", "Registra cumplimiento por unidad primero.", "🖨️"); return; }
-    box.innerHTML = `<div class="section__head no-print"><p class="section__hint">Informe institucional centrado, listo para imprimir o exportar a PDF (impresión limpia, sin bordes del navegador).</p>
+    const periodos = periodosInforme();
+    // Período activo: el elegido (si existe) o el último registrado.
+    const per = (perSel && periodos.indexOf(perSel) >= 0) ? perSel : (periodos.length ? periodos[periodos.length - 1] : "");
+    const inner = informeInner(per);
+    if (!inner) { box.innerHTML = u.empty("Sin datos para el informe.", "Registra el cumplimiento por unidad o la epidemiología de LPP primero.", "🖨️"); return; }
+    const selector = periodos.length > 1
+      ? `<label class="nt-inf-perpick">Período del informe:
+          <select id="nt-inf-per" class="input input--sm" style="max-width:190px;margin-left:.3rem">
+            ${periodos.slice().reverse().map(p => `<option value="${u.esc(p)}"${p === per ? " selected" : ""}>${u.esc(periodoNT(p))}</option>`).join("")}
+          </select></label>`
+      : "";
+    box.innerHTML = `<div class="section__head no-print"><div><p class="section__hint">Informe institucional centrado, listo para imprimir o exportar a PDF (impresión limpia, sin bordes del navegador).</p>${selector}</div>
         <div class="btn-row"><button class="btn btn--ghost btn--sm" id="nt-datos">✏️ Datos y observaciones</button>
         <button class="btn btn--primary btn--sm" id="nt-print">🖨️ Imprimir / PDF</button></div></div>
       <div class="card informe-a4" id="informe">${inner}</div>`;
+    const sel = document.getElementById("nt-inf-per");
+    if (sel) sel.onchange = () => informe234(box, sel.value);
     const dbtn = document.getElementById("nt-datos");
-    if (dbtn) dbtn.onclick = () => editDatos234(() => informe234(box));
+    if (dbtn) dbtn.onclick = () => editDatos234(() => informe234(box, per));
     const pbtn = document.getElementById("nt-print");
     if (pbtn) pbtn.onclick = () => printInforme234();
     // Observaciones editables directamente en el informe (se guardan solas)
