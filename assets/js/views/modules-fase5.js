@@ -14,20 +14,13 @@
     { key: "planes", label: "Plan de Mejora · NT 234" },
     { key: "informe", label: "Informe A4" }
   ];
-  // Indicadores oficiales de la auditoría NT 234 (pauta de cotejo, 8 ítems).
-  // Estándar de cumplimiento 85%. Se registran contando Cumple / No cumple.
+  // Indicadores oficiales de la NT 234 (Programa de Supervisión de Adherencia).
+  // Estándar de cumplimiento 85% · periodicidad semestral.
   const NT_IND = [
-    { k: "valRiesgo", l: "Valoración de Riesgo al ingreso", s: "Valoración de riesgo" },
-    { k: "valPiel", l: "Valoración de la Piel", s: "Valoración de piel" },
-    { k: "cambioPos", l: "Cambio de posición según riesgo", s: "Cambio de posición" },
-    { k: "superficie", l: "Superficie de apoyo según riesgo", s: "Superficie de apoyo" },
-    { k: "prominencias", l: "Protección de prominencias óseas", s: "Prominencias óseas" },
-    { k: "humedad", l: "Manejo de humedad e higiene cutánea", s: "Humedad / higiene" },
-    { k: "nutricional", l: "Evaluación nutricional al ingreso", s: "Nutricional" },
-    { k: "registro", l: "Registro responsable: hora, fecha y firma", s: "Registro" }
+    { k: "valoracionRiesgo", l: "% de pacientes con aplicación de escala de valoración de riesgo de LPP", s: "Valoración de riesgo" },
+    { k: "indicacionMedidas", l: "% de pacientes con riesgo moderado/alto con las 2 medidas de prevención INDICADAS", s: "Indicación de medidas" },
+    { k: "ejecucionMedidas", l: "% de pacientes con riesgo moderado/alto con las 2 medidas de prevención EJECUTADAS", s: "Ejecución de medidas" }
   ];
-  // Indicadores del formato anterior (3), solo para leer registros ya guardados.
-  const NT_IND_OLD = ["valoracionRiesgo", "indicacionMedidas", "ejecucionMedidas"];
   const MESES6 = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   // Color propio por mes (para diferenciar los períodos evaluados de un vistazo)
   const MES_COLOR6 = ["#1e9fe0", "#e0526f", "#37a04a", "#7a5cd0", "#12b5a5", "#e0912f", "#0891b2", "#be185d", "#0f8f83", "#ca8a04", "#5b34b0", "#1554b8"];
@@ -36,56 +29,27 @@
 
   // Redondeo a 1 decimal (evita el desfase de redondear a entero: 78,9 no se vuelve 79)
   function round1(n) { return Math.round(n * 10) / 10; }
-  // Lectura de un dato numérico (Cumple / No cumple) de un registro.
-  function numOr(r, k) { const v = r[k]; return (v !== "" && v != null && !isNaN(Number(v))) ? Number(v) : null; }
-  // Cumple / No cumple / aplicables / % de un indicador.
-  function indNT(r, k) {
-    const c = numOr(r, k + "_c"), nc = numOr(r, k + "_nc");
-    if (c == null && nc == null) return { c: null, nc: null, ap: null, pct: null };
-    const cc = c || 0, ncc = nc || 0, ap = cc + ncc;
-    return { c: cc, nc: ncc, ap, pct: ap > 0 ? round1(cc / ap * 100) : null };
+  function promInd(r) {
+    const vals = NT_IND.map(i => r[i.k]).filter(v => v !== "" && v != null && !isNaN(Number(v))).map(Number);
+    return vals.length ? round1(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
   }
-  // Cumplimiento global = Total Cumple ÷ Total aplicables (Cumple + No cumple)
-  // de los 8 indicadores. Compatibilidad: si el registro es del formato anterior
-  // (3 indicadores con % / N, o un porcentaje), se calcula como antes.
+  // Cumplimiento global. Si se ingresó el "N° aplicables" (Cumple + No cumple, sin N/A)
+  // de los indicadores, se calcula PONDERADO por esos N — equivale a la fórmula
+  // Total Cumple / (Total Cumple + Total No cumple) × 100. Si no hay N, se promedian
+  // los % ingresados (comportamiento anterior, para los registros que ya cuadran).
   function globalNT(r) {
-    let sumC = 0, sumAp = 0, any = false;
-    NT_IND.forEach(i => { const d = indNT(r, i.k); if (d.ap != null) { sumC += d.c; sumAp += d.ap; any = true; } });
-    if (any && sumAp > 0) return round1(sumC / sumAp * 100);
-    return globalNTold(r);
-  }
-  function globalNTold(r) {
-    let sumC = 0, sumN = 0, anyN = false; const vals = [];
-    NT_IND_OLD.forEach(k => {
-      const pv = numOr(r, k), nv = numOr(r, k + "_n");
-      if (pv != null) { vals.push(pv); if (nv != null && nv > 0) { sumC += pv / 100 * nv; sumN += nv; anyN = true; } }
+    let sumC = 0, sumN = 0, anyN = false;
+    NT_IND.forEach(i => {
+      const pct = r[i.k], n = r[i.k + "_n"];
+      const pv = (pct !== "" && pct != null && !isNaN(Number(pct))) ? Number(pct) : null;
+      const nv = (n !== "" && n != null && !isNaN(Number(n))) ? Number(n) : null;
+      if (pv != null && nv != null && nv > 0) { sumC += pv / 100 * nv; sumN += nv; anyN = true; }
     });
     if (anyN && sumN > 0) return round1(sumC / sumN * 100);
-    if (vals.length) return round1(vals.reduce((a, b) => a + b, 0) / vals.length);
+    const p = promInd(r);
+    if (p != null) return p;
     if (r.porcentaje !== "" && r.porcentaje != null && !isNaN(r.porcentaje)) return round1(Number(r.porcentaje));
     return null;
-  }
-  // Celdas de indicadores para la tabla de seguimiento. Soporta ambos formatos:
-  // los registros nuevos muestran las 8 columnas; los del formato anterior (3
-  // indicadores con %) muestran sus valores en una sola celda, para NO perder
-  // la información ya registrada.
-  const OLD_LBL = { valoracionRiesgo: "Valoración riesgo", indicacionMedidas: "Indicación medidas", ejecucionMedidas: "Ejecución medidas" };
-  function indCeldas(m) {
-    const u = ui();
-    const tieneNuevo = NT_IND.some(i => indNT(m, i.k).ap != null);
-    if (tieneNuevo) return NT_IND.map(i => { const d = indNT(m, i.k); return `<td class="num">${d.pct != null ? d.pct + "%" : "—"}</td>`; }).join("");
-    const vals = NT_IND_OLD.map(k => { const v = numOr(m, k); return v != null ? `${OLD_LBL[k]} ${v}%` : null; }).filter(Boolean);
-    if (vals.length) return `<td colspan="${NT_IND.length}" style="text-align:left;font-size:12px;color:var(--text-muted)">Formato anterior · ${u.esc(vals.join(" · "))}</td>`;
-    return `<td colspan="${NT_IND.length}" style="text-align:center;color:var(--text-muted)">— (solo cumplimiento global)</td>`;
-  }
-
-  // Caracterización clínica: incluidos = riesgo alto + moderado · excluidos = auditados − incluidos.
-  function caracNT(r) {
-    const aud = numOr(r, "auditados"), alto = numOr(r, "riesgoAlto"), mod = numOr(r, "riesgoModerado"), lpp = numOr(r, "conLPP");
-    const incl = (alto != null || mod != null) ? (alto || 0) + (mod || 0) : null;
-    const excl = (aud != null && incl != null) ? Math.max(0, aud - incl) : null;
-    const pctLPP = (aud != null && aud > 0 && lpp != null) ? round1(lpp / aud * 100) : null;
-    return { aud, alto, mod, lpp, incl, excl, pctLPP };
   }
   function estadoNT(pct) {
     // Estándar oficial de la NT 234 = 85%.
@@ -308,7 +272,7 @@
           const g = globalNT(m), e = estadoNT(g);
           rows += `<tr class="nt-p-row" style="--pc:${pc}">
             <td><strong>${u.esc(m.unidad || "—")}</strong>${m.jefatura ? `<div class="kpi__sub">${u.esc(m.jefatura)}</div>` : ""}</td>
-            ${indCeldas(m)}
+            ${NT_IND.map(i => `<td class="num">${m[i.k] !== "" && m[i.k] != null ? Number(m[i.k]) + "%" : "—"}</td>`).join("")}
             <td class="num"><span class="badge badge--${e.badge}">${g != null ? g + "%" : "—"}</span></td>
             <td>${m.enviadoUnidad === "Sí" ? `<span class="badge badge--ok">Sí</span>` : "—"}</td>
             <td class="nowrap">${m.fechaEnvio ? u.fechaCL(m.fechaEnvio) : "—"}</td>
@@ -362,57 +326,44 @@
       { name: "fechaEnvio", label: "Fecha de envío", type: "date", value: rec.fechaEnvio ? u.isoDay(rec.fechaEnvio) : "" },
       { name: "observaciones", label: "Observaciones", type: "textarea", full: true, value: rec.observaciones || "" }
     ];
-    // Caracterización clínica (como tu informe): auditados, riesgo, LPP.
-    const carac = `<div style="margin:.5rem 0 .2rem">
-      <label style="font-weight:700;font-size:13px">🧍 Caracterización clínica <span class="card__hint" style="font-weight:400">(opcional · alimenta la epidemiología)</span></label>
-      <div class="table-wrap"><table class="tbl mc-tbl"><tbody>
-        <tr><td>Pacientes auditados</td><td class="num"><input class="input" type="number" min="0" step="1" name="auditados" value="${rec.auditados != null ? rec.auditados : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
-            <td>Pacientes con LPP</td><td class="num"><input class="input" type="number" min="0" step="1" name="conLPP" value="${rec.conLPP != null ? rec.conLPP : ""}" style="max-width:95px;padding:.3rem .45rem"></td></tr>
-        <tr><td>Riesgo alto</td><td class="num"><input class="input" type="number" min="0" step="1" name="riesgoAlto" value="${rec.riesgoAlto != null ? rec.riesgoAlto : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
-            <td>Riesgo moderado</td><td class="num"><input class="input" type="number" min="0" step="1" name="riesgoModerado" value="${rec.riesgoModerado != null ? rec.riesgoModerado : ""}" style="max-width:95px;padding:.3rem .45rem"></td></tr>
-        <tr style="background:rgba(15,143,131,.07)"><td>Incluidos (alto + moderado)</td><td class="num" data-incl>—</td><td>% con LPP</td><td class="num" data-pctlpp>—</td></tr>
-      </tbody></table></div></div>`;
-    // Indicadores NT 234: se cuenta Cumple y No cumple (el % se calcula solo).
-    const indTable = `<div style="margin:.4rem 0 .2rem">
-      <label style="font-weight:700;font-size:13px">📋 Indicadores NT 234 · pauta de cotejo (8)</label>
-      <p class="card__hint" style="margin:.15rem 0 .45rem">Para cada indicador, ingresa cuántos <strong>Cumplen</strong> y cuántos <strong>No cumplen</strong> (sin N/A). El <strong>%</strong> y el <strong>cumplimiento global</strong> (Total Cumple ÷ Total aplicables) se calculan solos.</p>
-      <div class="table-wrap"><table class="tbl mc-tbl"><thead><tr><th>Indicador</th><th class="num">Cumple</th><th class="num">No cumple</th><th class="num">%</th></tr></thead>
+    // Tabla de indicadores: % de cumplimiento + N° aplicables (Cumple+No cumple, sin N/A).
+    const indTable = `<div style="margin:.3rem 0 .2rem">
+      <label style="font-weight:700;font-size:13px">Indicadores NT 234</label>
+      <p class="card__hint" style="margin:.15rem 0 .45rem">Ingresa el <strong>% de cumplimiento</strong> y el <strong>N° aplicables</strong> (Cumple + No cumple, sin N/A) de cada indicador. Si completas el N° en todos, el <strong>cumplimiento global</strong> se calcula con tu fórmula: Total Cumple ÷ Total aplicables. Si dejas los N° vacíos, se promedian los %.</p>
+      <div class="table-wrap"><table class="tbl mc-tbl"><thead><tr><th>Indicador</th><th class="num">Cumplimiento %</th><th class="num">N° aplicables</th><th class="num">Cumple (auto)</th></tr></thead>
         <tbody>${NT_IND.map(i => `<tr>
           <td>${u.esc(i.l)}</td>
-          <td class="num"><input class="input" type="number" min="0" step="1" name="${i.k}_c" value="${rec[i.k + "_c"] != null ? rec[i.k + "_c"] : ""}" style="max-width:85px;padding:.3rem .45rem"></td>
-          <td class="num"><input class="input" type="number" min="0" step="1" name="${i.k}_nc" value="${rec[i.k + "_nc"] != null ? rec[i.k + "_nc"] : ""}" style="max-width:85px;padding:.3rem .45rem"></td>
-          <td class="num" data-pct="${i.k}" style="font-weight:700">—</td></tr>`).join("")}
-          <tr style="font-weight:700;background:rgba(15,143,131,.11)"><td>Cumplimiento global</td><td class="num" data-gc>—</td><td class="num" data-gnc>—</td><td class="num" data-gpct>—</td></tr>
+          <td class="num"><input class="input" type="number" min="0" max="100" step="0.1" name="${i.k}" value="${rec[i.k] != null ? rec[i.k] : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
+          <td class="num"><input class="input" type="number" min="0" step="1" name="${i.k}_n" value="${rec[i.k + "_n"] != null ? rec[i.k + "_n"] : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
+          <td class="num" data-cumple="${i.k}">—</td></tr>`).join("")}
+          <tr style="font-weight:700;background:rgba(15,143,131,.09)"><td>Cumplimiento global</td><td class="num" data-gpct>—</td><td class="num" data-gn>—</td><td class="num" data-gc>—</td></tr>
         </tbody></table></div></div>`;
     u.modal({
       title: rec.id ? "Editar registro NT 234" : "Nuevo registro NT 234", wide: true,
-      body: u.formHTML(top, {}) + carac + indTable + u.formHTML(bottom, {}),
+      body: u.formHTML(top, {}) + indTable + u.formHTML(bottom, {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
       onMount(m) {
         const recompute = () => {
-          const d = u.readForm(m);
-          let sumC = 0, sumNC = 0, any = false;
+          let sumC = 0, sumN = 0, anyN = false;
           NT_IND.forEach(i => {
-            const dd = indNT(d, i.k);
-            const cell = m.querySelector(`[data-pct="${i.k}"]`);
-            if (dd.pct != null) { if (cell) { cell.textContent = dd.pct + "%"; cell.style.color = dd.pct >= meta234() ? "var(--verde)" : dd.pct >= 75 ? "var(--naranjo)" : "var(--danger)"; } sumC += dd.c; sumNC += dd.nc; any = true; }
-            else if (cell) { cell.textContent = "—"; cell.style.color = ""; }
+            const pctEl = m.querySelector(`[name="${i.k}"]`), nEl = m.querySelector(`[name="${i.k}_n"]`);
+            const pct = pctEl && pctEl.value !== "" ? Number(pctEl.value) : null;
+            const n = nEl && nEl.value !== "" ? Number(nEl.value) : null;
+            const cell = m.querySelector(`[data-cumple="${i.k}"]`);
+            if (pct != null && n != null && n > 0) { const c = pct / 100 * n; if (cell) cell.textContent = Math.round(c); sumC += c; sumN += n; anyN = true; }
+            else if (cell) cell.textContent = "—";
           });
-          const g = any && (sumC + sumNC) > 0 ? round1(sumC / (sumC + sumNC) * 100) : null;
-          const gc = m.querySelector("[data-gc]"), gnc = m.querySelector("[data-gnc]"), gp = m.querySelector("[data-gpct]");
-          if (gc) gc.textContent = any ? sumC : "—";
-          if (gnc) gnc.textContent = any ? sumNC : "—";
-          if (gp) { gp.textContent = g != null ? g + "%" : "—"; gp.style.color = g == null ? "" : (g >= meta234() ? "var(--verde)" : g >= 75 ? "var(--naranjo)" : "var(--danger)"); }
-          const c = caracNT(d);
-          const incl = m.querySelector("[data-incl]"), pl = m.querySelector("[data-pctlpp]");
-          if (incl) incl.textContent = c.incl != null ? c.incl + (c.excl != null ? " · excl. " + c.excl : "") : "—";
-          if (pl) pl.textContent = c.pctLPP != null ? c.pctLPP + "%" : "—";
+          const g = globalNT(u.readForm(m));
+          const gp = m.querySelector("[data-gpct]"), gn = m.querySelector("[data-gn]"), gc = m.querySelector("[data-gc]");
+          if (gp) gp.textContent = g != null ? g + "%" : "—";
+          if (gn) gn.textContent = anyN ? sumN : "—";
+          if (gc) gc.textContent = anyN ? Math.round(sumC) : "—";
         };
         m.addEventListener("input", recompute); recompute();
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           if (!d.periodo || !d.unidad) { u.toast("Completa periodo y unidad", "danger"); return; }
-          d.porcentaje = globalNT(d); // cumplimiento global
+          d.porcentaje = globalNT(d); // cumplimiento global (ponderado por N si existe)
           if (rec.id) S().update("nt234", rec.id, d); else S().insert("nt234", d);
           u.closeModal(); u.toast("Registro guardado", "ok"); done();
         };
@@ -707,30 +658,6 @@
       </div>
       <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Evaluados</th><th>LPP intrahosp.</th><th>Incidencia</th><th>Prevalencia</th><th>% libres</th></tr></thead>
         <tbody>${filas}</tbody></table>`;
-  }
-
-  // Cumplimiento por indicador (pauta de cotejo, 8 ítems) del período.
-  function informeIndBlock(list) {
-    const u = ui(), meta = meta234();
-    const rows = NT_IND.map(ind => {
-      let c = 0, ap = 0, any = false;
-      list.forEach(m => { const d = indNT(m, ind.k); if (d.ap != null) { c += d.c; ap += d.ap; any = true; } });
-      return { ind, c, nc: ap - c, pct: ap > 0 ? round1(c / ap * 100) : null, any };
-    }).filter(r => r.any && r.pct != null);
-    if (!rows.length) return "";
-    const filas = rows.map(r => `<tr><td class="l">${u.esc(r.ind.l)}</td><td>${r.c}</td><td>${r.nc}</td><td><strong>${r.pct}%</strong></td><td><span style="font-weight:800;color:${r.pct >= meta ? "#1f9d57" : r.pct >= 75 ? "#e0912f" : "#c62f3b"}">${r.pct >= meta ? "Cumple" : "No cumple"}</span></td></tr>`).join("");
-    return `<div class="nt-inf__epi-h"><span class="nt-inf__epi-t">Cumplimiento por indicador</span></div>
-      <table class="nt-inf__tbl"><thead><tr><th class="l">Indicador</th><th>Cumple</th><th>No cumple</th><th>%</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table>`;
-  }
-  // Caracterización clínica del período.
-  function informeCaracBlock(list) {
-    const t = list.reduce((a, m) => { const c = caracNT(m); ["aud", "alto", "mod", "lpp"].forEach(k => { if (c[k] != null) a[k] = (a[k] || 0) + c[k]; }); return a; }, {});
-    if (t.aud == null && t.lpp == null) return "";
-    const incl = (t.alto || 0) + (t.mod || 0), excl = t.aud != null ? Math.max(0, t.aud - incl) : null;
-    const pctLPP = (t.aud && t.lpp != null) ? round1(t.lpp / t.aud * 100) : null;
-    const row = (l, v) => `<tr><td class="l">${l}</td><td>${v == null ? "—" : v}</td></tr>`;
-    return `<div class="nt-inf__epi-h"><span class="nt-inf__epi-t">Caracterización clínica</span></div>
-      <table class="nt-inf__tbl" style="max-width:440px">${row("Pacientes auditados", t.aud)}${row("Riesgo alto", t.alto)}${row("Riesgo moderado", t.mod)}${row("Incluidos (alto + moderado)", incl || null)}${row("Excluidos", excl)}${row("Pacientes con LPP", t.lpp)}${row("% con LPP", pctLPP != null ? pctLPP + "%" : null)}</table>`;
   }
 
   function informeInner(perSel) {
@@ -1035,5 +962,5 @@
     const pct = Math.round(gs.reduce((a, b) => a + b, 0) / gs.length);
     return { pct, estado: estadoNT(pct), unidades: gs.length };
   }
-  U.ntUtil = { globalNT, estadoNT, periodosNT, institNT, NT_IND, indNT, caracNT };
+  U.ntUtil = { globalNT, estadoNT, periodosNT, institNT, NT_IND };
 })();
