@@ -343,32 +343,58 @@
 
   /* ---- Lectura en jornadas (FTE) para justificar dotación ---- */
   const fteFmt = n => (Math.round(n * 10) / 10).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  function icoFTEcardHTML(rec) {
-    const u = ui(), j = icoJornada();
+
+  // Decisión de dotación a partir de la carga de trabajo del mes.
+  // Convierte demanda y disponibilidad a JORNADAS de enfermera (EU) y entrega un
+  // veredicto único y coherente: ¿se requiere EU referente? Todos los textos del
+  // módulo (tarjeta, línea compacta, recomendación e informe) usan esta función,
+  // para que el número y la conclusión NUNCA se contradigan.
+  function icoDecision(rec) {
+    const j = icoJornada();
     const req = Number(rec.demanda) / j;        // jornadas que exige la demanda
-    const disp = Number(rec.horas) / j;         // jornada disponible (coordinador)
-    const deficit = req - disp;                 // jornadas que faltan
-    const justifica = deficit >= 0.2;
-    const concl = justifica
-      ? `La demanda equivale a <strong>${fteFmt(req)} jornadas</strong> y hay <strong>${fteFmt(disp)}</strong> disponible: se justifica reforzar con <strong>~${fteFmt(deficit)} jornada de EU referente</strong>.`
-      : `La demanda equivale a <strong>${fteFmt(req)} jornadas</strong> y la capacidad disponible (${fteFmt(disp)}) alcanza a cubrirla este mes.`;
-    return `<div class="ico-fte ${justifica ? "is-gap" : ""}">
-      <div class="ico-fte__title">🧮 Lectura en jornadas (EU) · ${u.esc(icoPeriodoLabel(rec.periodo))}</div>
+    const disp = Number(rec.horas) / j;         // jornada(s) disponible(s)
+    const reqR = Math.round(req * 10) / 10;
+    const dispR = Math.round(disp * 10) / 10;
+    const defR = Math.round((reqR - dispR) * 10) / 10;   // déficit visible (coherente con lo mostrado)
+    const dias = Math.max(1, Math.round(defR * 5));       // equivalencia en días/semana
+    let nivel, verdict, requiere, detalle;
+    if (defR <= 0) {
+      nivel = "ok"; requiere = false; verdict = "No se requiere EU adicional";
+      detalle = `La capacidad disponible (<strong>${fteFmt(dispR)}</strong> jornada) <strong>cubre</strong> la demanda técnica del mes (<strong>${fteFmt(reqR)}</strong> jornada).`;
+    } else if (defR < 0.3) {
+      nivel = "warn"; requiere = false; verdict = "Al límite · monitorear";
+      detalle = `La demanda (<strong>${fteFmt(reqR)}</strong> jornada) está <strong>al límite</strong> de la capacidad disponible (<strong>${fteFmt(dispR)}</strong>). Se cubre este mes, pero con holgura mínima: conviene monitorear la tendencia.`;
+    } else if (defR < 1) {
+      nivel = "warn"; requiere = true; verdict = "Se requiere refuerzo parcial de EU";
+      detalle = `La demanda (<strong>${fteFmt(reqR)}</strong> jornada) <strong>supera</strong> la capacidad disponible (<strong>${fteFmt(dispR)}</strong>) en <strong>${fteFmt(defR)} jornada</strong>. Se justifica reforzar con una <strong>EU referente a ${fteFmt(defR)} jornada</strong> (≈ ${dias} día(s) por semana).`;
+    } else {
+      nivel = "danger"; requiere = true; verdict = "Se requiere EU referente";
+      detalle = `La demanda (<strong>${fteFmt(reqR)}</strong> jornadas) <strong>supera</strong> la capacidad disponible (<strong>${fteFmt(dispR)}</strong>) en <strong>${fteFmt(defR)} jornadas</strong>. Se justifica incorporar <strong>${defR >= 2 ? fteFmt(defR) + " jornadas" : "una jornada completa"} de EU referente</strong>.`;
+    }
+    return { j, req, disp, reqR, dispR, defR, nivel, verdict, requiere, detalle };
+  }
+  const DEC_COLOR = { ok: "var(--verde)", warn: "var(--naranjo)", danger: "var(--danger)" };
+  function icoFTEcardHTML(rec) {
+    const u = ui();
+    const D = icoDecision(rec);
+    return `<div class="ico-fte ${D.requiere ? "is-gap" : ""}">
+      <div class="ico-fte__title">🧮 ¿Se necesita enfermera? · Lectura en jornadas (EU) · ${u.esc(icoPeriodoLabel(rec.periodo))}</div>
+      <p class="kpi__sub" style="margin:.1rem 0 .5rem">Se traduce la <strong>carga de trabajo del mes</strong> a jornadas de enfermera: cuántas jornadas <strong>exige la demanda técnica</strong> frente a las que la UBPC tiene <strong>disponibles</strong>. La diferencia indica si se requiere una EU referente.</p>
       <div class="ico-fte__row">
-        <div class="ico-fte__box"><b>${fteFmt(req)}</b><span>jornadas requeridas</span></div>
-        <div class="ico-fte__box"><b>${fteFmt(disp)}</b><span>jornada disponible</span></div>
-        <div class="ico-fte__box ico-fte__box--gap"><b>${deficit > 0 ? "+" : ""}${fteFmt(deficit)}</b><span>${deficit > 0 ? "déficit de EU" : "holgura"}</span></div>
+        <div class="ico-fte__box"><b>${fteFmt(D.reqR)}</b><span>jornadas requeridas<br>(según la demanda)</span></div>
+        <div class="ico-fte__box"><b>${fteFmt(D.dispR)}</b><span>jornada disponible<br>(dotación actual)</span></div>
+        <div class="ico-fte__box ico-fte__box--gap"><b style="color:${DEC_COLOR[D.nivel]}">${D.defR > 0 ? "+" : ""}${fteFmt(D.defR)}</b><span>${D.defR > 0 ? "déficit de EU" : "holgura"}</span></div>
       </div>
-      <p class="ico-fte__concl">${concl} <span class="kpi__sub">Jornada de referencia: ${j} h/mes.</span></p>
+      <div class="ico-fte__verdict" style="margin:.4rem 0 .2rem;font-weight:800;color:${DEC_COLOR[D.nivel]}">${D.requiere ? "🔴 " : (D.nivel === "warn" ? "🟡 " : "🟢 ")}${u.esc(D.verdict)}</div>
+      <p class="ico-fte__concl">${D.detalle} <span class="kpi__sub">Base de cálculo: 1 jornada = ${D.j} h/mes.</span></p>
     </div>`;
   }
   // Conclusión en una sola línea (vista compacta del índice)
   function icoFTEline(rec) {
-    const j = icoJornada();
-    const req = Number(rec.demanda) / j, disp = Number(rec.horas) / j, deficit = req - disp;
-    return (deficit >= 0.2)
-      ? `Demanda ≈ <b>${fteFmt(req)} jornadas</b> vs <b>${fteFmt(disp)}</b> disponible → <b style="color:var(--danger)">falta ~${fteFmt(deficit)} jornada de EU referente</b>.`
-      : `Demanda ≈ <b>${fteFmt(req)} jornadas</b>; la capacidad disponible (${fteFmt(disp)}) alcanza este mes.`;
+    const D = icoDecision(rec);
+    return D.requiere
+      ? `Demanda ≈ <b>${fteFmt(D.reqR)} jornada(s)</b> vs <b>${fteFmt(D.dispR)}</b> disponible → <b style="color:${DEC_COLOR[D.nivel]}">${D.verdict} (${fteFmt(D.defR)} jornada)</b>.`
+      : `Demanda ≈ <b>${fteFmt(D.reqR)} jornada(s)</b> vs <b>${fteFmt(D.dispR)}</b> disponible → <b style="color:${DEC_COLOR[D.nivel]}">${D.verdict}</b>.`;
   }
 
   /* ---- Evidencia de saturación con datos reales del portal (sin horas) ---- */
@@ -441,14 +467,14 @@
     }
     const last = recs[recs.length - 1];
     const pct = icoIndex(last), est = icoEstado(pct);
-    const req = Number(last.demanda) / j, disp = Number(last.horas) / j, deficit = req - disp;
+    const D = icoDecision(last);
     const tend = d.actPrev === 0 ? "" : (d.dAct > 0 ? " La actividad va en aumento respecto al mes anterior, lo que proyecta una brecha creciente." : d.dAct < 0 ? " La actividad disminuyó respecto al mes anterior." : "");
     const parte1 = `En <strong>${u.esc(icoPeriodoLabel(last.periodo))}</strong> el Índice de Capacidad Operativa fue <strong>${pct}%</strong> (${est.l.toLowerCase()}). ` +
-      `La demanda técnica equivale a <strong>${fteFmt(req)} jornadas</strong> frente a <strong>${fteFmt(disp)}</strong> disponible(s).`;
+      `Traducida a dotación, la demanda técnica equivale a <strong>${fteFmt(D.reqR)} jornada(s)</strong> de enfermera frente a <strong>${fteFmt(D.dispR)}</strong> disponible(s).`;
     const evid = ` Como respaldo operativo se registran <strong>${d.pend}</strong> solicitud(es) pendiente(s)${d.avgResp != null ? ` (respuesta promedio ${d.avgResp} días)` : ""}, <strong>${d.venc}</strong> compromiso(s) vencido(s) y una cobertura de <strong>${d.cob}/${d.totalUn}</strong> unidades en el mes.`;
-    const reco = deficit >= 0.2
-      ? ` <strong>Recomendación:</strong> la demanda supera la capacidad de un/a solo profesional (déficit de ${fteFmt(deficit)} jornada). Se recomienda gestionar ante la Subdirección de Gestión del Cuidado la incorporación de un/a <strong>enfermero/a referente</strong> para asegurar la continuidad técnica y la cobertura de las unidades.`
-      : ` <strong>Recomendación:</strong> la capacidad disponible alcanza a cubrir la demanda del mes. Se recomienda mantener el monitoreo mensual y reevaluar si la tendencia continúa al alza.`;
+    const reco = D.requiere
+      ? ` <strong>Recomendación:</strong> ${D.detalle} Se recomienda gestionar ante la Subdirección de Gestión del Cuidado la incorporación de un/a <strong>enfermero/a referente</strong> para asegurar la continuidad técnica y la cobertura de las unidades.`
+      : ` <strong>Recomendación:</strong> ${D.detalle} Se recomienda mantener el monitoreo mensual y reevaluar si la tendencia continúa al alza.`;
     return parte1 + evid + tend + reco;
   }
   function icoRecomendacionHTML() {
@@ -504,9 +530,10 @@
     const pct = last ? icoIndex(last) : null;
     const est = icoEstado(pct);
     const j = icoJornada();
-    const req = last ? Number(last.demanda) / j : null;
-    const disp = last ? Number(last.horas) / j : null;
-    const deficit = (req != null && disp != null) ? req - disp : null;
+    const D = last ? icoDecision(last) : null;
+    const req = D ? D.reqR : null;
+    const disp = D ? D.dispR : null;
+    const deficit = D ? D.defR : null;
     const d = icoEvidenciaData();
     const nota = S().getConfig("ico.observacion", "");
     const me = U.auth.current();
@@ -533,13 +560,14 @@
           <div class="icr__meta">Demanda ${last ? u.esc(last.demanda) : "—"} h ÷ disponibles ${last ? u.esc(last.horas) : "—"} h × 100</div>
         </div>
         <div class="icr__box">
-          <div class="icr__lbl">Lectura en jornadas (EU)</div>
+          <div class="icr__lbl">¿Se requiere EU? · Lectura en jornadas</div>
           <div class="icr__fte">
             <div class="icr__fteb"><b>${req != null ? fteFmt(req) : "—"}</b><span>requeridas</span></div>
             <div class="icr__fteb"><b>${disp != null ? fteFmt(disp) : "—"}</b><span>disponible</span></div>
             <div class="icr__fteb"><b style="color:${deficit != null && deficit > 0 ? "#c62f3b" : "#1c7a4c"}">${deficit != null ? (deficit > 0 ? "+" : "") + fteFmt(deficit) : "—"}</b><span>${deficit != null && deficit > 0 ? "déficit EU" : "holgura"}</span></div>
           </div>
-          <div class="icr__meta">Jornada de referencia: ${j} h/mes</div>
+          ${D ? `<div style="margin-top:4px"><span class="icr__badge b-${D.nivel}">${D.requiere ? "Requiere EU referente" : D.verdict}</span></div>` : ""}
+          <div class="icr__meta">Demanda ÷ capacidad, en jornadas · 1 jornada = ${j} h/mes</div>
         </div>
       </div>
 
@@ -612,9 +640,19 @@
         : `<span class="ico-var">→ se mantiene</span>`;
     }
     const labels = recs.map(r => icoPeriodoLabel(r.periodo));
-    const values = recs.map(r => icoIndex(r));
+    // Gráfico de productividad orientado a la decisión: jornadas que EXIGE la
+    // demanda técnica vs jornadas DISPONIBLES. Cuando la demanda (rojo) supera la
+    // capacidad (verde), el espacio entre ambas líneas es el déficit que justifica
+    // una EU referente. Mucho más legible que el índice % pegado al 100.
+    const jref = icoJornada();
+    const reqVals = recs.map(r => Math.round(Number(r.demanda) / jref * 10) / 10);
+    const dispVals = recs.map(r => Math.round(Number(r.horas) / jref * 10) / 10);
+    const maxY = Math.max(2, Math.ceil(Math.max.apply(null, reqVals.concat(dispVals)) + 0.5));
     const chart = recs.length > 1
-      ? U.charts.lineChart({ labels, series: [{ name: "Índice de Capacidad Operativa", color: est.c, values }], meta: 100 })
+      ? U.charts.lineChart({ labels, valueSuffix: "", maxY, series: [
+          { name: "Jornadas requeridas (demanda técnica)", color: "var(--danger)", values: reqVals },
+          { name: "Capacidad disponible (EU)", color: "#12b5a5", values: dispVals }
+        ] })
       : `<p class="kpi__sub">Registra al menos dos meses para ver la tendencia.</p>`;
 
     const rows = recs.slice().reverse().map(r => {
@@ -645,7 +683,8 @@
         <summary class="ico-mas__sum">📈 Ver evolución, jornadas, evidencia y recomendación</summary>
         <div style="margin-top:.6rem">
           ${icoFTEcardHTML(last)}
-          <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 Evolución mensual</h4>
+          <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 Productividad mensual · demanda vs capacidad (jornadas de EU)</h4>
+          <p class="kpi__sub" style="margin:.1rem 0 .3rem">Cada punto es cuántas jornadas de enfermera <strong>exige la demanda técnica</strong> (rojo) frente a las <strong>disponibles</strong> (verde). Cuando la línea roja queda por <strong>encima</strong> de la verde, ese espacio es el <strong>déficit</strong> que justifica una EU referente.</p>
           <div style="margin:.4rem 0">${chart}</div>
           <div class="table-wrap"><table class="tbl"><thead><tr>
             <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
