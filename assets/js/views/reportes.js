@@ -467,11 +467,11 @@
       titulo: "Reporte Norma Técnica 234 · Prevención de LPP", periodo: periodoActual(),
       filtros: resolucion ? "Resolución: " + resolucion : "",
       body: kpiRow([
-        { v: pctFmt(inst.pct), l: "Cumplimiento institucional" }, { v: inst.unidades || 0, l: "Unidades medidas" },
+        { v: pctFmt(inst.pct), l: "Indicador Global NT 234 (2 medidas ejecutadas)" }, { v: inst.unidades || 0, l: "Unidades medidas" },
         { v: (peor ? peor.l : "—"), l: "Indicador más débil" }, { v: bajoMeta.length, l: "Indicadores bajo meta" }
       ]) + (responsable ? `<p class="muted" style="margin:.3rem 0">Responsable NT 234: <strong>${esc(responsable)}</strong> · Meta institucional ${meta}%</p>` : "")
         + `<h3>Cumplimiento por indicador oficial · NT 234</h3>`
-        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Los 3 indicadores de las OO.TT (valoración de riesgo, indicación y ejecución de medidas), institucional. Ordenados del más débil al más fuerte para priorizar dónde intervenir (estándar ${meta}%).</p>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Los 3 indicadores de la NT 234, <strong>cada uno por separado</strong> (no se suman ni promedian): valoración de riesgo, 2 medidas INDICADAS (indicador local) y 2 medidas EJECUTADAS (Indicador Global NT 234). Ordenados del más débil al más fuerte (estándar ${meta}%).</p>`
         + table(["Indicador oficial", "Cumplimiento", "Estándar", "Estado", "N° mediciones"], indRows)
         + `<h3>Resumen por unidad</h3>`
         + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Cumplimiento global de cada unidad. El detalle mes a mes está en la exportación a Excel.</p>`
@@ -702,7 +702,7 @@
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
-        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v52</span></strong>
+        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v53</span></strong>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" data-print>🖨️ Imprimir / PDF</button>
           <button class="btn btn--ghost btn--sm" data-word>📄 Word</button>

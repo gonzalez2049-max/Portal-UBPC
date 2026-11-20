@@ -14,13 +14,18 @@
     { key: "planes", label: "Plan de Mejora · NT 234" },
     { key: "informe", label: "Informe A4" }
   ];
-  // Indicadores oficiales de la NT 234 (Programa de Supervisión de Adherencia).
-  // Estándar de cumplimiento 85% · periodicidad semestral.
+  // Indicadores de la NT 234. SON INDEPENDIENTES: cada uno tiene su propio
+  // numerador y denominador y NO se suman ni promedian entre sí.
+  //  1) Valoración de riesgo de LPP.
+  //  2) 2 medidas de prevención INDICADAS → indicador LOCAL de proceso.
+  //  3) 2 medidas de prevención EJECUTADAS → INDICADOR GLOBAL NT 234.
   const NT_IND = [
-    { k: "valoracionRiesgo", l: "% de pacientes con aplicación de escala de valoración de riesgo de LPP", s: "Valoración de riesgo" },
-    { k: "indicacionMedidas", l: "% de pacientes con riesgo moderado/alto con las 2 medidas de prevención INDICADAS", s: "Indicación de medidas" },
-    { k: "ejecucionMedidas", l: "% de pacientes con riesgo moderado/alto con las 2 medidas de prevención EJECUTADAS", s: "Ejecución de medidas" }
+    { k: "valoracionRiesgo", l: "Valoración de riesgo de LPP", s: "Valoración de riesgo", rol: "" },
+    { k: "indicacionMedidas", l: "2 medidas de prevención INDICADAS", s: "2 medidas indicadas", rol: "local" },
+    { k: "ejecucionMedidas", l: "2 medidas de prevención EJECUTADAS", s: "2 medidas ejecutadas", rol: "global" }
   ];
+  const NT_K_GLOBAL = "ejecucionMedidas";   // Indicador Global NT 234
+  const NT_K_LOCAL = "indicacionMedidas";   // Indicador local (2 medidas indicadas)
   const MESES6 = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   // Color propio por mes (para diferenciar los períodos evaluados de un vistazo)
   const MES_COLOR6 = ["#1e9fe0", "#e0526f", "#37a04a", "#7a5cd0", "#12b5a5", "#e0912f", "#0891b2", "#be185d", "#0f8f83", "#ca8a04", "#5b34b0", "#1554b8"];
@@ -29,26 +34,34 @@
 
   // Redondeo a 1 decimal (evita el desfase de redondear a entero: 78,9 no se vuelve 79)
   function round1(n) { return Math.round(n * 10) / 10; }
-  function promInd(r) {
-    const vals = NT_IND.map(i => r[i.k]).filter(v => v !== "" && v != null && !isNaN(Number(v))).map(Number);
-    return vals.length ? round1(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+  // % de UN indicador (su propio numerador/denominador, N/A ya excluidos en el N°).
+  function indPct(r, k) {
+    const v = r[k];
+    return (v !== "" && v != null && !isNaN(Number(v))) ? round1(Number(v)) : null;
   }
-  // Cumplimiento global. Si se ingresó el "N° aplicables" (Cumple + No cumple, sin N/A)
-  // de los indicadores, se calcula PONDERADO por esos N — equivale a la fórmula
-  // Total Cumple / (Total Cumple + Total No cumple) × 100. Si no hay N, se promedian
-  // los % ingresados (comportamiento anterior, para los registros que ya cuadran).
+  // Indicador Global NT 234 = SOLO las 2 medidas de prevención EJECUTADAS.
+  // NO suma ni promedia los otros indicadores.
   function globalNT(r) {
-    let sumC = 0, sumN = 0, anyN = false;
-    NT_IND.forEach(i => {
-      const pct = r[i.k], n = r[i.k + "_n"];
-      const pv = (pct !== "" && pct != null && !isNaN(Number(pct))) ? Number(pct) : null;
-      const nv = (n !== "" && n != null && !isNaN(Number(n))) ? Number(n) : null;
-      if (pv != null && nv != null && nv > 0) { sumC += pv / 100 * nv; sumN += nv; anyN = true; }
+    const ej = indPct(r, NT_K_GLOBAL);
+    if (ej != null) return ej;
+    // Compatibilidad: registros antiguos sin el dato de ejecutadas.
+    if (r.porcentaje !== "" && r.porcentaje != null && !isNaN(r.porcentaje)) return round1(Number(r.porcentaje));
+    return null;
+  }
+  // Cumplimiento de la auditoría local ampliada de 8 medidas (dato aparte, cuando exista).
+  function auditoria8NT(r) { return indPct(r, "auditoria8"); }
+  // Agrega UN indicador (su k) entre las unidades de un período, ponderado por el
+  // N° aplicables cuando existe. NUNCA mezcla indicadores distintos.
+  function institInd(k, periodo, meds) {
+    const l = (meds || S().all("nt234")).filter(m => m.periodo === periodo);
+    let sumC = 0, sumN = 0, anyN = false; const vals = [];
+    l.forEach(m => {
+      const pv = indPct(m, k);
+      const nraw = m[k + "_n"]; const nv = (nraw !== "" && nraw != null && !isNaN(Number(nraw))) ? Number(nraw) : null;
+      if (pv != null) { vals.push(pv); if (nv != null && nv > 0) { sumC += pv / 100 * nv; sumN += nv; anyN = true; } }
     });
     if (anyN && sumN > 0) return round1(sumC / sumN * 100);
-    const p = promInd(r);
-    if (p != null) return p;
-    if (r.porcentaje !== "" && r.porcentaje != null && !isNaN(r.porcentaje)) return round1(Number(r.porcentaje));
+    if (vals.length) return round1(vals.reduce((a, b) => a + b, 0) / vals.length);
     return null;
   }
   function estadoNT(pct) {
@@ -264,29 +277,67 @@
             ${U.charts.bars(porUnidad, { meta: meta234(), metaMarker: true, colorBy: "item" })}</div>`
         : "";
 
+      // La columna de "2 medidas ejecutadas" ES el Indicador Global NT 234
+      // (lleva el badge de estado). No hay columna de "global sumado".
+      const hasAud8 = meds.some(m => auditoria8NT(m) != null);
+      const colCount = 7 + (hasAud8 ? 1 : 0);
+      const pOr = v => (v != null ? v + "%" : "—");
       let rows = "";
       periodos.slice().reverse().forEach(pr => {
         const pc = colorMes(pr);
-        rows += `<tr class="nt-h-group" style="--pc:${pc}"><td colspan="${NT_IND.length + 4}"><span class="nt-h-dot"></span><span class="nt-h-plabel">Periodo evaluado</span> <span class="nt-h-mes">${u.esc(periodoNT(pr))}</span></td></tr>`;
+        rows += `<tr class="nt-h-group" style="--pc:${pc}"><td colspan="${colCount}"><span class="nt-h-dot"></span><span class="nt-h-plabel">Periodo evaluado</span> <span class="nt-h-mes">${u.esc(periodoNT(pr))}</span></td></tr>`;
         meds.filter(m => m.periodo === pr).forEach(m => {
           const g = globalNT(m), e = estadoNT(g);
           rows += `<tr class="nt-p-row" style="--pc:${pc}">
             <td><strong>${u.esc(m.unidad || "—")}</strong>${m.jefatura ? `<div class="kpi__sub">${u.esc(m.jefatura)}</div>` : ""}</td>
-            ${NT_IND.map(i => `<td class="num">${m[i.k] !== "" && m[i.k] != null ? Number(m[i.k]) + "%" : "—"}</td>`).join("")}
+            <td class="num">${pOr(indPct(m, "valoracionRiesgo"))}</td>
+            <td class="num">${pOr(indPct(m, NT_K_LOCAL))}</td>
             <td class="num"><span class="badge badge--${e.badge}">${g != null ? g + "%" : "—"}</span></td>
+            ${hasAud8 ? `<td class="num">${pOr(auditoria8NT(m))}</td>` : ""}
             <td>${m.enviadoUnidad === "Sí" ? `<span class="badge badge--ok">Sí</span>` : "—"}</td>
             <td class="nowrap">${m.fechaEnvio ? u.fechaCL(m.fechaEnvio) : "—"}</td>
             <td class="nowrap"><button class="btn btn--ghost btn--sm" data-edit="${m.id}">Editar</button> <button class="btn btn--ghost btn--sm" data-del="${m.id}">Eliminar</button></td></tr>`;
         });
       });
       const hist = meds.length
-        ? `<div style="overflow-x:auto"><table class="tbl nt-hist"><thead><tr><th>Unidad</th>${NT_IND.map(i => `<th class="num">${u.esc(i.s || i.l)}</th>`).join("")}<th class="num">Cumpl. global</th><th>Enviado</th><th>Fecha envío</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        ? `<div style="overflow-x:auto"><table class="tbl nt-hist"><thead><tr><th>Unidad</th>
+            <th class="num">Valoración de riesgo</th>
+            <th class="num">2 medidas indicadas <span style="font-weight:400">(local)</span></th>
+            <th class="num">Indicador Global NT 234 <span style="font-weight:400">· 2 ejecutadas</span></th>
+            ${hasAud8 ? `<th class="num">Auditoría 8 medidas</th>` : ""}
+            <th>Enviado</th><th>Fecha envío</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : u.empty("Sin mediciones registradas.", "Agrega la primera evaluación de la unidad.", "📊");
 
+      // Resumen del período más reciente: los indicadores por separado + auditoría 8.
+      const ultP = periodos[periodos.length - 1];
+      const medsP = ultP ? meds.filter(m => filtro === "Todas" || m.unidad === filtro) : [];
+      const vVal = ultP ? institInd("valoracionRiesgo", ultP, medsP) : null;
+      const vLoc = ultP ? institInd(NT_K_LOCAL, ultP, medsP) : null;
+      const vGlo = ultP ? institInd(NT_K_GLOBAL, ultP, medsP) : null;
+      const a8vals = ultP ? medsP.filter(m => m.periodo === ultP).map(auditoria8NT).filter(v => v != null) : [];
+      const vA8 = a8vals.length ? round1(a8vals.reduce((a, b) => a + b, 0) / a8vals.length) : null;
+      const sumCard = (lab, val, tag, tagColor) => {
+        const e = estadoNT(val);
+        return `<div class="card" style="border-left:4px solid ${tagColor || e.color}">
+          <div class="kpi__label" style="font-size:12.5px">${lab}${tag ? ` <span class="tag" style="background:${tagColor}22;color:${tagColor};font-weight:700">${tag}</span>` : ""}</div>
+          <div class="kpi__value" style="color:${e.color}">${val != null ? val + "%" : "—"}</div>
+          <div class="kpi__sub">${val != null ? e.label : "Sin dato"}</div></div>`;
+      };
+      const resumen = ultP ? `<div class="card" style="margin-bottom:1rem">
+        <div class="section__head" style="margin-bottom:.5rem"><div><h3 class="card__title" style="margin:0">Resultados NT 234 · ${u.esc(periodoNT(ultP))} ${filtro === "Todas" ? "(institucional)" : "· " + u.esc(filtro)}</h3>
+          <p class="card__hint" style="margin:0">Cada indicador es independiente: <strong>no se suman ni promedian entre sí</strong>.</p></div></div>
+        <div class="grid grid--kpi">
+          ${sumCard("Valoración de riesgo", vVal)}
+          ${sumCard("2 medidas INDICADAS", vLoc, "Indicador local", "#7a5cd0")}
+          ${sumCard("2 medidas EJECUTADAS", vGlo, "Indicador Global NT 234", "#0f8f83")}
+          ${vA8 != null ? sumCard("Auditoría local · 8 medidas", vA8, "Auditoría local", "#e0912f") : ""}
+        </div></div>` : "";
+
       box.innerHTML = `
+        ${resumen}
         <div class="card">
-          <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Tendencia de cumplimiento global</h3>
-            <p class="card__hint" style="margin:0">Evolución mensual por unidad</p></div>
+          <div class="section__head" style="margin-bottom:.4rem"><div><h3 class="card__title" style="margin:0">Tendencia · Indicador Global NT 234</h3>
+            <p class="card__hint" style="margin:0">2 medidas de prevención ejecutadas · evolución mensual por unidad</p></div>
             <div class="flex" style="gap:.7rem;align-items:center;flex-wrap:wrap">
               <label class="kpi__sub" style="display:flex;align-items:center;gap:.35rem;font-weight:700;white-space:nowrap">⚙️ Estándar de cumplimiento
                 <input class="input" type="number" id="nt-estandar" min="1" max="100" step="1" value="${meta234()}" style="width:64px;padding:.25rem .4rem;text-align:center" title="Estándar/meta de cumplimiento NT 234 (oficial 85%)"> %</label>
@@ -326,44 +377,42 @@
       { name: "fechaEnvio", label: "Fecha de envío", type: "date", value: rec.fechaEnvio ? u.isoDay(rec.fechaEnvio) : "" },
       { name: "observaciones", label: "Observaciones", type: "textarea", full: true, value: rec.observaciones || "" }
     ];
-    // Tabla de indicadores: % de cumplimiento + N° aplicables (Cumple+No cumple, sin N/A).
+    // Indicadores NT 234: INDEPENDIENTES. Cada uno con su propio numerador
+    // (via % de cumplimiento) y denominador (N° aplicables, sin N/A). No se suman.
+    const rolTag = i => i.rol === "global"
+      ? ' <span class="tag" style="background:#0f8f8322;color:#0f8f83;font-weight:700">Indicador Global NT 234</span>'
+      : i.rol === "local" ? ' <span class="tag" style="background:#7a5cd022;color:#7a5cd0;font-weight:700">Indicador local</span>' : "";
     const indTable = `<div style="margin:.3rem 0 .2rem">
       <label style="font-weight:700;font-size:13px">Indicadores NT 234</label>
-      <p class="card__hint" style="margin:.15rem 0 .45rem">Ingresa el <strong>% de cumplimiento</strong> y el <strong>N° aplicables</strong> (Cumple + No cumple, sin N/A) de cada indicador. Si completas el N° en todos, el <strong>cumplimiento global</strong> se calcula con tu fórmula: Total Cumple ÷ Total aplicables. Si dejas los N° vacíos, se promedian los %.</p>
-      <div class="table-wrap"><table class="tbl mc-tbl"><thead><tr><th>Indicador</th><th class="num">Cumplimiento %</th><th class="num">N° aplicables</th><th class="num">Cumple (auto)</th></tr></thead>
+      <p class="card__hint" style="margin:.15rem 0 .45rem">Cada indicador se mide <strong>por separado</strong>, con su propio numerador (% de cumplimiento) y denominador (<strong>N° aplicables</strong> = Cumple + No cumple, <strong>excluyendo los N/A</strong>). <strong>No se suman ni promedian.</strong> El <strong>Indicador Global NT 234</strong> corresponde a las <strong>2 medidas EJECUTADAS</strong>.</p>
+      <div class="table-wrap"><table class="tbl mc-tbl"><thead><tr><th>Indicador</th><th class="num">% cumplimiento</th><th class="num">N° aplicables</th></tr></thead>
         <tbody>${NT_IND.map(i => `<tr>
-          <td>${u.esc(i.l)}</td>
+          <td>${u.esc(i.l)}${rolTag(i)}</td>
           <td class="num"><input class="input" type="number" min="0" max="100" step="0.1" name="${i.k}" value="${rec[i.k] != null ? rec[i.k] : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
-          <td class="num"><input class="input" type="number" min="0" step="1" name="${i.k}_n" value="${rec[i.k + "_n"] != null ? rec[i.k + "_n"] : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
-          <td class="num" data-cumple="${i.k}">—</td></tr>`).join("")}
-          <tr style="font-weight:700;background:rgba(15,143,131,.09)"><td>Cumplimiento global</td><td class="num" data-gpct>—</td><td class="num" data-gn>—</td><td class="num" data-gc>—</td></tr>
-        </tbody></table></div></div>`;
+          <td class="num"><input class="input" type="number" min="0" step="1" name="${i.k}_n" value="${rec[i.k + "_n"] != null ? rec[i.k + "_n"] : ""}" style="max-width:95px;padding:.3rem .45rem"></td></tr>`).join("")}
+          <tr><td>Cumplimiento auditoría local · 8 medidas <span class="kpi__sub">(opcional, informes internos)</span></td>
+            <td class="num"><input class="input" type="number" min="0" max="100" step="0.1" name="auditoria8" value="${rec.auditoria8 != null ? rec.auditoria8 : ""}" style="max-width:95px;padding:.3rem .45rem"></td>
+            <td class="num">—</td></tr>
+        </tbody></table></div>
+      <div class="card" style="margin-top:.5rem;border-left:4px solid #0f8f83;padding:.5rem .7rem">
+        <strong>Indicador Global NT 234</strong> (2 medidas ejecutadas): <b data-gpct style="font-size:1.1rem">—</b>
+        <div class="kpi__sub">Es el único resultado "global"; no mezcla la valoración de riesgo ni las medidas indicadas.</div>
+      </div></div>`;
     u.modal({
       title: rec.id ? "Editar registro NT 234" : "Nuevo registro NT 234", wide: true,
       body: u.formHTML(top, {}) + indTable + u.formHTML(bottom, {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
       onMount(m) {
         const recompute = () => {
-          let sumC = 0, sumN = 0, anyN = false;
-          NT_IND.forEach(i => {
-            const pctEl = m.querySelector(`[name="${i.k}"]`), nEl = m.querySelector(`[name="${i.k}_n"]`);
-            const pct = pctEl && pctEl.value !== "" ? Number(pctEl.value) : null;
-            const n = nEl && nEl.value !== "" ? Number(nEl.value) : null;
-            const cell = m.querySelector(`[data-cumple="${i.k}"]`);
-            if (pct != null && n != null && n > 0) { const c = pct / 100 * n; if (cell) cell.textContent = Math.round(c); sumC += c; sumN += n; anyN = true; }
-            else if (cell) cell.textContent = "—";
-          });
-          const g = globalNT(u.readForm(m));
-          const gp = m.querySelector("[data-gpct]"), gn = m.querySelector("[data-gn]"), gc = m.querySelector("[data-gc]");
-          if (gp) gp.textContent = g != null ? g + "%" : "—";
-          if (gn) gn.textContent = anyN ? sumN : "—";
-          if (gc) gc.textContent = anyN ? Math.round(sumC) : "—";
+          const g = indPct(u.readForm(m), NT_K_GLOBAL);
+          const gp = m.querySelector("[data-gpct]");
+          if (gp) { gp.textContent = g != null ? g + "%" : "—"; gp.style.color = g == null ? "" : (g >= meta234() ? "var(--verde)" : g >= 75 ? "var(--naranjo)" : "var(--danger)"); }
         };
         m.addEventListener("input", recompute); recompute();
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           if (!d.periodo || !d.unidad) { u.toast("Completa periodo y unidad", "danger"); return; }
-          d.porcentaje = globalNT(d); // cumplimiento global (ponderado por N si existe)
+          d.porcentaje = globalNT(d); // Indicador Global NT 234 = 2 medidas ejecutadas
           if (rec.id) S().update("nt234", rec.id, d); else S().insert("nt234", d);
           u.closeModal(); u.toast("Registro guardado", "ok"); done();
         };
@@ -697,7 +746,7 @@
 
     const cumplBloque = tieneCumpl
       ? `<div class="nt-inf__kpis">
-          <div class="nt-inf__kpi ${prom >= meta ? "is-ok" : "is-danger"}"><span class="nt-inf__k-lab">Cumplimiento global</span><span class="nt-inf__k-val">${prom}%</span><span class="nt-inf__k-sub">Meta ${meta}%</span></div>
+          <div class="nt-inf__kpi ${prom >= meta ? "is-ok" : "is-danger"}"><span class="nt-inf__k-lab">Indicador Global NT 234</span><span class="nt-inf__k-val">${prom}%</span><span class="nt-inf__k-sub">2 medidas ejecutadas · Meta ${meta}%</span></div>
           <div class="nt-inf__kpi is-danger"><span class="nt-inf__k-lab">Con intervención</span><span class="nt-inf__k-val">${by("rojo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
           <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">En seguimiento</span><span class="nt-inf__k-val">${by("amarillo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
           <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">En cumplimiento</span><span class="nt-inf__k-val">${by("verde")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
