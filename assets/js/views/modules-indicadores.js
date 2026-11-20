@@ -277,10 +277,9 @@
     const u = ui();
     u.modal({
       title: "Parámetros del cálculo de demanda",
-      body: `<p class="card__hint">El portal cuenta la <strong>cantidad</strong> de cada actividad del mes y la multiplica por su <strong>tiempo promedio</strong> (incluye preparación, ejecución y registro). La suma es la <strong>demanda técnica</strong> del mes. El índice la compara con lo que puede hacer <strong>una persona</strong> (horas disponibles): 100% = justo una persona.</p>
+      body: `<p class="card__hint">El portal cuenta la <strong>cantidad</strong> de cada actividad del mes y la multiplica por su <strong>tiempo promedio</strong> (incluye preparación, ejecución y registro). La suma es el <strong>trabajo técnico</strong> del mes. Se compara con lo que alcanza a hacer <strong>una enfermera</strong>: 100% = justo una enfermera.</p>
         ${u.formHTML([
-          { name: "horasBase", label: "Horas disponibles / mes (dotación actual)", type: "number", value: icoHorasBase(), hint: "Horas que el/la coordinador/a dedica al trabajo técnico de la UBPC al mes. Es el '100%'." },
-          { name: "jornadaMes", label: "Jornada completa de referencia (h/mes)", type: "number", value: icoJornada(), hint: "1 EU a jornada completa (p. ej. 176 h). Se usa para expresar la demanda en jornadas." },
+          { name: "horasBase", label: "Horas que trabaja 1 enfermera al mes (= 100%)", type: "number", value: icoHorasBase(), hint: "Horas que una EU dedica al trabajo técnico de la UBPC en el mes. Es la referencia: 100% = una enfermera." },
           { name: "pesoSolicitudes", label: "Horas por solicitud técnica / consulta", type: "number", attrs: 'step="0.5"', value: icoPesos().solicitudes, hint: "Recepción, análisis, respuesta técnica y registro. Sugerido: " + ICO_PESOS_DEF.solicitudes + " h." },
           { name: "pesoReuniones", label: "Horas por reunión / comité", type: "number", attrs: 'step="0.5"', value: icoPesos().reuniones, hint: "Preparación, reunión y acta. Sugerido: " + ICO_PESOS_DEF.reuniones + " h." },
           { name: "pesoCapacitaciones", label: "Horas por capacitación", type: "number", attrs: 'step="0.5"', value: icoPesos().capacitaciones, hint: "Preparación de material, dictado y evaluación. Sugerido: " + ICO_PESOS_DEF.capacitaciones + " h." },
@@ -303,7 +302,6 @@
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           S().setConfig("ico.horasBase", Number(d.horasBase) || 160);
-          S().setConfig("ico.jornadaMes", Number(d.jornadaMes) || 176);
           S().setConfig("ico.pesoSolicitudes", Number(d.pesoSolicitudes) || 0);
           S().setConfig("ico.pesoReuniones", Number(d.pesoReuniones) || 0);
           S().setConfig("ico.pesoCapacitaciones", Number(d.pesoCapacitaciones) || 0);
@@ -331,8 +329,8 @@
           <div id="ico-breakdown" class="ico-breakdown"></div>
         </div>
         ${u.formHTML([
-          { name: "demanda", label: "Demanda técnica mensual (horas)", type: "number", required: true, value: rec.demanda != null ? rec.demanda : "", hint: "Estímala desde el portal o escríbela a mano." },
-          { name: "horas", label: "Horas profesionales disponibles (horas)", type: "number", required: true, value: rec.horas != null ? rec.horas : icoHorasBase(), hint: "Jornada del Coordinador UBPC (valor base editable en Parámetros)." },
+          { name: "demanda", label: "Trabajo técnico del mes (horas)", type: "number", required: true, value: rec.demanda != null ? rec.demanda : "", hint: "Suma de horas de trabajo técnico del mes. Estímala desde el portal o escríbela a mano." },
+          { name: "horas", label: "Horas que trabaja una enfermera al mes (= 100%)", type: "number", required: true, value: rec.horas != null ? rec.horas : icoHorasBase(), hint: "Referencia de una EU a jornada completa (editable en Parámetros). 100% = una enfermera." },
           { name: "nota", label: "Observación (opcional)", type: "textarea", full: true, value: rec.nota || "" }
         ], {})}
         <div id="ico-preview" class="ico-preview"></div>`,
@@ -375,56 +373,68 @@
   const fteFmt = n => (Math.round(n * 10) / 10).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
   // Decisión de dotación a partir de la carga de trabajo del mes.
-  // Convierte demanda y disponibilidad a JORNADAS de enfermera (EU) y entrega un
-  // veredicto único y coherente: ¿se requiere EU referente? Todos los textos del
-  // módulo (tarjeta, línea compacta, recomendación e informe) usan esta función,
-  // para que el número y la conclusión NUNCA se contradigan.
+  // UNA sola unidad para que se lea fácil: la ENFERMERA. "1 enfermera" = las
+  // horas que una EU trabaja al mes (rec.horas). El trabajo del mes se expresa
+  // como "cuántas enfermeras de dedicación" equivale (demanda ÷ horas) y se
+  // compara con la dotación actual (1 = el/la coordinador/a). Todos los textos
+  // usan esta función para que número y conclusión nunca se contradigan.
   function icoDecision(rec) {
-    const j = icoJornada();
-    const req = Number(rec.demanda) / j;        // jornadas que exige la demanda
-    const disp = Number(rec.horas) / j;         // jornada(s) disponible(s)
+    const base = Number(rec.horas) || icoHorasBase();   // horas que hace 1 enfermera/mes
+    const demanda = Number(rec.demanda);
+    const pct = base > 0 ? Math.round(demanda / base * 100) : null;   // % de una enfermera
+    const req = base > 0 ? demanda / base : 0;           // trabajo del mes, en "enfermeras"
     const reqR = Math.round(req * 10) / 10;
-    const dispR = Math.round(disp * 10) / 10;
-    const defR = Math.round((reqR - dispR) * 10) / 10;   // déficit visible (coherente con lo mostrado)
+    const dotacion = 1;                                  // enfermeras actuales (coordinador/a)
+    const defR = Math.round((reqR - dotacion) * 10) / 10;
     const dias = Math.max(1, Math.round(defR * 5));       // equivalencia en días/semana
     let nivel, verdict, requiere, detalle;
     if (defR <= 0) {
-      nivel = "ok"; requiere = false; verdict = "No se requiere EU adicional";
-      detalle = `La capacidad disponible (<strong>${fteFmt(dispR)}</strong> jornada) <strong>cubre</strong> la demanda técnica del mes (<strong>${fteFmt(reqR)}</strong> jornada).`;
+      nivel = "ok"; requiere = false; verdict = "No se necesita otra enfermera";
+      detalle = `El trabajo de este mes equivale a <strong>${fteFmt(reqR)}</strong> enfermera(s) y hoy hay <strong>${dotacion}</strong>: <strong>la dotación actual alcanza</strong> (ocupa el ${pct}% de una enfermera).`;
     } else if (defR < 0.3) {
-      nivel = "warn"; requiere = false; verdict = "Al límite · monitorear";
-      detalle = `La demanda (<strong>${fteFmt(reqR)}</strong> jornada) está <strong>al límite</strong> de la capacidad disponible (<strong>${fteFmt(dispR)}</strong>). Se cubre este mes, pero con holgura mínima: conviene monitorear la tendencia.`;
+      nivel = "warn"; requiere = false; verdict = "Al límite · conviene monitorear";
+      detalle = `El trabajo equivale a <strong>${fteFmt(reqR)}</strong> enfermeras (${pct}% de una) y hoy hay <strong>${dotacion}</strong>: <strong>alcanza justo</strong>, con holgura mínima. Aún no se justifica otra enfermera, pero conviene vigilar la tendencia.`;
     } else if (defR < 1) {
-      nivel = "warn"; requiere = true; verdict = "Se requiere refuerzo parcial de EU";
-      detalle = `La demanda (<strong>${fteFmt(reqR)}</strong> jornada) <strong>supera</strong> la capacidad disponible (<strong>${fteFmt(dispR)}</strong>) en <strong>${fteFmt(defR)} jornada</strong>. Se justifica reforzar con una <strong>EU referente a ${fteFmt(defR)} jornada</strong> (≈ ${dias} día(s) por semana).`;
+      nivel = "warn"; requiere = true; verdict = "Se necesita refuerzo parcial de enfermera";
+      detalle = `El trabajo equivale a <strong>${fteFmt(reqR)}</strong> enfermeras y hoy hay <strong>${dotacion}</strong>: <strong>falta el equivalente a ${fteFmt(defR)} de una enfermera</strong> (≈ ${dias} día(s) por semana). Se justifica reforzar con una EU referente a tiempo parcial.`;
     } else {
-      nivel = "danger"; requiere = true; verdict = "Se requiere EU referente";
-      detalle = `La demanda (<strong>${fteFmt(reqR)}</strong> jornadas) <strong>supera</strong> la capacidad disponible (<strong>${fteFmt(dispR)}</strong>) en <strong>${fteFmt(defR)} jornadas</strong>. Se justifica incorporar <strong>${defR >= 2 ? fteFmt(defR) + " jornadas" : "una jornada completa"} de EU referente</strong>.`;
+      nivel = "danger"; requiere = true; verdict = "Se necesita otra enfermera";
+      detalle = `El trabajo equivale a <strong>${fteFmt(reqR)}</strong> enfermeras y hoy solo hay <strong>${dotacion}</strong>: <strong>se necesita al menos una EU referente más</strong> (faltan ${fteFmt(defR)} enfermeras).`;
     }
-    return { j, req, disp, reqR, dispR, defR, nivel, verdict, requiere, detalle };
+    return { base, demanda, pct, req, reqR, dispR: dotacion, dotacion, defR, nivel, verdict, requiere, detalle };
   }
   const DEC_COLOR = { ok: "var(--verde)", warn: "var(--naranjo)", danger: "var(--danger)" };
+  const DEC_EMOJI = { ok: "🟢", warn: "🟡", danger: "🔴" };
+  // Barra visual: cuánto del trabajo de "1 enfermera" ocupa la demanda. La mitad
+  // de la barra = 100% (una enfermera); si pasa de ahí, se necesita refuerzo.
+  function icoBar(pct, color) {
+    const fill = Math.max(2, Math.min(100, (pct || 0) / 2));  // 200% = barra llena
+    return `<div style="position:relative;height:16px;background:#eef2f1;border-radius:9px;overflow:hidden;margin:.5rem 0 .2rem">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${fill}%;background:${color};border-radius:9px"></div>
+        <div style="position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:#5a6b66"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#5a6b66;margin-bottom:.3rem"><span>0</span><span>1 enfermera (100%)</span><span>2</span></div>`;
+  }
   function icoFTEcardHTML(rec) {
     const u = ui();
     const D = icoDecision(rec);
+    const col = DEC_COLOR[D.nivel];
     return `<div class="ico-fte ${D.requiere ? "is-gap" : ""}">
-      <div class="ico-fte__title">🧮 ¿Se necesita enfermera? · Lectura en jornadas (EU) · ${u.esc(icoPeriodoLabel(rec.periodo))}</div>
-      <p class="kpi__sub" style="margin:.1rem 0 .5rem">Se traduce la <strong>carga de trabajo del mes</strong> a jornadas de enfermera: cuántas jornadas <strong>exige la demanda técnica</strong> frente a las que la UBPC tiene <strong>disponibles</strong>. La diferencia indica si se requiere una EU referente.</p>
-      <div class="ico-fte__row">
-        <div class="ico-fte__box"><b>${fteFmt(D.reqR)}</b><span>jornadas requeridas<br>(según la demanda)</span></div>
-        <div class="ico-fte__box"><b>${fteFmt(D.dispR)}</b><span>jornada disponible<br>(dotación actual)</span></div>
-        <div class="ico-fte__box ico-fte__box--gap"><b style="color:${DEC_COLOR[D.nivel]}">${D.defR > 0 ? "+" : ""}${fteFmt(D.defR)}</b><span>${D.defR > 0 ? "déficit de EU" : "holgura"}</span></div>
-      </div>
-      <div class="ico-fte__verdict" style="margin:.4rem 0 .2rem;font-weight:800;color:${DEC_COLOR[D.nivel]}">${D.requiere ? "🔴 " : (D.nivel === "warn" ? "🟡 " : "🟢 ")}${u.esc(D.verdict)}</div>
-      <p class="ico-fte__concl">${D.detalle} <span class="kpi__sub">Base de cálculo: 1 jornada = ${D.j} h/mes.</span></p>
+      <div class="ico-fte__title">🩺 ¿Se necesita otra enfermera? · ${u.esc(icoPeriodoLabel(rec.periodo))}</div>
+      <p class="kpi__sub" style="margin:.1rem 0 .5rem">El trabajo técnico del mes se compara con lo que alcanza a hacer <strong>una enfermera</strong> (${D.base} h/mes). Si lo supera, se necesita apoyo.</p>
+      <div style="font-size:1.02rem;line-height:1.5;margin:.2rem 0">El trabajo de este mes equivale a
+        <b style="color:${col};font-size:1.7rem;vertical-align:-2px">${fteFmt(D.reqR)}</b> enfermera(s) de dedicación
+        <span class="kpi__sub">(${D.demanda} h de trabajo ÷ ${D.base} h = <strong>${D.pct}%</strong> de una enfermera)</span>.
+        Hoy hay <b>${D.dotacion}</b> (el/la coordinador/a).</div>
+      ${icoBar(D.pct, col)}
+      <div class="ico-fte__verdict" style="margin:.4rem 0 .2rem;font-weight:800;font-size:1.05rem;color:${col}">${DEC_EMOJI[D.nivel]} ${u.esc(D.verdict)}</div>
+      <p class="ico-fte__concl">${D.detalle}</p>
     </div>`;
   }
   // Conclusión en una sola línea (vista compacta del índice)
   function icoFTEline(rec) {
     const D = icoDecision(rec);
-    return D.requiere
-      ? `Demanda ≈ <b>${fteFmt(D.reqR)} jornada(s)</b> vs <b>${fteFmt(D.dispR)}</b> disponible → <b style="color:${DEC_COLOR[D.nivel]}">${D.verdict} (${fteFmt(D.defR)} jornada)</b>.`
-      : `Demanda ≈ <b>${fteFmt(D.reqR)} jornada(s)</b> vs <b>${fteFmt(D.dispR)}</b> disponible → <b style="color:${DEC_COLOR[D.nivel]}">${D.verdict}</b>.`;
+    return `El trabajo del mes equivale a <b>${fteFmt(D.reqR)} enfermera(s)</b> (${D.pct}% de una) y hoy hay <b>${D.dotacion}</b> → <b style="color:${DEC_COLOR[D.nivel]}">${D.verdict}</b>.`;
   }
 
   /* ---- Evidencia de saturación con datos reales del portal (sin horas) ---- */
@@ -490,7 +500,6 @@
     const u = ui();
     const recs = icoOrdenados();
     const d = icoEvidenciaData();
-    const j = icoJornada();
     if (!recs.length) {
       return `Aún no hay registros mensuales del índice. Registra al menos un mes (o estímalo desde el portal) para generar la lectura automática. ` +
         (d.pend || d.venc ? `De todas formas, ya se observan señales de carga: ${d.pend} solicitud(es) pendiente(s) y ${d.venc} compromiso(s) vencido(s).` : "");
@@ -499,8 +508,7 @@
     const pct = icoIndex(last), est = icoEstado(pct);
     const D = icoDecision(last);
     const tend = d.actPrev === 0 ? "" : (d.dAct > 0 ? " La actividad va en aumento respecto al mes anterior, lo que proyecta una brecha creciente." : d.dAct < 0 ? " La actividad disminuyó respecto al mes anterior." : "");
-    const parte1 = `En <strong>${u.esc(icoPeriodoLabel(last.periodo))}</strong> el Índice de Capacidad Operativa fue <strong>${pct}%</strong> (${est.l.toLowerCase()}). ` +
-      `Traducida a dotación, la demanda técnica equivale a <strong>${fteFmt(D.reqR)} jornada(s)</strong> de enfermera frente a <strong>${fteFmt(D.dispR)}</strong> disponible(s).`;
+    const parte1 = `En <strong>${u.esc(icoPeriodoLabel(last.periodo))}</strong> el trabajo técnico de la UBPC ocupó el <strong>${pct}% de una enfermera</strong>, es decir, equivalió a <strong>${fteFmt(D.reqR)} enfermera(s)</strong> de dedicación frente a <strong>${D.dotacion}</strong> disponible (el/la coordinador/a).`;
     const evid = ` Como respaldo operativo se registran <strong>${d.pend}</strong> solicitud(es) pendiente(s)${d.avgResp != null ? ` (respuesta promedio ${d.avgResp} días)` : ""}, <strong>${d.venc}</strong> compromiso(s) vencido(s) y una cobertura de <strong>${d.cob}/${d.totalUn}</strong> unidades en el mes.`;
     const reco = D.requiere
       ? ` <strong>Recomendación:</strong> ${D.detalle} Se recomienda gestionar ante la Subdirección de Gestión del Cuidado la incorporación de un/a <strong>enfermero/a referente</strong> para asegurar la continuidad técnica y la cobertura de las unidades.`
@@ -559,7 +567,6 @@
     const last = recs.length ? recs[recs.length - 1] : null;
     const pct = last ? icoIndex(last) : null;
     const est = icoEstado(pct);
-    const j = icoJornada();
     const D = last ? icoDecision(last) : null;
     const req = D ? D.reqR : null;
     const disp = D ? D.dispR : null;
@@ -587,17 +594,17 @@
           <div class="icr__lbl">Resultado del mes</div>
           <div class="icr__big" style="color:${est.c}">${pct == null ? "—" : pct + "%"}</div>
           <span class="icr__badge b-${est.k}">${est.l}</span>
-          <div class="icr__meta">Demanda ${last ? u.esc(last.demanda) : "—"} h ÷ disponibles ${last ? u.esc(last.horas) : "—"} h × 100</div>
+          <div class="icr__meta">${last ? u.esc(last.demanda) : "—"} h de trabajo ÷ ${last ? u.esc(last.horas) : "—"} h de una enfermera · 100% = una enfermera</div>
         </div>
         <div class="icr__box">
-          <div class="icr__lbl">¿Se requiere EU? · Lectura en jornadas</div>
+          <div class="icr__lbl">¿Se necesita otra enfermera?</div>
           <div class="icr__fte">
-            <div class="icr__fteb"><b>${req != null ? fteFmt(req) : "—"}</b><span>requeridas</span></div>
-            <div class="icr__fteb"><b>${disp != null ? fteFmt(disp) : "—"}</b><span>disponible</span></div>
-            <div class="icr__fteb"><b style="color:${deficit != null && deficit > 0 ? "#c62f3b" : "#1c7a4c"}">${deficit != null ? (deficit > 0 ? "+" : "") + fteFmt(deficit) : "—"}</b><span>${deficit != null && deficit > 0 ? "déficit EU" : "holgura"}</span></div>
+            <div class="icr__fteb"><b>${req != null ? fteFmt(req) : "—"}</b><span>enfermeras de trabajo</span></div>
+            <div class="icr__fteb"><b>${D ? D.dotacion : "—"}</b><span>enfermeras hoy</span></div>
+            <div class="icr__fteb"><b style="color:${deficit != null && deficit > 0 ? "#c62f3b" : "#1c7a4c"}">${deficit != null ? (deficit > 0 ? "+" : "") + fteFmt(deficit) : "—"}</b><span>${deficit != null && deficit > 0 ? "faltan" : "holgura"}</span></div>
           </div>
-          ${D ? `<div style="margin-top:4px"><span class="icr__badge b-${D.nivel}">${D.requiere ? "Requiere EU referente" : D.verdict}</span></div>` : ""}
-          <div class="icr__meta">Demanda ÷ capacidad, en jornadas · 1 jornada = ${j} h/mes</div>
+          ${D ? `<div style="margin-top:4px"><span class="icr__badge b-${D.nivel}">${u.esc(D.verdict)}</span></div>` : ""}
+          <div class="icr__meta">El trabajo del mes equivale a ${req != null ? fteFmt(req) : "—"} enfermera(s) · 1 enfermera ≈ ${D ? D.base : "—"} h/mes</div>
         </div>
       </div>
 
@@ -670,18 +677,16 @@
         : `<span class="ico-var">→ se mantiene</span>`;
     }
     const labels = recs.map(r => icoPeriodoLabel(r.periodo));
-    // Gráfico de productividad orientado a la decisión: jornadas que EXIGE la
-    // demanda técnica vs jornadas DISPONIBLES. Cuando la demanda (rojo) supera la
-    // capacidad (verde), el espacio entre ambas líneas es el déficit que justifica
-    // una EU referente. Mucho más legible que el índice % pegado al 100.
-    const jref = icoJornada();
-    const reqVals = recs.map(r => Math.round(Number(r.demanda) / jref * 10) / 10);
-    const dispVals = recs.map(r => Math.round(Number(r.horas) / jref * 10) / 10);
-    const maxY = Math.max(2, Math.ceil(Math.max.apply(null, reqVals.concat(dispVals)) + 0.5));
+    // Gráfico orientado a la decisión: cuántas ENFERMERAS de trabajo genera cada
+    // mes (demanda ÷ horas de 1 enfermera) frente a la dotación actual (1). Cuando
+    // la línea roja (trabajo) supera la verde (dotación=1), se necesita refuerzo.
+    const reqVals = recs.map(r => { const base = Number(r.horas) || icoHorasBase(); return base > 0 ? Math.round(Number(r.demanda) / base * 10) / 10 : 0; });
+    const dispVals = recs.map(() => 1);
+    const maxY = Math.max(2, Math.ceil(Math.max.apply(null, reqVals.concat([1])) + 0.5));
     const chart = recs.length > 1
       ? U.charts.lineChart({ labels, valueSuffix: "", maxY, series: [
-          { name: "Jornadas requeridas (demanda técnica)", color: "var(--danger)", values: reqVals },
-          { name: "Capacidad disponible (EU)", color: "#12b5a5", values: dispVals }
+          { name: "Trabajo del mes (en enfermeras)", color: "var(--danger)", values: reqVals },
+          { name: "Dotación actual (1 enfermera)", color: "#12b5a5", values: dispVals }
         ] })
       : `<p class="kpi__sub">Registra al menos dos meses para ver la tendencia.</p>`;
 
@@ -703,22 +708,22 @@
         <div class="ico-now__val">${lp == null ? "—" : lp + "%"}</div>
         <div class="ico-now__meta">
           <span class="badge badge--${est.k}">${est.l}</span>
-          <div class="kpi__sub">${u.esc(icoPeriodoLabel(last.periodo))} · demanda ${u.esc(last.demanda)} h ÷ disponibles ${u.esc(last.horas)} h · <strong>100% = una persona</strong></div>
+          <div class="kpi__sub">${u.esc(icoPeriodoLabel(last.periodo))} · ${u.esc(last.demanda)} h de trabajo ÷ ${u.esc(last.horas)} h de una enfermera · <strong>100% = una enfermera</strong></div>
           ${vari}
         </div>
         <div class="ico-now__concl">🧮 ${icoFTEline(last)}</div>
       </div>
 
       <details class="ico-mas">
-        <summary class="ico-mas__sum">📈 Ver evolución, jornadas, evidencia y recomendación</summary>
+        <summary class="ico-mas__sum">📈 Ver evolución, cálculo, evidencia y recomendación</summary>
         <div style="margin-top:.6rem">
           ${icoFTEcardHTML(last)}
           <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">🧮 Cómo se calcula la demanda · ${u.esc(icoPeriodoLabel(last.periodo))}</h4>
-          <p class="kpi__sub" style="margin:.1rem 0 .4rem">La demanda es la <strong>suma del tiempo de cada actividad</strong> del mes (cantidad × tiempo promedio). El índice la divide por las horas que puede aportar <strong>una persona</strong> (${icoHorasBase()} h): <strong>bajo 100%</strong> una persona basta; <strong>sobre 100%</strong> la carga supera a una persona. Ajusta los tiempos en <strong>⚙️ Parámetros</strong> si no reflejan tu realidad.</p>
+          <p class="kpi__sub" style="margin:.1rem 0 .4rem">El trabajo (demanda) es la <strong>suma del tiempo de cada actividad</strong> del mes (cantidad × tiempo promedio). Se divide por las horas que alcanza a hacer <strong>una enfermera</strong> (${u.esc(last.horas)} h): <strong>bajo 100%</strong> una enfermera basta; <strong>sobre 100%</strong> el trabajo supera a una persona. Ajusta los tiempos en <strong>⚙️ Parámetros</strong> si no reflejan tu realidad.</p>
           ${icoBreakdownHTML(last.periodo)}
           <div class="btn-row" style="margin:.4rem 0 .2rem"><button class="btn btn--ghost btn--sm" id="ico-recalc-last">🔗 Recalcular ${u.esc(icoPeriodoLabel(last.periodo))} con la actividad del portal</button></div>
-          <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 Productividad mensual · demanda vs capacidad (jornadas de EU)</h4>
-          <p class="kpi__sub" style="margin:.1rem 0 .3rem">Cada punto es cuántas jornadas de enfermera <strong>exige la demanda técnica</strong> (rojo) frente a las <strong>disponibles</strong> (verde). Cuando la línea roja queda por <strong>encima</strong> de la verde, ese espacio es el <strong>déficit</strong> que justifica una EU referente.</p>
+          <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 ¿Cuántas enfermeras necesita el trabajo, mes a mes?</h4>
+          <p class="kpi__sub" style="margin:.1rem 0 .3rem">La línea <strong>roja</strong> es cuántas enfermeras de trabajo genera cada mes; la <strong>verde</strong> es la dotación actual (1 enfermera). Cuando la roja queda por <strong>encima</strong> de la verde, el trabajo supera a una persona y se necesita refuerzo.</p>
           <div style="margin:.4rem 0">${chart}</div>
           <div class="table-wrap"><table class="tbl"><thead><tr>
             <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
