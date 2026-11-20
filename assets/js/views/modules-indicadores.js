@@ -211,12 +211,17 @@
   /* ---- Estimación de la demanda técnica desde datos del portal ---- */
   function icoHorasBase() { return Number(S().getConfig("ico.horasBase", 160)) || 160; }
   function icoJornada() { return Number(S().getConfig("ico.jornadaMes", 176)) || 176; }
+  // Tiempo promedio (h) por actividad, recalibrado a valores realistas y
+  // documentados (incluyen preparación, ejecución y registro). Antes estaban
+  // sobredimensionados y por eso la demanda casi siempre superaba las horas de
+  // una sola persona (índice pegado al 100%).
+  const ICO_PESOS_DEF = { solicitudes: 2, reuniones: 1.5, capacitaciones: 3, monitoreo: 4 };
   function icoPesos() {
     return {
-      solicitudes: Number(S().getConfig("ico.pesoSolicitudes", 4)),
-      reuniones: Number(S().getConfig("ico.pesoReuniones", 2)),
-      capacitaciones: Number(S().getConfig("ico.pesoCapacitaciones", 3)),
-      monitoreo: Number(S().getConfig("ico.pesoMonitoreo", 5))
+      solicitudes: Number(S().getConfig("ico.pesoSolicitudes", ICO_PESOS_DEF.solicitudes)),
+      reuniones: Number(S().getConfig("ico.pesoReuniones", ICO_PESOS_DEF.reuniones)),
+      capacitaciones: Number(S().getConfig("ico.pesoCapacitaciones", ICO_PESOS_DEF.capacitaciones)),
+      monitoreo: Number(S().getConfig("ico.pesoMonitoreo", ICO_PESOS_DEF.monitoreo))
     };
   }
   function enMes(fecha, periodo) {
@@ -257,21 +262,44 @@
     </div>`;
   }
 
+  // Recalcula la demanda de TODOS los meses registrados desde la actividad real
+  // del portal con los tiempos vigentes (solo meses que tengan actividad).
+  function icoRecalcularTodos() {
+    let n = 0;
+    S().all("capacidadOperativa").forEach(r => {
+      const est = icoEstimar(r.periodo);
+      if (est.items.some(i => i.n > 0)) { S().update("capacidadOperativa", r.id, { demanda: est.total }); n++; }
+    });
+    return n;
+  }
+
   function icoParams() {
     const u = ui();
     u.modal({
-      title: "Parámetros de estimación",
-      body: `<p class="card__hint">Horas disponibles del Coordinador y tiempo estimado por cada actividad. El portal cuenta la <strong>cantidad</strong> de actividades del mes y la multiplica por estas horas.</p>
+      title: "Parámetros del cálculo de demanda",
+      body: `<p class="card__hint">El portal cuenta la <strong>cantidad</strong> de cada actividad del mes y la multiplica por su <strong>tiempo promedio</strong> (incluye preparación, ejecución y registro). La suma es la <strong>demanda técnica</strong> del mes. El índice la compara con lo que puede hacer <strong>una persona</strong> (horas disponibles): 100% = justo una persona.</p>
         ${u.formHTML([
-          { name: "horasBase", label: "Horas profesionales disponibles / mes", type: "number", value: icoHorasBase(), hint: "Jornada del Coordinador dedicada a la UBPC." },
-          { name: "jornadaMes", label: "Jornada completa de referencia (h/mes)", type: "number", value: icoJornada(), hint: "1 EU a jornada completa. Se usa para expresar la demanda en jornadas (FTE)." },
-          { name: "pesoSolicitudes", label: "Horas por solicitud técnica", type: "number", value: icoPesos().solicitudes },
-          { name: "pesoReuniones", label: "Horas por reunión", type: "number", value: icoPesos().reuniones },
-          { name: "pesoCapacitaciones", label: "Horas por capacitación", type: "number", value: icoPesos().capacitaciones },
-          { name: "pesoMonitoreo", label: "Horas por monitoreo / auditoría", type: "number", value: icoPesos().monitoreo }
-        ], {})}`,
+          { name: "horasBase", label: "Horas disponibles / mes (dotación actual)", type: "number", value: icoHorasBase(), hint: "Horas que el/la coordinador/a dedica al trabajo técnico de la UBPC al mes. Es el '100%'." },
+          { name: "jornadaMes", label: "Jornada completa de referencia (h/mes)", type: "number", value: icoJornada(), hint: "1 EU a jornada completa (p. ej. 176 h). Se usa para expresar la demanda en jornadas." },
+          { name: "pesoSolicitudes", label: "Horas por solicitud técnica / consulta", type: "number", attrs: 'step="0.5"', value: icoPesos().solicitudes, hint: "Recepción, análisis, respuesta técnica y registro. Sugerido: " + ICO_PESOS_DEF.solicitudes + " h." },
+          { name: "pesoReuniones", label: "Horas por reunión / comité", type: "number", attrs: 'step="0.5"', value: icoPesos().reuniones, hint: "Preparación, reunión y acta. Sugerido: " + ICO_PESOS_DEF.reuniones + " h." },
+          { name: "pesoCapacitaciones", label: "Horas por capacitación", type: "number", attrs: 'step="0.5"', value: icoPesos().capacitaciones, hint: "Preparación de material, dictado y evaluación. Sugerido: " + ICO_PESOS_DEF.capacitaciones + " h." },
+          { name: "pesoMonitoreo", label: "Horas por monitoreo / auditoría", type: "number", attrs: 'step="0.5"', value: icoPesos().monitoreo, hint: "Terreno, aplicación de pauta, análisis e informe. Sugerido: " + ICO_PESOS_DEF.monitoreo + " h." }
+        ], {})}
+        <button type="button" class="btn btn--ghost btn--sm" id="ico-sugeridos" style="margin-top:.2rem">↩️ Restaurar tiempos sugeridos</button>
+        <label class="flex" style="gap:.5rem;align-items:center;margin-top:.7rem;font-size:13px">
+          <input type="checkbox" id="ico-recalc"> Recalcular la demanda de los meses ya registrados con estos tiempos
+        </label>
+        <p class="kpi__sub" style="margin:.2rem 0 0">Útil si cambiaste los tiempos y quieres que los meses anteriores reflejen la nueva calibración. Solo recalcula meses con actividad en el portal.</p>`,
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar parámetros</button>`,
       onMount(m) {
+        m.querySelector("#ico-sugeridos").onclick = () => {
+          m.querySelector('[name="pesoSolicitudes"]').value = ICO_PESOS_DEF.solicitudes;
+          m.querySelector('[name="pesoReuniones"]').value = ICO_PESOS_DEF.reuniones;
+          m.querySelector('[name="pesoCapacitaciones"]').value = ICO_PESOS_DEF.capacitaciones;
+          m.querySelector('[name="pesoMonitoreo"]').value = ICO_PESOS_DEF.monitoreo;
+          u.toast("Tiempos sugeridos cargados. No olvides Guardar.", "ok");
+        };
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
           S().setConfig("ico.horasBase", Number(d.horasBase) || 160);
@@ -280,7 +308,9 @@
           S().setConfig("ico.pesoReuniones", Number(d.pesoReuniones) || 0);
           S().setConfig("ico.pesoCapacitaciones", Number(d.pesoCapacitaciones) || 0);
           S().setConfig("ico.pesoMonitoreo", Number(d.pesoMonitoreo) || 0);
-          u.closeModal(); u.toast("Parámetros guardados", "ok"); renderICO();
+          let msg = "Parámetros guardados";
+          if (m.querySelector("#ico-recalc").checked) { const n = icoRecalcularTodos(); msg = "Parámetros guardados · " + n + " mes(es) recalculado(s)"; }
+          u.closeModal(); u.toast(msg, "ok"); renderICO();
         };
       }
     });
@@ -673,7 +703,7 @@
         <div class="ico-now__val">${lp == null ? "—" : lp + "%"}</div>
         <div class="ico-now__meta">
           <span class="badge badge--${est.k}">${est.l}</span>
-          <div class="kpi__sub">${u.esc(icoPeriodoLabel(last.periodo))} · demanda ${u.esc(last.demanda)} h ÷ disponibles ${u.esc(last.horas)} h</div>
+          <div class="kpi__sub">${u.esc(icoPeriodoLabel(last.periodo))} · demanda ${u.esc(last.demanda)} h ÷ disponibles ${u.esc(last.horas)} h · <strong>100% = una persona</strong></div>
           ${vari}
         </div>
         <div class="ico-now__concl">🧮 ${icoFTEline(last)}</div>
@@ -683,6 +713,10 @@
         <summary class="ico-mas__sum">📈 Ver evolución, jornadas, evidencia y recomendación</summary>
         <div style="margin-top:.6rem">
           ${icoFTEcardHTML(last)}
+          <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">🧮 Cómo se calcula la demanda · ${u.esc(icoPeriodoLabel(last.periodo))}</h4>
+          <p class="kpi__sub" style="margin:.1rem 0 .4rem">La demanda es la <strong>suma del tiempo de cada actividad</strong> del mes (cantidad × tiempo promedio). El índice la divide por las horas que puede aportar <strong>una persona</strong> (${icoHorasBase()} h): <strong>bajo 100%</strong> una persona basta; <strong>sobre 100%</strong> la carga supera a una persona. Ajusta los tiempos en <strong>⚙️ Parámetros</strong> si no reflejan tu realidad.</p>
+          ${icoBreakdownHTML(last.periodo)}
+          <div class="btn-row" style="margin:.4rem 0 .2rem"><button class="btn btn--ghost btn--sm" id="ico-recalc-last">🔗 Recalcular ${u.esc(icoPeriodoLabel(last.periodo))} con la actividad del portal</button></div>
           <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 Productividad mensual · demanda vs capacidad (jornadas de EU)</h4>
           <p class="kpi__sub" style="margin:.1rem 0 .3rem">Cada punto es cuántas jornadas de enfermera <strong>exige la demanda técnica</strong> (rojo) frente a las <strong>disponibles</strong> (verde). Cuando la línea roja queda por <strong>encima</strong> de la verde, ese espacio es el <strong>déficit</strong> que justifica una EU referente.</p>
           <div style="margin:.4rem 0">${chart}</div>
@@ -697,6 +731,17 @@
     document.getElementById("ico-add").onclick = () => icoForm(null);
     document.getElementById("ico-params").onclick = () => icoParams();
     document.getElementById("ico-print").onclick = () => printInformeICO();
+    const rcl = document.getElementById("ico-recalc-last");
+    if (rcl) rcl.onclick = () => {
+      const est = icoEstimar(last.periodo);
+      if (!est.items.some(i => i.n > 0)) { u.toast("No hay actividad registrada en " + icoPeriodoLabel(last.periodo) + " para recalcular.", "warn"); return; }
+      u.modal({
+        title: "Recalcular demanda · " + icoPeriodoLabel(last.periodo),
+        body: `<p class="narrativo">Se recalculará la demanda de <strong>${u.esc(icoPeriodoLabel(last.periodo))}</strong> a <strong>${est.total} h</strong> con la actividad real del portal y los tiempos vigentes (reemplaza el valor actual de ${u.esc(last.demanda)} h).</p>`,
+        footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-ok>Recalcular</button>`,
+        onMount(mm) { mm.querySelector("[data-ok]").onclick = () => { S().update("capacidadOperativa", last.id, { demanda: est.total }); u.closeModal(); u.toast("Demanda recalculada: " + est.total + " h", "ok"); renderICO(); }; }
+      });
+    };
     bindObs();
     box.querySelectorAll("[data-icoedit]").forEach(b => b.onclick = () => icoForm(S().get("capacidadOperativa", b.dataset.icoedit)));
     box.querySelectorAll("[data-icodel]").forEach(b => b.onclick = () =>
