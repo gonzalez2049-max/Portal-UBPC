@@ -776,8 +776,6 @@
         <div class="nt-inf__meta">Periodo <strong>${u.esc(periodoNT(per))}</strong> · Emisión ${u.fechaCL(new Date())}${resolucion ? " · Resolución " + u.esc(resolucion) : ""}</div>
       </div>
       ${cumplBloque}
-      ${informeIndBlock(list)}
-      ${informeCaracBlock(list)}
       ${informeEpiBlock(per)}
       <div class="nt-inf__obs">
         <div class="nt-inf__obs-t">Observaciones <span class="no-print" style="font-weight:400;color:#8a94a6;font-size:.78rem">(escribe directamente aquí)</span></div>

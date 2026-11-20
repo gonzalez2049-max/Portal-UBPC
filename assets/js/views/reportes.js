@@ -621,7 +621,12 @@
       reconc = `<p class="muted" style="font-size:12.5px;border-left:3px solid #e0912f;padding-left:.6rem;margin-top:.3rem">⚠️ La <strong>demanda usada en el índice</strong> de ${esc(perLabel)} es <strong>${icoDem} h</strong>, distinta del total estimado (${estTotal} h). ${estTotal === 0 ? "No hay actividad con fecha en ese mes en esos módulos, por eso el desglose sale en 0: la demanda se ingresó directamente en el índice." : "La demanda del índice se ingresó o estimó por separado."} Para que coincidan, registra la actividad del mes en sus módulos, o en el Índice de Capacidad Operativa usa <strong>“Recalcular … con la actividad del portal”</strong>.</p>`;
     }
 
-    const evi = S().all("edicionesEVI").filter(e => String(e.periodo || e.fecha || "").slice(0, 7) === per).length;
+    // Programa de Fortalecimiento · difusión de evidencia (EVI Científica + Clínico).
+    const eviCient = S().all("edicionesEVI");
+    const eviClin = S().all("edicionesEVIClinico");
+    const maxEd = eviCient.reduce((mx, e) => Math.max(mx, Number(e.numeroEdicion) || 0), 0);
+    const eviMes = eviCient.filter(e => String(e.periodo || e.fecha || "").slice(0, 7) === per).length
+      + eviClin.filter(e => String(e.periodo || e.fecha || "").slice(0, 7) === per).length;
     const docsVig = S().all("documentos").filter(d => /vigente/i.test(d.estado || "")).length;
 
     const body = kpis
@@ -633,11 +638,16 @@
       + fuenteProd
       + table(["Actividad", "Cantidad", "Tiempo c/u", "Tiempo total"], prodRows, ["l", "c", "c", "c"])
       + reconc
-      + `<h3>Cobertura y difusión · ${esc(perLabel)}</h3>`
-      + `<p class="muted" style="font-size:12.5px">Unidades con alguna actividad en el mes (de un total de ${ev.totalUn}), ediciones de evidencia (EVI) difundidas en el mes y documentos marcados como vigentes en Gestión Documental.</p>`
+      + `<h3>Difusión de evidencia y cobertura · Programa de Fortalecimiento</h3>`
+      + `<p class="muted" style="font-size:12.5px">Resultado del Programa de Fortalecimiento: <strong>EVI Evidencia Científica</strong> (ediciones difundidas), <strong>EVI Clínico</strong> (boletines), unidades con actividad en el mes y documentos vigentes.</p>`
+      + kpiRow([
+        { v: maxEd ? "N.º " + maxEd : eviCient.length, l: "EVI Científica · última edición" },
+        { v: eviCient.length, l: "Ediciones EVI Científica (total)" },
+        { v: eviClin.length, l: "Boletines EVI Clínico (total)" },
+        { v: eviMes, l: "Evidencia difundida este mes" }
+      ])
       + kpiRow([
         { v: ev.cob + " / " + ev.totalUn, l: "Unidades con actividad en el mes" },
-        { v: evi, l: "Evidencia difundida (EVI) en el mes" },
         { v: docsVig, l: "Documentos vigentes (acumulado)" }
       ]);
 
@@ -688,7 +698,7 @@
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
-        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v49</span></strong>
+        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v50</span></strong>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" data-print>🖨️ Imprimir / PDF</button>
           <button class="btn btn--ghost btn--sm" data-word>📄 Word</button>
