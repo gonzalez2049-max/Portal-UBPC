@@ -657,6 +657,7 @@
 
   function renderICO() {
     const u = ui();
+    ensureIndCSS();
     const box = document.getElementById("ico-data");
     if (!box) return;
     const recs = icoOrdenados();
@@ -710,14 +711,14 @@
     }).join("");
 
     box.innerHTML = `<div class="ico-data__head"><h4 class="ico-sec-title">📊 Resultado del mes</h4>${addBtn}</div>
-      <div class="ico-now ico-now--${est.k}">
-        <div class="ico-now__val">${lp == null ? "—" : lp + "%"}</div>
-        <div class="ico-now__meta">
+      <div class="ico-result">
+        <div class="ico-result__num" style="color:${est.c}">${lp == null ? "—" : lp + "%"}</div>
+        <div class="ico-result__mid">
           <span class="badge badge--${est.k}">${est.l}</span>
           <div class="kpi__sub">${u.esc(icoPeriodoLabel(last.periodo))} · ${u.esc(last.demanda)} h de trabajo ÷ ${u.esc(last.horas)} h de una enfermera · <strong>100% = una enfermera</strong></div>
           ${vari}
         </div>
-        <div class="ico-now__concl">🧮 ${icoFTEline(last)}</div>
+        <div class="ico-result__read" style="--rc:${est.c}">🧮 ${icoFTEline(last)}</div>
       </div>
 
       <details class="ico-mas">
@@ -775,13 +776,7 @@
       ["warn", "131 – 200%", "Refuerzo parcial de EU"],
       ["danger", "> 200%", "Se necesita otra EU"]
     ];
-    return `<details class="ico-collapse">
-      <summary class="ico-collapse__sum">
-        <span class="ico-collapse__ic">📐</span>
-        <span class="ico-collapse__t">Índice de Capacidad Operativa UBPC</span>
-        <span class="ico-collapse__hint">Ficha técnica + seguimiento mensual · toca para ver</span>
-      </summary>
-      <div class="card ico-ficha" style="--acc:${acc};margin-top:.7rem">
+    return `<div class="card ico-ficha ico-ficha--flat" style="--acc:${acc}">
         <div class="ico-ficha__head">
           <span class="ico-ficha__badge">Estructura</span>
           <div class="ico-ficha__id">
@@ -824,8 +819,7 @@
             ${clase.map(c => `<div class="ico-cl"><span>${c[0]}</span><b>${c[1]}</b></div>`).join("")}
           </div>
         </details>
-      </div>
-    </details>`;
+      </div>`;
   }
 
   /* ---------- Vista ---------- */
@@ -1159,7 +1153,12 @@
       .ind-prio__chip{ cursor:pointer; border:1px solid var(--pc,#ddd); background:#fff; border-radius:999px; padding:.2rem .7rem; font-size:12.5px; font-weight:700; color:#30424f; display:inline-flex; gap:.35rem; align-items:center; }
       .ind-prio__chip:hover{ background:#f6f8fa; border-color:var(--pc,#ccc); }
       .ind-prio__chip b{ color:var(--pc); }
-      @media (max-width:560px){ .ind-grid{ grid-template-columns:1fr; } }`;
+      .ico-ficha--flat{ border:1px solid var(--border,#e6ecf0); border-top:5px solid var(--acc,#7a5cd0); border-radius:16px; box-shadow:0 2px 10px rgba(20,40,60,.05); }
+      .ico-result{ display:flex; flex-wrap:wrap; align-items:center; gap:.6rem 1.3rem; padding:.2rem 0 .4rem; }
+      .ico-result__num{ font-family:var(--font-disp,serif); font-weight:800; font-size:2.7rem; line-height:.9; }
+      .ico-result__mid{ display:flex; flex-direction:column; align-items:flex-start; gap:.25rem; min-width:150px; max-width:420px; }
+      .ico-result__read{ flex:1 1 300px; border-left:3px solid var(--rc,#e2e9f0); padding-left:.85rem; font-size:.95rem; line-height:1.4; color:var(--text,#22303a); }
+      @media (max-width:560px){ .ind-grid{ grid-template-columns:1fr; } .ico-result__read{ border-left:none; padding-left:0; } }`;
     document.head.appendChild(st);
   }
 
