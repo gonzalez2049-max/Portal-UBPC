@@ -198,11 +198,17 @@
     if (!h || isNaN(d)) return null;
     return Math.round(d / h * 100);
   }
+  // Estado del índice ALINEADO con el veredicto de dotación (misma base: el
+  // trabajo del mes en "enfermeras"). Así el número grande y la frase "¿se
+  // necesita enfermera?" nunca se contradicen.
   function icoEstado(pct) {
     if (pct == null) return { k: "neutral", l: "Sin datos", c: "var(--neutral)" };
-    if (pct <= 85) return { k: "ok", l: "Capacidad suficiente", c: "var(--verde)" };
-    if (pct <= 100) return { k: "warn", l: "Capacidad tensionada", c: "var(--naranjo)" };
-    return { k: "danger", l: "Capacidad superada", c: "var(--danger)" };
+    const reqR = Math.round(pct / 10) / 10;            // trabajo en enfermeras (1 decimal)
+    const defR = Math.round((reqR - 1) * 10) / 10;     // enfermeras que faltan
+    if (defR <= 0) return { k: "ok", l: "Una enfermera basta", c: "var(--verde)" };
+    if (defR < 0.3) return { k: "warn", l: "Al límite", c: "var(--naranjo)" };
+    if (defR < 1) return { k: "warn", l: "Supera a una enfermera · refuerzo parcial", c: "var(--naranjo)" };
+    return { k: "danger", l: "Supera a una enfermera · se necesita otra EU", c: "var(--danger)" };
   }
   function icoOrdenados() {
     return S().all("capacidadOperativa").slice().sort((a, b) => String(a.periodo || "").localeCompare(String(b.periodo || "")));
@@ -764,9 +770,10 @@
       ["Responsable", "Coordinador UBPC"]
     ];
     const bandas = [
-      ["ok", "≤ 85%", "Capacidad suficiente"],
-      ["warn", "86 – 100%", "Capacidad tensionada"],
-      ["danger", "> 100%", "Capacidad superada"]
+      ["ok", "≤ 100%", "Una enfermera basta"],
+      ["warn", "101 – 130%", "Al límite · monitorear"],
+      ["warn", "131 – 200%", "Refuerzo parcial de EU"],
+      ["danger", "> 200%", "Se necesita otra EU"]
     ];
     return `<details class="ico-collapse">
       <summary class="ico-collapse__sum">
