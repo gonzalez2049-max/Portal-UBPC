@@ -615,8 +615,15 @@
       return [esc(api.periodoLabel(r.periodo)), Number(r.demanda) + " h", Number(r.horas) + " h", p == null ? "—" : p + "%", reqR == null ? "—" : fte(reqR), esc(e.l)];
     });
 
+    const estTotal = estim.total;
+    const icoDem = last ? Number(last.demanda) : null;
     const prodRows = estim.items.map(i => [esc(i.lab), i.n, i.w + " h", (Math.round(i.n * i.w * 10) / 10) + " h"]);
-    prodRows.push(["<strong>Total · demanda técnica del mes</strong>", "<strong>" + estim.items.reduce((a, i) => a + i.n, 0) + "</strong>", "", "<strong>" + estim.total + " h</strong>"]);
+    prodRows.push(["<strong>Total estimado desde la actividad</strong>", "<strong>" + estim.items.reduce((a, i) => a + i.n, 0) + "</strong>", "", "<strong>" + estTotal + " h</strong>"]);
+    const fuenteProd = `<p class="muted" style="font-size:12.5px">Cuenta la actividad registrada en los módulos de <strong>Solicitudes técnicas, Reuniones, Capacitaciones y Monitoreo/auditorías</strong> con fecha dentro de ${esc(perLabel)}, por el tiempo promedio de cada una (ajustable en Indicadores → Índice de Capacidad Operativa → Parámetros).</p>`;
+    let reconc = "";
+    if (icoDem != null && Math.abs(icoDem - estTotal) > 0.5) {
+      reconc = `<p class="muted" style="font-size:12.5px;border-left:3px solid #e0912f;padding-left:.6rem;margin-top:.3rem">⚠️ La <strong>demanda usada en el índice</strong> de ${esc(perLabel)} es <strong>${icoDem} h</strong>, distinta del total estimado (${estTotal} h). ${estTotal === 0 ? "No hay actividad con fecha en ese mes en esos módulos, por eso el desglose sale en 0: la demanda se ingresó directamente en el índice." : "La demanda del índice se ingresó o estimó por separado."} Para que coincidan, registra la actividad del mes en sus módulos, o en el Índice de Capacidad Operativa usa <strong>“Recalcular … con la actividad del portal”</strong>.</p>`;
+    }
 
     const evi = S().all("edicionesEVI").filter(e => String(e.periodo || e.fecha || "").slice(0, 7) === per).length;
     const docsVig = S().all("documentos").filter(d => /vigente/i.test(d.estado || "")).length;
@@ -627,9 +634,11 @@
       + `<p class="muted" style="font-size:12.5px">"1 enfermera" = las horas que una EU trabaja al mes. Bajo 100% una persona basta; sobre 100% el trabajo la supera.</p>`
       + table(["Mes", "Trabajo (h)", "1 enfermera (h)", "% de una", "En enfermeras", "Estado"], evoRows, ["l", "c", "c", "c", "c", "l"])
       + `<h3>Producción de la UBPC · ${esc(perLabel)}</h3>`
-      + `<p class="muted" style="font-size:12.5px">Lo que produjo la UBPC en el mes (cantidad de cada actividad) por su tiempo promedio forma la demanda técnica que sustenta el análisis de capacidad.</p>`
+      + fuenteProd
       + table(["Actividad", "Cantidad", "Tiempo c/u", "Tiempo total"], prodRows, ["l", "c", "c", "c"])
-      + `<h3>Cobertura y difusión</h3>`
+      + reconc
+      + `<h3>Cobertura y difusión · ${esc(perLabel)}</h3>`
+      + `<p class="muted" style="font-size:12.5px">Unidades con alguna actividad en el mes (de un total de ${ev.totalUn}), ediciones de evidencia (EVI) difundidas en el mes y documentos marcados como vigentes en Gestión Documental.</p>`
       + kpiRow([
         { v: ev.cob + " / " + ev.totalUn, l: "Unidades con actividad en el mes" },
         { v: evi, l: "Evidencia difundida (EVI) en el mes" },
@@ -683,7 +692,7 @@
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
-        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v47</span></strong>
+        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v48</span></strong>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" data-print>🖨️ Imprimir / PDF</button>
           <button class="btn btn--ghost btn--sm" data-word>📄 Word</button>
