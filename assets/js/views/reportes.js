@@ -439,17 +439,13 @@
     // débil al más fuerte para decidir dónde intervenir.
     const NT_IND = NT.NT_IND || [];
     const indData = NT_IND.map(ind => {
-      let sumC = 0, sumN = 0, anyN = false; const vals = [];
+      let sumC = 0, sumAp = 0, nMed = 0;
       meds.forEach(m => {
-        const pct = m[ind.k], n = m[ind.k + "_n"];
-        const pv = (pct !== "" && pct != null && !isNaN(Number(pct))) ? Number(pct) : null;
-        const nv = (n !== "" && n != null && !isNaN(Number(n))) ? Number(n) : null;
-        if (pv != null) { vals.push(pv); if (nv != null && nv > 0) { sumC += pv / 100 * nv; sumN += nv; anyN = true; } }
+        const d = NT.indNT ? NT.indNT(m, ind.k) : null;
+        if (d && d.ap != null) { sumC += d.c; sumAp += d.ap; nMed++; }
       });
-      let avg = null;
-      if (anyN && sumN > 0) avg = Math.round(sumC / sumN * 1000) / 10;
-      else if (vals.length) avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10;
-      return { l: ind.s || ind.l, full: ind.l, avg, n: vals.length };
+      const avg = sumAp > 0 ? Math.round(sumC / sumAp * 1000) / 10 : null;
+      return { l: ind.s || ind.l, full: ind.l, avg, n: nMed };
     }).filter(x => x.n > 0).sort((a, b) => (a.avg == null ? 999 : a.avg) - (b.avg == null ? 999 : b.avg));
     const indRows = indData.map(x => { const st = estNT(x.avg); return [`<span title="${esc(x.full)}">${esc(x.l)}</span>`,
       `<strong style="color:${st.color}">${pctFmt(x.avg)}</strong>`, meta + "%",
@@ -471,7 +467,7 @@
         { v: (peor ? peor.l : "—"), l: "Indicador más débil" }, { v: bajoMeta.length, l: "Indicadores bajo meta" }
       ]) + (responsable ? `<p class="muted" style="margin:.3rem 0">Responsable NT 234: <strong>${esc(responsable)}</strong> · Meta institucional ${meta}%</p>` : "")
         + `<h3>Cumplimiento por indicador oficial · NT 234</h3>`
-        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Los 3 indicadores de las OO.TT (valoración de riesgo, indicación y ejecución de medidas), institucional. Ordenados del más débil al más fuerte para priorizar dónde intervenir (estándar ${meta}%).</p>`
+        + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Los 8 indicadores de la pauta de cotejo, institucional (Total Cumple ÷ Total aplicables). Ordenados del más débil al más fuerte para priorizar dónde intervenir (estándar ${meta}%).</p>`
         + table(["Indicador oficial", "Cumplimiento", "Estándar", "Estado", "N° mediciones"], indRows)
         + `<h3>Resumen por unidad</h3>`
         + `<p class="muted" style="margin:.1rem 0 .4rem;font-size:12.5px">Cumplimiento global de cada unidad. El detalle mes a mes está en la exportación a Excel.</p>`
@@ -692,7 +688,7 @@
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
-        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v48</span></strong>
+        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v49</span></strong>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" data-print>🖨️ Imprimir / PDF</button>
           <button class="btn btn--ghost btn--sm" data-word>📄 Word</button>
