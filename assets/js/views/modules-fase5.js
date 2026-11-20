@@ -65,6 +65,20 @@
     if (r.porcentaje !== "" && r.porcentaje != null && !isNaN(r.porcentaje)) return round1(Number(r.porcentaje));
     return null;
   }
+  // Celdas de indicadores para la tabla de seguimiento. Soporta ambos formatos:
+  // los registros nuevos muestran las 8 columnas; los del formato anterior (3
+  // indicadores con %) muestran sus valores en una sola celda, para NO perder
+  // la información ya registrada.
+  const OLD_LBL = { valoracionRiesgo: "Valoración riesgo", indicacionMedidas: "Indicación medidas", ejecucionMedidas: "Ejecución medidas" };
+  function indCeldas(m) {
+    const u = ui();
+    const tieneNuevo = NT_IND.some(i => indNT(m, i.k).ap != null);
+    if (tieneNuevo) return NT_IND.map(i => { const d = indNT(m, i.k); return `<td class="num">${d.pct != null ? d.pct + "%" : "—"}</td>`; }).join("");
+    const vals = NT_IND_OLD.map(k => { const v = numOr(m, k); return v != null ? `${OLD_LBL[k]} ${v}%` : null; }).filter(Boolean);
+    if (vals.length) return `<td colspan="${NT_IND.length}" style="text-align:left;font-size:12px;color:var(--text-muted)">Formato anterior · ${u.esc(vals.join(" · "))}</td>`;
+    return `<td colspan="${NT_IND.length}" style="text-align:center;color:var(--text-muted)">— (solo cumplimiento global)</td>`;
+  }
+
   // Caracterización clínica: incluidos = riesgo alto + moderado · excluidos = auditados − incluidos.
   function caracNT(r) {
     const aud = numOr(r, "auditados"), alto = numOr(r, "riesgoAlto"), mod = numOr(r, "riesgoModerado"), lpp = numOr(r, "conLPP");
@@ -294,7 +308,7 @@
           const g = globalNT(m), e = estadoNT(g);
           rows += `<tr class="nt-p-row" style="--pc:${pc}">
             <td><strong>${u.esc(m.unidad || "—")}</strong>${m.jefatura ? `<div class="kpi__sub">${u.esc(m.jefatura)}</div>` : ""}</td>
-            ${NT_IND.map(i => { const d = indNT(m, i.k); return `<td class="num">${d.pct != null ? d.pct + "%" : "—"}</td>`; }).join("")}
+            ${indCeldas(m)}
             <td class="num"><span class="badge badge--${e.badge}">${g != null ? g + "%" : "—"}</span></td>
             <td>${m.enviadoUnidad === "Sí" ? `<span class="badge badge--ok">Sí</span>` : "—"}</td>
             <td class="nowrap">${m.fechaEnvio ? u.fechaCL(m.fechaEnvio) : "—"}</td>
