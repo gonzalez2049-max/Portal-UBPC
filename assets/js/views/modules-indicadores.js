@@ -1611,4 +1611,10 @@
     return n;
   }
   U.indicadoresApi = { registrarMedicion: addSeguimiento, verEvolucion: detalle, editarFicha: ficha, seedRnaoLPP: seedRnaoLPP, aplicarMetaInst: aplicarMetaInst };
+  // API del Índice de Capacidad Operativa (para reusar en Reportes).
+  U.icoApi = {
+    ordenados: icoOrdenados, index: icoIndex, estado: icoEstado, decision: icoDecision,
+    evidencia: icoEvidenciaData, horasBase: icoHorasBase, estimar: icoEstimar,
+    conteo: icoConteo, actividadMes: icoActividadMes, periodoLabel: icoPeriodoLabel, fteFmt: fteFmt
+  };
 })();

@@ -582,6 +582,72 @@
     return y + (new Date().getMonth() < 6 ? "-S1" : "-S2");
   }
 
+  /* ---------- Reporte: Capacidad Operativa y Producción de la UBPC ---------- */
+  function repCapacidadProduccion() {
+    const api = U.icoApi || {};
+    const recs = api.ordenados ? api.ordenados() : [];
+    const last = recs.length ? recs[recs.length - 1] : null;
+    const nowYM = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); })();
+    const per = last ? last.periodo : nowYM;
+    const perLabel = api.periodoLabel ? api.periodoLabel(per) : per;
+    const pct = (last && api.index) ? api.index(last) : null;
+    const est = api.estado ? api.estado(pct) : { l: "—", c: "#5a6b66" };
+    const D = (last && api.decision) ? api.decision(last) : null;
+    const ev = api.evidencia ? api.evidencia() : { pend: 0, venc: 0, cob: 0, totalUn: 0, actNow: 0, avgResp: null };
+    const fte = api.fteFmt || (n => (Math.round(n * 10) / 10).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
+    const estim = api.estimar ? api.estimar(per) : { items: [], total: 0 };
+
+    const kpis = kpiRow([
+      { v: pct == null ? "—" : pct + "%", l: "Índice de capacidad (% de una enfermera)" },
+      { v: D ? fte(D.reqR) : "—", l: "Trabajo del mes (en enfermeras)" },
+      { v: D ? (D.requiere ? "Sí" : "No") : "—", l: "¿Se requiere otra EU?" },
+      { v: ev.actNow || 0, l: "Actividades registradas en el mes" }
+    ]);
+
+    const capTexto = D
+      ? `<p class="narrativo">${D.detalle} <strong>Veredicto: ${esc(D.verdict)}.</strong></p>`
+      : `<p class="muted">Aún no hay registro mensual del Índice de Capacidad Operativa. Regístralo en el módulo de Indicadores → Índice de Capacidad Operativa.</p>`;
+    const evidTxt = `<p class="muted" style="font-size:12.5px">Respaldo operativo del mes: <strong>${ev.pend}</strong> solicitud(es) pendiente(s)${ev.avgResp != null ? ` (respuesta prom. ${ev.avgResp} días)` : ""}, <strong>${ev.venc}</strong> compromiso(s) vencido(s), cobertura de <strong>${ev.cob}/${ev.totalUn}</strong> unidades.</p>`;
+
+    const evoRows = recs.map(r => {
+      const p = api.index(r); const e = api.estado(p);
+      const base = Number(r.horas) || 0; const reqR = base > 0 ? Math.round(Number(r.demanda) / base * 10) / 10 : null;
+      return [esc(api.periodoLabel(r.periodo)), Number(r.demanda) + " h", Number(r.horas) + " h", p == null ? "—" : p + "%", reqR == null ? "—" : fte(reqR), esc(e.l)];
+    });
+
+    const prodRows = estim.items.map(i => [esc(i.lab), i.n, i.w + " h", (Math.round(i.n * i.w * 10) / 10) + " h"]);
+    prodRows.push(["<strong>Total · demanda técnica del mes</strong>", "<strong>" + estim.items.reduce((a, i) => a + i.n, 0) + "</strong>", "", "<strong>" + estim.total + " h</strong>"]);
+
+    const evi = S().all("edicionesEVI").filter(e => String(e.periodo || e.fecha || "").slice(0, 7) === per).length;
+    const docsVig = S().all("documentos").filter(d => /vigente/i.test(d.estado || "")).length;
+
+    const body = kpis
+      + `<h3>Capacidad operativa · ${esc(perLabel)}</h3>` + capTexto + evidTxt
+      + `<h3>Evolución de la capacidad (demanda vs. una enfermera)</h3>`
+      + `<p class="muted" style="font-size:12.5px">"1 enfermera" = las horas que una EU trabaja al mes. Bajo 100% una persona basta; sobre 100% el trabajo la supera.</p>`
+      + table(["Mes", "Trabajo (h)", "1 enfermera (h)", "% de una", "En enfermeras", "Estado"], evoRows, ["l", "c", "c", "c", "c", "l"])
+      + `<h3>Producción de la UBPC · ${esc(perLabel)}</h3>`
+      + `<p class="muted" style="font-size:12.5px">Lo que produjo la UBPC en el mes (cantidad de cada actividad) por su tiempo promedio forma la demanda técnica que sustenta el análisis de capacidad.</p>`
+      + table(["Actividad", "Cantidad", "Tiempo c/u", "Tiempo total"], prodRows, ["l", "c", "c", "c"])
+      + `<h3>Cobertura y difusión</h3>`
+      + kpiRow([
+        { v: ev.cob + " / " + ev.totalUn, l: "Unidades con actividad en el mes" },
+        { v: evi, l: "Evidencia difundida (EVI) en el mes" },
+        { v: docsVig, l: "Documentos vigentes (acumulado)" }
+      ]);
+
+    return {
+      titulo: "Capacidad Operativa y Producción · UBPC",
+      periodo: perLabel,
+      filtros: "",
+      body,
+      excel: {
+        headers: ["Actividad", "Cantidad", "Tiempo c/u (h)", "Tiempo total (h)"],
+        rows: estim.items.map(i => ({ Actividad: i.lab, Cantidad: i.n, "Tiempo c/u (h)": i.w, "Tiempo total (h)": Math.round(i.n * i.w * 10) / 10 }))
+      }
+    };
+  }
+
   const REPORTS = [
     { key: "sdgc", title: "Informe de Gestión UBPC · SDGC", icon: "📘", desc: "Informe completo de todo lo trabajado por la UBPC, por área, con datos e intervenciones, para entregar a la SDGC.", build: repInformeSDGC },
     { key: "consolidado", title: "Consolidado institucional", icon: "🏛️", desc: "Resumen ejecutivo de todos los programas de la UBPC.", build: repConsolidado },
@@ -589,6 +655,7 @@
     { key: "nt234", title: "Norma Técnica 234", icon: "🛡️", desc: "Prevención de LPP: cumplimiento por unidad y planes de mejora.", build: repNT234 },
     { key: "capacitacion", title: "Capacitación y cobertura", icon: "🎓", desc: "Actividades, personas capacitadas y cobertura.", build: repCapacitacion },
     { key: "indicadores", title: "Indicadores UBPC", icon: "📏", desc: "Semáforo, cumplimiento, tendencias y alertas por indicador.", build: repIndicadores },
+    { key: "capacidad", title: "Capacidad Operativa y Producción", icon: "🧮", desc: "Índice de capacidad (¿se necesita otra enfermera?), evolución y producción de la UBPC del mes, para la SDGC.", build: repCapacidadProduccion },
     { key: "evidencia", title: "Evidencia entregada", icon: "🔬", desc: "Cantidad y tipo de evidencia difundida: EVI Científica y EVI Clínico.", build: repEvidencia },
     { key: "documental", title: "Gestión Documental", icon: "🗂️", desc: "Inventario de documentos, versiones, estado y V°B° UBPC.", build: repDocumental },
     { key: "colaboracion", title: "Red de Colaboración", icon: "🌐", desc: "Colaboraciones institucionales y participación.", build: repColaboracion }
@@ -616,7 +683,7 @@
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
-        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v45</span></strong>
+        <strong>${esc(rep.titulo)} <span class="rep-ver" title="Versión del portal cargada">v46</span></strong>
         <div class="btn-row">
           <button class="btn btn--ghost btn--sm" data-print>🖨️ Imprimir / PDF</button>
           <button class="btn btn--ghost btn--sm" data-word>📄 Word</button>
