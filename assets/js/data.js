@@ -18,6 +18,7 @@
       "Gestión de Casos · Oncología", "Gestión de Casos · Psiquiatría y Psicología de Enlace",
       "Gestión de Casos · Medicina Paliativa", "Gestión de Casos · Nefrología",
       "Gestión de Casos · Neurología",
+      "Endoscopía", "Capacitación",
       "Todas las unidades"
     ],
     estamentos: ["Enfermería", "TENS", "Auxiliar de servicio", "Médico", "Kinesiología", "Multiestamento", "Otro"],
