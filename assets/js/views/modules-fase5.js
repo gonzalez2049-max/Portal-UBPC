@@ -632,7 +632,7 @@
     .nt-inf{ text-align:center; max-width:720px; margin:0 auto; }
     .nt-inf__franja{ height:6px;border-radius:4px;margin-bottom:9px;
       background:linear-gradient(90deg,#1554b8,#1e9fe0,#0fb5ad,#37a04a,#f2c53d,#f07f2e,#7d4bcf,#e0538a); }
-    .nt-inf__logo{ width:46px;height:46px;object-fit:contain;margin-bottom:3px; }
+    .nt-inf__logo{ width:40px;height:40px;object-fit:contain;margin-bottom:2px; }
     .nt-inf__ttl{ font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:1.2rem;color:#0d5044;line-height:1.12; }
     .nt-inf__sub{ color:#5a6b84;font-size:.78rem;margin-top:1px; }
     .nt-inf__meta{ color:#40536f;font-size:.78rem;margin-top:4px; }
@@ -644,9 +644,19 @@
     .nt-inf__k-sub{ font-size:.66rem;color:#5a6b84;line-height:1.1 }
     .nt-inf__varline{ margin:5px auto 9px;font-size:.84rem;color:#40536f }
     .nt-inf__var{ font-weight:800 } .nt-inf__var--up{ color:#1f9d57 } .nt-inf__var--down{ color:#c62f3b } .nt-inf__var--eq{ color:#8a94a6 }
-    .nt-inf__tbl{ border-collapse:collapse;width:100%;max-width:640px;margin:5px auto;font-size:.8rem }
-    .nt-inf__tbl th{ background:#0f8f83;color:#fff;padding:5px 8px;border:1px solid #cdd8e2;text-align:center }
-    .nt-inf__tbl td{ padding:4px 8px;border:1px solid #e2e9f0;text-align:center }
+    .nt-inf__tbl{ border-collapse:collapse;width:100%;max-width:640px;margin:5px auto;font-size:.78rem;table-layout:fixed;break-inside:avoid;page-break-inside:avoid }
+    .nt-inf__tbl th{ background:#0f8f83;color:#fff;padding:6px 6px;border:1px solid #cdd8e2;text-align:center;font-size:.72rem;line-height:1.2;vertical-align:middle }
+    .nt-inf__tbl th small{ display:block;font-weight:400;font-size:.66rem;opacity:.92;white-space:nowrap }
+    .nt-inf__tbl td{ padding:5px 6px;border:1px solid #e2e9f0;text-align:center;vertical-align:middle;line-height:1.25 }
+    .nt-inf__tbl tr{ break-inside:avoid;page-break-inside:avoid }
+    .nt-inf__tbl tbody tr:nth-child(even) td:not(.glo):not(.a8){ background:#f8fbfc }
+    .nt-inf__tbl td.l, .nt-inf__tbl th.l{ text-align:left }
+    .nt-inf__tbl td.nw{ white-space:nowrap }
+    .nt-inf__tbl td.jef{ font-size:.72rem;color:#40536f }
+    .nt-inf__est{ display:inline-block;white-space:nowrap;font-weight:800;font-size:.68rem;padding:2px 8px;border-radius:999px }
+    .nt-inf__est--rojo{ background:#fbe1e5;color:#b02a3a } .nt-inf__est--amarillo{ background:#fbeed6;color:#a5620f }
+    .nt-inf__est--verde{ background:#dcf2e4;color:#1f7d48 } .nt-inf__est--sd{ background:#eceff3;color:#5a6b84 }
+    .nt-inf__blk{ break-inside:avoid;page-break-inside:avoid }
     .nt-inf__tbl .l{ text-align:left }
     .nt-inf__kpis--3{ grid-template-columns:repeat(3,1fr);max-width:500px }
     /* Dos indicadores principales lado a lado, cada uno con su color de identidad */
@@ -668,15 +678,16 @@
     .nt-inf__epi-h::after{ background:linear-gradient(90deg,#bfe0d9,transparent) }
     .nt-inf__epi-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0d6b62;font-size:1.02rem;white-space:nowrap }
     .nt-inf__epi-per{ font-size:.78rem;font-weight:700;color:#0f8f83;background:#e6f4f1;border-radius:999px;padding:1px 9px;white-space:nowrap }
-    .nt-inf__obs{ max-width:640px;margin:12px auto 0;text-align:left }
+    .nt-inf__obs{ max-width:640px;margin:14px auto 0;text-align:left;break-inside:avoid;page-break-inside:avoid }
+    .nt-inf__cierre{ break-inside:avoid;page-break-inside:avoid }
     .nt-inf__obs-t{ font-family:'Fraunces',Georgia,serif;font-weight:700;color:#0f8f83;font-size:.94rem;margin-bottom:4px }
-    .nt-inf__obs-box{ border:1px solid #dbe6f2;border-radius:8px;min-height:44px;padding:7px 11px;color:#22303a;font-size:.84rem;line-height:1.4 }
+    .nt-inf__obs-box{ border:1px solid #dbe6f2;border-radius:8px;min-height:44px;padding:8px 12px;color:#22303a;font-size:.8rem;line-height:1.45;text-align:justify }
     /* Firmas: lado a lado, sin partirse entre páginas, con espacio para firmar */
-    .nt-inf__firmas{ display:flex;justify-content:center;gap:70px;margin-top:30px;flex-wrap:nowrap;break-inside:avoid;page-break-inside:avoid }
-    .nt-inf__firma{ text-align:center;min-width:220px;break-inside:avoid;page-break-inside:avoid }
-    .nt-inf__line{ width:220px;border-top:1px solid #17263d;margin:26px auto 6px }
+    .nt-inf__firmas{ display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:640px;margin:34px auto 0;break-inside:avoid;page-break-inside:avoid }
+    .nt-inf__firma{ text-align:center;break-inside:avoid;page-break-inside:avoid }
+    .nt-inf__line{ width:230px;max-width:100%;border-top:1px solid #17263d;margin:22px auto 6px }
     .nt-inf__name{ font-weight:700;color:#17263d }
-    .nt-inf__role{ color:#5a6b84;font-size:.78rem;margin-top:2px }`;
+    .nt-inf__role{ color:#5a6b84;font-size:.74rem;margin-top:2px;line-height:1.3 }`;
 
   // Períodos disponibles para el informe: unión del cumplimiento NT 234 y de la
   // epidemiología de LPP (así, al registrar un mes en cualquiera de los dos, el
@@ -713,14 +724,14 @@
       const c = epiCalc(r);
       return `<tr><td class="l"><strong>${u.esc(r.unidad)}</strong></td><td>${c.evaluados != null ? c.evaluados : "—"}</td><td>${c.lppIntra != null ? c.lppIntra : "—"}</td><td><strong>${pct1(c.incidencia)}</strong></td><td>${pct1(c.prevalencia)}</td><td>${pct1(c.libres)}</td></tr>`;
     }).join("");
-    return `<div class="nt-inf__epi-h"><span class="nt-inf__epi-t">Epidemiología de LPP</span><span class="nt-inf__epi-per">${u.esc(periodoNT(per))}</span></div>
+    return `<div class="nt-inf__blk"><div class="nt-inf__epi-h"><span class="nt-inf__epi-t">Epidemiología de LPP</span><span class="nt-inf__epi-per">${u.esc(periodoNT(per))}</span></div>
       <div class="nt-inf__kpis nt-inf__kpis--3">
         <div class="nt-inf__kpi is-danger"><span class="nt-inf__k-lab">Incidencia intrahospitalaria</span><span class="nt-inf__k-val">${pct1(inc)}</span><span class="nt-inf__k-sub">LPP intra / ingresan sin LPP</span></div>
         <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">Prevalencia</span><span class="nt-inf__k-val">${pct1(prev)}</span><span class="nt-inf__k-sub">con ≥1 LPP / evaluados</span></div>
         <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">Pacientes libres de LPP intra</span><span class="nt-inf__k-val">${pct1(libres)}</span><span class="nt-inf__k-sub">100 − incidencia</span></div>
       </div>
-      <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Evaluados</th><th>LPP intrahosp.</th><th>Incidencia</th><th>Prevalencia</th><th>% libres</th></tr></thead>
-        <tbody>${filas}</tbody></table>`;
+      <table class="nt-inf__tbl"><colgroup><col style="width:30%"><col><col><col><col><col></colgroup><thead><tr><th class="l">Unidad</th><th>Evaluados</th><th>LPP intrahosp.</th><th>Incidencia</th><th>Prevalencia</th><th>% libres</th></tr></thead>
+        <tbody>${filas}</tbody></table></div>`;
   }
 
   function informeInner(perSel) {
@@ -756,9 +767,9 @@
 
     const filas = list.slice().sort((a, b) => globalNT(a) - globalNT(b)).map(m => {
       const g = globalNT(m), e = estadoNT(g);
-      return `<tr><td class="l"><strong>${u.esc(m.unidad)}</strong></td><td>${u.esc(m.jefatura || "—")}</td>
-        <td class="glo"><strong>${g != null ? g + "%" : "—"}</strong></td><td class="a8">${auditoria8NT(m) != null ? auditoria8NT(m) + "%" : "—"}</td>
-        <td><span style="font-weight:800;color:${e.color}">● ${u.esc(e.inter)}</span></td></tr>`;
+      return `<tr><td class="l"><strong>${u.esc(m.unidad)}</strong></td><td class="l jef">${u.esc(m.jefatura || "—")}</td>
+        <td class="glo nw"><strong>${g != null ? g + "%" : "—"}</strong></td><td class="a8 nw">${auditoria8NT(m) != null ? auditoria8NT(m) + "%" : "—"}</td>
+        <td class="nw"><span class="nt-inf__est nt-inf__est--${e.k}">● ${u.esc(e.inter)}</span></td></tr>`;
     }).join("");
 
     const cumplBloque = tieneCumpl
@@ -776,7 +787,8 @@
         </div>
         ${cumplFallback ? `<div class="nt-inf__meta" style="margin:2px auto 0">Cumplimiento por unidad · último registrado: <strong>${u.esc(periodoNT(cumplPer))}</strong> (aún sin registro de ${u.esc(periodoNT(per))})</div>` : ""}
         <div class="nt-inf__varline">Variación del cumplimiento global: ${varTxt}</div>
-        <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th class="glo">Medidas ejecutadas<br><span style="font-weight:400">Indicador Global NT 234</span></th><th class="a8">Auditoría<br><span style="font-weight:400">8 medidas</span></th><th>Estado</th></tr></thead>
+        <table class="nt-inf__tbl"><colgroup><col style="width:25%"><col style="width:25%"><col style="width:16%"><col style="width:14%"><col style="width:20%"></colgroup>
+          <thead><tr><th class="l">Unidad</th><th class="l">Jefatura / EU responsable</th><th class="glo">Indicador Global<small>2 medidas ejecutadas</small></th><th class="a8">Auditoría<small>8 medidas</small></th><th>Estado</th></tr></thead>
           <tbody>${filas}</tbody></table>`
       : `<p class="nt-inf__meta" style="margin:12px auto">Aún no se registra el <strong>cumplimiento por unidad</strong> para este período. Se muestra la epidemiología registrada.</p>`;
 
@@ -790,7 +802,7 @@
       </div>
       ${cumplBloque}
       ${informeEpiBlock(per)}
-      <div class="nt-inf__obs">
+      <div class="nt-inf__cierre"><div class="nt-inf__obs">
         <div class="nt-inf__obs-t">Observaciones <span class="no-print" style="font-weight:400;color:#8a94a6;font-size:.78rem">(escribe directamente aquí)</span></div>
         <div class="nt-inf__obs-box" id="nt-obs" contenteditable="true" data-ph="Escribe aquí las observaciones del periodo…">${obs ? u.esc(obs).replace(/\n/g, "<br>") : ""}</div>
       </div>
@@ -798,14 +810,14 @@
         <div class="nt-inf__firma">
           <div class="nt-inf__line"></div>
           <div class="nt-inf__name">${u.esc(responsable)}</div>
-          <div class="nt-inf__role">Coordinador/a UBPC · Responsable de la estrategia NT 234</div>
+          <div class="nt-inf__role">Coordinador/a UBPC<br>Responsable de la estrategia NT 234</div>
         </div>
         <div class="nt-inf__firma">
           <div class="nt-inf__line"></div>
           <div class="nt-inf__name">Subdirección de Gestión del Cuidado</div>
           <div class="nt-inf__role">Firma y timbre</div>
         </div>
-      </div>
+      </div></div>
     </div>`;
   }
 
@@ -865,11 +877,13 @@
     w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe NT 234</title><style>
       @font-face{font-family:'Fraunces';src:url('${fr}') format('woff2');font-weight:100 900;font-display:swap}
       @font-face{font-family:'Nunito Sans';src:url('${ns}') format('woff2');font-weight:200 900;font-display:swap}
-      @page{size:A4;margin:0}
+      @page{size:A4;margin:12mm 14mm 12mm}
       *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       html,body{margin:0}
       body{font-family:'Nunito Sans',system-ui,Arial,sans-serif;color:#22303a}
-      .sheet{padding:16mm 16mm 18mm;text-align:center}
+      .sheet{padding:0;text-align:center}
+      .no-print{display:none!important}
+      .nt-inf__obs-box:empty{display:none}
       ${NT_INF_CSS}
     </style></head><body><div class="sheet">${inner}</div></body></html>`);
     w.document.close();
