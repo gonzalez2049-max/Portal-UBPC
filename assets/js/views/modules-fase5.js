@@ -649,6 +649,20 @@
     .nt-inf__tbl td{ padding:4px 8px;border:1px solid #e2e9f0;text-align:center }
     .nt-inf__tbl .l{ text-align:left }
     .nt-inf__kpis--3{ grid-template-columns:repeat(3,1fr);max-width:500px }
+    /* Dos indicadores principales lado a lado, cada uno con su color de identidad */
+    .nt-inf__duo{ display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px auto 4px;max-width:640px }
+    .nt-inf__main{ border-radius:12px;padding:9px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;border:1.5px solid;border-top-width:5px }
+    .nt-inf__main--glo{ border-color:#0f8f83;background:#e6f4f1 } .nt-inf__main--a8{ border-color:#e0912f;background:#fcf1e2 }
+    .nt-inf__main .nt-inf__k-lab{ font-size:.72rem }
+    .nt-inf__main--glo .nt-inf__k-lab{ color:#0b6b62 } .nt-inf__main--a8 .nt-inf__k-lab{ color:#a5620f }
+    .nt-inf__main .nt-inf__k-val{ font-size:1.65rem }
+    .nt-inf__main--glo .nt-inf__k-val{ color:#0b6b62 } .nt-inf__main--a8 .nt-inf__k-val{ color:#a5620f }
+    .nt-inf__chip{ font-size:.66rem;font-weight:800;padding:1px 8px;border-radius:999px;margin-top:2px }
+    .nt-inf__chip.ok{ background:#d6f0e0;color:#1f7d48 } .nt-inf__chip.bad{ background:#f8dbe0;color:#b02a3a }
+    .nt-inf__kpis--st{ grid-template-columns:repeat(3,1fr);max-width:640px;margin-top:6px }
+    .nt-inf__nota{ max-width:640px;margin:4px auto 6px;font-size:.72rem;color:#5a6b84;line-height:1.35 }
+    .nt-inf__tbl th.glo{ background:#0f8f83 } .nt-inf__tbl th.a8{ background:#e0912f }
+    .nt-inf__tbl td.glo{ background:#eef8f6 } .nt-inf__tbl td.a8{ background:#fdf5ea;color:#a5620f;font-weight:700 }
     .nt-inf__epi-h{ max-width:640px;margin:13px auto 4px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px }
     .nt-inf__epi-h::before,.nt-inf__epi-h::after{ content:"";flex:1;max-width:110px;height:1px;background:linear-gradient(90deg,transparent,#bfe0d9) }
     .nt-inf__epi-h::after{ background:linear-gradient(90deg,#bfe0d9,transparent) }
@@ -731,6 +745,8 @@
     const gl = list.map(globalNT).filter(v => v != null);
     const prom = gl.length ? round1(gl.reduce((a, b) => a + b, 0) / gl.length) : 0;
     const by = k => list.filter(m => estadoNT(globalNT(m)).k === k).length;
+    const a8 = list.map(auditoria8NT).filter(v => v != null);
+    const promA8 = a8.length ? round1(a8.reduce((a, b) => a + b, 0) / a8.length) : null;
     const meta = meta234();
     const v = variacionNT(cumplPer);
     const varTxt = v ? `<span class="nt-inf__var nt-inf__var--${v.delta > 0 ? "up" : v.delta < 0 ? "down" : "eq"}">${v.delta > 0 ? "▲ +" + v.delta : v.delta < 0 ? "▼ " + v.delta : "= 0"} pts vs ${u.esc(periodoNTshort(v.prevPer))}</span>` : `<span class="nt-inf__var">Sin mes previo para comparar</span>`;
@@ -741,19 +757,26 @@
     const filas = list.slice().sort((a, b) => globalNT(a) - globalNT(b)).map(m => {
       const g = globalNT(m), e = estadoNT(g);
       return `<tr><td class="l"><strong>${u.esc(m.unidad)}</strong></td><td>${u.esc(m.jefatura || "—")}</td>
-        <td><strong>${g}%</strong></td><td><span style="font-weight:800;color:${e.color}">● ${u.esc(e.inter)}</span></td></tr>`;
+        <td class="glo"><strong>${g != null ? g + "%" : "—"}</strong></td><td class="a8">${auditoria8NT(m) != null ? auditoria8NT(m) + "%" : "—"}</td>
+        <td><span style="font-weight:800;color:${e.color}">● ${u.esc(e.inter)}</span></td></tr>`;
     }).join("");
 
     const cumplBloque = tieneCumpl
-      ? `<div class="nt-inf__kpis">
-          <div class="nt-inf__kpi ${prom >= meta ? "is-ok" : "is-danger"}"><span class="nt-inf__k-lab">Indicador Global NT 234</span><span class="nt-inf__k-val">${prom}%</span><span class="nt-inf__k-sub">2 medidas ejecutadas · Meta ${meta}%</span></div>
+      ? `<div class="nt-inf__duo">
+          <div class="nt-inf__main nt-inf__main--glo"><span class="nt-inf__k-lab">Indicador Global NT 234</span><span class="nt-inf__k-val">${prom}%</span><span class="nt-inf__k-sub">Cumplimiento de las 2 medidas de prevención <strong>ejecutadas</strong></span>
+            <span class="nt-inf__chip ${prom >= meta ? "ok" : "bad"}">${prom >= meta ? "En meta" : "Bajo meta"} · Meta ${meta}%</span></div>
+          <div class="nt-inf__main nt-inf__main--a8"><span class="nt-inf__k-lab">Auditoría local · 8 medidas</span><span class="nt-inf__k-val">${promA8 != null ? promA8 + "%" : "—"}</span><span class="nt-inf__k-sub">${promA8 != null ? "Cumplimiento total de los <strong>8 indicadores</strong> auditados" : "Sin registro de auditoría de 8 medidas en este período"}</span>
+            <span class="nt-inf__chip" style="background:#f6e3c6;color:#a5620f">Indicador local · complementario</span></div>
+        </div>
+        <p class="nt-inf__nota">Son dos mediciones <strong>independientes</strong>: no se suman ni se promedian. El estado de cada unidad se define por el <strong>Indicador Global NT 234</strong>.</p>
+        <div class="nt-inf__kpis nt-inf__kpis--st">
           <div class="nt-inf__kpi is-danger"><span class="nt-inf__k-lab">Con intervención</span><span class="nt-inf__k-val">${by("rojo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
           <div class="nt-inf__kpi is-warn"><span class="nt-inf__k-lab">En seguimiento</span><span class="nt-inf__k-val">${by("amarillo")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
           <div class="nt-inf__kpi is-ok"><span class="nt-inf__k-lab">En cumplimiento</span><span class="nt-inf__k-val">${by("verde")}</span><span class="nt-inf__k-sub">unidad(es)</span></div>
         </div>
         ${cumplFallback ? `<div class="nt-inf__meta" style="margin:2px auto 0">Cumplimiento por unidad · último registrado: <strong>${u.esc(periodoNT(cumplPer))}</strong> (aún sin registro de ${u.esc(periodoNT(per))})</div>` : ""}
         <div class="nt-inf__varline">Variación del cumplimiento global: ${varTxt}</div>
-        <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th>Cumplimiento</th><th>Estado</th></tr></thead>
+        <table class="nt-inf__tbl"><thead><tr><th class="l">Unidad</th><th>Jefatura</th><th class="glo">Medidas ejecutadas<br><span style="font-weight:400">Indicador Global NT 234</span></th><th class="a8">Auditoría<br><span style="font-weight:400">8 medidas</span></th><th>Estado</th></tr></thead>
           <tbody>${filas}</tbody></table>`
       : `<p class="nt-inf__meta" style="margin:12px auto">Aún no se registra el <strong>cumplimiento por unidad</strong> para este período. Se muestra la epidemiología registrada.</p>`;
 
