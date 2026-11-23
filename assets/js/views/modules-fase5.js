@@ -292,8 +292,8 @@
             <td><strong>${u.esc(m.unidad || "—")}</strong>${m.jefatura ? `<div class="kpi__sub">${u.esc(m.jefatura)}</div>` : ""}</td>
             <td class="num">${pOr(indPct(m, "valoracionRiesgo"))}</td>
             <td class="num">${pOr(indPct(m, NT_K_LOCAL))}</td>
-            <td class="num"><span class="badge badge--${e.badge}">${g != null ? g + "%" : "—"}</span></td>
-            ${hasAud8 ? `<td class="num">${pOr(auditoria8NT(m))}</td>` : ""}
+            <td class="num nt-col-glo"><span class="badge badge--${e.badge}">${g != null ? g + "%" : "—"}</span></td>
+            ${hasAud8 ? `<td class="num nt-col-a8"><span class="nt-a8-val">${pOr(auditoria8NT(m))}</span></td>` : ""}
             <td>${m.enviadoUnidad === "Sí" ? `<span class="badge badge--ok">Sí</span>` : "—"}</td>
             <td class="nowrap">${m.fechaEnvio ? u.fechaCL(m.fechaEnvio) : "—"}</td>
             <td class="nowrap"><button class="btn btn--ghost btn--sm" data-edit="${m.id}">Editar</button> <button class="btn btn--ghost btn--sm" data-del="${m.id}">Eliminar</button></td></tr>`;
@@ -303,8 +303,8 @@
         ? `<div style="overflow-x:auto"><table class="tbl nt-hist"><thead><tr><th>Unidad</th>
             <th class="num">Valoración de riesgo</th>
             <th class="num">2 medidas indicadas <span style="font-weight:400">(local)</span></th>
-            <th class="num">Indicador Global NT 234 <span style="font-weight:400">· 2 ejecutadas</span></th>
-            ${hasAud8 ? `<th class="num">Auditoría 8 medidas</th>` : ""}
+            <th class="num nt-col-glo">Indicador Global NT 234 <span style="font-weight:400">· 2 ejecutadas</span></th>
+            ${hasAud8 ? `<th class="num nt-col-a8">Auditoría 8 medidas</th>` : ""}
             <th>Enviado</th><th>Fecha envío</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : u.empty("Sin mediciones registradas.", "Agrega la primera evaluación de la unidad.", "📊");
 

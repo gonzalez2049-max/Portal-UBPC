@@ -2284,6 +2284,15 @@ body.night .doc-tb__sel{ background:rgba(255,255,255,.06); }
 .nt-hist tbody tr.nt-p-row td:first-child{ box-shadow:inset 4px 0 0 0 color-mix(in srgb, var(--pc,#0f8f83) 55%, transparent); }
 .nt-hist tbody tr:not(.nt-h-group):hover{ background:color-mix(in srgb, var(--pc,#0f8f83) 6%, #fff); }
 .nowrap{ white-space:nowrap; }
+/* Columnas diferenciadas: Indicador Global NT 234 (turquesa) vs Auditoría 8 medidas (ámbar) */
+.nt-hist .nt-col-glo{ --cc:#0f8f83; }
+.nt-hist .nt-col-a8{ --cc:#e0912f; }
+.nt-hist th.nt-col-glo, .nt-hist th.nt-col-a8{ color:color-mix(in srgb, var(--cc) 80%, var(--text, #17263d));
+  background:color-mix(in srgb, var(--cc) 16%, transparent); border-top:3px solid var(--cc); }
+.nt-hist tbody tr.nt-p-row td.nt-col-glo, .nt-hist tbody tr.nt-p-row td.nt-col-a8{
+  background:color-mix(in srgb, var(--cc) 9%, transparent); }
+.nt-a8-val{ display:inline-block; min-width:3.2em; padding:.15rem .55rem; border-radius:999px; font-weight:700;
+  color:color-mix(in srgb, #e0912f 75%, var(--text, #17263d)); background:color-mix(in srgb, #e0912f 18%, transparent); }
 
 /* Banner monitor */
 .nt-monitor{ border-radius:16px; padding:1.1rem 1.3rem; color:#eafff9;
