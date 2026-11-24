@@ -19,6 +19,7 @@
       "Gestión de Casos · Medicina Paliativa", "Gestión de Casos · Nefrología",
       "Gestión de Casos · Neurología",
       "Endoscopía", "Capacitación",
+      "Departamento de Gestión en Procesos Clínicos y Asistenciales",
       "Todas las unidades"
     ],
     estamentos: ["Enfermería", "TENS", "Auxiliar de servicio", "Médico", "Kinesiología", "Multiestamento", "Otro"],
