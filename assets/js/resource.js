@@ -34,6 +34,71 @@
     }
   }
 
+  /* ---------- Formato estándar de listados (como Gestión Documental) ----------
+     · Columna principal en negrita con subtítulo «🏥 Unidad · Responsable».
+     · Campos de selección (tipo, modalidad, pilar…) como chips de color.
+     · Campos Sí/No como píldoras («✔ Sí» / «—»).
+     Se aplica solo a columnas SIN render propio; cfg.plainFormat lo desactiva. */
+  const META_KEYS = ["unidad", "unidadResponsable", "responsable", "jefatura", "encargado"];
+  const CHIP_PALETTE = ["#1554b8", "#0f8f83", "#7a5cd0", "#c86a1f", "#e0526f", "#37a04a", "#0d6ea8", "#b8355a", "#8a44c9", "#0d8175"];
+  function chipColor(v) {
+    let h = 0; const t = String(v); for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+    return CHIP_PALETTE[h % CHIP_PALETTE.length];
+  }
+  function chipHTML(v, u) {
+    const c = chipColor(v);
+    return `<span class="tag tipo-chip res-chip" style="background:${c}1f;color:${c};border-color:${c}"><span class="tipo-chip__dot" style="background:${c}"></span>${u.esc(v)}</span>`;
+  }
+  function siNoHTML(v, u) {
+    if (/^s[íi]$/i.test(String(v || "").trim())) return `<span class="badge badge--ok">✔ Sí</span>`;
+    if (/^no$/i.test(String(v || "").trim())) return `<span class="badge badge--neutral">No</span>`;
+    return `<span class="muted">—</span>`;
+  }
+  function layout(cfg) {
+    if (cfg._layout) return cfg._layout;
+    const L = { title: null, hidden: {}, chip: {}, sino: {} };
+    if (cfg.plainFormat) return (cfg._layout = L);
+    let fields = [];
+    try { fields = (typeof cfg.fields === "function" ? cfg.fields(null) : cfg.fields) || []; } catch (e) { fields = []; }
+    const fmap = {}; fields.forEach(f => { if (f && f.name) fmap[f.name] = f; });
+    const plain = c => !c.render && !c.mono && !c.date && !c.badge && !c.num;
+    cfg.columns.forEach(c => {
+      if (!plain(c)) return;
+      const f = fmap[c.key];
+      if (f && f.type === "select" && Array.isArray(f.options)) {
+        const opts = f.options.map(o => String(o && o.value != null ? o.value : o));
+        if (opts.length <= 3 && opts.some(o => /^s[íi]$/i.test(o)) && opts.some(o => /^no$/i.test(o))) L.sino[c.key] = true;
+        else if (META_KEYS.indexOf(c.key) < 0) L.chip[c.key] = true;
+      }
+    });
+    const t = cfg.columns.find(c => plain(c) && !L.chip[c.key] && !L.sino[c.key] && META_KEYS.indexOf(c.key) < 0);
+    // Solo si la columna principal está al inicio (entre las 3 primeras visibles).
+    const visibles = cfg.columns.filter(c => !(plain(c) && META_KEYS.indexOf(c.key) >= 0));
+    if (t && visibles.indexOf(t) <= 2) {
+      L.title = t.key;
+      L.meta = META_KEYS.filter(k => { const c = cfg.columns.find(x => x.key === k); return !c || plain(c); });
+      cfg.columns.forEach(c => { if (plain(c) && META_KEYS.indexOf(c.key) >= 0) L.hidden[c.key] = true; });
+    }
+    return (cfg._layout = L);
+  }
+  function fmtCell(col, rec, L) {
+    const u = ui();
+    try {
+      if (!col.render) {
+        const v = rec[col.key];
+        if (L.title === col.key) {
+          const meta = L.meta.map(k => rec[k]).filter(x => x != null && String(x).trim() !== "");
+          const uniq = meta.filter((x, i) => meta.indexOf(x) === i).map(x => u.esc(x)).join(" · ");
+          const txt = (v == null || v === "") ? "—" : (String(v).length > 140 ? String(v).slice(0, 140) + "…" : v);
+          return `<div class="res-title">${u.esc(txt)}</div>${uniq ? `<div class="res-sub">🏥 ${uniq}</div>` : ""}`;
+        }
+        if (L.sino[col.key]) return siNoHTML(v, u);
+        if (L.chip[col.key]) return (v == null || v === "") ? `<span class="muted">—</span>` : chipHTML(v, u);
+      }
+    } catch (e) { /* cae al formato básico */ }
+    return cell(col, rec);
+  }
+
   /* Exportación de una colección a CSV usando las columnas */
   function exportValue(col, rec) {
     if (col.exportVal) return col.exportVal(rec);
@@ -107,11 +172,12 @@
         bodyEl.innerHTML = u.empty("Sin resultados.", "Ajusta la búsqueda o los filtros.", "🔍");
         return;
       }
-      const cols = cfg.columns;
+      const L = layout(cfg);
+      const cols = cfg.columns.filter(c => !L.hidden[c.key]);
       const rowHTML = rec => {
         try {
           return `<tr data-id="${rec.id}">
-            ${cols.map(c => `<td class="${c.num ? "num" : ""}${c.center ? " res-center" : ""}">${cell(c, rec)}</td>`).join("")}
+            ${cols.map(c => `<td class="${c.num ? "num" : ""}${c.center || L.sino[c.key] ? " res-center" : ""}${c.mono ? " res-code" : ""}${c.date ? " res-date" : ""}">${fmtCell(c, rec, L)}</td>`).join("")}
             <td class="acciones"><div class="btn-row" style="justify-content:flex-end">
               ${(cfg.rowActions || []).map((a, i) =>
                 (!a.show || a.show(rec)) ? `<button class="${a.label ? "btn btn--primary btn--sm res-act" : "btn-icon"}" data-act="${i}" data-id="${rec.id}" title="${u.esc(a.title)}">${a.ico}${a.label ? ` ${u.esc(a.label)}` : ""}</button>` : "").join("")}
@@ -126,7 +192,7 @@
         }
       };
       bodyEl.innerHTML = `<div class="table-wrap"><table class="tbl"><thead><tr>
-        ${cols.map(c => `<th scope="col" class="${c.center ? "res-center" : ""}" ${c.width ? `style="width:${c.width}"` : ""}>${u.esc(c.label)}</th>`).join("")}
+        ${cols.map(c => `<th scope="col" class="${c.center || L.sino[c.key] ? "res-center" : ""}" ${c.width ? `style="width:${c.width}"` : ""}>${u.esc(c.label)}</th>`).join("")}
         <th scope="col" class="right">Acciones</th></tr></thead><tbody>
         ${list.map(rowHTML).join("")}
       </tbody></table></div>`;
