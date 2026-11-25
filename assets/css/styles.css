@@ -2555,3 +2555,27 @@ body.night .kcard--baja{ background:linear-gradient(180deg,#d3f0de,#bde9cb) !imp
 .tbl .res-chip{ white-space:nowrap; font-weight:700; }
 body.night .tbl .res-title{ color:#e6f2ee; }
 body.night .tbl td.res-code .mono{ color:#7fe0d0; }
+
+/* ===== Justificación de Referente Técnico (horas sin cubrir) ===== */
+.ico-just{ margin:.9rem 0 .4rem; border:1px solid var(--border,#e6ecea); border-left:6px solid var(--jc); border-radius:14px; padding:1rem 1.1rem; background:var(--surface,#fff); }
+.ico-just__eb{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#6b7a90); }
+.ico-just__verdict{ font-size:1.2rem; font-weight:800; color:var(--jc); margin-top:2px; display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; }
+.ico-just__score{ font-size:12px; font-weight:800; color:var(--jc); background:color-mix(in srgb, var(--jc) 14%, transparent); padding:2px 10px; border-radius:999px; }
+.ico-just__nums{ display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin:.8rem 0; }
+.ico-just__nums > div{ background:color-mix(in srgb, var(--jc) 7%, var(--surface-2,#f6f9f8)); border-radius:11px; padding:.6rem .7rem; text-align:center; }
+.ico-just__nums b{ display:block; font-family:var(--font-disp,Georgia,serif); font-size:1.75rem; line-height:1.05; color:var(--jc); }
+.ico-just__nums span{ font-size:12px; color:var(--text-2,#40536f); }
+.ico-just__crits{ display:flex; flex-direction:column; gap:.45rem; }
+.ico-crit{ display:flex; gap:.6rem; align-items:flex-start; padding:.5rem .65rem; border-radius:10px; background:var(--surface-2,#f6f9f8); }
+.ico-crit__ic{ width:24px; height:24px; flex:none; border-radius:50%; display:grid; place-items:center; font-weight:800; font-size:13px; background:#e3e8ee; color:#7a8796; }
+.ico-crit.is-ok .ico-crit__ic{ background:var(--jc); color:#fff; }
+.ico-crit__t{ font-weight:800; font-size:14px; }
+.ico-crit__d{ font-size:13px; color:var(--text-2,#40536f); }
+.ico-just__reco{ margin-top:.7rem; font-weight:700; font-size:14.5px; padding:.6rem .75rem; border-radius:10px; background:color-mix(in srgb, var(--jc) 10%, transparent); }
+.ico-just__txt{ margin-top:.7rem; border:1px dashed var(--border,#d6e0dc); border-radius:10px; padding:.55rem .75rem; }
+.ico-just__txt-h{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; font-weight:800; font-size:13px; margin-bottom:.3rem; }
+.ico-just__txt p{ margin:0; font-size:13.5px; line-height:1.55; text-align:justify; }
+@media (max-width:640px){ .ico-just__nums{ grid-template-columns:1fr; } }
+body.night .ico-just{ background:#132621; }
+body.night .ico-crit{ background:rgba(255,255,255,.04); }
+body.night .ico-crit__ic{ background:rgba(255,255,255,.1); }

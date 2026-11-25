@@ -216,6 +216,8 @@
 
   /* ---- Estimación de la demanda técnica desde datos del portal ---- */
   function icoHorasBase() { return Number(S().getConfig("ico.horasBase", 160)) || 160; }
+  function icoHorasAudit() { const v = Number(S().getConfig("ico.horasAuditoria", 4.5)); return v > 0 ? v : 4.5; }
+  function icoPilares() { const v = Number(S().getConfig("ico.pilares", 4)); return v > 0 ? v : 4; }
   function icoJornada() { return Number(S().getConfig("ico.jornadaMes", 176)) || 176; }
   // Tiempo promedio (h) por actividad, recalibrado a valores realistas y
   // documentados (incluyen preparación, ejecución y registro). Antes estaban
@@ -289,7 +291,9 @@
           { name: "pesoSolicitudes", label: "Horas por solicitud técnica / consulta", type: "number", attrs: 'step="0.5"', value: icoPesos().solicitudes, hint: "Recepción, análisis, respuesta técnica y registro. Sugerido: " + ICO_PESOS_DEF.solicitudes + " h." },
           { name: "pesoReuniones", label: "Horas por reunión / comité", type: "number", attrs: 'step="0.5"', value: icoPesos().reuniones, hint: "Preparación, reunión y acta. Sugerido: " + ICO_PESOS_DEF.reuniones + " h." },
           { name: "pesoCapacitaciones", label: "Horas por capacitación", type: "number", attrs: 'step="0.5"', value: icoPesos().capacitaciones, hint: "Preparación de material, dictado y evaluación. Sugerido: " + ICO_PESOS_DEF.capacitaciones + " h." },
-          { name: "pesoMonitoreo", label: "Horas por monitoreo / auditoría", type: "number", attrs: 'step="0.5"', value: icoPesos().monitoreo, hint: "Terreno, aplicación de pauta, análisis e informe. Sugerido: " + ICO_PESOS_DEF.monitoreo + " h." }
+          { name: "pesoMonitoreo", label: "Horas por monitoreo / auditoría", type: "number", attrs: 'step="0.5"', value: icoPesos().monitoreo, hint: "Terreno, aplicación de pauta, análisis e informe. Sugerido: " + ICO_PESOS_DEF.monitoreo + " h." },
+          { name: "horasAuditoria", label: "Horas por medición RNAO/BPSO en una unidad", type: "number", attrs: 'step="0.5"', value: icoHorasAudit(), hint: "Tiempo de una medición/auditoría RNAO-BPSO por unidad (terreno + registro + análisis). Habitual: 4 a 5 h." },
+          { name: "pilares", label: "Pilares / programas a cargo de la coordinación", type: "number", value: icoPilares(), hint: "Ej.: programa RNAO/BPSO + otros 3 pilares de la unidad = 4. Se menciona en el texto de justificación." }
         ], {})}
         <button type="button" class="btn btn--ghost btn--sm" id="ico-sugeridos" style="margin-top:.2rem">↩️ Restaurar tiempos sugeridos</button>
         <label class="flex" style="gap:.5rem;align-items:center;margin-top:.7rem;font-size:13px">
@@ -312,6 +316,8 @@
           S().setConfig("ico.pesoReuniones", Number(d.pesoReuniones) || 0);
           S().setConfig("ico.pesoCapacitaciones", Number(d.pesoCapacitaciones) || 0);
           S().setConfig("ico.pesoMonitoreo", Number(d.pesoMonitoreo) || 0);
+          S().setConfig("ico.horasAuditoria", Number(d.horasAuditoria) || 4.5);
+          S().setConfig("ico.pilares", Number(d.pilares) || 4);
           let msg = "Parámetros guardados";
           if (m.querySelector("#ico-recalc").checked) { const n = icoRecalcularTodos(); msg = "Parámetros guardados · " + n + " mes(es) recalculado(s)"; }
           u.closeModal(); u.toast(msg, "ok"); renderICO();
@@ -337,6 +343,7 @@
         ${u.formHTML([
           { name: "demanda", label: "Trabajo técnico del mes (horas)", type: "number", required: true, value: rec.demanda != null ? rec.demanda : "", hint: "Suma de horas de trabajo técnico del mes. Estímala desde el portal o escríbela a mano." },
           { name: "horas", label: "Horas que trabaja una enfermera al mes (= 100%)", type: "number", required: true, value: rec.horas != null ? rec.horas : icoHorasBase(), hint: "Referencia de una EU a jornada completa (editable en Parámetros). 100% = una enfermera." },
+          { name: "auditPend", label: "Mediciones RNAO/BPSO que NO se alcanzaron a hacer (n° de unidades)", type: "number", value: rec.auditPend != null ? rec.auditPend : "", hint: "Unidades que debían medirse este mes y quedaron sin medir por falta de tiempo. Cada una suma " + icoHorasAudit() + " h de trabajo no realizado." },
           { name: "nota", label: "Observación (opcional)", type: "textarea", full: true, value: rec.nota || "" }
         ], {})}
         <div id="ico-preview" class="ico-preview"></div>`,
@@ -368,6 +375,7 @@
           const dup = S().all("capacidadOperativa").find(x => x.periodo === d.periodo && x.id !== rec.id);
           if (dup) { u.toast("Ya existe un registro para ese mes. Edítalo en su lugar.", "danger"); return; }
           d.demanda = Number(d.demanda); d.horas = Number(d.horas);
+          d.auditPend = d.auditPend === "" || d.auditPend == null ? 0 : Math.max(0, Number(d.auditPend) || 0);
           if (rec.id) S().update("capacidadOperativa", rec.id, d); else S().insert("capacidadOperativa", d);
           u.closeModal(); u.toast("Registro guardado", "ok"); renderICO();
         };
@@ -441,6 +449,91 @@
   function icoFTEline(rec) {
     const D = icoDecision(rec);
     return `El trabajo del mes equivale a <b>${fteFmt(D.reqR)} enfermera(s)</b> (${D.pct}% de una) y hoy hay <b>${D.dotacion}</b> → <b style="color:${DEC_COLOR[D.nivel]}">${D.verdict}</b>.`;
+  }
+
+  /* ---- JUSTIFICACIÓN DE REFERENTE TÉCNICO (lectura simple en HORAS) ----
+     En vez de "fracciones de enfermera", responde con 3 criterios fáciles de
+     defender ante Subdirección: (1) persistencia: el trabajo supera la jornada
+     de una enfermera mes tras mes; (2) magnitud: cuántas horas quedan sin
+     cubrir (por mes, por semana y acumuladas en el año); (3) consecuencia:
+     trabajo que queda pendiente o vencido. Con 2 de 3 se justifica. */
+  const SEM_MES = 4.33;   // semanas promedio por mes
+  function icoJustificacion() {
+    const recs = icoOrdenados().filter(r => Number(r.demanda) >= 0 && (Number(r.horas) || icoHorasBase()) > 0);
+    if (!recs.length) return null;
+    const hA = icoHorasAudit();
+    const noHecho = r => (Number(r.auditPend) || 0) * hA;           // trabajo que quedó sin hacer
+    const gap = r => Math.max(0, Number(r.demanda) + noHecho(r) - (Number(r.horas) || icoHorasBase()));
+    const last = recs[recs.length - 1];
+    const base = Number(last.horas) || icoHorasBase();
+    const hDia = base / (SEM_MES * 5);                 // horas de una jornada diaria
+    const ult6 = recs.slice(-6), ult12 = recs.slice(-12);
+    const sobre = ult6.filter(r => gap(r) > 0).length;
+    const gapMes = Math.round(gap(last));
+    const gapProm = Math.round(ult6.reduce((a, r) => a + gap(r), 0) / ult6.length);
+    const acum = Math.round(ult12.reduce((a, r) => a + gap(r), 0));
+    const acumMeses = Math.round(acum / base * 10) / 10;
+    const semProm = Math.round(gapProm / SEM_MES);       // horas semanales sin cubrir (promedio)
+    const diasProm = Math.round(gapProm / SEM_MES / hDia * 10) / 10;
+    const ev = icoEvidenciaData();
+    const pendientes = ev.pend + ev.venc;
+    const umbralMag = Math.round(base / 5);              // = 1 día por semana sin cubrir, al mes
+    const c1 = ult6.length >= 3 ? sobre >= Math.ceil(ult6.length / 2) : gap(last) > 0;
+    const c2 = gapProm >= umbralMag;
+    const audPendMes = Number(last.auditPend) || 0;
+    const audPend12 = ult12.reduce((a, r) => a + (Number(r.auditPend) || 0), 0);
+    const c3 = pendientes > 0 || audPend12 > 0;
+    const cumple = [c1, c2, c3].filter(Boolean).length;
+    const jornadaSem = Math.round(base / SEM_MES);
+    const modalidad = semProm >= jornadaSem * 0.8 ? `un/a Referente Técnico a <strong>jornada completa</strong> (${jornadaSem} h semanales)`
+      : semProm > 0 ? `un/a Referente Técnico con <strong>${semProm} horas semanales protegidas</strong> (≈ ${String(diasProm).replace(".", ",")} día(s) por semana)`
+      : "";
+    const nivel = cumple >= 2 ? "danger" : cumple === 1 ? "warn" : "ok";
+    const verdict = cumple >= 2 ? "Se justifica un/a Referente Técnico" : cumple === 1 ? "Señales de sobrecarga · aún no basta para justificar" : "Por ahora no se justifica";
+    return { recs, last, base, n6: ult6.length, n12: ult12.length, sobre, gapMes, gapProm, acum, acumMeses, semProm, diasProm,
+      pend: ev.pend, venc: ev.venc, pendientes, hA, audPendMes, audPend12, audHoras12: Math.round(audPend12 * hA), pilares: icoPilares(), umbralMag, c1, c2, c3, cumple, modalidad, nivel, verdict };
+  }
+  function icoJustTexto(J) {
+    const u = ui();
+    if (!J) return "";
+    const per = icoPeriodoLabel(J.last.periodo);
+    let t = `La coordinación de la UBPC tiene a cargo ${J.pilares} pilares/programas (entre ellos, el programa RNAO/BPSO), sostenidos por una sola enfermera. `
+      + `En los últimos ${J.n6} meses, el trabajo técnico de la UBPC superó la jornada de una enfermera en ${J.sobre} de ellos. `
+      + `En promedio quedan ${J.gapProm} horas mensuales sin cubrir (≈ ${J.semProm} horas semanales)`
+      + (J.acum > 0 ? `, acumulando ${J.acum} horas en los últimos ${J.n12} meses, equivalentes a ${String(J.acumMeses).replace(".", ",")} meses de trabajo de una enfermera a jornada completa` : "") + ". ";
+    if (J.audPend12 > 0) t += `Por falta de tiempo, quedaron sin realizar ${J.audPend12} medición(es) RNAO/BPSO por unidad en los últimos ${J.n12} meses (${J.audHoras12} horas de trabajo a ${String(J.hA).replace(".", ",")} h cada una), lo que afecta el seguimiento de la implementación de las guías. `;
+    if (J.pendientes > 0) t += `Además, a la fecha hay ${J.pend} solicitud(es) técnica(s) pendiente(s) y ${J.venc} compromiso(s) vencido(s). `;
+    t += J.cumple >= 2
+      ? `Por lo anterior, se solicita la incorporación de ${J.modalidad.replace(/<[^>]+>/g, "")}, para asegurar la continuidad técnica, el seguimiento de las unidades y el cumplimiento de los programas de la UBPC (cálculo a ${per}).`
+      : `Se mantendrá el monitoreo mensual para evaluar si la sobrecarga se sostiene (cálculo a ${per}).`;
+    return t;
+  }
+  function icoJustHTML(J) {
+    const u = ui();
+    if (!J) return "";
+    const col = DEC_COLOR[J.nivel];
+    const crit = (ok, titulo, texto) => `<div class="ico-crit ${ok ? "is-ok" : ""}"><span class="ico-crit__ic">${ok ? "✔" : "○"}</span>
+      <div><div class="ico-crit__t">${titulo}</div><div class="ico-crit__d">${texto}</div></div></div>`;
+    return `<div class="ico-just" style="--jc:${col}">
+      <div class="ico-just__head">
+        <div><div class="ico-just__eb">Justificación de Referente Técnico</div>
+          <div class="ico-just__verdict">${DEC_EMOJI[J.nivel]} ${u.esc(J.verdict)} <span class="ico-just__score">${J.cumple} de 3 criterios</span></div></div>
+      </div>
+      <div class="ico-just__nums">
+        <div><b>${J.gapMes} h</b><span>sin cubrir en ${u.esc(icoPeriodoLabel(J.last.periodo))}</span></div>
+        <div><b>${J.semProm} h</b><span>por semana (promedio ${J.n6} meses)</span></div>
+        <div><b>${J.acum} h</b><span>acumuladas en ${J.n12} meses${J.acum ? " = " + String(J.acumMeses).replace(".", ",") + " meses de una EU" : ""}</span></div>
+      </div>
+      <p class="kpi__sub" style="margin:-.3rem 0 .6rem">Horas sin cubrir = trabajo realizado + mediciones RNAO/BPSO no realizadas (${String(J.hA).replace(".", ",")} h c/u) − ${J.base} h de una enfermera. Coordinación a cargo de <strong>${J.pilares} pilares/programas</strong>.</p>
+      <div class="ico-just__crits">
+        ${crit(J.c1, "1 · La sobrecarga es permanente", `El trabajo superó las ${J.base} h de una enfermera en <strong>${J.sobre} de los últimos ${J.n6} meses</strong>${J.n6 >= 3 ? " (se cumple con la mitad o más)" : ""}.`)}
+        ${crit(J.c2, "2 · Las horas sin cubrir son significativas", `En promedio faltan <strong>${J.gapProm} h al mes</strong>; el umbral es ${J.umbralMag} h (= 1 día por semana).`)}
+        ${crit(J.c3, "3 · Ya hay trabajo que se está quedando sin hacer", `<strong>${J.audPend12}</strong> medición(es) RNAO/BPSO sin realizar en ${J.n12} meses (${J.audHoras12} h)${J.audPendMes ? `, ${J.audPendMes} este mes` : ""} · <strong>${J.pend}</strong> solicitud(es) pendiente(s) · <strong>${J.venc}</strong> compromiso(s) vencido(s).`)}
+      </div>
+      ${J.cumple >= 2 && J.modalidad ? `<div class="ico-just__reco">📌 Se recomienda ${J.modalidad}.</div>` : ""}
+      <div class="ico-just__txt"><div class="ico-just__txt-h"><span>📝 Texto listo para el oficio o informe</span><button class="btn btn--ghost btn--sm" id="ico-copy">📋 Copiar</button></div>
+        <p id="ico-just-txt">${u.esc(icoJustTexto(J))}</p></div>
+    </div>`;
   }
 
   /* ---- Evidencia de saturación con datos reales del portal (sin horas) ---- */
@@ -614,6 +707,22 @@
         </div>
       </div>
 
+      ${(() => { const J = icoJustificacion(); if (!J) return "";
+        const ck = ok => ok ? "✔" : "○";
+        return `<div class="icr__box" style="margin:0 0 12px;border-left:4px solid ${J.cumple >= 2 ? "#c62f3b" : "#d98514"}">
+          <div class="icr__lbl">Justificación de Referente Técnico · ${J.cumple} de 3 criterios</div>
+          <div style="font-weight:800;font-size:14px;margin:3px 0 6px">${u.esc(J.verdict)}</div>
+          <div class="icr__fte">
+            <div class="icr__fteb"><b>${J.gapMes} h</b><span>sin cubrir en el mes</span></div>
+            <div class="icr__fteb"><b>${J.semProm} h</b><span>por semana (prom.)</span></div>
+            <div class="icr__fteb"><b>${J.acum} h</b><span>acumuladas ${J.n12} meses</span></div>
+          </div>
+          <div style="font-size:10.5px;line-height:1.5;margin-top:4px">
+            ${ck(J.c1)} Sobrecarga permanente: ${J.sobre} de ${J.n6} meses sobre la jornada de una enfermera.<br>
+            ${ck(J.c2)} Horas sin cubrir significativas: ${J.gapProm} h/mes promedio (umbral ${J.umbralMag} h = 1 día/semana).<br>
+            ${ck(J.c3)} Trabajo sin hacer: ${J.audPend12} medición(es) RNAO/BPSO no realizadas (${J.audHoras12} h), ${J.pend} solicitud(es) pendiente(s) y ${J.venc} compromiso(s) vencido(s).</div>
+          <div style="font-size:10.5px;line-height:1.45;margin-top:6px;text-align:justify">${u.esc(icoJustTexto(J))}</div>
+        </div>`; })()}
       <div class="icr__lbl">Evidencia de saturación operativa</div>
       <div class="icr__evi">
         <div class="icr__evib"><b>${d.pend}</b><span>Solicitudes pendientes${d.avgResp != null ? " · " + d.avgResp + "d resp." : ""}</span></div>
@@ -687,13 +796,15 @@
     // Gráfico orientado a la decisión: cuántas ENFERMERAS de trabajo genera cada
     // mes (demanda ÷ horas de 1 enfermera) frente a la dotación actual (1). Cuando
     // la línea roja (trabajo) supera la verde (dotación=1), se necesita refuerzo.
-    const reqVals = recs.map(r => { const base = Number(r.horas) || icoHorasBase(); return base > 0 ? Math.round(Number(r.demanda) / base * 10) / 10 : 0; });
-    const dispVals = recs.map(() => 1);
-    const maxY = Math.max(2, Math.ceil(Math.max.apply(null, reqVals.concat([1])) + 0.5));
+    // En HORAS (no en fracciones de enfermera): así la distancia entre el trabajo
+    // y lo que alcanza a hacer una enfermera se ve tal cual es.
+    const reqVals = recs.map(r => Math.round(Number(r.demanda) || 0));
+    const dispVals = recs.map(r => Math.round(Number(r.horas) || icoHorasBase()));
+    const maxY = Math.ceil(Math.max.apply(null, reqVals.concat(dispVals)) * 1.15 / 50) * 50;
     const chart = recs.length > 1
       ? U.charts.lineChart({ labels, valueSuffix: "", maxY, series: [
-          { name: "Trabajo del mes (en enfermeras)", color: "var(--danger)", values: reqVals },
-          { name: "Dotación actual (1 enfermera)", color: "#12b5a5", values: dispVals }
+          { name: "Horas de trabajo del mes", color: "var(--danger)", values: reqVals },
+          { name: "Horas que alcanza 1 enfermera", color: "#12b5a5", values: dispVals }
         ] })
       : `<p class="kpi__sub">Registra al menos dos meses para ver la tendencia.</p>`;
 
@@ -703,6 +814,7 @@
         <td><strong>${u.esc(icoPeriodoLabel(r.periodo))}</strong></td>
         <td class="right">${r.demanda != null ? u.esc(r.demanda) : "—"}</td>
         <td class="right">${r.horas != null ? u.esc(r.horas) : "—"}</td>
+        <td class="right">${Number(r.auditPend) ? u.esc(r.auditPend) + " <span class=\"kpi__sub\">(" + Math.round(Number(r.auditPend) * icoHorasAudit()) + " h)</span>" : "—"}</td>
         <td class="right" style="font-weight:800;color:${e.c}">${pct == null ? "—" : pct + "%"}</td>
         <td><span class="badge badge--${e.k}">${e.l}</span></td>
         <td class="acciones"><div class="btn-row">
@@ -720,6 +832,7 @@
         </div>
         <div class="ico-result__read" style="--rc:${est.c}">🧮 ${icoFTEline(last)}</div>
       </div>
+      ${icoJustHTML(icoJustificacion())}
 
       <details class="ico-mas">
         <summary class="ico-mas__sum">📈 Ver evolución, cálculo, evidencia y recomendación</summary>
@@ -729,11 +842,11 @@
           <p class="kpi__sub" style="margin:.1rem 0 .4rem">El trabajo (demanda) es la <strong>suma del tiempo de cada actividad</strong> del mes (cantidad × tiempo promedio). Se divide por las horas que alcanza a hacer <strong>una enfermera</strong> (${u.esc(last.horas)} h): <strong>bajo 100%</strong> una enfermera basta; <strong>sobre 100%</strong> el trabajo supera a una persona. Ajusta los tiempos en <strong>⚙️ Parámetros</strong> si no reflejan tu realidad.</p>
           ${icoBreakdownHTML(last.periodo)}
           <div class="btn-row" style="margin:.4rem 0 .2rem"><button class="btn btn--ghost btn--sm" id="ico-recalc-last">🔗 Recalcular ${u.esc(icoPeriodoLabel(last.periodo))} con la actividad del portal</button></div>
-          <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 ¿Cuántas enfermeras necesita el trabajo, mes a mes?</h4>
-          <p class="kpi__sub" style="margin:.1rem 0 .3rem">La línea <strong>roja</strong> es cuántas enfermeras de trabajo genera cada mes; la <strong>verde</strong> es la dotación actual (1 enfermera). Cuando la roja queda por <strong>encima</strong> de la verde, el trabajo supera a una persona y se necesita refuerzo.</p>
+          <h4 class="ico-sec-title" style="margin:1.1rem 0 .1rem">📈 Horas de trabajo vs. horas de una enfermera, mes a mes</h4>
+          <p class="kpi__sub" style="margin:.1rem 0 .3rem">La línea <strong>roja</strong> son las horas de trabajo técnico de cada mes; la <strong>verde</strong>, las horas que alcanza a hacer una enfermera. <strong>La distancia entre ambas son las horas que quedan sin cubrir.</strong></p>
           <div style="margin:.4rem 0">${chart}</div>
           <div class="table-wrap"><table class="tbl"><thead><tr>
-            <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">Índice</th><th>Estado</th><th></th>
+            <th>Mes</th><th class="right">Demanda (h)</th><th class="right">Horas disp. (h)</th><th class="right">RNAO no medidas</th><th class="right">Índice</th><th>Estado</th><th></th>
           </tr></thead><tbody>${rows}</tbody></table></div>
           ${icoEvidenciaHTML()}
           ${icoRecomendacionHTML()}
@@ -743,6 +856,13 @@
     document.getElementById("ico-add").onclick = () => icoForm(null);
     document.getElementById("ico-params").onclick = () => icoParams();
     document.getElementById("ico-print").onclick = () => printInformeICO();
+    const cpy = document.getElementById("ico-copy");
+    if (cpy) cpy.onclick = () => {
+      const t = (document.getElementById("ico-just-txt") || {}).innerText || "";
+      const done = () => u.toast("Texto copiado", "ok");
+      try { navigator.clipboard.writeText(t).then(done, () => u.toast("No se pudo copiar; selecciónalo manualmente", "warn")); }
+      catch (e) { u.toast("No se pudo copiar; selecciónalo manualmente", "warn"); }
+    };
     const rcl = document.getElementById("ico-recalc-last");
     if (rcl) rcl.onclick = () => {
       const est = icoEstimar(last.periodo);
