@@ -451,7 +451,7 @@
         const findeOcultos = vista === "semana" && !finde ? [5, 6].reduce((a, i) => a + (byIso[isoOf(addD(r.ini, i))] || []).length, 0) : 0;
         cuerpo = `<div class="agx-week" style="--nd:${ndays}">${cols.map(d => { const iso = isoOf(d), evs = byIso[iso] || [];
           return `<div class="agx-col${iso === todayIso ? " is-today" : ""}" data-iso="${iso}">
-            <div class="agx-col__h"><span>${DOWL[(d.getDay() + 6) % 7]}</span><b>${d.getDate()}</b><button type="button" class="agx-add" data-add="${iso}" title="Agregar actividad">＋</button></div>
+            <div class="agx-col__h"><span class="agx-col__dn">${DOWL[(d.getDay() + 6) % 7]}</span><b>${d.getDate()}</b><span class="agx-col__mn">${MESES[d.getMonth()]}</span><button type="button" class="agx-add" data-add="${iso}" title="Agregar actividad">＋</button></div>
             <div class="agx-col__b">${evs.length ? evs.map(e => chip(e, vista === "dia")).join("") : `<span class="agx-none">Sin actividades</span>`}</div></div>`; }).join("")}</div>
           ${findeOcultos ? `<p class="agx-note">ℹ️ Hay ${findeOcultos} actividad(es) el fin de semana. <button type="button" class="btn btn--ghost btn--sm" id="agx-verfinde">Mostrar fines de semana</button></p>` : ""}`;
       } else if (vista === "mes") {
@@ -467,7 +467,7 @@
           cells += `<div class="agx-day${iso === todayIso ? " is-today" : ""}" data-iso="${iso}"><div class="agx-day__h"><b>${dn}</b><button type="button" class="agx-add" data-add="${iso}" title="Agregar">＋</button></div>
             ${evs.slice(0, 4).map(e => chip(e)).join("")}${evs.length > 4 ? `<button type="button" class="agx-more" data-dia="${iso}">+${evs.length - 4} más</button>` : ""}</div>`;
         }
-        cuerpo = `<div class="agx-mhead" style="--nc:${ncol}">${DOWL.slice(0, ncol).map(x => `<span>${x.slice(0, 3)}</span>`).join("")}</div>
+        cuerpo = `<div class="agx-mhead" style="--nc:${ncol}">${DOWL.slice(0, ncol).map(x => `<span>${x}</span>`).join("")}</div>
           <div class="agx-month" style="--nc:${ncol}">${cells}</div>
           ${findeOcultos ? `<p class="agx-note">ℹ️ Hay ${findeOcultos} actividad(es) en fines de semana. <button type="button" class="btn btn--ghost btn--sm" id="agx-verfinde">Mostrar fines de semana</button></p>` : ""}`;
       } else {
@@ -475,7 +475,7 @@
         const lista = enRango;
         const dias = [...new Set(lista.map(e => e.iso))];
         cuerpo = lista.length ? `<div class="agx-list">${dias.map(iso => { const d = dateFromIso(iso);
-          return `<div class="agx-lday${iso === todayIso ? " is-today" : ""}"><div class="agx-lday__h"><b>${d.getDate()}</b><span>${DOWL[(d.getDay() + 6) % 7].slice(0, 3)}</span></div>
+          return `<div class="agx-lday${iso === todayIso ? " is-today" : ""}"><div class="agx-lday__h"><b>${d.getDate()}</b><span>${DOWL[(d.getDay() + 6) % 7]}</span></div>
             <div class="agx-lday__b">${lista.filter(e => e.iso === iso).map(e => chip(e, true)).join("")}</div></div>`; }).join("")}</div>`
           : `<p class="agx-none" style="padding:1rem">Sin actividades en el período con los filtros elegidos.</p>`;
       }
@@ -493,18 +493,20 @@
           ${kpi("Vencidos", vencidos.length, "Plazos sin cerrar", vencidos.length ? "danger" : "ok", "⏰")}
         </div>
         ${SH("🗓️", "Calendario", "Haz clic en una actividad para abrirla o editarla · ＋ agrega una actividad ese día")}
-        <div class="card agx-card">
-          <div class="agx-bar">
-            <div class="agx-nav"><button class="btn-icon" id="agx-prev" aria-label="Anterior">‹</button><button class="btn btn--ghost btn--sm" id="agx-hoy">Hoy</button><button class="btn-icon" id="agx-next" aria-label="Siguiente">›</button>
-              <strong class="agx-title">${tituloRango(r)}</strong></div>
+        <div class="card agx-card agx-card--agua">
+          <div class="agx-head">
+            <div class="agx-nav"><button class="btn-icon" id="agx-prev" aria-label="Anterior">‹</button><button class="btn btn--ghost btn--sm" id="agx-hoy">Hoy</button><button class="btn-icon" id="agx-next" aria-label="Siguiente">›</button></div>
+            <div class="agx-titlebox"><img class="agx-evi" src="assets/img/evi-agenda.webp" alt="" aria-hidden="true"><div><div class="agx-title">${tituloRango(r)}</div><div class="agx-sub">${{ dia: "Vista del día", semana: finde ? "Semana completa" : "Semana laboral · lunes a viernes", mes: "Vista mensual", lista: "Listado de actividades del mes" }[vista]}</div></div></div>
             <div class="agx-views" role="tablist">${[["dia", "Día"], ["semana", "Semana laboral"], ["mes", "Mes"], ["lista", "Listado"]].map(([k, l]) => `<button type="button" class="agx-vb${vista === k ? " is-on" : ""}" data-vista="${k}">${l}</button>`).join("")}</div>
+          </div>
+          <div class="agx-filters">
+            ${legend}
             <div class="agx-tools">
               <select class="select input--sm" id="agx-est" aria-label="Estado"><option value="">Estado: todos</option>${ESTADOS.map(e => `<option value="${e.k}"${fEstado === e.k ? " selected" : ""}>${e.lab}</option>`).join("")}</select>
               <label class="agx-chk"><input type="checkbox" id="agx-finde"${finde ? " checked" : ""}> Fines de semana</label>
               <button class="btn btn--primary btn--sm" id="agc-newev">+ Nueva actividad</button></div>
           </div>
-          ${legend}
-          ${cuerpo}
+          <div class="agx-grid-wrap">${cuerpo}</div>
         </div>
         ${vencidos.length ? `${SH("⏰", "Vencidos (" + vencidos.length + ")", "Plazos sin cerrar · edita la fecha o abre el registro")}
           <div class="card agc-venc"><div class="agc-list" style="max-height:240px;overflow:auto">${vencidos.map(e => itemHTML(e, today, u)).join("")}</div></div>` : ""}
