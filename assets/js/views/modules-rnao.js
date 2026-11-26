@@ -1665,4 +1665,5 @@
   Object.assign(U.coord.binders, { m3: m3Bind });
   // Módulo de Plan de Intervención reutilizable (Coordinador y Referente).
   U.rnaoPlanes = { mount: planesTab };
+  U.rnaoChamp = { stats: (id) => champStats(id) };
 })();

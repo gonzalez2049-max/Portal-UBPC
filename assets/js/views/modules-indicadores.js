@@ -10,7 +10,11 @@
 
   const TIPOS = ["Estructura", "Proceso", "Resultado", "Impacto"];
   const PERIODICIDAD = ["Mensual", "Bimensual", "Trimestral", "Semestral", "Anual"];
-  const SENTIDOS = ["Mayor es mejor", "Menor es mejor"];
+  const SENTIDOS = ["Mayor es mejor", "Menor es mejor", "Dentro de un rango"];
+  const PROGRAMAS = ["RNAO / BPSO", "NT 234 · Prevención de LPP", "Epidemiología LPP", "Capacitación y Champions", "Gestión documental", "Calidad y seguridad del paciente", "Gestión UBPC", "Otro"];
+  const PROG_COLOR = { "RNAO / BPSO": "#0d6ea8", "NT 234 · Prevención de LPP": "#0f8f83", "Epidemiología LPP": "#c62f3b", "Capacitación y Champions": "#7a5cd0", "Gestión documental": "#5f7d76", "Calidad y seguridad del paciente": "#d98514", "Gestión UBPC": "#1554b8", "Otro": "#8a94a6" };
+  const progColor = p => PROG_COLOR[p] || "#8a94a6";
+  const UNIDADES_MEDIDA = ["Porcentaje (%)", "Tasa", "Número (conteo)", "Días", "Horas", "Otro"];
   const TIPO_COLOR = { Estructura: "#7a5cd0", Proceso: "#1e9fe0", Resultado: "#12b5a5", Impacto: "#e0912f" };
   const TIPO_ORDEN = { Estructura: 0, Proceso: 1, Resultado: 2, Impacto: 3 };
   // Orden legible: por tipo (Estructura → Proceso → Resultado → Impacto) y luego por nombre.
@@ -148,38 +152,89 @@
   const pct = (num, den) => (Number(den) > 0 ? Math.round((Number(num) / Number(den)) * 10000) / 100 : null);
   // Redondeo de apoyo para diferencias/promedios (hasta 2 decimales).
   const d2 = (n) => (n == null || n === "" ? n : Math.round(Number(n) * 100) / 100);
-  function currentValue(ind) {
-    const seg = (ind.seguimientos || []).filter(s => s.valor !== "" && s.valor != null);
-    if (seg.length) return Number(seg[seg.length - 1].valor);
+  /* Serie por PERÍODO (no por orden de ingreso).
+     · Si en un período hay una medición General/Institucional, esa es el valor del período.
+     · Si solo hay mediciones por unidad: con numerador/denominador en todas → Σnum/Σden×100;
+       si no, promedio de los resultados. Con opt.unidad se toma solo esa unidad.
+     · opt.hasta limita al período elegido (filtro de período). */
+  const segValidos = ind => (ind.seguimientos || []).filter(s => s.valor !== "" && s.valor != null && !isNaN(Number(s.valor)));
+  function seriePeriodos(ind, opt) {
+    opt = opt || {};
+    let segs = segValidos(ind);
+    if (opt.unidad) segs = segs.filter(s => (s.unidad || "General") === opt.unidad);
+    const g = {};
+    segs.forEach(s => { const k = s.periodo || ""; (g[k] = g[k] || []).push(s); });
+    let pers = Object.keys(g).sort();
+    if (opt.hasta) pers = pers.filter(p => !p || p <= opt.hasta);
+    return pers.map(per => {
+      const l = g[per];
+      const inst = l.filter(x => !x.unidad);
+      const base = inst.length ? inst : l;
+      let valor;
+      if (base.length === 1) valor = Number(base[0].valor);
+      else if (base.every(x => x.numerador != null && x.numerador !== "" && Number(x.denominador) > 0)) {
+        const n = base.reduce((a, x) => a + Number(x.numerador), 0), d = base.reduce((a, x) => a + Number(x.denominador), 0);
+        valor = pct(n, d);
+      } else valor = d2(base.reduce((a, x) => a + Number(x.valor), 0) / base.length);
+      const metaV = base.map(x => x.metaVigente).find(x => x != null && x !== "");
+      return { periodo: per, valor, n: base.length, unidades: inst.length ? 0 : base.length, metaVigente: metaV != null ? Number(metaV) : null, fecha: base.map(x => x.fecha).filter(Boolean).sort().pop() || "" };
+    });
+  }
+  function currentValue(ind, opt) {
+    const sp = seriePeriodos(ind, opt);
+    if (sp.length) return sp[sp.length - 1].valor;
+    if (opt && (opt.unidad || opt.hasta)) return null;
     const den = Number(ind.denominador);
-    if (den > 0) return pct(Number(ind.numerador), den);
+    if (den > 0 && ind.numerador !== "" && ind.numerador != null) return pct(Number(ind.numerador), den);
     if (ind.lineaBase !== "" && ind.lineaBase != null) return Number(ind.lineaBase);
     return null;
   }
+  function ultimoPeriodo(ind, opt) { const sp = seriePeriodos(ind, opt); return sp.length ? sp[sp.length - 1].periodo : ""; }
   function menorMejor(ind) { return ind.sentido === "Menor es mejor"; }
-  function semaforo(ind) {
-    const cur = currentValue(ind); if (cur == null || ind.meta === "" || ind.meta == null) return "sd";
-    const meta = Number(ind.meta);
-    if (menorMejor(ind)) return cur <= meta ? "verde" : (cur <= meta + 15 ? "amarillo" : "rojo");
-    return cur >= meta ? "verde" : (cur >= meta - 15 ? "amarillo" : "rojo");
+  function esRango(ind) { return ind.sentido === "Dentro de un rango"; }
+  // Criterio de semaforización: el de la ficha técnica (umbralSeguimiento, en puntos).
+  // Si la ficha no lo define, se usa el criterio que el portal ya aplicaba (15 pts) y
+  // se marca como "por defecto" para completarlo en la ficha.
+  function umbralSem(ind) {
+    const v = Number(ind.umbralSeguimiento);
+    return (ind.umbralSeguimiento !== "" && ind.umbralSeguimiento != null && !isNaN(v)) ? { v, def: false } : { v: 15, def: true };
   }
-  function cumplimiento(ind) {
-    const cur = currentValue(ind); const meta = Number(ind.meta);
-    if (cur == null || !meta) return null;
+  function semaforoDe(ind, cur, metaOverride) {
+    const meta = metaOverride != null ? Number(metaOverride) : (ind.meta === "" || ind.meta == null ? null : Number(ind.meta));
+    if (cur == null || meta == null || isNaN(meta)) return "sd";
+    const u = umbralSem(ind).v;
+    if (esRango(ind)) {
+      const max = Number(ind.metaMax); if (isNaN(max) || ind.metaMax === "" || ind.metaMax == null) return "sd";
+      if (cur >= meta && cur <= max) return "verde";
+      const dist = cur < meta ? meta - cur : cur - max;
+      return dist <= u ? "amarillo" : "rojo";
+    }
+    if (menorMejor(ind)) return cur <= meta ? "verde" : (cur <= meta + u ? "amarillo" : "rojo");
+    return cur >= meta ? "verde" : (cur >= meta - u ? "amarillo" : "rojo");
+  }
+  function semaforo(ind, opt) { return semaforoDe(ind, currentValue(ind, opt)); }
+  function cumplimiento(ind, opt) {
+    const cur = currentValue(ind, opt); const meta = Number(ind.meta);
+    if (cur == null || ind.meta === "" || ind.meta == null || isNaN(meta)) return null;
+    if (esRango(ind)) { const max = Number(ind.metaMax); if (isNaN(max)) return null; return cur >= meta && cur <= max ? 100 : Math.max(0, Math.round(100 - (cur < meta ? meta - cur : cur - max))); }
+    if (!meta && !menorMejor(ind)) return null;
     return Math.min(100, Math.round(menorMejor(ind) ? (cur > 0 ? meta / cur * 100 : 100) : cur / meta * 100));
   }
-  function serie(ind) {
+  function serie(ind, opt) {
     const pts = [];
-    if (ind.lineaBase !== "" && ind.lineaBase != null) pts.push({ periodo: "Línea base", valor: Number(ind.lineaBase) });
-    (ind.seguimientos || []).forEach(s => { if (s.valor !== "" && s.valor != null) pts.push({ periodo: s.periodo || "", valor: Number(s.valor) }); });
+    if (!(opt && opt.unidad) && ind.lineaBase !== "" && ind.lineaBase != null) pts.push({ periodo: "Línea base", valor: Number(ind.lineaBase) });
+    seriePeriodos(ind, opt).forEach(p => pts.push({ periodo: p.periodo || "", valor: p.valor }));
     return pts;
   }
-  function tendencia(ind) {
-    const s = serie(ind); if (s.length < 2) return { arrow: "→", txt: "Sin tendencia", fav: null };
-    const d = s[s.length - 1].valor - s[s.length - 2].valor;
-    if (d === 0) return { arrow: "→", txt: "Estable", fav: null };
-    const up = d > 0; const fav = menorMejor(ind) ? !up : up;
-    return { arrow: up ? "▲" : "▼", txt: (up ? "+" : "") + d2(d) + " pts", fav };
+  // Variación respecto de la medición anterior (por período). fav = si la evolución es favorable.
+  function tendencia(ind, opt) {
+    const s = serie(ind, opt); if (s.length < 2) return { arrow: "→", txt: "Sin tendencia", fav: null, d: null };
+    const d = d2(s[s.length - 1].valor - s[s.length - 2].valor);
+    if (d === 0) return { arrow: "→", txt: "Estable", fav: null, d: 0 };
+    const up = d > 0;
+    let fav = menorMejor(ind) ? !up : up;
+    if (esRango(ind)) { const mid = (Number(ind.meta) + Number(ind.metaMax)) / 2; fav = Math.abs(s[s.length - 1].valor - mid) < Math.abs(s[s.length - 2].valor - mid); }
+    return { arrow: up ? "▲" : "▼", txt: (up ? "+" : "") + d + " pts", fav, d };
   }
 
   /* ============================================================
@@ -942,186 +997,625 @@
       </div>`;
   }
 
-  /* ---------- Vista ---------- */
+  /* ============================================================
+     VISTA · TABLERO DE CONTROL DE INDICADORES (pestañas)
+     Principio: registrar una vez, vincular, actualizar solo y decidir.
+     ============================================================ */
   const TABS_IND = [
+    { key: "resumen", label: "Resumen ejecutivo" },
     { key: "registrados", label: "Indicadores registrados" },
-    { key: "matriz", label: "Ficha técnica (matriz)" }
+    { key: "rnao", label: "RNAO / BPSO" },
+    { key: "nt234", label: "NT 234" },
+    { key: "epi", label: "Epidemiología LPP" },
+    { key: "capacidad", label: "Capacidad Operativa" },
+    { key: "fichas", label: "Fichas técnicas" },
+    { key: "evi", label: "Recomendaciones de EVI" }
   ];
-  let _box = null, _tab = "registrados";
+  let _box = null, _tab = "resumen";
+  const F = { per: "", prog: "", guia: "", unidad: "", tipo: "", estado: "", fuente: "" };
+  let _vista = "tarjetas", _gran = "mensual";
   function indicadores(params) {
-    const tab = (params && params.tab) || "registrados";
+    let tab = (params && params.tab) || "resumen";
+    if (tab === "matriz") tab = "fichas";
     return `<div class="page-head"><h1>Indicadores UBPC</h1>
-      <p>Gestión de indicadores de estructura, proceso, resultado e impacto, con semáforo, cumplimiento, tendencias y alertas.</p></div>
+      <p>Tablero de control institucional: indicadores registrados y conectados, con ficha técnica, semáforo, tendencias, brechas y acciones.</p></div>
       ${U.components.resource.tabsBar("coord", "indicadores", TABS_IND, tab)}
       <div id="ind-body"></div>`;
   }
   function indBind(main, params) {
-    _tab = (params && params.tab) || "registrados";
+    _tab = (params && params.tab) || "resumen";
+    if (_tab === "matriz") _tab = "fichas";
     _box = document.getElementById("ind-body");
     seedRnaoLPP();
     renderTab();
   }
   function renderTab() {
     if (!_box) return;
-    if (_tab === "matriz") renderMatriz(_box); else renderRegistrados(_box);
+    ensureIndCSS();
+    const r = { resumen: renderResumen, registrados: renderRegistrados, rnao: renderRnao, nt234: renderNT, epi: renderEpiTab, capacidad: renderCapacidad, fichas: renderFichas, evi: renderEviTab }[_tab] || renderResumen;
+    try { r(_box); } catch (e) { _box.innerHTML = ui().empty("No se pudo mostrar esta sección.", String(e && e.message || e), "⚠️"); }
+  }
+  const SH = (ico, t, sub) => U.components.resource.secHead(ico, t, sub);
+  const intro = (t) => `<p class="ixx-intro">${t}</p>`;
+
+  /* ---------- Filtros ---------- */
+  const optsDe = arr => [...new Set(arr.filter(x => x != null && String(x).trim() !== ""))].sort();
+  function periodosTodos() { const s0 = new Set(); S().all("indicadores").forEach(i => segValidos(i).forEach(x => x.periodo && s0.add(x.periodo))); return [...s0].sort().reverse(); }
+  const optUnidad = () => F.unidad || F.per ? { unidad: F.unidad || "", hasta: F.per || "" } : undefined;
+  function aplicarFiltros(list) {
+    const o = optUnidad();
+    return list.filter(i => (!F.prog || (i.programa || "Sin programa") === F.prog)
+      && (!F.guia || (i.guia || "General") === F.guia)
+      && (!F.tipo || i.tipo === F.tipo)
+      && (!F.fuente || (i.fuenteDatos || "Sin fuente") === F.fuente)
+      && (!F.unidad || segValidos(i).some(x => (x.unidad || "General") === F.unidad))
+      && (!F.estado || semaforo(i, o) === F.estado));
+  }
+  function filtrosHTML(campos) {
+    const all = S().all("indicadores"); const u = ui();
+    const sel = (k, lab, opts, fmt) => `<select class="select ixx-f" data-f="${k}" aria-label="${lab}"><option value="">${lab}: todos</option>${opts.map(o => `<option value="${u.esc(o)}"${F[k] === o ? " selected" : ""}>${u.esc(fmt ? fmt(o) : o)}</option>`).join("")}</select>`;
+    const def = {
+      per: () => sel("per", "Período", periodosTodos()),
+      prog: () => sel("prog", "Programa", optsDe(all.map(i => i.programa || "Sin programa"))),
+      guia: () => sel("guia", "Guía", optsDe(all.map(i => i.guia || "General"))),
+      unidad: () => sel("unidad", "Unidad", optsDe([].concat(...all.map(i => segValidos(i).map(x => x.unidad || "General"))))),
+      tipo: () => sel("tipo", "Tipo", TIPOS),
+      estado: () => sel("estado", "Estado", ["verde", "amarillo", "rojo", "sd"], k => SEM[k].l),
+      fuente: () => sel("fuente", "Fuente", optsDe(all.map(i => i.fuenteDatos || "Sin fuente")))
+    };
+    const activos = Object.keys(F).filter(k => F[k]).length;
+    return `<div class="ixx-filters">${campos.map(c => def[c]()).join("")}${activos ? `<button type="button" class="btn btn--ghost btn--sm" id="ixx-clear">✖ Limpiar filtros</button>` : ""}</div>`;
+  }
+  function bindFiltros(root) {
+    root.querySelectorAll("[data-f]").forEach(s0 => s0.onchange = () => { F[s0.dataset.f] = s0.value; renderTab(); });
+    const c = root.querySelector("#ixx-clear"); if (c) c.onclick = () => { Object.keys(F).forEach(k => F[k] = ""); renderTab(); };
   }
 
-  /* ---------- Datos conectados con RNAO / NT 234 ----------
-     Toma automáticamente las mediciones registradas en los módulos RNAO y
-     NT 234 y las muestra como series por período, para ir llevando el dato
-     en el tiempo. Es de solo lectura: la fuente es cada módulo. */
-  function datosConectados() {
+  /* ---------- Indicadores CONECTADOS (se calculan desde su módulo de origen) ---------- */
+  const fmtFecha = d => d ? ui().fechaCL(d) : "—";
+  const maxFecha = recs => recs.map(r => r.fechaModificacion || r.fechaCreacion || r.fecha || "").filter(Boolean).sort().pop() || "";
+  function conectados() {
+    const out = []; const CSx = U.coordStats || {}; const NT = U.ntUtil || {};
+    // RNAO/BPSO: cumplimiento global por guía (promedio de la última evaluación de cada unidad)
+    const evals = S().all("evaluacionesRNAO");
+    const metaR = CSx.metaInstitucional ? CSx.metaInstitucional() : null;
+    optsDe(evals.map(e => e.guia)).forEach(g => {
+      const eg = evals.filter(e => e.guia === g);
+      const porPer = {};
+      eg.forEach(e => { const v = CSx.globalCumplimiento ? CSx.globalCumplimiento(e) : null; if (v == null) return; const k = e.periodo || String(e.fecha || "").slice(0, 7); (porPer[k] = porPer[k] || []).push(v); });
+      const pers = Object.keys(porPer).sort(); if (!pers.length) return;
+      const serieC = pers.map(k => ({ periodo: k, valor: d2(porPer[k].reduce((a, b) => a + b, 0) / porPer[k].length) }));
+      out.push({ key: "rnao:" + g, nombre: "Cumplimiento global RNAO · " + g, programa: "RNAO / BPSO", tipo: "Proceso", fuente: "Evaluaciones RNAO/BPSO", ruta: "#/coord/m3?tab=evaluaciones",
+        sentido: "Mayor es mejor", meta: metaR, serie: serieC, fecha: maxFecha(eg), nota: eg.length + " evaluación(es) · promedio de unidades del período" });
+    });
+    // NT 234: Indicador Global institucional (2 medidas ejecutadas) por período
+    const meds = S().all("nt234");
+    if (meds.length && NT.globalNT) {
+      const pers = NT.periodosNT ? NT.periodosNT(meds) : optsDe(meds.map(m => m.periodo));
+      const serieC = pers.map(per => { const l = meds.filter(m => m.periodo === per).map(NT.globalNT).filter(v => v != null); return l.length ? { periodo: per, valor: d2(l.reduce((a, b) => a + b, 0) / l.length) } : null; }).filter(Boolean);
+      if (serieC.length) out.push({ key: "nt234:global", nombre: "Indicador Global NT 234 (2 medidas ejecutadas)", programa: "NT 234 · Prevención de LPP", tipo: "Proceso", fuente: "Seguimiento NT 234", ruta: "#/coord/m1?tab=nt234&sub=seguimiento",
+        sentido: "Mayor es mejor", meta: NT.meta234 ? NT.meta234() : null, serie: serieC, fecha: maxFecha(meds), nota: "Promedio de unidades del período" });
+    }
+    // Epidemiología LPP (institucional, por mes)
+    const epi = S().all("epiLPP");
+    if (epi.length && NT.epiMes) {
+      const pers = optsDe(epi.map(r => r.periodo));
+      const meses = pers.map(p => NT.epiMes(epi, p, () => true));
+      [["inc", "Incidencia de LPP intrahospitalaria", "Menor es mejor", "Resultado"], ["prev", "Prevalencia de LPP", "Menor es mejor", "Resultado"], ["lib", "Pacientes libres de LPP intrahospitalaria", "Mayor es mejor", "Resultado"]].forEach(([k, n, sen, t]) => {
+        const serieC = meses.filter(m => m[k] != null).map(m => ({ periodo: m.per, valor: d2(m[k]) }));
+        if (!serieC.length) return;
+        const indDef = (NT.EPI_IND || []).find(x => x.k === k);
+        out.push({ key: "epi:" + k, nombre: n, programa: "Epidemiología LPP", tipo: t, fuente: "Epidemiología LPP", ruta: "#/coord/m1?tab=nt234&sub=epi",
+          sentido: sen, meta: indDef && NT.epiMeta ? NT.epiMeta(indDef) : null, serie: serieC, fecha: maxFecha(epi), nota: "Conteos del mes; denominador validado" });
+      });
+    }
+    // Red Champion: % de Champions activos con participación en los últimos 60 días
+    const ch = S().all("redChampion").filter(c => c.estado === "Activo");
+    if (ch.length && U.rnaoChamp && U.rnaoChamp.stats) {
+      const act = ch.filter(c => U.rnaoChamp.stats(c.id).nivel === "activo").length;
+      out.push({ key: "champ:activos", nombre: "Champions con participación reciente (60 días)", programa: "Capacitación y Champions", tipo: "Estructura", fuente: "Red de Champions", ruta: "#/coord/m3?tab=champion",
+        sentido: "Mayor es mejor", meta: null, serie: [{ periodo: "Actual", valor: pct(act, ch.length) }], fecha: maxFecha(S().all("participacionChampion").concat(S().all("convocatoriaChampion"))), nota: act + " de " + ch.length + " Champions activos" });
+    }
+    // Capacitación: cobertura (personas capacitadas / población objetivo), solo si hay denominador
+    const acts = S().all("actividades");
+    const po = acts.reduce((n, a) => n + (parseInt(a.poblacionObjetivo) || 0), 0), pc = acts.reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0);
+    if (acts.length && po > 0) out.push({ key: "cap:cobertura", nombre: "Cobertura de capacitación", programa: "Capacitación y Champions", tipo: "Proceso", fuente: "Capacitaciones", ruta: "#/coord/m4",
+      sentido: "Mayor es mejor", meta: null, serie: [{ periodo: "Acumulado", valor: pct(pc, po) }], fecha: maxFecha(acts), nota: pc + " capacitados / " + po + " población objetivo" });
+    // Gestión documental
+    const docs = S().all("documentos");
+    if (docs.length) {
+      const vig = docs.filter(d => /vigente/i.test(d.estado || "")).length, vb = docs.filter(d => /s[íi]/i.test(d.revisadoUBP || "")).length;
+      out.push({ key: "doc:vigentes", nombre: "Documentos institucionales vigentes", programa: "Gestión documental", tipo: "Estructura", fuente: "Gestión documental", ruta: "#/coord/m2?tab=documentos",
+        sentido: "Mayor es mejor", meta: null, serie: [{ periodo: "Actual", valor: pct(vig, docs.length) }], fecha: maxFecha(docs), nota: vig + " de " + docs.length + " documentos" });
+      out.push({ key: "doc:vb", nombre: "Documentos con V°B° UBPC", programa: "Gestión documental", tipo: "Proceso", fuente: "Gestión documental", ruta: "#/coord/m2?tab=documentos",
+        sentido: "Mayor es mejor", meta: null, serie: [{ periodo: "Actual", valor: pct(vb, docs.length) }], fecha: maxFecha(docs), nota: vb + " de " + docs.length + " revisados" });
+    }
+    // Auditorías / monitoreo del Referente
+    const mon = S().all("monitoreoRef");
+    if (mon.length) { const c = mon.filter(m => /complet|realiz|cerr/i.test(m.estado || "")).length;
+      out.push({ key: "aud:monitoreo", nombre: "Auditorías / monitoreos completados", programa: "Calidad y seguridad del paciente", tipo: "Proceso", fuente: "Monitoreo del Referente", ruta: "#/ref/home",
+        sentido: "Mayor es mejor", meta: null, serie: [{ periodo: "Acumulado", valor: pct(c, mon.length) }], fecha: maxFecha(mon), nota: c + " de " + mon.length + " registros" }); }
+    // Articulación: acuerdos cumplidos
+    const acu = S().all("acuerdos");
+    if (acu.length) { const c = acu.filter(a => /cumpl|complet|cerr|finaliz/i.test(a.estado || "")).length;
+      out.push({ key: "acu:cumplidos", nombre: "Acuerdos cumplidos", programa: "Gestión UBPC", tipo: "Proceso", fuente: "Articulación y respaldo", ruta: "#/coord/m5?tab=acuerdos",
+        sentido: "Mayor es mejor", meta: null, serie: [{ periodo: "Acumulado", valor: pct(c, acu.length) }], fecha: maxFecha(acu), nota: c + " de " + acu.length + " acuerdos" }); }
+    // Valor, estado y variación (mismo criterio que los registrados)
+    const oficiales = S().all("indicadores");
+    out.forEach(c => {
+      const pseudo = { sentido: c.sentido, meta: c.meta == null ? "" : c.meta };
+      c.valor = c.serie.length ? c.serie[c.serie.length - 1].valor : null;
+      c.periodo = c.serie.length ? c.serie[c.serie.length - 1].periodo : "";
+      c.sem = c.valor == null ? "sd" : semaforoDe(pseudo, c.valor);
+      c.variacion = c.serie.length > 1 ? d2(c.valor - c.serie[c.serie.length - 2].valor) : null;
+      c.fav = c.variacion == null || c.variacion === 0 ? null : (c.sentido === "Menor es mejor" ? c.variacion < 0 : c.variacion > 0);
+      // ¿Ya está incorporado al registro oficial? (por clave de origen o por nombre) → no se cuenta dos veces
+      c.oficial = oficiales.find(i => i.origenConectado === c.key || normNombre(i.nombre) === normNombre(c.nombre)) || null;
+    });
+    return out;
+  }
+
+  /* ---------- Componentes estándar ---------- */
+  const fmtV = (v, ind) => v == null ? "—" : (String(v).replace(".", ",") + ((ind && ind.unidadMedida && !/porcentaje/i.test(ind.unidadMedida)) ? "" : "%"));
+  const metaTxt = (ind) => {
+    if (ind.meta === "" || ind.meta == null) return "Sin meta establecida";
+    if (esRango(ind)) return "Rango " + ind.meta + "–" + (ind.metaMax != null && ind.metaMax !== "" ? ind.metaMax : "?");
+    return (menorMejor(ind) ? "≤ " : "≥ ") + ind.meta + "%";
+  };
+  // Ficha técnica: campos, completitud y valores derivados (sin inventar)
+  const FICHA_DEF = [
+    ["nombre", "Nombre del indicador", true], ["objetivo", "Objetivo", true], ["justificacion", "Justificación", true],
+    ["tipo", "Tipo de indicador", true], ["programa", "Programa o línea de trabajo", true], ["formula", "Fórmula de cálculo", "noEstr"],
+    ["numeradorDesc", "Numerador", "noEstr"], ["denominadorDesc", "Denominador", "noEstr"], ["factor", "Factor de amplificación", false],
+    ["unidadMedida", "Unidad de medida", true], ["criteriosInclusion", "Criterios de inclusión", false], ["criteriosExclusion", "Criterios de exclusión", false],
+    ["fuenteDatos", "Fuente de información", true], ["periodicidad", "Periodicidad", true], ["meta", "Meta", true],
+    ["umbralSeguimiento", "Criterios de semaforización", true], ["sentido", "Sentido esperado", true], ["responsable", "Responsable de la medición", true],
+    ["metodologia", "Metodología de medición", true], ["interpretacion", "Interpretación del resultado", true], ["referencia", "Referencia normativa o bibliográfica", false]
+  ];
+  function fichaValor(ind, k) {
+    const v = ind[k];
+    if (ind.tipo === "Estructura" && ["formula", "numeradorDesc", "denominadorDesc", "factor", "criteriosInclusion", "criteriosExclusion"].includes(k) && (v == null || v === "")) return "No aplica (indicador de estructura)";
+    if (k === "factor") return (v != null && v !== "") ? v : (ind.tipo !== "Estructura" && /×\s*100\b/.test(ind.formula || "") ? "100 (según la fórmula)" : "");
+    if (k === "unidadMedida") return v || (ind.tipo !== "Estructura" && /×\s*100\b/.test(ind.formula || "") ? "Porcentaje (%) · según la fórmula" : "");
+    if (k === "meta") return (v === "" || v == null) ? "" : metaTxt(ind);
+    if (k === "umbralSeguimiento") { const us = umbralSem(ind); return us.def ? "" : `Verde: en meta · Amarillo: hasta ${us.v} pts fuera de la meta · Rojo: más de ${us.v} pts`; }
+    if (k === "sentido") return v ? ({ "Mayor es mejor": "Aumentar (mayor es mejor)", "Menor es mejor": "Disminuir (menor es mejor)", "Dentro de un rango": "Mantenerse dentro de un rango" }[v] || v) : "";
+    if (k === "referencia") return v || (ind.codigoNquire ? "Consolidado Nacional NQUIRE · RNAO (código " + ind.codigoNquire + ")" : "");
+    return v == null ? "" : String(v);
+  }
+  function fichaFaltantes(ind) {
+    return FICHA_DEF.filter(([k, , req]) => (req === true || (req === "noEstr" && ind.tipo !== "Estructura")) && !String(fichaValor(ind, k) || "").trim()).map(([, l]) => l);
+  }
+  function fichaCompletitud(ind) {
+    const req = FICHA_DEF.filter(([, , r]) => r === true || (r === "noEstr" && ind.tipo !== "Estructura")).length;
+    return Math.round((req - fichaFaltantes(ind).length) / req * 100);
+  }
+  function chipProg(p) { const c = progColor(p); return p ? `<span class="ixx-prog" style="--pc:${c}">${ui().esc(p)}</span>` : `<span class="ixx-prog" style="--pc:#b7c1cc">Sin programa</span>`; }
+  function chipTipo(t) { const c = TIPO_COLOR[t] || "#8a94a6"; return `<span class="ixx-tipo" style="--tc:${c}">${ui().esc(t || "—")}</span>`; }
+  function semBadge(k) { const sm = SEM[k]; return `<span class="ixx-sem ixx-sem--${k}">${sm.l}</span>`; }
+
+  // Tarjeta estándar de indicador registrado
+  function indCard(ind) {
+    const u = ui(); const o = optUnidad();
+    const semK = semaforo(ind, o); const sm = SEM[semK];
+    const cur = currentValue(ind, o); const t = tendencia(ind, o); const s0 = serie(ind, o);
+    const per = ultimoPeriodo(ind, o);
+    const spark = s0.length > 2 ? U.charts.sparkline(s0.map(x => x.valor), { color: sm.c, meta: Number(ind.meta) }) : "";
+    const pi = proximaInfo(ind);
+    const pend = pi && pi.overdue ? `<div class="ixx-alert">⏰ Medición pendiente desde ${u.esc(pi.label)}</div>` : (!segValidos(ind).length ? `<div class="ixx-alert ixx-alert--g">📭 Sin mediciones registradas</div>` : "");
+    const comp = fichaCompletitud(ind);
+    const tcol = t.fav == null ? "var(--text-muted)" : (t.fav ? "#1f9d57" : "#c62f3b");
+    return `<article class="ixx-card ixx-card--${semK}">
+      <div class="ixx-card__top">${chipTipo(ind.tipo)}${chipProg(ind.programa)}${semBadge(semK)}</div>
+      <h4 class="ixx-card__n">${u.esc(ind.nombre || "Indicador")}</h4>
+      <div class="ixx-card__g">${u.esc(ind.guia || "General")}${F.unidad ? " · " + u.esc(F.unidad) : ""}</div>
+      <div class="ixx-card__fig">
+        <div class="ixx-card__v" style="color:${sm.c}">${fmtV(cur, ind)}</div>
+        <div class="ixx-card__m"><span>${u.esc(metaTxt(ind))}</span><span>${per ? "Período " + u.esc(per) : "Sin período"}</span></div>
+        <div class="ixx-card__t" style="color:${tcol}" title="Variación respecto de la medición anterior">${t.d == null ? "—" : t.arrow + " " + u.esc(t.txt)}<small>${t.fav == null ? "tendencia" : t.fav ? "favorable" : "desfavorable"}</small></div>
+      </div>
+      ${spark ? `<div class="ixx-card__sp">${spark}</div>` : ""}
+      ${pend}
+      <div class="ixx-card__act">
+        <button class="btn btn--ghost btn--sm" data-ificha="${ind.id}" title="Ficha técnica (${comp}% completa)">📋 Ficha <span class="ixx-comp ${comp < 100 ? "is-low" : ""}">${comp}%</span></button>
+        <button class="btn btn--ghost btn--sm" data-idet="${ind.id}">📈 Historial</button>
+        <button class="btn btn--primary btn--sm" data-iseg="${ind.id}">+ Medición</button>
+        <span style="flex:1"></span>
+        <button class="btn-icon" data-ied="${ind.id}" title="Editar">✏️</button>
+        <button class="btn-icon" data-idel="${ind.id}" title="Eliminar">🗑️</button>
+      </div></article>`;
+  }
+  function indTabla(list) {
+    const u = ui(); const o = optUnidad();
+    return `<div class="table-wrap"><table class="tbl tbl--compact ixx-tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Programa</th><th class="num">Resultado</th><th>Período</th><th>Meta</th><th>Estado</th><th class="num">Variación</th><th>Ficha</th><th class="right">Acciones</th></tr></thead><tbody>
+      ${list.map(i => { const k = semaforo(i, o), t = tendencia(i, o), pi = proximaInfo(i), comp = fichaCompletitud(i);
+        return `<tr><td><b>${u.esc(i.nombre)}</b><div class="kpi__sub">${u.esc(i.guia || "General")}${pi && pi.overdue ? ` · <span style="color:#c62f3b;font-weight:700">medición pendiente</span>` : ""}</div></td>
+          <td>${chipTipo(i.tipo)}</td><td>${chipProg(i.programa)}</td>
+          <td class="num"><b style="color:${SEM[k].c}">${fmtV(currentValue(i, o), i)}</b></td><td>${u.esc(ultimoPeriodo(i, o) || "—")}</td><td class="nowrap">${u.esc(metaTxt(i))}</td>
+          <td>${semBadge(k)}</td><td class="num" style="color:${t.fav == null ? "inherit" : t.fav ? "#1f9d57" : "#c62f3b"}">${t.d == null ? "—" : u.esc(t.txt)}</td>
+          <td><button class="btn btn--ghost btn--sm" data-ificha="${i.id}">📋 ${comp}%</button></td>
+          <td class="acciones"><div class="btn-row" style="justify-content:flex-end;flex-wrap:nowrap"><button class="btn btn--ghost btn--sm" data-idet="${i.id}">Historial</button><button class="btn btn--primary btn--sm" data-iseg="${i.id}">+ Medición</button><button class="btn-icon" data-ied="${i.id}">✏️</button><button class="btn-icon" data-idel="${i.id}">🗑️</button></div></td></tr>`; }).join("")}
+      </tbody></table></div>`;
+  }
+  function bindIndActions(root) {
     const u = ui();
-    const CS = U.coordStats || {};
-    const NT = U.ntUtil || {};
-    const gColor = n => (U.data.guiaColor ? U.data.guiaColor(n) : "#12b5a5");
-    const uColor = n => (U.data.unidadColor ? U.data.unidadColor(n) : "#1554b8");
-
-    // RNAO: series por guía + unidad
-    const metaR = CS.metaInstitucional ? CS.metaInstitucional() : 80;
-    const grpR = {};
-    S().all("evaluacionesRNAO").forEach(e => {
-      const g = CS.globalCumplimiento ? CS.globalCumplimiento(e) : null;
-      if (g == null) return;
-      const key = (e.guia || "—") + " · " + (e.unidad || "—");
-      (grpR[key] = grpR[key] || { guia: e.guia || "—", unidad: e.unidad || "—", pts: [] })
-        .pts.push({ per: e.periodo || u.fechaCL(e.fecha), ord: String(e.periodo || e.fecha || ""), val: g });
-    });
-
-    // NT 234: series por unidad
-    const metaN = Number(S().getConfig("nt234.meta", 85)) || 90;
-    const grpN = {};
-    S().all("nt234").forEach(m => {
-      const g = NT.globalNT ? NT.globalNT(m) : null;
-      if (g == null) return;
-      (grpN[m.unidad || "—"] = grpN[m.unidad || "—"] || { unidad: m.unidad || "—", pts: [] })
-        .pts.push({ per: m.periodo || "—", ord: String(m.periodo || ""), val: g });
-    });
-
-    const trend = pts => {
-      if (pts.length < 2) return { a: "→", c: "var(--text-muted)" };
-      const d = Math.round((pts[pts.length - 1].val - pts[pts.length - 2].val) * 10) / 10;
-      if (d > 0) return { a: "↑ +" + d, c: "var(--verde)" };
-      if (d < 0) return { a: "↓ " + d, c: "var(--danger)" };
-      return { a: "→ 0", c: "var(--text-muted)" };
-    };
-    const estado = (v, meta) => v >= meta ? { l: "En meta", k: "ok", c: "var(--verde)" } : (v >= meta - 15 ? { l: "En seguimiento", k: "warn", c: "var(--naranjo)" } : { l: "Intervención", k: "danger", c: "var(--danger)" });
-
-    // Tarjeta tipo indicador (igual que los indicadores registrados)
-    const dcCard = (chips, last, meta, es, tr, pts, accent) => {
-      const spark = (pts.length > 1 && U.charts.sparkline) ? U.charts.sparkline(pts.map(p => p.val), { color: es.c, meta: meta }) : "";
-      return `<div class="card" style="border-left:4px solid ${accent}">
-        <div class="card__head" style="flex-wrap:wrap;gap:.3rem;align-items:center">${chips}<span class="badge badge--${es.k}">${es.l}</span></div>
-        <div class="flex" style="justify-content:space-between;align-items:flex-end;margin:.5rem 0 .2rem">
-          <div><div style="font-size:1.9rem;font-weight:800;font-family:var(--font-disp);color:${es.c};line-height:1">${last}%</div>
-            <div class="kpi__sub">Meta ${meta}% · ${pts.length} medición(es)</div></div>
-          <div class="right" style="font-weight:800;color:${tr.c}">${tr.a}</div>
-        </div>
-        ${spark ? `<div style="margin:.2rem 0 -.2rem">${spark}</div>` : ""}</div>`;
-    };
-
-    const cardsR = Object.keys(grpR).sort().map(k => {
-      const g = grpR[k]; g.pts.sort((a, b) => a.ord.localeCompare(b.ord));
-      const last = g.pts[g.pts.length - 1].val, tr = trend(g.pts), es = estado(last, metaR);
-      return dcCard(U.data.guiaChip(g.guia) + " " + U.data.unidadChip(g.unidad), last, metaR, es, tr, g.pts, gColor(g.guia));
-    }).join("");
-    const cardsN = Object.keys(grpN).sort().map(k => {
-      const g = grpN[k]; g.pts.sort((a, b) => a.ord.localeCompare(b.ord));
-      const last = g.pts[g.pts.length - 1].val, tr = trend(g.pts), es = estado(last, metaN);
-      return dcCard(U.data.unidadChip(g.unidad), last, metaN, es, tr, g.pts, uColor(g.unidad));
-    }).join("");
-
-    if (!cardsR && !cardsN) return "";
-    const block = (titulo, color, link, linkLabel, cards) => !cards ? "" : `
-      <div class="dc-block">
-        <div class="dc-block__hd"><span class="dc-block__pill" style="background:${color}">${titulo}</span>
-          <a class="btn btn--ghost btn--sm" href="${link}">${linkLabel} →</a></div>
-        <div class="grid grid--3">${cards}</div></div>`;
-
-    return `<section class="dc">
-      <div class="dc__sum"><span class="dc__ic">📡</span><span class="dc__t">Datos conectados · RNAO / NT 234</span>
-        <span class="dc__hint">Se toman solos de esos módulos · solo lectura</span></div>
-      <p class="kpi__sub" style="margin:.4rem .2rem .7rem">El resultado de cada guía/unidad se toma automáticamente de RNAO y de la NT 234. El número grande es el último valor; la flecha, la tendencia.</p>
-      ${block("RNAO · Guías BPSO", "#0d6ea8", "#/coord/m3?tab=evaluaciones", "Ir a RNAO", cardsR)}
-      ${block("NT 234 · Prevención de LPP", "#0f8f83", "#/coord/m6?tab=seguimiento", "Ir a NT 234", cardsN)}
-    </section>`;
+    root.querySelectorAll("[data-idet]").forEach(b => b.onclick = () => detalle(S().get("indicadores", b.dataset.idet)));
+    root.querySelectorAll("[data-ied]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.ied)));
+    root.querySelectorAll("[data-iseg]").forEach(b => b.onclick = () => addSeguimiento(S().get("indicadores", b.dataset.iseg)));
+    root.querySelectorAll("[data-ificha]").forEach(b => b.onclick = () => fichaView(S().get("indicadores", b.dataset.ificha)));
+    root.querySelectorAll("[data-idel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este indicador y su ficha técnica? Se pierden sus mediciones.", () => { S().remove("indicadores", b.dataset.idel); renderTab(); }));
+    root.querySelectorAll("[data-icon]").forEach(b => b.onclick = () => incorporarConectado(b.dataset.icon));
+  }
+  // Tarjeta de indicador conectado (solo lectura; fuente y fecha visibles)
+  function conCard(c) {
+    const u = ui(); const sm = SEM[c.sem];
+    const spark = c.serie.length > 2 ? U.charts.sparkline(c.serie.map(x => x.valor), { color: sm.c, meta: c.meta }) : "";
+    const tcol = c.fav == null ? "var(--text-muted)" : (c.fav ? "#1f9d57" : "#c62f3b");
+    return `<article class="ixx-card ixx-card--con ixx-card--${c.sem}">
+      <div class="ixx-card__top">${chipTipo(c.tipo)}${chipProg(c.programa)}${semBadge(c.sem)}</div>
+      <h4 class="ixx-card__n">${u.esc(c.nombre)}</h4>
+      <div class="ixx-card__g">📡 ${u.esc(c.fuente)} · actualizado ${fmtFecha(c.fecha)}</div>
+      <div class="ixx-card__fig"><div class="ixx-card__v" style="color:${sm.c}">${c.valor == null ? "—" : String(c.valor).replace(".", ",") + "%"}</div>
+        <div class="ixx-card__m"><span>${c.meta == null || c.meta === "" ? "Sin meta establecida" : (c.sentido === "Menor es mejor" ? "≤ " : "≥ ") + c.meta + "%"}</span><span>${u.esc(c.periodo || "")}</span></div>
+        <div class="ixx-card__t" style="color:${tcol}">${c.variacion == null ? "—" : (c.variacion > 0 ? "▲ +" : c.variacion < 0 ? "▼ " : "→ ") + String(c.variacion).replace(".", ",") + " pts"}<small>${c.fav == null ? "tendencia" : c.fav ? "favorable" : "desfavorable"}</small></div></div>
+      ${spark ? `<div class="ixx-card__sp">${spark}</div>` : ""}
+      <div class="ixx-card__note">${u.esc(c.nota || "")}</div>
+      <div class="ixx-card__act"><a class="btn btn--ghost btn--sm" href="${c.ruta}">↗ Ir al módulo de origen</a><span style="flex:1"></span>
+        ${c.oficial ? `<button class="btn btn--ghost btn--sm" data-ificha="${c.oficial.id}">📋 Ficha (oficial)</button>` : `<button class="btn btn--ghost btn--sm" data-icon="${u.esc(c.key)}" title="Agregar al registro oficial con su ficha técnica">＋ Incorporar como oficial</button>`}</div>
+    </article>`;
+  }
+  // Incorporar un conectado al registro oficial: abre la ficha prellenada con lo que YA existe (sin inventar meta)
+  function incorporarConectado(key) {
+    const c = conectados().find(x => x.key === key); if (!c) return;
+    ficha(null, { nombre: c.nombre, tipo: c.tipo, programa: c.programa, fuenteDatos: c.fuente, sentido: c.sentido, meta: c.meta == null ? "" : c.meta, origenConectado: c.key,
+      seguimientos: c.serie.filter(x => /^\d{4}-\d{2}/.test(x.periodo)).map(x => ({ periodo: x.periodo, valor: x.valor, fase: "Seguimiento" })) });
   }
 
+  /* ---------- Gráficos compactos ---------- */
+  function barrasEstado(grupos) {
+    const u = ui();
+    if (!grupos.length) return `<p class="dash-empty">Sin indicadores.</p>`;
+    const max = Math.max.apply(null, grupos.map(g => g.total).concat([1]));
+    const col = { verde: "#1f9d57", amarillo: "#e0912f", rojo: "#c62f3b", sd: "#b7c1cc" };
+    return `<div class="ixx-sb">${grupos.map(g => `<div class="ixx-sb__r"><span class="ixx-sb__l" title="${u.esc(g.l)}">${u.esc(g.l)}</span>
+      <span class="ixx-sb__t" style="width:${Math.max(6, g.total / max * 100)}%">${["verde", "amarillo", "rojo", "sd"].map(k => g[k] ? `<i style="flex:${g[k]};background:${col[k]}" title="${SEM[k].l}: ${g[k]}">${g[k]}</i>` : "").join("")}</span><b>${g.total}</b></div>`).join("")}</div>`;
+  }
+  const agrupar = (per, gran) => { const m = String(per).match(/^(\d{4})-(\d{2})/); if (!m) return per; if (gran === "anual") return m[1]; if (gran === "trimestral") return m[1] + "-T" + Math.ceil(Number(m[2]) / 3); return m[1] + "-" + m[2]; };
+  function evolucionMeta(list, gran) {
+    // % de indicadores en meta por período (con la META VIGENTE de cada medición)
+    const pts = {};
+    list.forEach(i => seriePeriodos(i).forEach(p => { if (!/^\d{4}-\d{2}/.test(p.periodo)) return;
+      const k = agrupar(p.periodo, gran); const sm = semaforoDe(i, p.valor, p.metaVigente);
+      if (sm === "sd") return; (pts[k] = pts[k] || {})[i.id] = sm; }));
+    const keys = Object.keys(pts).sort().slice(-12);
+    if (keys.length < 2) return `<p class="dash-empty">Se necesitan mediciones en al menos dos períodos para ver la evolución.</p>`;
+    const vals = keys.map(k => { const v = Object.values(pts[k]); return { k, en: v.filter(x => x === "verde").length, n: v.length }; });
+    return U.charts.lineChart({ labels: keys, series: [{ name: "% de indicadores en meta", color: "#0f8f83", values: vals.map(v => Math.round(v.en / v.n * 100)) }], height: 190 })
+      + `<div class="kpi__sub" style="text-align:center">Indicadores medidos por período: ${vals.map(v => v.k + " (" + v.en + "/" + v.n + ")").join(" · ")}</div>`;
+  }
+
+  /* ---------- Análisis y acciones (reglas, sin inventar causas) ---------- */
+  function analizar(list, con) {
+    const o = optUnidad();
+    const conNoDup = con.filter(c => !c.oficial);
+    const est = i => semaforo(i, o);
+    const rojos = list.filter(i => est(i) === "rojo"), amar = list.filter(i => est(i) === "amarillo"), verdes = list.filter(i => est(i) === "verde");
+    const sinMed = list.filter(i => !segValidos(i).length && currentValue(i, o) == null);
+    const pend = list.filter(i => { const pi = proximaInfo(i); return pi && pi.overdue; });
+    const incompletas = list.filter(i => fichaFaltantes(i).length);
+    const sostenido = (i, k) => { const sp = seriePeriodos(i, o); return sp.length >= 2 && sp.slice(-2).every(p => semaforoDe(i, p.valor, p.metaVigente) === k); };
+    const brecha = i => { const v = currentValue(i, o), m = Number(i.meta); if (v == null || isNaN(m)) return null; return menorMejor(i) ? d2(v - m) : d2(m - v); };
+    const brechas = rojos.concat(amar).map(i => ({ i, b: brecha(i), t: tendencia(i, o) })).filter(x => x.b != null && x.b > 0).sort((a, b) => b.b - a.b);
+    const conRojos = conNoDup.filter(c => c.sem === "rojo" || c.sem === "amarillo");
+    const fav = list.filter(i => tendencia(i, o).fav === true).length, desf = list.filter(i => tendencia(i, o).fav === false).length;
+    const acciones = [];
+    brechas.filter(x => sostenido(x.i, "rojo")).slice(0, 2).forEach(x => acciones.push({ p: 1, t: `Auditoría focalizada y seguimiento del plan de mejora en «${x.i.nombre}»`, d: "Fuera de meta en las dos últimas mediciones (" + fmtV(currentValue(x.i, o), x.i) + " vs " + metaTxt(x.i) + ")." }));
+    brechas.filter(x => !sostenido(x.i, "rojo")).slice(0, 2).forEach(x => acciones.push({ p: 2, t: `Retroalimentar a los equipos y revisar registros de «${x.i.nombre}»`, d: "Brecha de " + String(x.b).replace(".", ",") + " pts respecto de la meta" + (x.t.fav === true ? " (evolución favorable, aún fuera de meta)." : ".") }));
+    if (conRojos.some(c => /NT 234/.test(c.programa))) acciones.push({ p: 2, t: "Revisar planes de mejora NT 234 de las unidades con alerta", d: "El Indicador Global NT 234 está bajo la meta.", r: "#/coord/m1?tab=nt234&sub=alertas" });
+    if (con.some(c => c.key === "champ:activos" && c.valor != null && c.valor < 50)) acciones.push({ p: 3, t: "Activar el apoyo de la Red de Champions", d: "Menos de la mitad de los Champions tiene participación reciente.", r: "#/coord/m3?tab=champion" });
+    if (pend.length) acciones.push({ p: 2, t: `Registrar ${pend.length} medición(es) pendiente(s)`, d: pend.slice(0, 3).map(i => i.nombre).join(" · ") + (pend.length > 3 ? "…" : "") });
+    if (incompletas.length) acciones.push({ p: 3, t: `Completar ${incompletas.length} ficha(s) técnica(s)`, d: "Faltan antecedentes como meta, semaforización o metodología.", tab: "fichas" });
+    const verdesSost = verdes.filter(i => sostenido(i, "verde"));
+    if (verdesSost.length) acciones.push({ p: 4, t: "Mantener y difundir las buenas prácticas", d: verdesSost.slice(0, 3).map(i => i.nombre).join(" · ") + " se mantienen en meta." });
+    acciones.sort((a, b) => a.p - b.p);
+    const medidos = list.length - sinMed.length;
+    const lineas = [
+      ["¿Cómo estamos?", list.length ? `${verdes.length} de ${medidos} indicador(es) con medición están en meta; ${amar.length} en seguimiento y ${rojos.length} requieren intervención${sinMed.length ? `; ${sinMed.length} sin medición` : ""}.` : "Aún no hay indicadores registrados."],
+      ["¿Cómo hemos evolucionado?", (fav + desf) ? `Respecto de la medición anterior, ${fav} indicador(es) evolucionan favorablemente y ${desf} desfavorablemente.` : "Aún no hay dos mediciones comparables."],
+      ["¿Qué presenta brechas?", brechas.length ? brechas.slice(0, 3).map(x => `${x.i.nombre} (${String(x.b).replace(".", ",")} pts)`).join(" · ") : "Sin brechas respecto de las metas definidas."],
+      ["¿Dónde intervenir?", (() => { const un = {}; list.forEach(i => { seriePeriodos(i).length && segValidos(i).filter(x => x.unidad).forEach(x => { const sm = semaforoDe(i, Number(x.valor), x.metaVigente); if (sm === "rojo") un[x.unidad] = (un[x.unidad] || 0) + 1; }); });
+        const top = Object.keys(un).sort((a, b) => un[b] - un[a]).slice(0, 3); return top.length ? top.map(x => x + " (" + un[x] + ")").join(" · ") : (rojos.length ? "En los indicadores en rojo (sin desglose por unidad)." : "No hay unidades con resultados en rojo."); })()],
+      ["¿Qué hacer?", acciones.length ? acciones[0].t + "." : "Mantener la medición según la periodicidad de cada ficha."]
+    ];
+    return { rojos, amar, verdes, sinMed, pend, incompletas, brechas, acciones, lineas, conNoDup };
+  }
+
+  /* ---------- Pestaña: Resumen ejecutivo ---------- */
+  function renderResumen(box) {
+    const u = ui();
+    const all = S().all("indicadores"); const list = aplicarFiltros(all); const con = conectados();
+    const A = analizar(list, con);
+    const conAct = A.conNoDup;
+    const k = (l, v, sub, kind, ic) => kpi(l, v, sub, kind, ic);
+    const porProg = optsDe(list.map(i => i.programa || "Sin programa")).map(pp => { const l = list.filter(i => (i.programa || "Sin programa") === pp), g = { l: pp, total: l.length, verde: 0, amarillo: 0, rojo: 0, sd: 0 }; l.forEach(i => g[semaforo(i, optUnidad())]++); return g; });
+    const porTipo = TIPOS.map(t => { const l = list.filter(i => i.tipo === t), g = { l: t, total: l.length, verde: 0, amarillo: 0, rojo: 0, sd: 0 }; l.forEach(i => g[semaforo(i, optUnidad())]++); return g; }).filter(g => g.total);
+    const conG = [{ l: "Conectados (no duplicados)", total: conAct.length, verde: conAct.filter(c => c.sem === "verde").length, amarillo: conAct.filter(c => c.sem === "amarillo").length, rojo: conAct.filter(c => c.sem === "rojo").length, sd: conAct.filter(c => c.sem === "sd").length }];
+    box.innerHTML = `
+      ${SH("📊", "Resumen ejecutivo", "Estado general, evolución, brechas y acciones prioritarias")}
+      ${intro("Vista para decidir: cuántos indicadores están en meta, cuáles requieren intervención y qué hacer primero. Los indicadores <b>registrados</b> (oficiales, con ficha) y los <b>conectados</b> (calculados desde otros módulos) se cuentan por separado y sin duplicar.")}
+      ${filtrosHTML(["per", "prog", "guia", "unidad", "tipo", "fuente"])}
+      <div class="grid grid--kpi ixx-kpis">
+        ${k("Indicadores oficiales", list.length, "Registrados con ficha técnica", "info", "📏")}
+        ${k("Conectados", conAct.length, "Desde otros módulos (sin duplicar)", "info", "📡")}
+        ${k("En meta", A.verdes.length, "Oficiales en verde", "ok", "🟢")}
+        ${k("En seguimiento", A.amar.length, "Oficiales en amarillo", "warn", "🟡")}
+        ${k("Requieren intervención", A.rojos.length, "Oficiales en rojo", "danger", "🔴")}
+        ${k("Sin medición", A.sinMed.length, "Sin datos registrados", "info", "⚪")}
+        ${k("Mediciones pendientes", A.pend.length, "Según la periodicidad de la ficha", A.pend.length ? "danger" : "ok", "⏰")}
+        ${k("Fichas incompletas", A.incompletas.length, "Con antecedentes pendientes", A.incompletas.length ? "warn" : "ok", "📋")}
+      </div>
+      <div class="dash-grid ixx-res">
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>🧭 Análisis</h4><span>Automático según los datos y metas de cada ficha</span></div>
+          <div class="ixx-ana">${A.lineas.map(([q, t]) => `<div><b>${q}</b> ${u.esc(t)}</div>`).join("")}</div></div>
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>✅ Acciones prioritarias sugeridas</h4><span>Ordenadas por prioridad</span></div>
+          ${A.acciones.length ? `<ol class="ixx-acc">${A.acciones.slice(0, 6).map(a => `<li><b>${u.esc(a.t)}</b><span>${u.esc(a.d)}</span>${a.r ? `<a href="${a.r}">↗ ir</a>` : a.tab ? `<a href="#/coord/indicadores?tab=${a.tab}">↗ ir</a>` : ""}</li>`).join("")}</ol>` : `<p class="dash-empty">Sin acciones prioritarias con los datos actuales.</p>`}</div>
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>🏷️ Estado por programa</h4><span>Oficiales · verde/amarillo/rojo/gris</span></div>${barrasEstado(porProg.concat(conAct.length ? conG : []))}</div>
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>🧩 Estado por tipo</h4><span>Estructura · Proceso · Resultado · Impacto</span></div>${barrasEstado(porTipo)}</div>
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>📈 Evolución: % de indicadores en meta</h4>
+          <span><select class="select ixx-gran" id="ixx-gran">${["mensual", "trimestral", "anual"].map(g => `<option value="${g}"${_gran === g ? " selected" : ""}>${g[0].toUpperCase() + g.slice(1)}</option>`).join("")}</select></span></div>${evolucionMeta(list, _gran)}</div>
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>📉 Principales brechas</h4><span>Distancia a la meta (pts) · toca para ver el historial</span></div>
+          ${A.brechas.length ? `<div class="ixx-br">${A.brechas.slice(0, 7).map(x => { const t = x.t; return `<button type="button" class="ixx-br__r" data-idet="${x.i.id}"><span class="ixx-br__n">${u.esc(x.i.nombre)}</span>
+            <span class="ixx-br__b"><i style="width:${Math.min(100, x.b * 2)}%;background:${SEM[semaforo(x.i, optUnidad())].c}"></i></span><b>${String(x.b).replace(".", ",")} pts</b>
+            <small style="color:${t.fav == null ? "inherit" : t.fav ? "#1f9d57" : "#c62f3b"}">${t.d == null ? "" : t.fav ? "▲ mejora" : "▼ empeora"}</small></button>`; }).join("")}</div>` : `<p class="dash-empty">No hay brechas respecto de las metas definidas.</p>`}</div>
+      </div>
+      <div class="btn-row" style="justify-content:flex-end;margin-top:.8rem"><button class="btn btn--primary btn--sm" id="ixx-inf">📄 Generar informe</button></div>`;
+    bindFiltros(box); bindIndActions(box);
+    const g = box.querySelector("#ixx-gran"); if (g) g.onchange = () => { _gran = g.value; renderTab(); };
+    box.querySelector("#ixx-inf").onclick = () => informeModal();
+  }
+
+  /* ---------- Pestaña: Indicadores registrados ---------- */
   function renderRegistrados(box) {
     const u = ui();
+    const list = aplicarFiltros(ordenados(S().all("indicadores")));
+    const o = optUnidad();
+    const semRank = { rojo: 0, amarillo: 1, sd: 2, verde: 3 };
+    const worst = (a, b) => (semRank[semaforo(a, o)] - semRank[semaforo(b, o)]) || String(a.nombre || "").localeCompare(String(b.nombre || ""));
+    const prio = list.filter(i => ["rojo", "amarillo"].includes(semaforo(i, o))).sort(worst);
+    const grupos = optsDe(list.map(i => i.programa || "Sin programa"));
     box.innerHTML = `
-      <div id="ind-kpi"></div>
-      <div class="section__head"><div><h2 class="section__title">Indicadores y sus resultados</h2>
-        <p class="section__hint">Agrupados por guía. Cada tarjeta muestra el <strong>resultado</strong>, la meta, el <strong>% de cumplimiento</strong> (barra), el semáforo y la tendencia. Arriba, lo que está <strong>bajo meta</strong> para priorizar.</p></div>
-        <div class="btn-row">
-          <button class="btn btn--ghost btn--sm" id="ind-informe" title="Informe con resultados, cumplimiento, semáforo, tendencias y alertas">📄 Generar informe</button>
-          <button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button>
-        </div></div>
-      <div id="ind-list"></div>
+      ${SH("📏", "Indicadores registrados", "Indicadores oficiales de la UBPC, cada uno con su ficha técnica")}
+      ${intro("Cada indicador muestra su último resultado por período, la meta de su ficha, el estado y la variación respecto de la medición anterior. <b>El estado (meta) y la tendencia se leen por separado:</b> un indicador puede mejorar y seguir fuera de la meta.")}
+      ${filtrosHTML(["per", "prog", "guia", "unidad", "tipo", "estado", "fuente"])}
+      <div class="ixx-bar"><div class="agx-views"><button type="button" class="agx-vb${_vista === "tarjetas" ? " is-on" : ""}" data-vis="tarjetas">▦ Tarjetas</button><button type="button" class="agx-vb${_vista === "tabla" ? " is-on" : ""}" data-vis="tabla">☰ Tabla</button></div>
+        <span class="kpi__sub">${list.length} indicador(es)</span><span style="flex:1"></span>
+        <button class="btn btn--ghost btn--sm" id="ixx-inf">📄 Generar informe</button><button class="btn btn--primary btn--sm" id="ind-new">+ Nuevo indicador</button></div>
+      ${prio.length ? `<div class="ind-prio"><span class="ind-prio__t">⚠️ Dónde intervenir</span>${prio.map(i => `<span class="ind-prio__chip" data-idet="${i.id}" style="--pc:${SEM[semaforo(i, o)].c}">${u.esc(i.nombre)} <b>${fmtV(currentValue(i, o), i)}</b></span>`).join("")}</div>` : ""}
+      ${!list.length ? u.empty("No hay indicadores con estos filtros.", "Crea uno o revisa las recomendaciones de EVI.", "📏")
+        : _vista === "tabla" ? indTabla(list.slice().sort(worst))
+        : `<div class="ixx-legprog">${grupos.map(gp => `<span>${chipProg(gp === "Sin programa" ? "" : gp)} ${list.filter(i => (i.programa || "Sin programa") === gp).length}</span>`).join("")}</div>
+          <div class="ixx-grid">${list.slice().sort((a, b) => String(a.programa || "~").localeCompare(String(b.programa || "~")) || worst(a, b)).map(indCard).join("")}</div>`}`;
+    bindFiltros(box); bindIndActions(box);
+    box.querySelectorAll("[data-vis]").forEach(b => b.onclick = () => { _vista = b.dataset.vis; renderTab(); });
+    box.querySelector("#ind-new").onclick = () => ficha(null);
+    box.querySelector("#ixx-inf").onclick = () => informeModal();
+  }
 
-      <div class="ind-apoyo-wrap" style="margin-top:1.5rem">
-        <div class="section__head"><div><h2 class="section__title">🧰 Apoyo y datos conectados</h2>
-          <p class="section__hint">Recomendaciones de EVI, Índice de Capacidad Operativa y los datos que vienen de RNAO / NT 234.</p></div></div>
-        <div class="apoyo-sec apoyo-sec--evi"><div id="ind-evi"></div></div>
-        <div class="apoyo-sec apoyo-sec--ico">${fichaCapacidadOperativa()}</div>
-        <div class="apoyo-sec apoyo-sec--dc">${datosConectados()}</div>
-      </div>`;
-    const list = ordenados(S().all("indicadores"));
-    const by = k => list.filter(i => semaforo(i) === k).length;
-    document.getElementById("ind-kpi").innerHTML = `<div class="grid grid--kpi" style="margin-bottom:1.1rem">
-      ${kpi("Indicadores", list.length, "Registrados en total", "info", "📏")}
-      ${kpi("En meta", by("verde"), "Semáforo verde", "ok", "🟢")}
-      ${kpi("En seguimiento", by("amarillo"), "Semáforo amarillo", "warn", "🟡")}
-      ${kpi("En intervención", by("rojo"), "Semáforo rojo", "danger", "🔴")}</div>`;
-
-    renderEvi();
+  /* ---------- Pestañas conectadas ---------- */
+  function seccionConectada(box, cfg) {
+    const u = ui(); const con = conectados().filter(cfg.filtro);
+    const ofi = aplicarFiltros(ordenados(S().all("indicadores"))).filter(cfg.filtroOficial);
+    box.innerHTML = `
+      ${SH(cfg.ico, cfg.titulo, cfg.sub)}
+      ${intro(cfg.intro)}
+      <div class="ixx-src"><span>📡 Fuente: <b>${u.esc(cfg.fuente)}</b></span><span>Se actualiza sola al registrar en el módulo de origen</span><a class="btn btn--ghost btn--sm" href="${cfg.ruta}">↗ Ir a ${u.esc(cfg.fuente)}</a></div>
+      ${cfg.extra ? cfg.extra() : ""}
+      ${con.length ? `${SH("📡", "Indicadores conectados", "Calculados automáticamente · solo lectura")}
+        <div class="ixx-congrid"><div class="ixx-grid ixx-grid--con">${con.map(conCard).join("")}</div>${cfg.porUnidad ? porUnidadHTML(cfg.porUnidad()) : ""}</div>` : `<p class="dash-empty">Aún no hay datos en el módulo de origen.</p>`}
+      ${SH("📏", "Indicadores oficiales de esta línea", "Registrados con ficha técnica")}
+      ${filtrosHTML(["per", "unidad", "tipo", "estado"])}
+      ${ofi.length ? `<div class="ixx-grid">${ofi.map(indCard).join("")}</div>` : `<p class="dash-empty">No hay indicadores oficiales en esta línea con los filtros elegidos.</p>`}`;
+    bindFiltros(box); bindIndActions(box);
+  }
+  // Detalle por unidad (último período de cada unidad, con variación)
+  function porUnidadHTML(d) {
+    const u = ui(); if (!d || !d.rows.length) return "";
+    return `<div class="dash-card ixx-pu"><div class="dash-card__h"><h4>🏥 ${u.esc(d.titulo)}</h4><span>${u.esc(d.sub || "Último período de cada unidad")}</span></div>
+      <div class="table-wrap"><table class="tbl tbl--compact"><thead><tr><th>${u.esc(d.col || "Unidad")}</th><th class="num">Resultado</th><th>Período</th><th>Estado</th><th class="num">Variación</th></tr></thead><tbody>
+      ${d.rows.sort((a, b) => (a.v == null) - (b.v == null) || (d.menor ? b.v - a.v : a.v - b.v)).map(r => { const k = r.v == null ? "sd" : semaforoDe({ sentido: d.menor ? "Menor es mejor" : "Mayor es mejor", meta: d.meta == null ? "" : d.meta }, r.v);
+        const fav = r.dv == null || r.dv === 0 ? null : (d.menor ? r.dv < 0 : r.dv > 0);
+        return `<tr><td><b>${u.esc(r.l)}</b></td><td class="num"><b style="color:${SEM[k].c}">${r.v == null ? "—" : String(r.v).replace(".", ",") + "%"}</b></td><td>${u.esc(r.p || "")}</td><td>${semBadge(k)}</td>
+          <td class="num" style="color:${fav == null ? "inherit" : fav ? "#1f9d57" : "#c62f3b"}">${r.dv == null ? "—" : (r.dv > 0 ? "+" : "") + String(r.dv).replace(".", ",") + " pts"}</td></tr>`; }).join("")}
+      </tbody></table></div>${d.meta == null ? `<p class="kpi__sub" style="margin:.3rem 0 0">Sin meta establecida en el módulo de origen: el estado se muestra en gris.</p>` : ""}</div>`;
+  }
+  const ultimos2 = pts => { pts.sort((a, b) => String(a.p).localeCompare(String(b.p))); const l = pts[pts.length - 1], p0 = pts[pts.length - 2]; return { v: l ? l.v : null, p: l ? l.p : "", dv: l && p0 ? d2(l.v - p0.v) : null }; };
+  function renderRnao(box) {
+    seccionConectada(box, { ico: "🧭", titulo: "Indicadores RNAO / BPSO", sub: "Guías de buenas prácticas: cumplimiento por guía y unidad",
+      intro: "Cumplimiento global de las evaluaciones RNAO/BPSO por guía (promedio de unidades del período) y los indicadores oficiales NQUIRE de cada guía.",
+      fuente: "Programa RNAO / BPSO", ruta: "#/coord/m3?tab=evaluaciones", filtro: c => c.programa === "RNAO / BPSO", filtroOficial: i => /rnao|bpso/i.test(i.programa || ""),
+      porUnidad: () => { const CSx = U.coordStats || {}; const g = {}; S().all("evaluacionesRNAO").forEach(e => { const v = CSx.globalCumplimiento ? CSx.globalCumplimiento(e) : null; if (v == null) return; const k = (e.guia || "—") + " · " + (e.unidad || "—"); (g[k] = g[k] || []).push({ p: e.periodo || String(e.fecha || "").slice(0, 7), v }); });
+        return { titulo: "Cumplimiento por guía y unidad", col: "Guía · unidad", meta: CSx.metaInstitucional ? CSx.metaInstitucional() : null, rows: Object.keys(g).map(k => Object.assign({ l: k }, ultimos2(g[k]))) }; } });
+  }
+  function renderNT(box) {
+    seccionConectada(box, { ico: "🛡️", titulo: "Indicadores NT 234", sub: "Prevención de LPP · Norma Técnica 234",
+      intro: "Indicador Global NT 234 (2 medidas de prevención ejecutadas) desde el seguimiento por unidad. La auditoría de 8 medidas y los planes de mejora se gestionan en su módulo.",
+      fuente: "Norma Técnica 234", ruta: "#/coord/m1?tab=nt234&sub=seguimiento", filtro: c => /NT 234/.test(c.programa), filtroOficial: i => /nt\s*234/i.test(i.programa || ""),
+      porUnidad: () => { const NT = U.ntUtil || {}; const g = {}; S().all("nt234").forEach(m => { const v = NT.globalNT ? NT.globalNT(m) : null; if (v == null) return; (g[m.unidad || "—"] = g[m.unidad || "—"] || []).push({ p: m.periodo, v }); });
+        return { titulo: "Indicador Global NT 234 por unidad", meta: NT.meta234 ? NT.meta234() : null, rows: Object.keys(g).map(k => Object.assign({ l: k }, ultimos2(g[k]))) }; } });
+  }
+  function renderEpiTab(box) {
+    seccionConectada(box, { ico: "🩹", titulo: "Epidemiología LPP", sub: "Incidencia, prevalencia y pacientes libres de LPP intrahospitalaria",
+      intro: "Resultados mensuales institucionales calculados desde los conteos de pacientes (sin acumular pacientes entre meses). Las metas son las definidas en el módulo de Epidemiología.",
+      fuente: "Epidemiología LPP", ruta: "#/coord/m1?tab=nt234&sub=epi", filtro: c => c.programa === "Epidemiología LPP", filtroOficial: i => /epidemiolog/i.test(i.programa || ""),
+      porUnidad: () => { const NT = U.ntUtil || {}; const recs = S().all("epiLPP"); const uns = optsDe(recs.map(r => r.unidad));
+        const def = (NT.EPI_IND || []).find(x => x.k === "inc");
+        return { titulo: "Incidencia intrahospitalaria por unidad", menor: true, meta: def && NT.epiMeta ? NT.epiMeta(def) : null,
+          rows: uns.map(un => { const pts = optsDe(recs.filter(r => r.unidad === un).map(r => r.periodo)).map(p => { const m = NT.epiMes ? NT.epiMes(recs, p, r => r.unidad === un) : null; return m && m.inc != null ? { p, v: d2(m.inc) } : null; }).filter(Boolean); return Object.assign({ l: un }, ultimos2(pts)); }) }; } });
+  }
+  function renderCapacidad(box) {
+    box.innerHTML = `${SH("🧮", "Capacidad Operativa UBPC", "Indicador de gestión institucional · justificación de recurso humano")}
+      ${intro("Se presenta aparte de los indicadores clínicos porque mide la <b>carga de trabajo de la Unidad</b>, no un resultado asistencial. Arriba, el resumen; despliega «Ver evolución, cálculo, evidencia y recomendación» para el análisis completo.")}
+      <div class="ixx-cap">${fichaCapacidadOperativa()}</div>`;
     renderICO();
+  }
 
-    ensureIndCSS();
-    const lb = document.getElementById("ind-list");
-    if (!list.length) { lb.innerHTML = u.empty("Aún no hay indicadores registrados.", "Crea uno o usa las recomendaciones de EVI.", "📏"); }
-    else {
-      // Orden "peor primero": prioriza lo que requiere acción (rojo → amarillo →
-      // sin datos → verde), y dentro por menor cumplimiento.
-      const semRank = { rojo: 0, amarillo: 1, sd: 2, verde: 3 };
-      const worstFirst = (a, b) => (semRank[semaforo(a)] - semRank[semaforo(b)])
-        || ((cumplimiento(a) == null ? 999 : cumplimiento(a)) - (cumplimiento(b) == null ? 999 : cumplimiento(b)))
-        || String(a.nombre || "").localeCompare(String(b.nombre || ""));
-      // Franja compacta "dónde intervenir": solo chips clickeables (sin duplicar
-      // las tarjetas completas), del más crítico al menos.
-      const prioridad = list.filter(i => semaforo(i) === "rojo" || semaforo(i) === "amarillo").sort(worstFirst);
-      const prioHTML = prioridad.length
-        ? `<div class="ind-prio"><span class="ind-prio__t">⚠️ Dónde intervenir</span>
-            ${prioridad.map(i => { const sem = SEM[semaforo(i)]; const cur = currentValue(i);
-              return `<span class="ind-prio__chip" data-idet="${i.id}" style="--pc:${sem.c}">${u.esc(i.nombre)} <b>${cur == null ? "—" : cur + "%"}</b></span>`; }).join("")}</div>`
-        : `<div class="ind-prio" style="background:#eaf7ef;border-color:#bfe6cd"><span class="ind-prio__t" style="color:#1c7a4c">✅ Todos los indicadores con datos están en meta.</span></div>`;
-      // Agrupado por guía, SIEMPRE visible (sin colapsar), como tarjetas.
-      const temaDe = i => U.data.guiaDeIndicador ? U.data.guiaDeIndicador(i.nombre, i.guia) : ((i.guia && String(i.guia).trim()) ? String(i.guia).trim() : "General");
-      const byGuia = {}; list.forEach(i => { const g = temaDe(i); (byGuia[g] = byGuia[g] || []).push(i); });
-      const ordenTemas = (U.data.CAT.guiasArea || []).concat(["General"]).filter(t => byGuia[t])
-        .concat(Object.keys(byGuia).filter(t => !((U.data.CAT.guiasArea || []).concat(["General"]).includes(t))));
-      const guiaHTML = ordenTemas.map(tema => {
-        const arr = byGuia[tema].slice().sort(worstFirst);
-        const gc = (U.data.guiaColor ? U.data.guiaColor(tema) : "#12b5a5");
-        const nV = arr.filter(i => semaforo(i) === "verde").length;
-        const nA = arr.filter(i => semaforo(i) === "amarillo").length;
-        const nR = arr.filter(i => semaforo(i) === "rojo").length;
-        const dots = `${nR ? `<span style="color:var(--danger)">🔴 ${nR}</span>` : ""}${nA ? `<span style="color:var(--naranjo)">🟡 ${nA}</span>` : ""}${nV ? `<span style="color:var(--verde)">🟢 ${nV}</span>` : ""}`;
-        return `<section class="ind-guia">
-          <div class="ind-guia__hd" style="--sc:${gc};background:${gc}14">
-            <b>${u.esc(tema)}</b><span class="muted" style="font-size:12.5px">${arr.length} indicador(es)</span>
-            <span class="ind-guia__dots">${dots}</span></div>
-          <div class="ind-grid">${arr.map(indCard).join("")}</div></section>`;
-      }).join("");
-      lb.innerHTML = prioHTML + guiaHTML;
-      lb.querySelectorAll("[data-idet]").forEach(b => b.onclick = () => detalle(S().get("indicadores", b.dataset.idet)));
-      lb.querySelectorAll("[data-ied]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.ied)));
-      lb.querySelectorAll("[data-iseg]").forEach(b => b.onclick = () => addSeguimiento(S().get("indicadores", b.dataset.iseg)));
-      lb.querySelectorAll("[data-idel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este indicador?", () => { S().remove("indicadores", b.dataset.idel); renderTab(); }));
-    }
-    document.getElementById("ind-new").onclick = () => ficha(null);
-    const infBtn = document.getElementById("ind-informe");
-    if (infBtn) infBtn.onclick = () => U.router.go("#/coord/reportes?rep=indicadores");
+  /* ---------- Pestaña: Fichas técnicas (matriz consolidada) ---------- */
+  function renderFichas(box) {
+    const u = ui(); const list = aplicarFiltros(ordenados(S().all("indicadores")));
+    const inc = list.filter(i => fichaFaltantes(i).length).length;
+    box.innerHTML = `
+      ${SH("📋", "Fichas técnicas", "Matriz consolidada · se alimenta automáticamente de los indicadores registrados")}
+      ${intro("Cada indicador registrado <b>es</b> su ficha técnica: al crear o editar un indicador se actualiza aquí, sin volver a pedir los datos. Los cambios de fórmula, meta o semaforización generan una nueva versión y conservan las mediciones históricas con la meta vigente al medir.")}
+      ${filtrosHTML(["prog", "guia", "tipo"])}
+      <div class="ixx-bar"><span class="kpi__sub">${list.length} ficha(s) · <b style="color:${inc ? "#c86a1f" : "#1f9d57"}">${inc} incompleta(s)</b></span><span style="flex:1"></span>
+        <button class="btn btn--ghost btn--sm" id="fx-csv">⬇️ Exportar matriz (CSV)</button><button class="btn btn--ghost btn--sm" id="fx-print">🖨️ Imprimir todas</button><button class="btn btn--primary btn--sm" id="mtx-new">+ Nuevo indicador</button></div>
+      ${list.length ? `<div class="table-wrap"><table class="tbl tbl--compact ixx-tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Programa</th><th>Fórmula</th><th>Meta</th><th>Periodicidad</th><th>Versión</th><th>Completitud</th><th class="right">Acciones</th></tr></thead><tbody>
+        ${list.map(i => { const falt = fichaFaltantes(i), c = fichaCompletitud(i);
+          return `<tr><td><b>${u.esc(i.nombre)}</b>${falt.length ? `<div class="kpi__sub" style="color:#c86a1f">Pendiente: ${u.esc(falt.slice(0, 4).join(", "))}${falt.length > 4 ? "…" : ""}</div>` : ""}</td>
+            <td>${chipTipo(i.tipo)}</td><td>${chipProg(i.programa)}</td><td class="kpi__sub" style="max-width:280px">${u.esc(i.formula || (i.tipo === "Estructura" ? "Verificación de estructura" : "—"))}</td>
+            <td class="nowrap">${u.esc(metaTxt(i))}</td><td>${u.esc(i.periodicidad || "—")}</td><td>v${i.fichaVersion || 1}</td>
+            <td><div class="ixx-cbar"><i style="width:${c}%;background:${c === 100 ? "#1f9d57" : c >= 70 ? "#e0912f" : "#c62f3b"}"></i></div><small>${c}%</small></td>
+            <td class="acciones"><div class="btn-row" style="justify-content:flex-end;flex-wrap:nowrap"><button class="btn btn--ghost btn--sm" data-ificha="${i.id}">📋 Ver</button><button class="btn-icon" data-ied="${i.id}" title="Editar">✏️</button><button class="btn-icon" data-fprint="${i.id}" title="Imprimir / PDF">🖨️</button><button class="btn-icon" data-mtxver="${i.id}" title="Versiones">🕘</button></div></td></tr>`; }).join("")}
+        </tbody></table></div>` : u.empty("Aún no hay fichas técnicas.", "Crea un indicador para generar su ficha.", "🗂️")}`;
+    bindFiltros(box); bindIndActions(box);
+    box.querySelector("#mtx-new").onclick = () => ficha(null);
+    box.querySelector("#fx-csv").onclick = () => exportarMatriz(list);
+    box.querySelector("#fx-print").onclick = () => imprimirFichas(list);
+    box.querySelectorAll("[data-fprint]").forEach(b => b.onclick = () => imprimirFichas([S().get("indicadores", b.dataset.fprint)]));
+    box.querySelectorAll("[data-mtxver]").forEach(b => b.onclick = () => verVersiones(S().get("indicadores", b.dataset.mtxver)));
+  }
+  function exportarMatriz(list) {
+    const rows = list.map(i => { const o = {}; FICHA_DEF.forEach(([k, l]) => o[l] = fichaValor(i, k) || ""); o["Versión"] = i.fichaVersion || 1; o["Completitud (%)"] = fichaCompletitud(i); o["Pendiente"] = fichaFaltantes(i).join("; "); return o; });
+    ui().exportCSV("fichas-tecnicas-indicadores-ubpc", rows, FICHA_DEF.map(x => x[1]).concat(["Versión", "Completitud (%)", "Pendiente"]));
+  }
+  function fichaHTMLPrint(i) {
+    const u = ui();
+    return `<section class="fp"><div class="fp-h"><div class="fp-eb">Ficha técnica de indicador · UBPC HUAP</div><h2>${u.esc(i.nombre || "")}</h2>
+      <div class="fp-m">Versión ${i.fichaVersion || 1} · Completitud ${fichaCompletitud(i)}% · Emitida ${u.fechaCL(new Date())}</div></div>
+      <table class="fp-t">${FICHA_DEF.map(([k, l]) => { const v = fichaValor(i, k); return `<tr><th>${l}</th><td>${v ? (k === "metodologia" ? `<ol>${String(v).split(/\r?\n/).filter(x => x.trim()).map(x => `<li>${u.esc(x)}</li>`).join("")}</ol>` : u.esc(v)) : `<span class="fp-p">Pendiente</span>`}</td></tr>`; }).join("")}</table></section>`;
+  }
+  function imprimirFichas(list) {
+    const u = ui(); const w = window.open("", "_blank");
+    if (!w) { u.toast("Permite las ventanas emergentes para imprimir", "danger"); return; }
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Fichas técnicas · Indicadores UBPC</title><style>
+      @page{size:A4;margin:14mm} *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact} body{font-family:Arial,system-ui,sans-serif;color:#22303a;font-size:11px}
+      .fp{break-after:page;page-break-after:always} .fp:last-child{break-after:auto}
+      .fp-h{border-bottom:3px solid #0f8f83;padding-bottom:6px;margin-bottom:8px} .fp-eb{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#0f8f83;font-weight:800}
+      h2{margin:3px 0;font-size:16px;color:#0d5044} .fp-m{color:#5a6b84;font-size:10px}
+      .fp-t{width:100%;border-collapse:collapse} .fp-t th{width:30%;text-align:left;background:#eef6f4;padding:5px 7px;border:1px solid #d6e6e1;vertical-align:top}
+      .fp-t td{padding:5px 7px;border:1px solid #d6e6e1;vertical-align:top} .fp-t ol{margin:0;padding-left:16px} .fp-p{color:#c86a1f;font-style:italic}
+    </style></head><body>${list.map(fichaHTMLPrint).join("")}</body></html>`);
+    w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 400);
+  }
+  // Ficha técnica (consulta) desde cualquier indicador
+  function fichaView(ind) {
+    const u = ui(); if (!ind) return;
+    const falt = fichaFaltantes(ind), comp = fichaCompletitud(ind);
+    u.modal({
+      title: "Ficha técnica · " + (ind.nombre || ""), wide: true,
+      body: `<div class="ixx-fv-top">${chipTipo(ind.tipo)}${chipProg(ind.programa)}<span class="kpi__sub">Versión ${ind.fichaVersion || 1}</span>
+          <span class="ixx-fv-comp" style="--cc:${comp === 100 ? "#1f9d57" : comp >= 70 ? "#e0912f" : "#c62f3b"}">${comp}% completa</span></div>
+        ${falt.length ? `<div class="ixx-alert">📋 Antecedentes pendientes: ${u.esc(falt.join(", "))}. Complétalos con «Editar ficha»; el portal no los rellena por ti.</div>` : ""}
+        <table class="ixx-fv">${FICHA_DEF.map(([k, l]) => { const v = fichaValor(ind, k); return `<tr><th>${l}</th><td>${v ? (k === "metodologia" ? `<ol class="mtx-crit">${String(v).split(/\r?\n/).filter(x => x.trim()).map(x => `<li>${u.esc(x)}</li>`).join("")}</ol>` : u.esc(v)) : `<span class="ixx-pend">Pendiente</span>`}</td></tr>`; }).join("")}</table>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button><button class="btn btn--ghost" id="fv-ver">🕘 Versiones</button><button class="btn btn--ghost" id="fv-print">🖨️ Imprimir / PDF</button><button class="btn btn--ghost" id="fv-csv">⬇️ Descargar</button><button class="btn btn--primary" id="fv-ed">✏️ Editar ficha</button>`,
+      onMount(m) {
+        m.querySelector("#fv-ed").onclick = () => { u.closeModal(); ficha(ind); };
+        m.querySelector("#fv-print").onclick = () => imprimirFichas([ind]);
+        m.querySelector("#fv-csv").onclick = () => exportarMatriz([ind]);
+        m.querySelector("#fv-ver").onclick = () => { u.closeModal(); verVersiones(ind); };
+      }
+    });
+  }
+
+  /* ---------- Pestaña: Recomendaciones de EVI ---------- */
+  function renderEviTab(box) {
+    const u = ui(); const all = S().all("indicadores"); const con = conectados(); const A = analizar(all, con);
+    const existentes = new Set(all.map(i => normNombre(i.nombre)));
+    // Sin duplicar: las sugerencias que ya cubre un indicador conectado se ofrecen solo como conectadas.
+    const cubre = { "RNAO": con.some(c => c.programa === "RNAO / BPSO"), "NT 234": con.some(c => /NT 234/.test(c.programa)), "Gestión Documental": con.some(c => c.programa === "Gestión documental"), "Capacitaciones": con.some(c => c.key === "cap:cobertura") };
+    const sugeridos = recomendaciones().filter(r => !existentes.has(normNombre(r.nombre)) && !cubre[r.fuente]);
+    const conSug = con.filter(c => !c.oficial);
+    box.innerHTML = `
+      ${SH("💡", "Recomendaciones de EVI", "Apoyo a la gestión · no son indicadores oficiales")}
+      <div class="ixx-evi"><img src="assets/img/evi-full.png?v=20260731yy" alt="EVI">
+        <div><b>EVI revisa tus datos y te sugiere qué hacer.</b><div class="kpi__sub">Ninguna sugerencia se convierte en indicador oficial ni fija metas sin tu aprobación: al aceptarla se abre la ficha para que la revises y completes.</div></div></div>
+      <div class="dash-grid">
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>➕ Indicadores sugeridos</h4><span>Desde los datos de otros módulos</span></div>
+          ${sugeridos.length || conSug.length ? `<div class="ixx-sug">${sugeridos.map((r, i) => `<div class="ixx-sug__r">${chipTipo(r.tipo)}<span>${u.esc(r.nombre)}<small>Fuente: ${u.esc(r.fuente)}</small></span><button class="btn btn--ghost btn--sm" data-rec="${i}">Revisar y aceptar</button></div>`).join("")}
+            ${conSug.map(c => `<div class="ixx-sug__r">${chipTipo(c.tipo)}<span>${u.esc(c.nombre)}<small>Conectado · ${u.esc(c.fuente)}</small></span><button class="btn btn--ghost btn--sm" data-icon="${u.esc(c.key)}">Revisar y aceptar</button></div>`).join("")}</div>` : `<p class="dash-empty">Sin sugerencias nuevas: los datos disponibles ya están cubiertos.</p>`}</div>
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>✅ Acciones de mejora recomendadas</h4><span>Según resultados disponibles</span></div>
+          ${A.acciones.length ? `<ol class="ixx-acc">${A.acciones.map(a => `<li><b>${u.esc(a.t)}</b><span>${u.esc(a.d)}</span></li>`).join("")}</ol>` : `<p class="dash-empty">Sin acciones con los datos actuales.</p>`}</div>
+        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>📉 Brechas identificadas</h4><span>${A.brechas.length} indicador(es)</span></div>
+          ${A.brechas.length ? `<div class="ixx-list">${A.brechas.map(x => `<button type="button" class="ixx-li" data-idet="${x.i.id}">${semBadge(semaforo(x.i))}<span>${u.esc(x.i.nombre)}</span><b>${String(x.b).replace(".", ",")} pts</b></button>`).join("")}</div>` : `<p class="dash-empty">Sin brechas respecto de las metas definidas.</p>`}</div>
+        <div class="dash-card"><div class="dash-card__h"><h4>⏰ Mediciones pendientes</h4><span>${A.pend.length}</span></div>
+          ${A.pend.length ? `<div class="ixx-list">${A.pend.map(i => `<button type="button" class="ixx-li" data-iseg="${i.id}"><span>${u.esc(i.nombre)}</span><b>${u.esc(proximaInfo(i).label)}</b></button>`).join("")}</div>` : `<p class="dash-empty">Al día.</p>`}</div>
+        <div class="dash-card"><div class="dash-card__h"><h4>📋 Fichas incompletas</h4><span>${A.incompletas.length}</span></div>
+          ${A.incompletas.length ? `<div class="ixx-list">${A.incompletas.map(i => `<button type="button" class="ixx-li" data-ificha="${i.id}"><span>${u.esc(i.nombre)}</span><b>${fichaCompletitud(i)}%</b></button>`).join("")}</div>` : `<p class="dash-empty">Todas completas.</p>`}</div>
+      </div>`;
+    bindIndActions(box);
+    box.querySelectorAll("[data-rec]").forEach(b => b.onclick = () => ficha(null, sugeridos[Number(b.dataset.rec)].prefill));
+  }
+
+  /* ---------- Informe configurable ---------- */
+  function informeModal() {
+    const u = ui(); const all = ordenados(S().all("indicadores"));
+    u.modal({
+      title: "Generar informe de indicadores", wide: true,
+      body: `<p class="card__hint">Elige qué incluir. El informe usa solo los datos registrados en el portal.</p>
+        <div class="form-grid">
+          <div class="field"><label>Período evaluado (hasta)</label><select class="select" id="if-per"><option value="">Último disponible</option>${periodosTodos().map(p => `<option>${u.esc(p)}</option>`).join("")}</select></div>
+          <div class="field"><label>Programa o línea</label><select class="select" id="if-prog"><option value="">Todos</option>${optsDe(all.map(i => i.programa || "Sin programa")).map(p => `<option>${u.esc(p)}</option>`).join("")}</select></div>
+          <div class="field"><label>Unidad clínica</label><select class="select" id="if-un"><option value="">Institucional</option>${optsDe([].concat(...all.map(i => segValidos(i).map(x => x.unidad).filter(Boolean)))).map(p => `<option>${u.esc(p)}</option>`).join("")}</select></div>
+          <div class="field"><label>Secciones</label><div class="ixx-chks">${[["res", "Resultados y tendencias", 1], ["bre", "Principales brechas", 1], ["acc", "Acciones de mejora", 1], ["con", "Indicadores conectados", 1], ["fic", "Fichas técnicas", 0]].map(([k, l, on]) => `<label><input type="checkbox" data-sec="${k}"${on ? " checked" : ""}> ${l}</label>`).join("")}</div></div>
+        </div>
+        <div class="field" style="margin-top:.6rem"><label>Indicadores <button type="button" class="btn btn--ghost btn--sm" id="if-all">Todos / ninguno</button></label>
+          <div class="ixx-chks ixx-chks--list">${all.map(i => `<label><input type="checkbox" data-ii="${i.id}" checked> ${u.esc(i.nombre)}</label>`).join("")}</div></div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--ghost" id="if-old">Informe clásico</button><button class="btn btn--primary" id="if-go">🖨️ Generar</button>`,
+      onMount(m) {
+        m.querySelector("#if-all").onclick = () => { const cbs = [...m.querySelectorAll("[data-ii]")]; const on = !cbs.every(c => c.checked); cbs.forEach(c => c.checked = on); };
+        m.querySelector("#if-old").onclick = () => { u.closeModal(); U.router.go("#/coord/reportes?rep=indicadores"); };
+        m.querySelector("#if-go").onclick = () => {
+          const per = m.querySelector("#if-per").value, prog = m.querySelector("#if-prog").value, un = m.querySelector("#if-un").value;
+          const sec = {}; m.querySelectorAll("[data-sec]").forEach(c => sec[c.dataset.sec] = c.checked);
+          const ids = new Set([...m.querySelectorAll("[data-ii]")].filter(c => c.checked).map(c => c.dataset.ii));
+          const list = all.filter(i => ids.has(i.id) && (!prog || (i.programa || "Sin programa") === prog));
+          imprimirInforme(list, { per, prog, un, sec });
+        };
+      }
+    });
+  }
+  function imprimirInforme(list, cfg) {
+    const u = ui(); const o = (cfg.per || cfg.un) ? { hasta: cfg.per, unidad: cfg.un } : undefined;
+    const saveF = Object.assign({}, F); F.per = cfg.per || ""; F.unidad = cfg.un || "";
+    const A = analizar(list, conectados()); Object.assign(F, saveF);
+    const w = window.open("", "_blank"); if (!w) { u.toast("Permite las ventanas emergentes para imprimir", "danger"); return; }
+    const me = U.auth.current();
+    const filas = list.map(i => { const k = semaforo(i, o), t = tendencia(i, o);
+      return `<tr><td><b>${u.esc(i.nombre)}</b><br><small>${u.esc(i.tipo || "")} · ${u.esc(i.programa || "Sin programa")}</small></td><td class="c">${fmtV(currentValue(i, o), i)}</td><td class="c">${u.esc(ultimoPeriodo(i, o) || "—")}</td><td class="c">${u.esc(metaTxt(i))}</td>
+        <td class="c"><span class="b b-${k}">${SEM[k].l}</span></td><td class="c">${t.d == null ? "—" : u.esc(t.txt) + (t.fav == null ? "" : t.fav ? " ▲" : " ▼")}</td></tr>`; }).join("");
+    const con = conectados().filter(c => !c.oficial);
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe de indicadores · UBPC</title><style>
+      @page{size:A4;margin:14mm} *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact} body{font-family:Arial,system-ui,sans-serif;color:#22303a;font-size:11px}
+      h1{font-size:18px;color:#0d5044;margin:0} h2{font-size:13px;color:#0f8f83;border-bottom:2px solid #cfe8e1;padding-bottom:3px;margin:14px 0 6px}
+      .eb{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#0f8f83;font-weight:800} .m{color:#5a6b84;font-size:10px;margin-top:2px}
+      table{width:100%;border-collapse:collapse} th{background:#0f8f83;color:#fff;padding:5px;font-size:10px;text-align:left} td{padding:4px 5px;border-bottom:1px solid #e2e9f0;vertical-align:top} .c{text-align:center;white-space:nowrap}
+      .b{font-weight:800;font-size:9.5px;padding:1px 7px;border-radius:999px} .b-verde{background:#dcf2e4;color:#1f7d48} .b-amarillo{background:#fbeed6;color:#a5620f} .b-rojo{background:#fbe1e5;color:#b02a3a} .b-sd{background:#eceff3;color:#5a6b84}
+      .ana div{margin:3px 0} ol{margin:0;padding-left:16px} li{margin:3px 0} .k{display:flex;gap:8px;margin:8px 0} .k div{flex:1;border:1px solid #d6e6e1;border-radius:8px;padding:6px;text-align:center} .k b{display:block;font-size:16px}
+      .fp{break-before:page} .fp-t{width:100%;border-collapse:collapse} .fp-t th{width:30%;background:#eef6f4;color:#22303a;border:1px solid #d6e6e1} .fp-t td{border:1px solid #d6e6e1} .fp-p{color:#c86a1f;font-style:italic} .fp-eb{font-size:9px;color:#0f8f83;font-weight:800;text-transform:uppercase} .fp h2{border:0}
+      .firm{display:flex;gap:40px;margin-top:30px} .firm div{flex:1;text-align:center;border-top:1px solid #22303a;padding-top:4px;font-size:10px}
+    </style></head><body>
+      <div class="eb">Unidad de Buenas Prácticas Clínicas · HUAP</div><h1>Informe de indicadores UBPC</h1>
+      <div class="m">Período: <b>${u.esc(cfg.per || "último disponible")}</b> · Programa: <b>${u.esc(cfg.prog || "Todos")}</b> · Unidad: <b>${u.esc(cfg.un || "Institucional")}</b> · Emitido ${u.fechaCL(new Date())}</div>
+      <div class="k"><div><b>${list.length}</b>Indicadores</div><div><b style="color:#1f7d48">${A.verdes.length}</b>En meta</div><div><b style="color:#a5620f">${A.amar.length}</b>En seguimiento</div><div><b style="color:#b02a3a">${A.rojos.length}</b>Intervención</div><div><b>${A.sinMed.length}</b>Sin medición</div></div>
+      <h2>Análisis</h2><div class="ana">${A.lineas.map(([q, t]) => `<div><b>${q}</b> ${u.esc(t)}</div>`).join("")}</div>
+      ${cfg.sec.res ? `<h2>Resultados y tendencias</h2><table><thead><tr><th>Indicador</th><th>Resultado</th><th>Período</th><th>Meta</th><th>Estado</th><th>Variación</th></tr></thead><tbody>${filas}</tbody></table>` : ""}
+      ${cfg.sec.bre ? `<h2>Principales brechas</h2>${A.brechas.length ? `<ol>${A.brechas.slice(0, 8).map(x => `<li><b>${u.esc(x.i.nombre)}</b>: ${String(x.b).replace(".", ",")} pts respecto de la meta (${u.esc(metaTxt(x.i))}).</li>`).join("")}</ol>` : "<p>Sin brechas respecto de las metas definidas.</p>"}` : ""}
+      ${cfg.sec.acc ? `<h2>Acciones de mejora</h2>${A.acciones.length ? `<ol>${A.acciones.map(a => `<li><b>${u.esc(a.t)}.</b> ${u.esc(a.d)}</li>`).join("")}</ol>` : "<p>Sin acciones prioritarias con los datos actuales.</p>"}` : ""}
+      ${cfg.sec.con && con.length ? `<h2>Indicadores conectados (desde otros módulos)</h2><table><thead><tr><th>Indicador</th><th>Resultado</th><th>Período</th><th>Meta</th><th>Fuente · actualización</th></tr></thead><tbody>${con.map(c => `<tr><td>${u.esc(c.nombre)}</td><td class="c">${c.valor == null ? "—" : String(c.valor).replace(".", ",") + "%"}</td><td class="c">${u.esc(c.periodo || "")}</td><td class="c">${c.meta == null ? "Sin meta" : c.meta + "%"}</td><td>${u.esc(c.fuente)} · ${fmtFecha(c.fecha)}</td></tr>`).join("")}</tbody></table>` : ""}
+      <div class="firm"><div>${u.esc(me ? me.nombre : "Coordinador/a UBPC")}<br>Coordinador/a UBPC</div><div>Subdirección de Gestión del Cuidado</div></div>
+      ${cfg.sec.fic ? list.map(i => `<div class="fp">${fichaHTMLPrint(i)}</div>`).join("") : ""}
+    </body></html>`);
+    w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 400);
   }
 
   /* ---------- Estándar de cumplimiento legible ---------- */
@@ -1156,58 +1650,17 @@
     return `<div class="kpi__sub" style="color:${color}">📏 ${txt}</div>`;
   }
 
-  /* ---------- Submódulo: Ficha técnica (matriz) ---------- */
-  function fichaSheet(ind) {
-    const u = ui();
-    const crit = (ind.metodologia || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    const rows = [
-      ["Indicador", u.esc(ind.nombre || "—")],
-      ["Fórmula", u.esc(ind.formula || (ind.tipo === "Estructura" ? "Indicador de estructura (verificación)" : "—"))],
-      ["Estándar de cumplimiento", estandarTxt(ind)],
-      ["Fuente de información", u.esc(ind.fuenteDatos || "—")],
-      ["Periodicidad", u.esc(ind.periodicidad || "—")],
-      ["Próxima medición", (() => { const pi = proximaInfo(ind); return pi ? (pi.overdue ? `<span style="color:var(--danger);font-weight:700">Pendiente · ${u.esc(pi.label)}</span>` : u.esc(pi.label)) : "—"; })()],
-      ["Responsable", u.esc(ind.responsable || "Enf. Coordinador/a UBPC")]
-    ];
-    return `<div class="mtx-card" style="--tc:${TIPO_COLOR[ind.tipo] || "#12b5a5"}">
-      <div class="mtx-card__head"><span class="tag" style="background:${TIPO_COLOR[ind.tipo]}22;color:${TIPO_COLOR[ind.tipo]}">${u.esc(ind.tipo || "—")}</span>
-        <span class="mtx-ver">Versión ${ind.fichaVersion || 1}</span></div>
-      <table class="mtx-tbl"><tbody>
-        ${rows.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join("")}
-        <tr><th>Metodología de evaluación</th><td>${crit.length ? `<ol class="mtx-crit">${crit.map(c => `<li>${u.esc(c)}</li>`).join("")}</ol>` : "—"}</td></tr>
-      </tbody></table>
-      <div class="btn-row" style="margin-top:.6rem">
-        <button class="btn btn--ghost btn--sm" data-mtxedit="${ind.id}">✏️ Editar ficha</button>
-        <button class="btn btn--ghost btn--sm" data-mtxver="${ind.id}">🕘 Versiones (${(ind.fichaHist || []).length || 1})</button>
-        <button class="btn-icon" data-mtxdel="${ind.id}" title="Eliminar">🗑️</button>
-      </div></div>`;
-  }
   function verVersiones(ind) {
     const u = ui();
     const h = (ind.fichaHist && ind.fichaHist.length ? ind.fichaHist : [{ version: ind.fichaVersion || 1, fecha: ind.fechaCreacion, por: "—", cambio: "Versión inicial" }]).slice().reverse();
     u.modal({
       title: "Versiones de la ficha · " + (ind.nombre || ""),
-      body: `<ul class="feed">${h.map(x => `<li><span class="feed__ico">🏷️</span><div><strong>Versión ${x.version}</strong>${x.cambio ? " · " + u.esc(x.cambio) : ""}
+      body: `<p class="card__hint">Los cambios de fórmula, meta o semaforización quedan aquí con su valor anterior. Las mediciones previas conservan la meta vigente al momento de medir.</p>
+        <ul class="feed">${h.map(x => `<li><span class="feed__ico">🏷️</span><div><strong>Versión ${x.version}</strong>${x.cambio ? " · " + u.esc(x.cambio) : ""}
+        ${x.anterior && Object.keys(x.anterior).length ? `<div class="kpi__sub">Antes: ${Object.keys(x.anterior).map(k => u.esc(k) + " = «" + u.esc(String(x.anterior[k] === "" ? "vacío" : x.anterior[k])) + "»").join(" · ")}</div>` : ""}
         <div class="feed__meta">${u.esc(x.por || "—")} · ${x.fecha ? u.fechaHoraCL(x.fecha) : "—"}</div></div></li>`).join("")}</ul>`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>`
     });
-  }
-  function renderMatriz(box) { seedRnaoLPP();
-    const u = ui();
-    const list = ordenados(S().all("indicadores"));
-    const head = `<div class="section__head"><div><h2 class="section__title">Ficha técnica de indicadores (matriz)</h2>
-        <p class="section__hint">Diccionario técnico de cada indicador: fórmula, estándar, fuente, periodicidad, responsable, metodología y versión.</p></div>
-        <button class="btn btn--primary btn--sm" id="mtx-new">+ Nuevo indicador</button></div>`;
-    if (!list.length) {
-      box.innerHTML = head + u.empty("Aún no hay fichas técnicas.", "Crea un indicador para generar su ficha.", "🗂️");
-      document.getElementById("mtx-new").onclick = () => ficha(null);
-      return;
-    }
-    box.innerHTML = head + `<div class="mtx-grid">${list.map(fichaSheet).join("")}</div>`;
-    document.getElementById("mtx-new").onclick = () => ficha(null);
-    box.querySelectorAll("[data-mtxedit]").forEach(b => b.onclick = () => ficha(S().get("indicadores", b.dataset.mtxedit)));
-    box.querySelectorAll("[data-mtxver]").forEach(b => b.onclick = () => verVersiones(S().get("indicadores", b.dataset.mtxver)));
-    box.querySelectorAll("[data-mtxdel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este indicador y su ficha?", () => { S().remove("indicadores", b.dataset.mtxdel); renderTab(); }));
   }
 
   function kpi(label, value, sub, kind, icon) {
@@ -1217,30 +1670,7 @@
       <div class="kpi__value">${value}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
   }
 
-  // Fila compacta y densa (para visualizar y decidir, no tarjetas grandes).
-  function indRow(ind) {
-    const u = ui();
-    const semK = semaforo(ind); const sem = SEM[semK];
-    const cur = currentValue(ind); const cumpl = cumplimiento(ind); const t = tendencia(ind);
-    const pi = proximaInfo(ind);
-    const prox = pi ? (pi.overdue ? ` · <span style="color:var(--danger);font-weight:700">medición pendiente</span>`
-      : (pi.soon ? ` · <span style="color:var(--naranjo);font-weight:700">próx. ${u.esc(pi.label)}</span>` : "")) : "";
-    const tcol = t.fav == null ? "var(--text-2)" : (t.fav ? "var(--verde)" : "var(--danger)");
-    const tc = TIPO_COLOR[ind.tipo] || "#8a94a6";
-    return `<div class="ind-row" style="border-left-color:${sem.c}">
-      <div class="ind-row__main">
-        <div class="ind-row__name">${u.esc(ind.nombre || "Indicador")}</div>
-        <div class="ind-row__sub"><span class="tag tag--xs" style="background:${tc}22;color:${tc}">${u.esc(ind.tipo || "—")}</span>${/rnao|bpso/i.test(ind.programa || "") ? ' <span class="tag tag--xs" style="background:#0d6ea81f;color:#0d6ea8">🦉 RNAO</span>' : ""} <span>${u.esc(ind.guia || "General")}</span>${prox}</div>
-      </div>
-      <div class="ind-row__val" style="color:${sem.c}">${cur == null ? "—" : cur + "%"}<span class="ind-row__meta">meta ${ind.meta != null && ind.meta !== "" ? ind.meta + "%" : "—"}${cumpl != null ? " · " + cumpl + "% cumpl" : ""}</span></div>
-      <div class="ind-row__trend"><span class="badge badge--${sem.k}">${sem.l}</span><span style="color:${tcol};font-weight:800">${t.arrow} ${u.esc(t.txt)}</span></div>
-      <div class="ind-row__act">
-        <button class="btn btn--ghost btn--sm" data-idet="${ind.id}">Ver</button>
-        <button class="btn btn--ghost btn--sm" data-iseg="${ind.id}">+ Medición</button>
-        <button class="btn-icon" data-ied="${ind.id}" title="Editar">✏️</button>
-        <button class="btn-icon" data-idel="${ind.id}" title="Eliminar">🗑️</button>
-      </div></div>`;
-  }
+
 
   // Estilos del nuevo listado de indicadores (tarjetas por guía). Se inyectan
   // una sola vez.
@@ -1282,72 +1712,9 @@
     document.head.appendChild(st);
   }
 
-  // Tarjeta de indicador (listado principal) — limpia y visual.
-  function indCard(ind) {
-    const u = ui();
-    const sem = SEM[semaforo(ind)]; const cur = currentValue(ind); const cumpl = cumplimiento(ind); const t = tendencia(ind);
-    const s = serie(ind);
-    const spark = s.length > 1 ? U.charts.sparkline(s.map(x => x.valor), { color: sem.c, meta: Number(ind.meta) }) : "";
-    const tc = TIPO_COLOR[ind.tipo] || "#8a94a6";
-    const esRnao = /rnao|bpso/i.test(ind.programa || "");
-    const pi = proximaInfo(ind);
-    const proxChip = pi && pi.overdue ? `<span class="ind-c__pend">⏰ Medición pendiente (${u.esc(pi.label)})</span>`
-      : (pi && pi.soon ? `<span class="ind-c__soon">📏 Próx. medición: ${u.esc(pi.label)}</span>` : "");
-    const tcol = t.fav == null ? "var(--text-2)" : (t.fav ? "var(--verde)" : "var(--danger)");
-    const bar = cumpl != null ? `<div class="ind-c__bar"><span style="width:${cumpl}%;background:${sem.c}"></span></div>` : "";
-    return `<div class="ind-c" style="--sc:${sem.c}">
-      <div class="ind-c__top">
-        <span class="tag tag--xs" style="background:${tc}22;color:${tc}">${u.esc(ind.tipo || "—")}</span>
-        ${esRnao ? '<span class="tag tag--xs" style="background:#0d6ea81f;color:#0d6ea8">🦉 RNAO</span>' : ""}
-        <span class="badge badge--${sem.k}" style="margin-left:auto">${sem.l}</span>
-      </div>
-      <div class="ind-c__name">${u.esc(ind.nombre || "Indicador")}</div>
-      <div class="ind-c__figs">
-        <div class="ind-c__val" style="color:${sem.c}">${cur == null ? "—" : cur + "%"}</div>
-        <div class="ind-c__meta">meta ${ind.meta != null && ind.meta !== "" ? ind.meta + "%" : "—"}${cumpl != null ? `<br><strong>${cumpl}%</strong> cumplimiento` : ""}</div>
-        <div class="ind-c__trend" style="color:${tcol}">${t.arrow}<small>${u.esc(t.txt)}</small></div>
-      </div>
-      ${bar}
-      ${spark ? `<div class="ind-c__spark">${spark}</div>` : ""}
-      <div class="ind-c__foot">${proxChip}</div>
-      <div class="ind-c__act">
-        <button class="btn btn--ghost btn--sm" data-idet="${ind.id}">Ver</button>
-        <button class="btn btn--primary btn--sm" data-iseg="${ind.id}">+ Medición</button>
-        <span style="flex:1"></span>
-        <button class="btn-icon" data-ied="${ind.id}" title="Editar">✏️</button>
-        <button class="btn-icon" data-idel="${ind.id}" title="Eliminar">🗑️</button>
-      </div></div>`;
-  }
 
-  function card(ind) {
-    const u = ui();
-    const sem = SEM[semaforo(ind)]; const cur = currentValue(ind); const cumpl = cumplimiento(ind); const t = tendencia(ind);
-    const s = serie(ind);
-    const spark = s.length > 1 ? U.charts.sparkline(s.map(x => x.valor), { color: sem.c, meta: Number(ind.meta) }) : "";
-    return `<div class="card" style="border-left:4px solid ${TIPO_COLOR[ind.tipo] || "#12b5a5"}">
-      <div class="card__head"><span class="tag" style="background:${TIPO_COLOR[ind.tipo]}22;color:${TIPO_COLOR[ind.tipo]}">${u.esc(ind.tipo || "—")}</span>
-        <span class="badge badge--${sem.k}">${sem.l}</span></div>
-      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.25rem">
-        ${/rnao|bpso/i.test(ind.programa || "") ? `<span class="tag" style="background:#0d6ea81f;color:#0d6ea8;border:1px solid #0d6ea855">🦉 RNAO / BPSO</span>` : ""}
-        ${ind.codigoNquire ? `<span class="mono kpi__sub">${u.esc(ind.codigoNquire)}</span>` : ""}
-      </div>
-      <h3 class="card__title" style="font-size:1rem;margin-bottom:.1rem">${u.esc(ind.nombre || "Indicador")}</h3>
-      ${ind.formula ? `<div class="kpi__sub" style="margin-bottom:.2rem">ƒ ${u.esc(ind.formula)}</div>` : ""}
-      <div class="flex" style="justify-content:space-between;align-items:flex-end;margin:.3rem 0">
-        <div><div style="font-size:1.9rem;font-weight:800;font-family:var(--font-disp);color:${sem.c};line-height:1">${cur == null ? "—" : cur + "%"}</div>
-          <div class="kpi__sub">Meta ${ind.meta || "—"}% · ${cumpl != null ? cumpl + "% cumpl." : "—"}</div></div>
-        <div class="right"><div style="font-weight:800;color:${t.fav == null ? "var(--text-2)" : (t.fav ? "var(--verde)" : "var(--danger)")}">${t.arrow} ${u.esc(t.txt)}</div>
-          <div class="kpi__sub">${u.esc(ind.periodicidad || "")}</div>
-          ${proximaChip(ind)}</div>
-      </div>
-      ${spark ? `<div style="margin:.2rem 0 -.3rem">${spark}</div>` : ""}
-      <div class="btn-row" style="margin-top:.6rem">
-        <button class="btn btn--ghost btn--sm" data-idet="${ind.id}">Ver</button>
-        <button class="btn btn--ghost btn--sm" data-iseg="${ind.id}">+ Seguimiento</button>
-        <button class="btn-icon" data-ied="${ind.id}" title="Editar">✏️</button>
-        <button class="btn-icon" data-idel="${ind.id}" title="Eliminar">🗑️</button>
-      </div></div>`;
-  }
+
+
 
   /* ---------- Ficha adaptable por tipo ---------- */
   function ficha(rec, prefill, done) {
@@ -1359,8 +1726,10 @@
       { name: "nombre", label: "Nombre del indicador", required: true, full: true, value: rec.nombre || "", hint: "Escribe o elige uno oficial del Anexo 4 (abajo se autocompleta tipo y guía)." },
       { name: "guia", label: "Guía / tema", type: "select", options: ["General"].concat(U.data.CAT.guiasArea), value: (U.data.guiaDeIndicador ? U.data.guiaDeIndicador(rec.nombre, rec.guia) : (rec.guia || "General")), hint: "LPP, Accesos vasculares, Cuidados centrados en la persona y la familia, o General." },
       { name: "tipo", label: "Tipo de indicador", type: "select", options: TIPOS, value: tipo, hint: "Estructura = si algo existe · Proceso = cómo se hace · Resultado = efecto en el paciente · Impacto = efecto a largo plazo." },
-      { name: "responsable", label: "Responsable", value: rec.responsable || "Enf. Coordinador/a UBPC", hint: "Quién mide y reporta este indicador." },
-      { name: "objetivo", label: "Objetivo", type: "textarea", full: true, value: rec.objetivo || "", hint: "Qué se busca lograr o vigilar con este indicador (en una frase)." }
+      { name: "programa", label: "Programa o línea de trabajo", type: "select", options: PROGRAMAS, placeholder: "Seleccionar…", value: rec.programa === "RNAO / BPSO" || PROGRAMAS.includes(rec.programa) ? rec.programa : (rec.programa || "") },
+      { name: "responsable", label: "Responsable de la medición", value: rec.responsable || "Enf. Coordinador/a UBPC", hint: "Quién mide y reporta este indicador." },
+      { name: "objetivo", label: "Objetivo", type: "textarea", full: true, value: rec.objetivo || "", hint: "Qué se busca lograr o vigilar con este indicador (en una frase)." },
+      { name: "justificacion", label: "Justificación", type: "textarea", full: true, value: rec.justificacion || "", hint: "Por qué es importante medirlo (problema, norma o programa que lo exige)." }
     ], {});
     const cambioField = rec.id ? u.formHTML([{ name: "cambioFicha", label: "Motivo del cambio (crea una nueva versión de la ficha)", full: true, value: "", hint: "Opcional. Si lo completas, la ficha sube de versión y queda registrado en el historial." }], {}) : "";
 
@@ -1394,13 +1763,21 @@
             estructura ? null : { name: "numerador", label: "Numerador (cantidad actual)", type: "number", value: rec.numerador != null ? rec.numerador : "", hint: "Se actualiza solo al registrar cada medición mensual. Puedes dejarlo vacío aquí." },
             estructura ? null : { name: "denominadorDesc", label: "Denominador — ¿sobre qué total?", full: true, value: rec.denominadorDesc || "", hint: "Define el TOTAL sobre el que se mide. Ej: Total de pacientes evaluados en el período." },
             estructura ? null : { name: "denominador", label: "Denominador (cantidad actual)", type: "number", value: rec.denominador != null ? rec.denominador : "", hint: "Se actualiza solo al registrar cada medición mensual. Puedes dejarlo vacío aquí." },
+            estructura ? null : { name: "factor", label: "Factor de amplificación", type: "number", value: rec.factor != null ? rec.factor : "", hint: "Ej.: 100 para porcentaje, 1.000 para tasas por mil días-cama. Vacío = 100 (porcentaje)." },
+            { name: "unidadMedida", label: "Unidad de medida", type: "select", options: UNIDADES_MEDIDA, placeholder: "Seleccionar…", value: rec.unidadMedida || "" },
+            estructura ? null : { name: "criteriosInclusion", label: "Criterios de inclusión", type: "textarea", full: true, rows: 2, value: rec.criteriosInclusion || "", hint: "Opcional. A quiénes se incluye en la medición." },
+            estructura ? null : { name: "criteriosExclusion", label: "Criterios de exclusión", type: "textarea", full: true, rows: 2, value: rec.criteriosExclusion || "", hint: "Opcional. A quiénes se excluye." },
             { name: "fuenteDatos", label: "Fuente de información", full: true, value: rec.fuenteDatos || "", hint: "De dónde sale el dato. Ej: ficha clínica, pauta de cotejo, registro de enfermería." },
             { name: "periodicidad", label: "Periodicidad", type: "select", options: PERIODICIDAD, value: rec.periodicidad || "Trimestral", hint: "Cada cuánto se mide. Para los indicadores LPP de NQUIRE es Mensual." },
             { name: "fechaMedicion", label: "Fecha de la última medición", type: "date", value: rec.fechaMedicion ? ui().isoDay(rec.fechaMedicion) : "", hint: "Se usa para calcular y avisar la próxima medición según la periodicidad." },
-            { name: "sentido", label: "Sentido de la meta", type: "select", options: SENTIDOS, value: rec.sentido || "Mayor es mejor", hint: "«Mayor es mejor» para cumplimiento (ej. valoración) · «Menor es mejor» para daño (ej. incidencia)." },
-            { name: "meta", label: "Estándar de cumplimiento / Meta (%)", type: "number", value: rec.meta != null ? rec.meta : "", hint: "Umbral esperado. Ej: ≥95% en procesos, ≤5% en incidencia de LPP." },
+            { name: "sentido", label: "Sentido esperado", type: "select", options: SENTIDOS, value: rec.sentido || "Mayor es mejor", hint: "Aumentar (cumplimiento) · Disminuir (daño, ej. incidencia) · Mantenerse dentro de un rango." },
+            { name: "meta", label: "Meta (o mínimo del rango)", type: "number", attrs: 'step="any"', value: rec.meta != null ? rec.meta : "", hint: "Umbral esperado. Ej: ≥95% en procesos, ≤5% en incidencia de LPP." },
+            { name: "metaMax", label: "Máximo del rango (solo si es «Dentro de un rango»)", type: "number", attrs: 'step="any"', value: rec.metaMax != null ? rec.metaMax : "" },
+            { name: "umbralSeguimiento", label: "Semaforización: margen de seguimiento (puntos)", type: "number", attrs: 'step="any" min="0"', value: rec.umbralSeguimiento != null ? rec.umbralSeguimiento : "", hint: "Verde = en meta · Amarillo = fuera de la meta hasta este margen · Rojo = más allá. Si lo dejas vacío se usa 15 pts (criterio anterior del portal)." },
             { name: "lineaBase", label: "Línea base (%)", type: "number", value: rec.lineaBase != null ? rec.lineaBase : "", hint: "Primer resultado medido, antes de intervenir. Sirve de punto de comparación." },
-            { name: "metodologia", label: "Metodología de evaluación (un criterio por línea)", type: "textarea", full: true, rows: 3, value: rec.metodologia || "", hint: "Escribe un criterio por línea; cada línea será un ítem numerado en la ficha." }
+            { name: "metodologia", label: "Metodología de medición (un criterio por línea)", type: "textarea", full: true, rows: 3, value: rec.metodologia || "", hint: "Escribe un criterio por línea; cada línea será un ítem numerado en la ficha." },
+            { name: "interpretacion", label: "Interpretación del resultado", type: "textarea", full: true, rows: 2, value: rec.interpretacion || "", hint: "Cómo leer el resultado (qué significa estar sobre o bajo la meta)." },
+            { name: "referencia", label: "Referencia normativa o bibliográfica", full: true, value: rec.referencia || "", hint: "Opcional. Ej.: Norma Técnica 234 · Guía RNAO · NQUIRE." }
           ].filter(Boolean), {});
           paintFormula();
           ["numeradorDesc", "denominadorDesc", "numerador", "denominador"].forEach(n => { const el = m.querySelector(`[name="${n}"]`); if (el) el.addEventListener("input", paintFormula); });
@@ -1449,14 +1826,28 @@
           d.seguimientos = segs.filter(s => (s.periodo || "") !== "" || (s.valor || "") !== "");
           if (!d.responsable) d.responsable = "Enf. Coordinador/a UBPC";
           // Fórmula automática (indicadores no estructurales)
-          if (d.tipo !== "Estructura") d.formula = "(" + (d.numeradorDesc || "Numerador") + " ÷ " + (d.denominadorDesc || "Denominador") + ") × 100";
+          // La fórmula se (re)genera solo si cambió su contenido; así se conserva el texto oficial (p. ej. NQUIRE).
+          const nrm = v => v == null ? "" : String(v).trim();
+          const cambioFormula = !rec.formula || nrm(d.numeradorDesc) !== nrm(rec.numeradorDesc) || nrm(d.denominadorDesc) !== nrm(rec.denominadorDesc) || nrm(d.factor) !== nrm(rec.factor) || d.tipo !== rec.tipo;
+          if (d.tipo !== "Estructura") d.formula = cambioFormula ? "(" + (d.numeradorDesc || "Numerador") + " ÷ " + (d.denominadorDesc || "Denominador") + ") × " + (Number(d.factor) > 0 ? Number(d.factor).toLocaleString("es-CL") : "100") : rec.formula;
           else d.formula = "";
           // Versión de la ficha
           const me = U.auth.current();
           if (rec.id) {
-            if ((d.cambioFicha || "").trim()) {
+            // Cambios METODOLÓGICOS (fórmula, meta, sentido, semaforización…) generan
+            // versión nueva SIEMPRE, guardando los valores anteriores. Las mediciones
+            // históricas quedan marcadas con la meta vigente cuando se midieron.
+            const METOD = { formula: "Fórmula", numeradorDesc: "Numerador", denominadorDesc: "Denominador", factor: "Factor", meta: "Meta", metaMax: "Máximo del rango", sentido: "Sentido", umbralSeguimiento: "Semaforización", periodicidad: "Periodicidad", unidadMedida: "Unidad de medida" };
+            const norm = v => v == null ? "" : String(v).trim();
+            const cambiados = Object.keys(METOD).filter(k => k in d && norm(d[k]) !== norm(rec[k]));
+            if (cambiados.length && Object.prototype.hasOwnProperty.call(rec, "meta")) {
+              d.seguimientos = (d.seguimientos || []).map(sg => (sg.metaVigente == null || sg.metaVigente === "") && rec.meta !== "" && rec.meta != null ? Object.assign({}, sg, { metaVigente: rec.meta }) : sg);
+            }
+            if ((d.cambioFicha || "").trim() || cambiados.length) {
               d.fichaVersion = (rec.fichaVersion || 1) + 1;
-              d.fichaHist = (rec.fichaHist || []).concat([{ version: d.fichaVersion, fecha: new Date().toISOString(), por: me ? me.nombre : "—", cambio: d.cambioFicha.trim() }]);
+              const anterior = {}; cambiados.forEach(k => anterior[k] = rec[k] == null ? "" : rec[k]);
+              d.fichaHist = (rec.fichaHist || []).concat([{ version: d.fichaVersion, fecha: new Date().toISOString(), por: me ? me.nombre : "—",
+                cambio: (d.cambioFicha || "").trim() || ("Actualización metodológica: " + cambiados.map(k => METOD[k]).join(", ")), campos: cambiados, anterior }]);
             } else {
               d.fichaVersion = rec.fichaVersion || 1;
               d.fichaHist = rec.fichaHist || [];
@@ -1508,13 +1899,15 @@
           const d = u.readForm(m);
           const num = d.numerador !== "" && d.numerador != null ? Number(d.numerador) : null;
           const den = d.denominador !== "" && d.denominador != null ? Number(d.denominador) : null;
-          let valor = (num != null && den > 0) ? pct(num, den) : (d.valor !== "" ? d2(Number(d.valor)) : null);
+          const fac = Number(ind.factor) > 0 ? Number(ind.factor) : 100;
+          let valor = (num != null && den > 0) ? d2(num / den * fac) : (d.valor !== "" ? d2(Number(d.valor)) : null);
           if (valor == null) { u.toast(estructura ? "Indica el resultado (%)" : "Indica numerador y denominador (o el %)", "danger"); return; }
           const entry = { periodo: d.periodo, valor: valor, fecha: d.fecha || "" };
           if (num != null) entry.numerador = num;
           if (den != null) entry.denominador = den;
           if (d.unidad && d.unidad !== "General / Institucional") entry.unidad = d.unidad;
           if (d.fase) entry.fase = d.fase;
+          if (ind.meta !== "" && ind.meta != null) entry.metaVigente = ind.meta;   // meta vigente al medir (no se altera el histórico)
           const segs = (ind.seguimientos || []).concat([entry]);
           const patch = { seguimientos: segs };
           if (num != null) patch.numerador = num;   // refleja el último período (para el panel RNAO y el semáforo)
@@ -1583,6 +1976,7 @@
           if (den != null) entry.denominador = den;
           if (d.unidad && d.unidad !== "General / Institucional") entry.unidad = d.unidad;
           if (d.fase) entry.fase = d.fase;
+          if (seg.metaVigente != null && seg.metaVigente !== "") entry.metaVigente = seg.metaVigente;
           segs[idx] = entry;
           const patch = { seguimientos: segs };
           const last = segs.filter(s => s.valor !== "" && s.valor != null).slice(-1)[0];
@@ -1602,7 +1996,8 @@
     const FASE_ORDEN = ["Pre implementación", "Post implementación", "Seguimiento"];
     const puntos = [];
     if (ind.lineaBase !== "" && ind.lineaBase != null) puntos.push({ periodo: "Línea base", valor: Number(ind.lineaBase), fase: "Pre implementación" });
-    (ind.seguimientos || []).filter(x => x.valor !== "" && x.valor != null).forEach(x => puntos.push({ periodo: x.periodo || "", valor: Number(x.valor), fase: x.fase || "Seguimiento" }));
+    // Un punto por período (valor institucional del período), con su fase.
+    seriePeriodos(ind).forEach(p => { const f = (segValidos(ind).find(x => (x.periodo || "") === p.periodo) || {}).fase; puntos.push({ periodo: p.periodo || "", valor: p.valor, fase: f || "Seguimiento" }); });
     puntos.sort((a, b) => a.periodo === "Línea base" ? -1 : b.periodo === "Línea base" ? 1 : String(a.periodo).localeCompare(String(b.periodo)));
     const labels = puntos.map(p => p.periodo || "—");
     const series = FASE_ORDEN.filter(f => puntos.some(p => p.fase === f))
@@ -1648,14 +2043,16 @@
         <div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Objetivo</span><p class="narrativo">${u.esc(ind.objetivo || "—")}</p></div>
         ${(ind.metodologia || "").trim() ? `<div style="grid-column:1/-1"><span class="muted" style="font-size:12px;font-weight:600">Metodología de evaluación</span><ol class="mtx-crit">${ind.metodologia.split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(x => `<li>${u.esc(x)}</li>`).join("")}</ol></div>` : ""}
         ${(ind.seguimientos && ind.seguimientos.length) ? `<h4 style="margin:.6rem 0 .2rem">Mediciones registradas · reporte NQUIRE <span class="kpi__sub" style="font-weight:600">· usa ✏️ para corregir o eliminar</span></h4>
-          <div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th>Unidad</th><th>Fase</th><th class="right">Numerador</th><th class="right">Denominador</th><th class="right">Resultado</th><th class="right">Editar</th></tr></thead>
-          <tbody>${ind.seguimientos.map((s, i) => ({ s, i })).reverse().map(({ s, i }) => `<tr><td>${u.esc(s.periodo || "—")}</td><td>${u.esc(s.unidad || "General")}</td><td>${u.esc(s.fase || "Seguimiento")}</td><td class="num">${s.numerador != null ? s.numerador : "—"}</td><td class="num">${s.denominador != null ? s.denominador : "—"}</td><td class="num"><strong>${s.valor != null ? s.valor + "%" : "—"}</strong></td><td class="num"><button class="btn-icon" data-editseg="${i}" title="Editar o eliminar esta medición">✏️</button></td></tr>`).join("")}</tbody></table></div>` : ""}
+          <div class="table-wrap"><table class="tbl"><thead><tr><th>Período</th><th>Unidad</th><th>Fase</th><th class="right">Numerador</th><th class="right">Denominador</th><th class="right">Resultado</th><th>Meta vigente</th><th>Estado</th><th class="right">Editar</th></tr></thead>
+          <tbody>${ind.seguimientos.map((s, i) => ({ s, i })).sort((a, b) => String(b.s.periodo || "").localeCompare(String(a.s.periodo || ""))).map(({ s, i }) => `<tr><td>${u.esc(s.periodo || "—")}</td><td>${u.esc(s.unidad || "General")}</td><td>${u.esc(s.fase || "Seguimiento")}</td><td class="num">${s.numerador != null ? s.numerador : "—"}</td><td class="num">${s.denominador != null ? s.denominador : "—"}</td><td class="num"><strong>${s.valor != null ? s.valor + "%" : "—"}</strong></td><td>${s.metaVigente != null && s.metaVigente !== "" ? s.metaVigente + "%" : (ind.meta !== "" && ind.meta != null ? ind.meta + "% <small class='muted'>(actual)</small>" : "—")}</td><td>${semBadge(semaforoDe(ind, s.valor == null ? null : Number(s.valor), s.metaVigente))}</td><td class="num"><button class="btn-icon" data-editseg="${i}" title="Editar o eliminar esta medición">✏️</button></td></tr>`).join("")}</tbody></table></div>` : ""}
         <h4 style="margin:.6rem 0 .2rem">Antes vs. ahora (por fase)</h4>${compara}
         <h4 style="margin:.6rem 0 .2rem">Tendencia</h4>${chart}`,
       footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
-        <button class="btn btn--primary" data-seg>+ Seguimiento</button>`,
+        <button class="btn btn--ghost" data-fic>📋 Ficha técnica</button>
+        <button class="btn btn--primary" data-seg>+ Medición</button>`,
       onMount(m) {
         m.querySelector("[data-seg]").onclick = () => { u.closeModal(); addSeguimiento(ind, done); };
+        m.querySelector("[data-fic]").onclick = () => { u.closeModal(); fichaView(ind); };
         m.querySelectorAll("[data-editseg]").forEach(b => b.onclick = () => { u.closeModal(); editSeguimiento(ind, Number(b.dataset.editseg), done); });
       }
     });
@@ -1677,23 +2074,23 @@
     if (S().all("nt234").length) recs.push({ nombre: "Cumplimiento NT 234 (institucional)", tipo: "Resultado", fuente: "NT 234",
       prefill: { nombre: "Cumplimiento NT 234 (institucional)", tipo: "Resultado", objetivo: "Cumplimiento promedio de la Norma Técnica 234.",
         fuenteDatos: "Módulo NT 234", periodicidad: "Semestral", sentido: "Mayor es mejor", meta: Number(S().getConfig("nt234.meta", 85)),
-        lineaBase: Math.round(S().all("nt234").reduce((a, b) => a + (Number(b.porcentaje) || 0), 0) / S().all("nt234").length) } });
+        lineaBase: (() => { const v = S().all("nt234").map(m => U.ntUtil && U.ntUtil.globalNT ? U.ntUtil.globalNT(m) : null).filter(x => x != null); return v.length ? d2(v.reduce((a, b) => a + b, 0) / v.length) : ""; })() } });
     const acts = S().all("actividades");
     if (acts.length) { const po = acts.reduce((n, a) => n + (parseInt(a.poblacionObjetivo) || 0), 0), pc = acts.reduce((n, a) => n + (parseInt(a.personasCapacitadas) || 0), 0);
       recs.push({ nombre: "Cobertura de capacitación", tipo: "Proceso", fuente: "Capacitaciones",
         prefill: { nombre: "Cobertura de capacitación", tipo: "Proceso", objetivo: "Cobertura de personal capacitado respecto a la población objetivo.",
           formula: "(personas capacitadas / población objetivo) × 100", numerador: pc, denominador: po || "", fuenteDatos: "Módulo de Fortalecimiento",
-          periodicidad: "Trimestral", sentido: "Mayor es mejor", meta: 80 } }); }
+          periodicidad: "Trimestral", sentido: "Mayor es mejor" } }); }
     if (S().all("documentos").length) recs.push({ nombre: "Documentos vigentes", tipo: "Estructura", fuente: "Gestión Documental",
       prefill: { nombre: "Documentos institucionales vigentes", tipo: "Estructura", objetivo: "Disponibilidad de documentos institucionales vigentes.",
-        fuenteDatos: "Gestión Documental", periodicidad: "Anual", sentido: "Mayor es mejor", meta: 90,
+        fuenteDatos: "Gestión Documental", periodicidad: "Anual", sentido: "Mayor es mejor",
         lineaBase: Math.round(S().all("documentos").filter(d => /vigente/i.test(d.estado || "")).length / S().all("documentos").length * 100) } });
     if (S().all("monitoreoRef").length || S().all("accionesRNAO").length) recs.push({ nombre: "Auditorías clínicas realizadas", tipo: "Proceso", fuente: "Auditorías / apoyo técnico",
       prefill: { nombre: "Auditorías clínicas realizadas", tipo: "Proceso", objetivo: "Auditorías clínicas ejecutadas en el período.",
-        fuenteDatos: "Monitoreo y apoyo técnico", periodicidad: "Trimestral", sentido: "Mayor es mejor", meta: 100 } });
+        fuenteDatos: "Monitoreo y apoyo técnico", periodicidad: "Trimestral", sentido: "Mayor es mejor" } });
     if (S().all("edicionesEVI").length) recs.push({ nombre: "Evidencia difundida (EVI)", tipo: "Impacto", fuente: "Evidencia registrada",
       prefill: { nombre: "Evidencia difundida (EVI)", tipo: "Impacto", objetivo: "Ediciones de evidencia difundidas al equipo clínico.",
-        fuenteDatos: "EVI · Evidencia que transforma", periodicidad: "Semestral", sentido: "Mayor es mejor", meta: 4,
+        fuenteDatos: "EVI · Evidencia que transforma", periodicidad: "Semestral", sentido: "Mayor es mejor",
         lineaBase: S().all("edicionesEVI").length } });
     return recs;
   }
