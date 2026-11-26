@@ -2696,3 +2696,19 @@ body.night .dash-ana{ background:rgba(15,143,131,.12); } body.night .dash-ana b{
 .dash-grid{ align-items:start; }
 .dash-pend__r{ padding:.28rem .5rem; } .dash-pend__r b{ font-size:1.1rem; }
 .dash-card__h span{ max-width:55%; }
+
+/* KPI: la fila ocupa todo el ancho disponible (sin espacio vacío a la derecha) */
+.grid--kpi{ grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)) !important; }
+/* Mapa de alertas NT 234: tarjetas compactas que llenan el ancho */
+.nt-alerts{ display:grid; grid-template-columns:repeat(auto-fill, minmax(215px, 1fr)); gap:.7rem; }
+.nt-alerts .nt-alert{ padding:.65rem .75rem; border-radius:14px; }
+.nt-alerts .nt-alert__unit{ font-size:1rem; }
+.nt-alerts .nt-alert__pct{ font-size:1.65rem; }
+.nt-alerts .nt-alert__jef{ margin-top:.25rem; font-size:11.5px; }
+.nt-alerts .nt-alert__plan{ margin-top:.4rem; padding:.3rem .4rem; font-size:11.5px; line-height:1.35; }
+.nt-alerts .nt-alert__plan .btn{ padding:.12rem .45rem; font-size:11px; }
+.nt-mkpis .kpi__sub{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nt-mkpis{ margin:.7rem 0 !important; }
+.nt-mkpis > .kpi{ padding:.55rem .75rem !important; }
+.nt-mkpis .kpi__value{ font-size:1.5rem; margin:.1rem 0; }
+.nt-mkpis .kpi__top{ align-items:center; }
