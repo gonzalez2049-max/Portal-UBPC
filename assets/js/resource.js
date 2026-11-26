@@ -231,9 +231,10 @@
       });
     }
 
-    function form(rec) {
+    // prefill (opcional): valores iniciales para un registro NUEVO (no edita nada existente)
+    function form(rec, prefill) {
       const fields = typeof cfg.fields === "function" ? cfg.fields(rec) : cfg.fields;
-      const values = rec || (typeof cfg.defaults === "function" ? cfg.defaults() : cfg.defaults) || {};
+      const values = rec || Object.assign({}, (typeof cfg.defaults === "function" ? cfg.defaults() : cfg.defaults) || {}, prefill || {});
       u.modal({
         title: (rec ? "Editar · " : "Nuevo · ") + (cfg.title || ""),
         wide: cfg.wideForm,
@@ -241,7 +242,7 @@
         footer: `<button class="btn btn--ghost" data-close>Cancelar</button>
                  <button class="btn btn--primary" data-save>Guardar</button>`,
         onMount(m) {
-          if (cfg.onFormMount) cfg.onFormMount(m, rec);
+          if (cfg.onFormMount) cfg.onFormMount(m, rec, prefill);
           m.querySelector("[data-save]").onclick = () => {
             let data = u.readForm(m);
             // Validación de requeridos

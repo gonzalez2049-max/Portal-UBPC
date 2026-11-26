@@ -2597,3 +2597,14 @@ body.night .ico-crit__ic{ background:rgba(255,255,255,.1); }
 body.night .epa-conc{ background:rgba(15,143,131,.12); } body.night .epa-conc b{ color:#7fe0d0; }
 body.night .epa-alert{ background:rgba(217,133,20,.16); color:#f3c98a; }
 body.night .epa-acc{ color:#e6f2ee; }
+
+/* ===== Vista unida: Alertas + Plan de Mejora NT 234 ===== */
+.nt-alert__plan{ margin-top:.6rem; padding:.45rem .55rem; border-radius:10px; font-size:12.5px; line-height:1.45; background:rgba(255,255,255,.65); border:1px dashed rgba(0,0,0,.12); display:flex; flex-wrap:wrap; gap:.3rem; align-items:center; justify-content:center; }
+.nt-alert__plan .btn{ padding:.2rem .55rem; font-size:12px; }
+.nt-alert__plan--none{ color:#b02a3a; font-weight:700; }
+.nt-alert__plan--late{ color:#b02a3a; } .nt-alert__plan--on{ color:#1a4f9c; } .nt-alert__plan--ok{ color:#1f7d48; }
+.nt-ap-sep{ display:flex; align-items:center; gap:.8rem; margin:1.6rem 0 1rem; font-family:var(--font-disp,Georgia,serif); font-weight:700; font-size:1.1rem; color:#0d5044; }
+.nt-ap-sep::before, .nt-ap-sep::after{ content:""; flex:1; height:2px; background:linear-gradient(90deg,transparent,#bfe0d9); }
+.nt-ap-sep::after{ background:linear-gradient(90deg,#bfe0d9,transparent); }
+body.night .nt-alert__plan{ background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14); }
+body.night .nt-ap-sep{ color:#a9e3d6; }

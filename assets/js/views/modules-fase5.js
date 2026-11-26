@@ -10,8 +10,7 @@
   const M6_TABS = [
     { key: "seguimiento", label: "Seguimiento NT 234" },
     { key: "epi", label: "Epidemiología LPP" },
-    { key: "alertas", label: "Mapa de Alertas NT 234" },
-    { key: "planes", label: "Plan de Mejora · NT 234" },
+    { key: "alertas", label: "Alertas y Plan de Mejora · NT 234" },
     { key: "informe", label: "Informe A4" }
   ];
   // Indicadores de la NT 234. SON INDEPENDIENTES: cada uno tiene su propio
@@ -95,7 +94,7 @@
   function m6Bind(main, params) {
     const tab = (params && params.tab) || "seguimiento";
     const box = document.getElementById("m6-body");
-    ({ seguimiento: seguimiento234, epi: epidemiologia234, alertas: alertas234, planes: planes234, informe: informe234 }[tab] || seguimiento234)(box);
+    ({ seguimiento: seguimiento234, epi: epidemiologia234, alertas: alertasPlanes234, planes: alertasPlanes234, informe: informe234 }[tab] || seguimiento234)(box);
   }
 
   // Versión embebida dentro de «Apoyo y Mejora Continua» (m1?tab=nt234). Usa
@@ -105,9 +104,9 @@
     const u = ui();
     const sub = (params && params.sub) || "seguimiento";
     box.innerHTML = `<div class="tabs no-print" style="margin-bottom:1rem">${M6_TABS.map((t, i) =>
-      `<a class="tab ${t.key === sub ? "active" : ""}" style="--tab-c:${NT_SUB_COLORS[i % NT_SUB_COLORS.length]}" href="#/coord/m1?tab=nt234&sub=${t.key}"><span class="tab__dot"></span>${u.esc(t.label)}</a>`).join("")}</div><div id="m6-body"></div>`;
+      `<a class="tab ${t.key === (sub === "planes" ? "alertas" : sub) ? "active" : ""}" style="--tab-c:${NT_SUB_COLORS[i % NT_SUB_COLORS.length]}" href="#/coord/m1?tab=nt234&sub=${t.key}"><span class="tab__dot"></span>${u.esc(t.label)}</a>`).join("")}</div><div id="m6-body"></div>`;
     const inner = box.querySelector("#m6-body");
-    ({ seguimiento: seguimiento234, epi: epidemiologia234, alertas: alertas234, planes: planes234, informe: informe234 }[sub] || seguimiento234)(inner);
+    ({ seguimiento: seguimiento234, epi: epidemiologia234, alertas: alertasPlanes234, planes: alertasPlanes234, informe: informe234 }[sub] || seguimiento234)(inner);
   }
 
   /* ---------- Tab: Epidemiología LPP (incidencia / prevalencia / % libres) ---------- */
@@ -627,7 +626,7 @@
       let vari;
       if (gp == null) vari = `<span class="nt-var">Sin comparación</span>`;
       else { const d = round1(g - gp); vari = d > 0 ? `<span class="nt-var up">↗ Mejoró +${d}%</span>` : d < 0 ? `<span class="nt-var down">↘ Disminuyó ${d}%</span>` : `<span class="nt-var eq">→ Se mantiene</span>`; }
-      return { un, g, e, vari, jef: last.jefatura };
+      return { un, g, e, vari, jef: last.jefatura, last };
     }).filter(c => c.g != null).sort((a, b) => a.g - b.g);
     const evaluadas = cards.length;
     const enCumpl = cards.filter(c => c.e.k === "verde").length;
@@ -642,7 +641,7 @@
       <div class="grid grid--kpi nt-mkpis" style="margin:1rem 0">
         ${kpiMon("Cumplimiento institucional", instit + (instit === "—" ? "" : "%"), "info", "Meta " + meta234() + "%", "🏥", instit === "—" ? null : instit)}
         ${kpiMon("Unidades evaluadas", evaluadas, "eval", "Total con datos", "📋")}
-        ${kpiMon("En cumplimiento", enCumpl, "ok", "≥ 80%", "✅")}
+        ${kpiMon("En cumplimiento", enCumpl, "ok", "≥ " + meta234() + "%", "✅")}
         ${kpiMon("Unidades en seguimiento", seg.length, "warn", seg.map(c => c.un).join(", ") || "Ninguna", "⚠️")}
         ${kpiMon("Unidades con intervención", inter.length, "danger", inter.map(c => c.un).join(", ") || "Ninguna", "🚨")}
       </div>
@@ -653,7 +652,68 @@
           <div class="nt-alert__pct">${c.g}%</div>
           <div class="nt-alert__var">${c.vari}</div>
           ${c.jef ? `<div class="nt-alert__jef">${u.esc(c.jef)}</div>` : ""}
+          ${planChip(c)}
         </div>`).join("")}</div>` : u.empty("Sin evaluaciones registradas.", "Agrega mediciones en Seguimiento NT 234.", "🗺️")}`;
+  }
+  // Plan de mejora vigente de la unidad (el más reciente no cerrado; si no, el último).
+  const planCerrado = p => /entreg|complet|cerr/i.test(p.estado || "");
+  function planDeUnidad(un) {
+    const l = S().all("planesNT234").filter(p => p.unidad === un)
+      .sort((a, b) => new Date(b.fechaSolicitud || b.fechaCreacion || 0) - new Date(a.fechaSolicitud || a.fechaCreacion || 0));
+    return l.find(p => !planCerrado(p)) || l[0] || null;
+  }
+  // Chip del plan en la tarjeta de alerta (vínculo alerta ↔ plan)
+  function planChip(c) {
+    const u = ui();
+    const p = planDeUnidad(c.un);
+    const necesita = c.e.k === "rojo" || c.e.k === "amarillo";
+    if (!p) return necesita
+      ? `<div class="nt-alert__plan nt-alert__plan--none">Sin plan de mejora <button class="btn btn--primary btn--sm" data-plannew="${u.esc(c.un)}">+ Crear plan</button></div>`
+      : `<div class="nt-alert__plan nt-alert__plan--ok">Sin plan requerido</div>`;
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const vencido = !planCerrado(p) && p.plazo && new Date(p.plazo) < hoy;
+    const cls = planCerrado(p) ? "ok" : vencido ? "late" : "on";
+    return `<div class="nt-alert__plan nt-alert__plan--${cls}">📋 Plan: <strong>${u.esc(p.estado || "—")}</strong>${p.subestado ? " · " + u.esc(p.subestado) : ""}
+      ${p.plazo ? `<span>· plazo ${u.fechaCL(p.plazo)}${vencido ? " ⚠️ vencido" : ""}</span>` : ""}
+      <button class="btn btn--ghost btn--sm" data-planedit="${p.id}">Ver / editar</button>
+      ${planCerrado(p) && necesita ? `<button class="btn btn--primary btn--sm" data-plannew="${u.esc(c.un)}">+ Nuevo plan</button>` : ""}</div>`;
+  }
+  // Indicadores de la última medición bajo la meta → precargan el plan nuevo.
+  function indicadoresBajoMeta(un) {
+    const meds = S().all("nt234").filter(m => m.unidad === un).sort((a, b) => (a.periodo || "").localeCompare(b.periodo || ""));
+    const last = meds[meds.length - 1]; if (!last) return [];
+    const meta = meta234();
+    return [["valoracionRiesgo", 0], [NT_K_LOCAL, 1], [NT_K_GLOBAL, 2]].map(([k, i]) => {
+      const v = k === NT_K_GLOBAL ? globalNT(last) : indPct(last, k);
+      return v != null && v < meta ? { indicador: NT_INDICADORES[i], valor: String(v) } : null;
+    }).filter(Boolean);
+  }
+
+  /* ---------- Vista unida: Mapa de Alertas + Plan de Mejora NT 234 ----------
+     Misma información y mismos registros de antes (nt234 y planesNT234):
+     arriba el mapa de alertas por unidad con el estado de su plan; abajo el
+     control de plazos y el listado completo de planes. */
+  function alertasPlanes234(box) {
+    box.innerHTML = `<div id="nt-ap-alertas"></div>
+      <div class="nt-ap-sep"><span>🛠️ Planes de mejora NT 234</span></div>
+      <div id="nt-ap-planes"></div>`;
+    const aBox = box.querySelector("#nt-ap-alertas"), pBox = box.querySelector("#nt-ap-planes");
+    let ctl = null;
+    const refresh = () => { alertas234(aBox); bindCards(); };
+    function bindCards() {
+      aBox.querySelectorAll("[data-plannew]").forEach(b => b.onclick = () => {
+        const un = b.dataset.plannew;
+        const meds = S().all("nt234").filter(m => m.unidad === un).sort((a, c) => (a.periodo || "").localeCompare(c.periodo || ""));
+        const last = meds[meds.length - 1];
+        const g = last ? globalNT(last) : null;
+        ctl && ctl.form(null, { unidad: un, responsable: last && last.jefatura ? last.jefatura : "",
+          indicadoresLista: indicadoresBajoMeta(un),
+          observaciones: last ? `Indicador Global NT 234 de ${un}: ${g != null ? g + "%" : "—"} en ${periodoNT(last.periodo)} (meta ${meta234()}%).` : "" });
+      });
+      aBox.querySelectorAll("[data-planedit]").forEach(b => b.onclick = () => { const r = S().get("planesNT234", b.dataset.planedit); if (r && ctl) ctl.form(r); });
+    }
+    ctl = planes234(pBox, refresh);
+    refresh();
   }
 
   /* ---------- Tab 3: Planes de mejora (control de plazos) ---------- */
@@ -706,26 +766,32 @@
     return [];
   }
 
-  function planes234(box) {
+  function planes234(box, onChange) {
     const u = ui();
-    const planes = S().all("planesNT234");
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const entregado = p => /entreg|complet|cerr/i.test(p.estado || "");
-    const enPlazo = planes.filter(p => !entregado(p) && p.plazo && new Date(p.plazo) >= hoy);
-    const entregados = planes.filter(entregado);
-    const alerta = planes.filter(p => !entregado(p) && p.plazo && new Date(p.plazo) < hoy);
-    box.innerHTML = `<div class="doc-linked no-print" style="margin-bottom:.9rem">ℹ️ Estos son los <strong>planes de mejora de la Norma Técnica 234</strong> (cumplimiento de la norma de LPP). Son distintos de los <strong>Planes de Intervención RNAO/BPSO</strong> (implementación de guías), que se gestionan en <a href="#/coord/m3?tab=planes">Programa RNAO → Plan de Intervención</a>.</div>
-      <div class="card nt-plazos">
+    function plazosHTML() {
+      const planes = S().all("planesNT234");
+      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+      const entregado = p => /entreg|complet|cerr/i.test(p.estado || "");
+      const enPlazo = planes.filter(p => !entregado(p) && p.plazo && new Date(p.plazo) >= hoy);
+      const entregados = planes.filter(entregado);
+      const alerta = planes.filter(p => !entregado(p) && p.plazo && new Date(p.plazo) < hoy);
+      return `<div class="card nt-plazos">
         <div class="nt-plazos__eyebrow">Control de plazos · NT 234</div>
         <h3 class="card__title" style="margin:.1rem 0 .8rem">Estado de los planes de mejora NT 234</h3>
         <div class="grid grid--3">
           ${plazoCol("En plazo", enPlazo, "info")}
           ${plazoCol("Entregados", entregados, "ok")}
           ${plazoCol("Alerta", alerta, "danger")}
-        </div></div>
+        </div></div>`;
+    }
+    box.innerHTML = `<div class="doc-linked no-print" style="margin-bottom:.9rem">ℹ️ Estos son los <strong>planes de mejora de la Norma Técnica 234</strong> (cumplimiento de la norma de LPP). Son distintos de los <strong>Planes de Intervención RNAO/BPSO</strong> (implementación de guías), que se gestionan en <a href="#/coord/m3?tab=planes">Programa RNAO → Plan de Intervención</a>.</div>
+      ${plazosHTML()}
       <div id="nt-planes-body"></div>`;
-    R().mount(document.getElementById("nt-planes-body"), {
+    const planesBody = box.querySelector("#nt-planes-body");
+    const repaint = () => { const kp = box.querySelector(".nt-plazos"); if (kp) kp.outerHTML = plazosHTML(); if (onChange) onChange(); };
+    return R().mount(planesBody, {
       collection: "planesNT234", title: "Plan de mejora NT 234", icon: "🛠️",
+      afterChange: repaint,
       hint: "Planes de cumplimiento de la Norma Técnica 234 (LPP). No confundir con los Planes de Intervención RNAO.",
       newLabel: "Nuevo plan",
       emptyMsg: "Aún no hay planes de mejora.",
@@ -760,9 +826,9 @@
         { name: "observaciones", label: "Observaciones", type: "textarea", full: true }
       ],
       defaults: () => ({ estado: "Pendiente", fechaSolicitud: ui().hoyISO(), requiereReferente: "No" }),
-      onFormMount(m, rec) {
+      onFormMount(m, rec, prefill) {
         const grid = m.querySelector(".form-grid");
-        grid.insertAdjacentHTML("afterend", ntIndHTML(ntIndParse(rec)));
+        grid.insertAdjacentHTML("afterend", ntIndHTML(ntIndParse(rec || prefill)));
         const wrap = m.querySelector("#nt-inds");
         const bindRm = () => wrap.querySelectorAll("[data-nirm]").forEach(b => b.onclick = () => {
           if (wrap.querySelectorAll("[data-nirow]").length > 1) b.closest("tr").remove();
