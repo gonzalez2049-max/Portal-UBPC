@@ -1113,11 +1113,21 @@
   const CH_CONV_TIPOS = ["Reunión de la red", "Capacitación", "Auditoría / ronda", "Difusión / sensibilización", "Otra"];
 
   // Eventos de participación de un champion (bitácora + convocatorias a las que asistió)
-  function champEventos(champId) {
+  // Una entrada de bitácora se considera YA contada si el champion asistió a una
+  // convocatoria el mismo día y con el mismo tema (o, sin tema, del mismo tipo).
+  const normTxt = t => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+  const tipoBase = t => normTxt(t).split(" ")[0];
+  function esDuplicadaConv(p, convAsistidas) {
+    const f = String(p.fecha || "").slice(0, 10);
+    return convAsistidas.some(c => String(c.fecha || "").slice(0, 10) === f &&
+      ((normTxt(p.tema) && normTxt(p.tema) === normTxt(c.tema)) || (!normTxt(p.tema) && tipoBase(p.tipo) && tipoBase(p.tipo) === tipoBase(c.tipo))));
+  }
+  function champEventos(champId, incluirDuplicadas) {
+    const convA = S().all("convocatoriaChampion").filter(c => (c.asistentes || []).includes(champId));
     const bit = S().all("participacionChampion").filter(p => p.championId === champId)
-      .map(p => ({ fecha: p.fecha, horas: Number(p.horas) || 0, tipo: p.tipo, rol: p.rol, tema: p.tema, origen: "bitacora", id: p.id, evidencia: p.evidencia }));
-    const conv = S().all("convocatoriaChampion").filter(c => (c.asistentes || []).includes(champId))
-      .map(c => ({ fecha: c.fecha, horas: Number(c.horas) || 0, tipo: c.tipo, rol: "Asistió", tema: c.tema, origen: "convocatoria", id: c.id }));
+      .map(p => ({ fecha: p.fecha, horas: Number(p.horas) || 0, tipo: p.tipo, rol: p.rol, tema: p.tema, origen: "bitacora", id: p.id, evidencia: p.evidencia, dup: esDuplicadaConv(p, convA) }))
+      .filter(e => incluirDuplicadas || !e.dup);
+    const conv = convA.map(c => ({ fecha: c.fecha, horas: Number(c.horas) || 0, tipo: c.tipo, rol: "Asistió", tema: c.tema, origen: "convocatoria", id: c.id }));
     return bit.concat(conv).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   }
   const NIVEL = {
@@ -1162,19 +1172,20 @@
 
   function renderChampion(box) {
     const u = ui();
+    const SH = U.components.resource.secHead;
     box.innerHTML = `
-      <div id="ch-kpis" style="margin-bottom:1rem"></div>
-      <div class="section">
-        <div class="section__head"><div><h3 class="section__title">Red de Champions</h3>
-          <p class="section__hint">Referentes clínicos por unidad y guía. Usa <strong>➕ Participación</strong> para registrar su actividad, o 👁️ para ver su ficha.</p></div></div>
-        <div id="ch-registry"></div>
-      </div>
-      <div class="section">
-        <div class="section__head"><div><h3 class="section__title">Convocatorias · reuniones y capacitaciones</h3>
-          <p class="section__hint">Crea la instancia y marca la asistencia; el portal calcula la tasa de participación.</p></div></div>
-        <div id="ch-convoc"></div>
-      </div>`;
+      ${SH("📌", "Resumen de la red", "Champions activos, actividad reciente y composición")}
+      <div id="ch-kpis"></div>
+      ${SH("📈", "Evolución de las participaciones", "Por mes · bitácora y asistencia a convocatorias, sin contar dos veces")}
+      <div id="ch-evo"></div>
+      <div class="mod-sec ch-sec"><h3>⭐ Red de Champions</h3><p>➕ registra la participación de un Champion · 👁️ ver su ficha</p>
+        <button class="btn btn--primary btn--sm" id="ch-part-grupal" style="margin-left:auto">👥 Registrar participación grupal</button></div>
+      <div id="ch-registry"></div>
+      ${SH("📅", "Convocatorias · reuniones y capacitaciones", "Crea la instancia y marca la asistencia; el portal calcula la tasa de participación")}
+      <div id="ch-convoc"></div>`;
+    document.getElementById("ch-part-grupal").onclick = () => bitacoraForm(null, () => renderChampion(box), "grupal");
     renderChampKpis(document.getElementById("ch-kpis"));
+    renderChampEvo(document.getElementById("ch-evo"));
     mountRegistry(document.getElementById("ch-registry"), box);
     mountConvoc(document.getElementById("ch-convoc"), box);
   }
@@ -1196,8 +1207,7 @@
     const conv = S().all("convocatoriaChampion");
     const now = new Date(), mes = now.getMonth(), anio = now.getFullYear();
     const enMes = d => { const x = new Date(d); return x.getMonth() === mes && x.getFullYear() === anio; };
-    const partMes = S().all("participacionChampion").filter(p => enMes(p.fecha)).length
-      + conv.filter(c => enMes(c.fecha)).reduce((a, c) => a + (c.asistentes || []).length, 0);
+    const partMes = all.reduce((a, c) => a + champEventos(c.id).filter(e => enMes(e.fecha)).length, 0);
     const card = (lab, val, sub, color, ico) => `<div class="ch-kpi" style="--kc:${color}">
       <div class="ch-kpi__ico">${ico}</div>
       <div class="ch-kpi__main"><div class="ch-kpi__value">${val}</div>
@@ -1216,7 +1226,7 @@
       <div class="ch-kpis">
         ${card("Champions activos", activos.length, "de " + totalReg + " registrados en la red", "#12b5a5", "⭐")}
         ${card("Con actividad reciente", conActividad, "participaron en los últimos 60 días", conActividad ? "#37a04a" : "#e0912f", "⚡")}
-        ${card("Participaciones del mes", partMes, "Bitácora + asistencias a convocatorias", "#7a5cd0", "📅")}
+        ${card("Participaciones del mes", partMes, "Bitácora + convocatorias, sin duplicar", "#7a5cd0", "📅")}
       </div>
       <div class="ch-breakdown">
         <div class="ch-bd"><div class="ch-bd__t"><span class="ch-bd__ic" style="--bc:#176ac0">👥</span> Champions por estamento</div><div class="ch-bd__chips">${chips(countBy("estamento"), "#176ac0")}</div></div>
@@ -1224,21 +1234,52 @@
       </div>`;
   }
 
+  // Evolución mensual de participaciones (12 meses) · bitácora vs convocatorias
+  function renderChampEvo(el) {
+    const u = ui();
+    const champs = S().all("redChampion");
+    const evs = []; champs.forEach(c => champEventos(c.id).forEach(e => evs.push(e)));
+    const ym = d => { const m = String(d || "").match(/^(\d{4})-(\d{2})/); return m ? m[1] + "-" + m[2] : null; };
+    const yms = evs.map(e => ym(e.fecha)).filter(Boolean);
+    if (!yms.length) { el.innerHTML = `<div class="dash-card"><p class="dash-empty">Aún no hay participaciones registradas.</p></div>`; return; }
+    const now = new Date(); const last = [now.getFullYear(), now.getMonth() + 1];
+    const MS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    const months = []; for (let i = 11; i >= 0; i--) { const d = new Date(last[0], last[1] - 1 - i, 1); months.push(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")); }
+    const data = months.map(m => { const l = evs.filter(e => ym(e.fecha) === m);
+      return { m, b: l.filter(e => e.origen === "bitacora").length, c: l.filter(e => e.origen === "convocatoria").length,
+        h: l.reduce((a, e) => a + (e.horas || 0), 0), champs: new Set(champs.filter(ch => champEventos(ch.id).some(e => ym(e.fecha) === m)).map(ch => ch.id)).size }; });
+    const max = Math.max.apply(null, data.map(d => d.b + d.c).concat([1]));
+    const W = 1200, H = 150, pl = 8, pb = 20, bw = (W - pl) / 12;
+    const svg = data.map((d, i) => { const x = pl + i * bw + bw * .2, w = bw * .6, hb = d.b / max * (H - pb - 16), hc = d.c / max * (H - pb - 16);
+      const yb = H - pb - hb, yc = yb - hc, t = d.b + d.c;
+      return `<rect x="${x}" y="${yb}" width="${w}" height="${hb}" fill="#7a5cd0" rx="2"><title>${d.m}: ${d.b} por bitácora</title></rect>
+        <rect x="${x}" y="${yc}" width="${w}" height="${hc}" fill="#12b5a5" rx="2"><title>${d.m}: ${d.c} por convocatoria</title></rect>
+        ${t ? `<text x="${x + w / 2}" y="${yc - 3}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-2,#40536f)">${t}</text>` : ""}
+        <text x="${x + w / 2}" y="${H - 6}" text-anchor="middle" font-size="9.5" fill="var(--text-muted,#6b7a90)">${MS[Number(d.m.slice(5)) - 1]} ${d.m.slice(2, 4)}</text>`; }).join("");
+    const cur = data[11], prev = data[10], dif = (cur.b + cur.c) - (prev.b + prev.c);
+    el.innerHTML = `<div class="dash-card ch-evo">
+      <svg viewBox="0 0 ${W} ${H}" class="dash-svg" role="img" aria-label="Participaciones por mes">${svg}</svg>
+      <div class="dash-leg"><span><i style="background:#7a5cd0"></i>Bitácora (individual o grupal)</span><span><i style="background:#12b5a5"></i>Asistencia a convocatorias</span>
+        <span class="dash-cmp">Este mes: <b>${cur.b + cur.c}</b> participaciones · ${cur.champs} Champion(s) · ${fmtDur(cur.h)} · ${dif === 0 ? "igual que" : dif > 0 ? "▲ " + dif + " más que" : "▼ " + Math.abs(dif) + " menos que"} el mes anterior</span></div></div>`;
+  }
+
   function mountRegistry(el, box) {
     const u = ui();
     U.components.resource.mount(el, {
-      collection: "redChampion", title: "Champion", icon: "⭐",
+      collection: "redChampion", title: "Champion", icon: "⭐", compact: true,
       hint: "", newLabel: "Nuevo champion",
+      filters: [{ key: "unidad", label: "Unidad" }, { key: "estamento", label: "Estamento" }, { key: "turno", label: "Jornada" }, { key: "guia", label: "Guía" }],
       emptyMsg: "Aún no hay Champions registrados.",
       afterChange: () => renderChampion(box),
       columns: [
         { key: "nombre", label: "Champion", render: (r, uu) => {
           const meta = [r.estamento, r.unidad, r.guia].filter(Boolean).map(x => uu.esc(x)).join(" · ");
-          return `<div style="font-weight:700;line-height:1.25">${uu.esc(r.nombre || "—")}</div>${meta ? `<div class="kpi__sub">${meta}</div>` : ""}`;
+          const jc = r.turno ? jornadaColor(r.turno) : null;
+          return `<div class="ch-name">${uu.esc(r.nombre || "—")}${jc ? ` <span class="tag ch-jor" style="background:${jc}1f;color:${jc};border:1px solid ${jc}66">${uu.esc(r.turno)}</span>` : ""}</div>${meta ? `<div class="kpi__sub">${meta}</div>` : ""}`;
         }, exportVal: r => r.nombre || "" },
-        { key: "turno", label: "Jornada", center: true, render: (r, uu) => { if (!r.turno) return `<span class="muted">—</span>`; const c = jornadaColor(r.turno); return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}66;font-weight:800">${uu.esc(r.turno)}</span>`; }, exportVal: r => r.turno || "" },
-        { key: "part", label: "Participación", center: true, render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${fmtDur(s.horas)}<br><span class="kpi__sub">${s.ultima ? "hace " + s.dias + " d" : "sin actividad aún"}</span>`; }, exportVal: r => champStats(r.id).total },
-        { key: "estado", label: "Estado", center: true, render: r => {
+        { key: "turno", label: "Jornada", hidden: true, center: true, render: (r, uu) => { if (!r.turno) return `<span class="muted">—</span>`; const c = jornadaColor(r.turno); return `<span class="tag" style="background:${c}1f;color:${c};border:1px solid ${c}66;font-weight:800">${uu.esc(r.turno)}</span>`; }, exportVal: r => r.turno || "" },
+        { key: "part", label: "Participación", center: true, width: "150px", render: r => { const s = champStats(r.id); return `<strong>${s.total}</strong> · ${fmtDur(s.horas)}<br><span class="kpi__sub">${s.ultima ? "hace " + s.dias + " d" : "sin actividad aún"}</span>`; }, exportVal: r => champStats(r.id).total },
+        { key: "estado", label: "Estado", center: true, width: "150px", render: r => {
           if (r.estado === "Inactivo") return `<span class="doc-estado" style="--ec:#9aa5b1">💤 Inactivo</span>`;
           const n = NIVEL[champStats(r.id).nivel]; return `<span class="doc-estado" style="--ec:${n.color}">${n.ic} ${n.label}</span>`;
         }, exportVal: r => r.estado === "Inactivo" ? "Inactivo" : NIVEL[champStats(r.id).nivel].label }
@@ -1259,7 +1300,7 @@
       defaults: () => ({ estado: "Activo" }),
       detail: (rec) => championDetalle(rec, box),
       rowActions: [
-        { ico: "➕", label: "Participación", title: "Registrar participación del champion", fn: (rec) => bitacoraModal(rec, box) }
+        { ico: "➕", label: "Participación", title: "Registrar participación del champion", fn: (rec) => bitacoraForm(rec, () => renderChampion(box), "individual") }
       ]
     });
   }
@@ -1328,13 +1369,13 @@
   function bitacoraModal(champ, box) {
     const u = ui();
     const render = () => {
-      const evs = champEventos(champ.id);
+      const evs = champEventos(champ.id, true);
       const s = champStats(champ.id), a = champAsistencia(champ.id);
       const n = NIVEL[s.nivel];
       const filas = evs.length ? evs.map(e => `<tr>
           <td>${u.fechaCL(e.fecha)}</td><td>${u.esc(e.tipo || "—")}</td>
           <td>${u.esc(e.tema || "—")}</td><td class="num">${fmtDur(e.horas)}</td>
-          <td>${/lider/i.test(e.rol || "") ? "⭐ Lideró" : "Asistió"}</td>
+          <td>${/lider/i.test(e.rol || "") ? "⭐ Lideró" : "Asistió"}${e.dup ? ` <span class="tag" style="background:#fbf1de;color:#9a5f12" title="Ya contada por la asistencia a una convocatoria del mismo día">no se suma · ya en convocatoria</span>` : ""}</td>
           <td class="right">${e.origen === "bitacora" ? `<button class="btn-icon" data-delp="${e.id}" title="Quitar">🗑️</button>` : `<span class="tag" title="Desde convocatoria">📅</span>`}</td>
         </tr>`).join("") : `<tr><td colspan="6" class="muted">Sin participaciones registradas todavía.</td></tr>`;
       return `<div class="dl" style="margin-bottom:.6rem">
@@ -1343,12 +1384,12 @@
           <div><span>Actividad</span><strong style="color:${n.color}">${n.ic} ${n.label}</strong></div>
           <div><span>Asistencia a convocatorias</span><strong>${a.tasa == null ? "—" : a.asistio + "/" + a.convocado + " (" + a.tasa + "%)"}</strong></div>
         </div>
-        <div class="table-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Tipo</th><th>Tema</th><th class="right">Horas</th><th>Rol</th><th></th></tr></thead>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Tipo</th><th>Tema</th><th class="right">Duración</th><th>Rol</th><th></th></tr></thead>
           <tbody>${filas}</tbody></table></div>
         <p class="kpi__sub" style="margin:.5rem 0 .2rem">Las entradas con 📅 provienen de convocatorias (se editan en esa sección).</p>`;
     };
     const refreshBehind = () => { if (box) renderChampion(box); };
-    const openForm = () => bitacoraForm(champ, () => { u.closeModal(); refreshBehind(); bitacoraModal(champ, box); });
+    const openForm = () => bitacoraForm(champ, () => { refreshBehind(); bitacoraModal(champ, box); }, "individual");
     u.modal({
       title: "Participación · " + (champ.nombre || "Champion"), wide: true,
       body: render(),
@@ -1360,27 +1401,81 @@
       }
     });
   }
-  function bitacoraForm(champ, onDone) {
+  /* Formulario ÚNICO de participación · modalidad Individual o Grupal.
+     Misma lógica de guardado: una entrada por Champion en "participacionChampion"
+     (las grupales comparten grupoId). Duración en un solo campo, en minutos
+     (internamente se guarda en horas, como los registros históricos). */
+  function bitacoraForm(champ, onDone, modo) {
     const u = ui();
+    modo = modo || (champ ? "individual" : "grupal");
+    const champs = S().all("redChampion").filter(c => c.estado !== "Inactivo").sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+    const opts = k => [...new Set(champs.map(c => (c[k] || "").trim()).filter(Boolean))].sort();
+    const sel = (id, lab, k) => `<select class="select input--sm" data-pf="${k}" aria-label="${lab}"><option value="">${lab}: todas</option>${opts(k).map(o => `<option>${u.esc(o)}</option>`).join("")}</select>`;
+    const lista = champs.map(c => `<label class="pg-row" data-cid="${c.id}" data-unidad="${u.esc(c.unidad || "")}" data-estamento="${u.esc(c.estamento || "")}" data-turno="${u.esc(c.turno || "")}" data-guia="${u.esc(c.guia || "")}">
+        <input type="checkbox" value="${c.id}" ${champ && champ.id === c.id ? "checked" : ""}>
+        <span class="pg-n">${u.esc(c.nombre || "—")}</span><span class="pg-m">${u.esc([c.estamento, c.unidad, c.turno].filter(Boolean).join(" · "))}</span></label>`).join("");
     u.modal({
-      title: "Nueva participación · " + (champ.nombre || ""),
-      body: u.formHTML([
-        { name: "fecha", label: "Fecha", type: "date", value: u.hoyISO(), required: true },
-        { name: "tipo", label: "Tipo", type: "select", options: CH_TIPOS, required: true },
-        { name: "rol", label: "Rol", type: "select", options: CH_ROLES },
-        { name: "duracion", label: "Duración", type: "number", attrs: 'min="0" step="1" placeholder="Ej: 5"' },
-        { name: "duracionUnidad", label: "Unidad", type: "select", options: ["minutos", "horas"] },
-        { name: "tema", label: "Tema / actividad", full: true },
-        { name: "evidencia", label: "Evidencia / enlace", full: true }
-      ], { rol: "Asistió", duracionUnidad: "minutos" }),
-      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
+      title: "Registrar participación", wide: true,
+      body: `<div class="pf-modo" role="tablist">
+          <button type="button" class="pf-modo__b" data-modo="individual">👤 Individual</button>
+          <button type="button" class="pf-modo__b" data-modo="grupal">👥 Grupal</button>
+          <span class="pf-modo__h" id="pf-modo-h"></span></div>`
+        + u.formHTML([
+          { name: "fecha", label: "Fecha", type: "date", value: u.hoyISO(), required: true },
+          { name: "tipo", label: "Tipo de actividad", type: "select", options: CH_TIPOS, required: true },
+          { name: "tema", label: "Tema o actividad", full: true },
+          { name: "rol", label: "Rol del participante", type: "select", options: CH_ROLES },
+          { name: "minutos", label: "Duración (minutos)", type: "number", attrs: 'min="0" step="5" placeholder="Ej: 30"' },
+          { name: "evidencia", label: "Evidencia o enlace (opcional)", full: true }
+        ], { rol: "Asistió" })
+        + `<div class="pf-ind" id="pf-ind"><label>Champion</label><select class="select" id="pf-champ"><option value="">Seleccionar…</option>${champs.map(c => `<option value="${c.id}" ${champ && champ.id === c.id ? "selected" : ""}>${u.esc(c.nombre || "—")}${c.unidad ? " · " + u.esc(c.unidad) : ""}</option>`).join("")}</select></div>
+        <div class="pf-grp" id="pf-grp">
+          <div class="pf-grp__f">${sel("u", "Unidad", "unidad")}${sel("e", "Estamento", "estamento")}${sel("t", "Jornada", "turno")}${sel("g", "Guía", "guia")}
+            <label class="pf-all"><input type="checkbox" id="pf-all"> Seleccionar todos</label><span class="pf-cnt" id="pf-cnt"></span></div>
+          <div class="pg-list">${lista || `<p class="muted">No hay Champions activos.</p>`}</div></div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar participación</button>`,
       onMount(m) {
+        const setModo = md => {
+          modo = md;
+          m.querySelectorAll("[data-modo]").forEach(b => b.classList.toggle("is-on", b.dataset.modo === md));
+          m.querySelector("#pf-ind").style.display = md === "individual" ? "" : "none";
+          m.querySelector("#pf-grp").style.display = md === "grupal" ? "" : "none";
+          m.querySelector("[data-save]").textContent = md === "grupal" ? "Guardar participaciones" : "Guardar participación";
+          m.querySelector("#pf-modo-h").textContent = md === "grupal" ? "Una misma actividad para varios Champions" : "Participación de un Champion";
+          cnt();
+        };
+        const rows = () => [...m.querySelectorAll(".pg-row")];
+        const visibles = () => rows().filter(r => r.style.display !== "none");
+        const cnt = () => { const n = rows().filter(r => r.querySelector("input").checked).length; const c = m.querySelector("#pf-cnt"); if (c) c.textContent = n + " seleccionado(s) · " + visibles().length + " visibles"; };
+        const filtrar = () => {
+          const f = {}; m.querySelectorAll("[data-pf]").forEach(x => f[x.dataset.pf] = x.value);
+          rows().forEach(r => { r.style.display = Object.keys(f).every(k => !f[k] || r.dataset[k] === f[k]) ? "" : "none"; });
+          const all = m.querySelector("#pf-all"); if (all) all.checked = visibles().length > 0 && visibles().every(r => r.querySelector("input").checked);
+          cnt();
+        };
+        m.querySelectorAll("[data-modo]").forEach(b => b.onclick = () => setModo(b.dataset.modo));
+        m.querySelectorAll("[data-pf]").forEach(x => x.onchange = filtrar);
+        const all = m.querySelector("#pf-all"); if (all) all.onchange = () => { visibles().forEach(r => r.querySelector("input").checked = all.checked); cnt(); };
+        m.querySelectorAll(".pg-row input").forEach(i => i.onchange = cnt);
+        setModo(modo);
         m.querySelector("[data-save]").onclick = () => {
           const d = u.readForm(m);
-          if (!d.fecha || !d.tipo) { u.toast("Fecha y tipo son obligatorios", "danger"); return; }
-          d.horas = durToHoras(d.duracion, d.duracionUnidad); delete d.duracion; delete d.duracionUnidad;
-          S().insert("participacionChampion", Object.assign({ championId: champ.id }, d));
-          u.toast("Participación registrada", "ok");
+          if (!d.fecha || !d.tipo) { u.toast("Fecha y tipo de actividad son obligatorios", "danger"); return; }
+          const ids = modo === "grupal" ? rows().filter(r => r.querySelector("input").checked).map(r => r.dataset.cid)
+            : [m.querySelector("#pf-champ").value].filter(Boolean);
+          if (!ids.length) { u.toast(modo === "grupal" ? "Selecciona al menos un Champion" : "Selecciona el Champion", "danger"); return; }
+          const min = Number(d.minutos);
+          const base = { fecha: d.fecha, tipo: d.tipo, tema: d.tema || "", rol: d.rol || "Asistió", horas: min > 0 ? min / 60 : 0, evidencia: d.evidencia || "", modalidad: modo };
+          if (modo === "grupal") base.grupoId = "g" + Date.now().toString(36);
+          // No duplicar: si ese Champion ya asistió a una convocatoria igual ese día, no se registra de nuevo.
+          let ok = 0, omit = 0;
+          ids.forEach(id => {
+            const convA = S().all("convocatoriaChampion").filter(c => (c.asistentes || []).includes(id));
+            if (esDuplicadaConv(base, convA)) { omit++; return; }
+            S().insert("participacionChampion", Object.assign({ championId: id }, base)); ok++;
+          });
+          u.closeModal();
+          u.toast(ok + " participación(es) registrada(s)" + (omit ? " · " + omit + " omitida(s): ya contadas por convocatoria" : ""), ok ? "ok" : "warn");
           if (onDone) onDone();
         };
       }
@@ -1410,11 +1505,15 @@
         { name: "tema", label: "Tema / motivo", full: true },
         { name: "unidad", label: "Unidad", type: "select", options: ["—"].concat(CAT().unidades) },
         { name: "guia", label: "Guía", type: "select", options: ["—"].concat(CAT().guiasArea) },
-        { name: "duracion", label: "Duración", type: "number", attrs: 'min="0" step="1" placeholder="Ej: 5"' },
-        { name: "duracionUnidad", label: "Unidad", type: "select", options: ["minutos", "horas"] }
+        { name: "minutos", label: "Duración (minutos)", type: "number", attrs: 'min="0" step="5" placeholder="Ej: 30"' }
       ],
-      defaults: () => ({ fecha: u.hoyISO(), duracionUnidad: "minutos" }),
-      onFormMount: (m, rec) => injectAsistencia(m, rec),
+      defaults: () => ({ fecha: u.hoyISO() }),
+      onFormMount: (m, rec) => {
+        // Al editar, muestra la duración guardada (en horas) convertida a minutos.
+        const mi = m.querySelector('[name="minutos"]');
+        if (mi && rec && rec.horas != null && rec.horas !== "") mi.value = Math.round(Number(rec.horas) * 60);
+        injectAsistencia(m, rec);
+      },
       onBeforeSave: (data, rec, m) => {
         const conv = [], asis = [];
         m.querySelectorAll("[data-champ]").forEach(row => {
@@ -1425,7 +1524,9 @@
         data.convocados = conv; data.asistentes = asis;
         if (data.unidad === "—") data.unidad = "";
         if (data.guia === "—") data.guia = "";
-        data.horas = durToHoras(data.duracion, data.duracionUnidad); delete data.duracion; delete data.duracionUnidad;
+        const mn = Number(data.minutos);
+        data.horas = data.minutos === "" || data.minutos == null ? (rec && rec.horas != null ? rec.horas : 0) : (mn > 0 ? mn / 60 : 0);
+        delete data.minutos; delete data.duracion; delete data.duracionUnidad;
         return data;
       }
     });

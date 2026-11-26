@@ -319,7 +319,7 @@
         return;
       }
       const L = layout(cfg);
-      const cols = cfg.columns.filter(c => !L.hidden[c.key]);
+      const cols = cfg.columns.filter(c => !L.hidden[c.key] && !c.hidden);
       const rowHTML = rec => {
         try {
           return `<tr data-id="${rec.id}">
@@ -337,7 +337,7 @@
             <button class="btn-icon" data-del="${rec.id}" title="Eliminar">🗑️</button></td></tr>`;
         }
       };
-      bodyEl.innerHTML = `<div class="table-wrap"><table class="tbl"><thead><tr>
+      bodyEl.innerHTML = `<div class="table-wrap"><table class="tbl${cfg.compact ? " tbl--compact" : ""}"><thead><tr>
         ${cols.map(c => `<th scope="col" class="${c.center || L.sino[c.key] ? "res-center" : ""}" ${c.width ? `style="width:${c.width}"` : ""}>${u.esc(c.label)}</th>`).join("")}
         <th scope="col" class="right">Acciones</th></tr></thead><tbody>
         ${list.map(rowHTML).join("")}
