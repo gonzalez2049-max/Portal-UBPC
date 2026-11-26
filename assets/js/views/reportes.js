@@ -373,7 +373,7 @@
       const tnd = IC.tendencia ? IC.tendencia(i) : { arrow: "→", txt: "" };
       return [
         esc(i.nombre || ""), esc(i.tipo || ""),
-        (cur == null ? "—" : cur + (i.unidad ? " " + esc(i.unidad) : "")),
+        (cur == null ? "—" : String(cur).replace(".", ",") + "%"),
         (i.meta === "" || i.meta == null ? "—" : i.meta + "%"),
         pctFmt(IC.cumplimiento ? IC.cumplimiento(i) : null),
         `<strong>${esc(semLabel[sem])}</strong>`,
@@ -389,9 +389,9 @@
         { v: list.length, l: "Indicadores" }, { v: by("verde"), l: "En meta" },
         { v: by("amarillo"), l: "En seguimiento" }, { v: by("rojo"), l: "En intervención" }
       ]) + `<h3>Indicadores registrados</h3>` +
-        table(["Indicador", "Tipo", "Resultado", "Meta", "Cumplimiento", "Semáforo", "Tendencia", "Responsable", "Periodicidad"], rows) +
+        table(["Indicador", "Tipo", "Resultado", "Meta", "Cumplimiento", "Semáforo", "Tendencia", "Responsable", "Periodicidad"], rows, ["l"]) +
         `<h3>Alertas — indicadores en intervención</h3>` +
-        table(["Indicador", "Tipo", "Cumplimiento", "Responsable"], alertas),
+        table(["Indicador", "Tipo", "Cumplimiento", "Responsable"], alertas, ["l"]),
       excel: {
         headers: ["Indicador", "Tipo", "Resultado", "Meta", "Cumplimiento", "Semáforo", "Tendencia", "Responsable", "Periodicidad"],
         rows: list.map(i => {
@@ -698,7 +698,13 @@
   function renderReport(key) {
     const def = REPORTS.find(r => r.key === key); if (!def) return;
     const rep = def.build();
-    const full = `${hdrHTML(rep.titulo, rep.periodo, rep.filtros)}${rep.body}${firmaHTML()}`;
+    // Observaciones editables en todos los reportes (se guardan solas por reporte y salen en PDF/Word)
+    const obsKey = "reporte." + key + ".observaciones";
+    const obs = S().getConfig(obsKey, "");
+    const obsHTML = /data-concl=/.test(rep.body) ? "" : `<h3 style="text-align:left">Observaciones</h3>
+      <p class="muted no-print" style="margin:.1rem 0 .4rem;font-size:12px">Escribe aquí tu análisis u observaciones del período. Se guarda sola y aparece en el PDF / Word.</p>
+      <div class="rep-concl" contenteditable="true" data-concl="${obsKey}">${obs ? esc(obs).replace(/\r?\n/g, "<br>") : ""}</div>`;
+    const full = `${hdrHTML(rep.titulo, rep.periodo, rep.filtros)}${rep.body}${obsHTML}${firmaHTML()}`;
     const box = document.getElementById("rep-view");
     box.innerHTML = `
       <div class="rep-actions no-print">
@@ -714,14 +720,15 @@
     box.querySelector("[data-print]").onclick = () => {
       try { fitRepForPrint(); window.print(); } catch (e) {} finally { setTimeout(resetRepAfterPrint, 400); }
     };
-    box.querySelector("[data-word]").onclick = () => ui().exportWord("reporte-" + key + "-ubpc", rep.titulo,
-      '<div class="reporte"><div class="rep-franja"></div>' + wordify(full) + "</div>", REP_WORD_CSS);
+    box.querySelector("[data-word]").onclick = () => { const ce2 = box.querySelector("[data-concl]"); if (ce2) S().setConfig(ce2.dataset.concl, ce2.innerText.trim());
+      const doc = box.querySelector("#rep-doc").cloneNode(true); doc.querySelectorAll(".no-print, .franja").forEach(n => n.remove());
+      ui().exportWord("reporte-" + key + "-ubpc", rep.titulo, '<div class="reporte"><div class="rep-franja"></div>' + wordify(doc.innerHTML) + "</div>", REP_WORD_CSS); };
     box.querySelector("[data-excel]").onclick = () => rep.excel
       ? ui().exportExcel("reporte-" + key + "-ubpc", rep.excel.rows, rep.excel.headers, rep.titulo)
       : ui().toast("Este reporte no tiene tabla exportable", "danger");
     // Conclusión editable (se guarda sola en la configuración)
     const ce = box.querySelector("[data-concl]");
-    if (ce) ce.addEventListener("blur", () => { try { S().setConfig(ce.dataset.concl, ce.innerText.trim()); ui().toast("Conclusión guardada", "ok"); } catch (e) {} });
+    if (ce) ce.addEventListener("blur", () => { try { S().setConfig(ce.dataset.concl, ce.innerText.trim()); ui().toast("Observaciones guardadas", "ok"); } catch (e) {} });
     box.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
