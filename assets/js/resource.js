@@ -213,8 +213,16 @@
         return `<div class="dash-pend__r ${k ? "is-on" : ""}"><b>${k}</b><span>${u.esc(p.lab)}</span></div>`; }).join("")}</div>` });
     });
     if (!panels.length) return "";
-    return `<div class="dash-grid">${panels.map(p => `<div class="dash-card ${p.w === 2 ? "dash-card--w2" : ""}">
-        <div class="dash-card__h"><h4>${p.t}</h4><span>${u.esc(p.s)}</span></div>${p.h}</div>`).join("")}</div>
+    // Reparte en filas de 4 columnas sin dejar huecos: si un panel no cabe en lo
+    // que queda de la fila, el anterior se estira; el último completa su fila.
+    const COLS = 4; let pos = 0;
+    panels.forEach((p, i) => {
+      if (pos + p.w > COLS && i > 0) { panels[i - 1].w += COLS - pos; pos = 0; }
+      pos += p.w; if (pos === COLS) pos = 0;
+    });
+    if (pos > 0) panels[panels.length - 1].w += COLS - pos;
+    return `<div class="dash-grid">${panels.map(p => `<div class="dash-card" style="grid-column:span ${p.w}">
+        <div class="dash-card__h"><h4>${p.t}</h4><span>${u.esc(p.s)}</span></div><div class="dash-card__b">${p.h}</div></div>`).join("")}</div>
       ${analisisDash(list, all, D, grupo, perSel)}`;
   }
   function secHead(ico, t, sub) {

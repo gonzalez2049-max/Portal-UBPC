@@ -645,7 +645,7 @@
         ${kpiMon("Unidades en seguimiento", seg.length, "warn", seg.map(c => c.un).join(", ") || "Ninguna", "⚠️")}
         ${kpiMon("Unidades con intervención", inter.length, "danger", inter.map(c => c.un).join(", ") || "Ninguna", "🚨")}
       </div>
-      ${cards.length ? `<div class="grid nt-alerts">${cards.map(c => `
+      ${cards.length ? `<div class="grid nt-alerts" style="--cols:${(() => { const rows = Math.ceil(cards.length / 5); return Math.ceil(cards.length / rows); })()}">${cards.map(c => `
         <div class="nt-alert nt-alert--${c.e.k}">
           <div class="nt-alert__status">${c.e.inter}</div>
           <div class="nt-alert__unit">${u.esc(c.un)}</div>

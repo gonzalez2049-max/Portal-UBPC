@@ -2707,8 +2707,45 @@ body.night .dash-ana{ background:rgba(15,143,131,.12); } body.night .dash-ana b{
 .nt-alerts .nt-alert__jef{ margin-top:.25rem; font-size:11.5px; }
 .nt-alerts .nt-alert__plan{ margin-top:.4rem; padding:.3rem .4rem; font-size:11.5px; line-height:1.35; }
 .nt-alerts .nt-alert__plan .btn{ padding:.12rem .45rem; font-size:11px; }
-.nt-mkpis .kpi__sub{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .nt-mkpis{ margin:.7rem 0 !important; }
 .nt-mkpis > .kpi{ padding:.55rem .75rem !important; }
 .nt-mkpis .kpi__value{ font-size:1.5rem; margin:.1rem 0; }
 .nt-mkpis .kpi__top{ align-items:center; }
+/* Filas completas, sin huecos */
+.nt-alerts{ grid-template-columns:repeat(var(--cols,4), minmax(0,1fr)) !important; }
+@media (max-width:1000px){ .nt-alerts{ grid-template-columns:repeat(2, minmax(0,1fr)) !important; } }
+@media (max-width:560px){ .nt-alerts{ grid-template-columns:1fr !important; } }
+.nt-alerts .nt-alert{ display:flex; flex-direction:column; }
+.nt-alerts .nt-alert__plan{ margin-top:auto; }
+.dash-grid{ align-items:stretch; }
+@media (max-width:1100px){ .dash-card{ grid-column:auto !important; } .dash-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
+@media (max-width:640px){ .dash-grid{ grid-template-columns:1fr; } }
+
+/* ============================================================
+   KPI · diseño final del portal
+   Valor protagonista → título → descripción. Tamaño según contenido:
+   la fila se reparte sola (auto-fit) y cada tarjeta crece solo lo que
+   necesita su texto (sin cortes). Icono en la esquina, sin ocupar fila.
+   ============================================================ */
+.grid--kpi{ grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)) !important; gap:.65rem !important; align-items:stretch; }
+.grid--kpi > .kpi{ display:flex; flex-direction:column; justify-content:flex-start; gap:.12rem;
+  padding:.7rem .85rem .65rem !important; min-height:0; border-radius:14px; }
+.grid--kpi > .kpi:has(.kpi__ico){ padding-right:2.9rem !important; }
+.grid--kpi .kpi__top{ display:contents; }
+.grid--kpi .kpi__ico{ position:absolute; top:.6rem; right:.6rem; width:1.75rem; height:1.75rem; font-size:.85rem; border-radius:9px; }
+.grid--kpi .kpi__value{ order:-1; font-size:1.85rem !important; line-height:1.02; margin:0 0 .1rem !important; letter-spacing:-.02em; overflow-wrap:anywhere; }
+.grid--kpi .kpi__label{ font-size:12.5px !important; font-weight:800; line-height:1.2; text-transform:none; letter-spacing:0; }
+.grid--kpi .kpi__sub, .grid--kpi .nt-kpichip{ font-size:11.5px !important; line-height:1.3; white-space:normal !important; overflow:visible !important; color:var(--text-muted,#6b7a90); }
+.grid--kpi .kpi .pin-prog, .grid--kpi .kpi [class*="bar"]{ margin:.2rem 0 .1rem; }
+@media (max-width:640px){ .grid--kpi{ grid-template-columns:repeat(2, minmax(0,1fr)) !important; } .grid--kpi .kpi__value{ font-size:1.55rem !important; } }
+/* Paneles: contenido centrado verticalmente para no dejar huecos al igualar alturas */
+.dash-card{ display:flex; flex-direction:column; }
+.dash-card__b{ flex:1; display:flex; flex-direction:column; justify-content:center; }
+/* KPI del Mapa de Alertas NT 234 con el mismo criterio */
+.grid--kpi > .nt-mkpi{ display:flex; flex-direction:column; gap:.12rem; padding:.7rem 2.9rem .65rem .95rem !important; border-radius:14px; }
+.grid--kpi .nt-mkpi__top{ display:contents; }
+.grid--kpi .nt-mkpi__ic{ position:absolute; top:.6rem; right:.6rem; width:1.75rem; height:1.75rem; font-size:.85rem; border-radius:9px; }
+.grid--kpi .nt-mkpi__value{ order:-1; font-size:1.85rem; line-height:1.02; margin:0 0 .1rem; }
+.grid--kpi .nt-mkpi__label{ font-size:12.5px; font-weight:800; text-transform:none; letter-spacing:0; color:var(--text-2); }
+.grid--kpi .nt-mkpi__bar{ margin-top:.3rem; }
+.grid--kpi .nt-mkpi__sub{ margin-top:.15rem; white-space:normal !important; overflow:visible !important; display:block !important; -webkit-line-clamp:unset !important; }
