@@ -53,6 +53,13 @@
     return "";
   }
 
+  // Paleta pastel por mes: [fondo claro, fondo cálido, acento (texto/encabezado)]
+  const MES_PASTEL = [
+    ["#fff3ea", "#fde6d6", "#b5541c"], ["#fdeef3", "#f9dbe6", "#a8326a"], ["#eef8ec", "#dcf0d6", "#2f7a35"],
+    ["#f3effc", "#e5dcf8", "#5a3fb0"], ["#fff9e3", "#fbeec0", "#8a6a07"], ["#eaf6fc", "#d6ecf8", "#1d6a96"],
+    ["#e9f8f4", "#d3efe8", "#0b6b62"], ["#fff0e6", "#fbdcc8", "#a5501b"], ["#f1f8e6", "#e0efcb", "#4f7a1a"],
+    ["#fcf3e6", "#f4e2c8", "#8a5a1a"], ["#f2f0fc", "#e2ddf6", "#4b3f9a"], ["#ecf4f9", "#d9e8f2", "#2a5f86"]
+  ];
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   // Color propio por mes (para que el calendario no se vea plano y cada mes se distinga)
   const MES_COLOR = ["#1e9fe0", "#e0526f", "#37a04a", "#7a5cd0", "#12b5a5", "#e0912f", "#0891b2", "#be185d", "#0f8f83", "#ca8a04", "#5b34b0", "#1554b8"];
@@ -433,6 +440,7 @@
       const uniq = arr => { const s = {}; return arr.filter(e => { if (e.propio && e.id) { if (s[e.id]) return false; s[e.id] = 1; } return true; }); };
       const in8 = addD(today, 8);
       const r = rango(), iniIso = isoOf(r.ini), finIso = isoOf(r.fin);
+      const mesRef = (vista === "semana" ? addD(r.ini, 2) : cursor).getMonth();   // mes que da el color
       const enRango = uniq(events.filter(e => e.iso >= iniIso && e.iso <= finIso));
       const vencidos = all.filter(e => e.deadline && !e.done && e.d < today);
       const ref = []; // eventos referenciados por índice (para abrirlos)
@@ -485,18 +493,10 @@
       const remActivo = remOn();
       const SH = U.components.resource.secHead;
       container.innerHTML = `
-        ${SH("📌", "Resumen", "Lo próximo, lo de esta semana y lo vencido")}
-        <div class="grid grid--kpi agc-kpis">
-          ${kpi("En el período", enRango.length, tituloRango(r), "info", "🗓️")}
-          ${kpi("Próximos 7 días", uniq(events.filter(e => e.d >= today && e.d < in8)).length, "Desde hoy", "warn", "⏳")}
-          ${kpi("Realizadas", enRango.filter(e => e.estado === "realizada").length, "En el período", "ok", "✅")}
-          ${kpi("Vencidos", vencidos.length, "Plazos sin cerrar", vencidos.length ? "danger" : "ok", "⏰")}
-        </div>
-        ${SH("🗓️", "Calendario", "Haz clic en una actividad para abrirla o editarla · ＋ agrega una actividad ese día")}
-        <div class="card agx-card agx-card--agua">
+        <div class="card agx-card agx-card--mes" style="--mb1:${MES_PASTEL[mesRef][0]};--mb2:${MES_PASTEL[mesRef][1]};--mac:${MES_PASTEL[mesRef][2]}">
           <div class="agx-head">
             <div class="agx-nav"><button class="btn-icon" id="agx-prev" aria-label="Anterior">‹</button><button class="btn btn--ghost btn--sm" id="agx-hoy">Hoy</button><button class="btn-icon" id="agx-next" aria-label="Siguiente">›</button></div>
-            <div class="agx-titlebox"><img class="agx-evi" src="assets/img/evi-agenda.webp" alt="" aria-hidden="true"><div><div class="agx-title">${tituloRango(r)}</div><div class="agx-sub">${{ dia: "Vista del día", semana: finde ? "Semana completa" : "Semana laboral · lunes a viernes", mes: "Vista mensual", lista: "Listado de actividades del mes" }[vista]}</div></div></div>
+            <div class="agx-titlebox"><img class="agx-evi" src="assets/img/evi-agenda.webp" alt="" aria-hidden="true"><div><div class="agx-title">${tituloRango(r)}</div><div class="agx-sub">${vista === "mes" || vista === "lista" ? "" : MESES[(vista === "semana" ? addD(r.ini, 2) : cursor).getMonth()].replace(/^./, c => c.toUpperCase()) + " · "}${{ dia: "Vista del día", semana: finde ? "Semana completa" : "Semana laboral · lunes a viernes", mes: "Vista mensual", lista: "Listado de actividades del mes" }[vista]}</div></div></div>
             <div class="agx-views" role="tablist">${[["dia", "Día"], ["semana", "Semana laboral"], ["mes", "Mes"], ["lista", "Listado"]].map(([k, l]) => `<button type="button" class="agx-vb${vista === k ? " is-on" : ""}" data-vista="${k}">${l}</button>`).join("")}</div>
           </div>
           <div class="agx-filters">

@@ -2888,3 +2888,37 @@ body.night .agx-card--evi::after{ opacity:.06; }
 .agx-titlebox{ display:flex; align-items:center; justify-content:center; gap:.6rem; }
 .agx-evi{ width:46px; height:auto; flex:none; filter:drop-shadow(0 3px 6px rgba(13,80,68,.15)); }
 @media (max-width:900px){ .agx-evi{ width:36px; } }
+
+/* ===== Agenda · color por mes (pastel) y calendario más amplio ===== */
+.agx-card--mes{ background:linear-gradient(160deg, var(--mb1) 0%, #ffffff 46%, var(--mb2) 100%); border-color:color-mix(in srgb, var(--mac) 22%, #fff); transition:background .4s ease; }
+.agx-card--mes .agx-head{ background:linear-gradient(90deg, color-mix(in srgb, var(--mb2) 70%, #fff), color-mix(in srgb, var(--mb1) 80%, #fff)); border-bottom-color:color-mix(in srgb, var(--mac) 20%, transparent); }
+.agx-card--mes .agx-title{ color:var(--mac); font-size:1.6rem; }
+.agx-card--mes .agx-sub{ color:color-mix(in srgb, var(--mac) 70%, #5f7d76); }
+.agx-card--mes .agx-views{ background:color-mix(in srgb, var(--mac) 10%, transparent); }
+.agx-card--mes .agx-vb.is-on{ color:var(--mac); }
+.agx-card--mes .agx-mhead span, .agx-card--mes .agx-col__dn{ color:var(--mac); font-size:12.5px; font-weight:800; }
+.agx-card--mes .agx-col, .agx-card--mes .agx-day{ border-color:color-mix(in srgb, var(--mac) 16%, #fff); background:rgba(255,255,255,.88); }
+.agx-card--mes .agx-col.is-today, .agx-card--mes .agx-day.is-today{ border-color:var(--mac); box-shadow:0 0 0 2px color-mix(in srgb, var(--mac) 18%, transparent); }
+.agx-card--mes .agx-col.is-today .agx-col__h{ background:color-mix(in srgb, var(--mac) 8%, #fff); }
+.agx-card--mes .agx-col.is-today .agx-col__h b, .agx-card--mes .agx-day.is-today .agx-day__h b{ color:var(--mac); }
+.agx-evi{ width:52px; }
+/* Celdas más grandes; títulos completos (sin cortar) */
+.agx-card--mes .agx-day{ min-height:128px; padding:.35rem .4rem; }
+.agx-card--mes .agx-month .agx-ev{ font-size:11.5px; padding:.22rem .35rem; }
+.agx-card--mes .agx-month .agx-ev__t, .agx-card--mes .agx-ev__t{ -webkit-line-clamp:unset; display:block; white-space:normal; overflow:visible; }
+.agx-card--mes .agx-col{ min-height:300px; }
+.agx-card--mes .agx-mhead{ margin-bottom:.25rem; }
+.agx-card--mes .agx-month, .agx-card--mes .agx-mhead, .agx-card--mes .agx-week{ gap:.4rem; }
+/* Filtros, botones y leyenda compactos en una sola franja */
+.agx-card--mes .agx-filters{ padding:.4rem 1rem; gap:.4rem .8rem; }
+.agx-card--mes .agx-leg{ padding:.08rem .45rem; font-size:11px; }
+.agx-card--mes .agx-tools{ gap:.4rem; }
+.agx-card--mes .agx-tools .select{ padding:.2rem .4rem; font-size:12px; }
+.agx-card--mes .agx-tools .btn{ padding:.25rem .65rem; font-size:12px; }
+.agx-card--mes .agx-chk{ font-size:12px; }
+.agx-card--mes .agx-head{ padding:.65rem 1rem .55rem; }
+.agx-card--mes .agx-grid-wrap{ padding:.7rem .8rem .9rem; }
+body.night .agx-card--mes{ background:linear-gradient(160deg, #142a25, #10221e 50%, #1b2a24); }
+body.night .agx-card--mes .agx-head{ background:rgba(255,255,255,.04); }
+body.night .agx-card--mes .agx-title{ color:color-mix(in srgb, var(--mac) 45%, #e6f2ee); }
+body.night .agx-card--mes .agx-col, body.night .agx-card--mes .agx-day{ background:rgba(19,38,33,.88); }
