@@ -21,6 +21,38 @@
     champion: { ic: "⭐", c: "#ca8a04", lab: "Convocatoria Champions" },
     propio: { ic: "📌", c: "#e0526f", lab: "Evento propio" }
   };
+  /* Categorías (configurables) y estados de las actividades.
+     La CATEGORÍA dice qué es (reunión, capacitación…); el ESTADO dice en qué va. */
+  const CAT_DEF = [
+    { k: "reunion", lab: "Reunión", c: "#1e6fd9" }, { k: "capacitacion", lab: "Capacitación", c: "#7a5cd0" },
+    { k: "jornada", lab: "Jornada", c: "#e0912f" }, { k: "presentacion", lab: "Presentación", c: "#e0528f" },
+    { k: "auditoria", lab: "Auditoría", c: "#1f9d57" }, { k: "visita", lab: "Visita clínica", c: "#12b5a5" },
+    { k: "documental", lab: "Gestión documental", c: "#7d8896" }, { k: "plazo", lab: "Plazo de entrega", c: "#d63a4a" },
+    { k: "difusion", lab: "Difusión", c: "#e5b80b" }
+  ];
+  function cats() {
+    const v = S().getConfig("agenda.categorias", null);
+    return Array.isArray(v) && v.length ? v : CAT_DEF;
+  }
+  const catOf = k => cats().find(c => c.k === k) || { k: "", lab: "Sin categoría", c: "#b7c1cc" };
+  const ESTADOS = [
+    { k: "programada", lab: "Programada", c: "#1e6fd9" }, { k: "realizada", lab: "Realizada", c: "#1f9d57" },
+    { k: "pendiente", lab: "Pendiente", c: "#e0912f" }, { k: "suspendida", lab: "Suspendida", c: "#8a94a6" },
+    { k: "reprogramada", lab: "Reprogramada", c: "#7a5cd0" }
+  ];
+  const estOf = k => ESTADOS.find(e => e.k === k) || ESTADOS[0];
+  // Categoría sugerida para lo que viene de otros módulos (sin modificar esos registros).
+  function catDerivada(tipo, texto) {
+    const t = String(texto || "").toLowerCase();
+    if (tipo === "reunion" || tipo === "champion") return /capacit|curso|taller/.test(t) ? "capacitacion" : /difus|sensibil/.test(t) ? "difusion" : /audit|ronda/.test(t) ? "auditoria" : "reunion";
+    if (tipo === "capacitacion") return "capacitacion";
+    if (tipo === "evalRNAO" || tipo === "medicion") return "auditoria";
+    if (tipo === "protocolo") return "documental";
+    if (tipo === "colaboracion") return /visita/.test(t) ? "visita" : /capacit|curso|taller/.test(t) ? "capacitacion" : /difus|exposic/.test(t) ? "difusion" : "reunion";
+    if (tipo === "planNT" || tipo === "accionRNAO" || tipo === "tarea") return "plazo";
+    return "";
+  }
+
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   // Color propio por mes (para que el calendario no se vea plano y cada mes se distinga)
   const MES_COLOR = ["#1e9fe0", "#e0526f", "#37a04a", "#7a5cd0", "#12b5a5", "#e0912f", "#0891b2", "#be185d", "#0f8f83", "#ca8a04", "#5b34b0", "#1554b8"];
@@ -45,9 +77,9 @@
     s.all("accionesRNAO").forEach(r => push(r.fechaComprometida, "Acción de mejora · " + (r.guia || r.indicadorOrigen || ""), "accionRNAO", "#/coord/m3", { deadline: true, done: /complet/i.test(r.estado || ""), col: "accionesRNAO", rid: r.id, dateField: "fechaComprometida" }));
     s.all("evaluacionesRNAO").forEach(r => push(r.proximaMedicion, "Próxima evaluación · " + (r.guia || "") + (r.unidad ? " (" + r.unidad + ")" : ""), "evalRNAO", "#/coord/m3"));
     s.all("kanban").forEach(r => push(r.fechaLimite, r.titulo || r.tarea || "Tarea", "tarea", "#/coord/home", { deadline: true, done: /complet/i.test(r.columna || ""), col: "kanban", rid: r.id, dateField: "fechaLimite" }));
-    s.all("actividades").forEach(r => push(r.fecha, "Capacitación · " + (r.actividad || ""), "capacitacion", "#/coord/m4"));
+    s.all("actividades").forEach(r => push(r.fecha, "Capacitación · " + (r.actividad || ""), "capacitacion", "#/coord/m4", { estadoSrc: /complet|realiz/i.test(r.estado || "") ? "realizada" : /pendien/i.test(r.estado || "") ? "pendiente" : "" }));
     s.all("convocatoriaChampion").forEach(r => push(r.fecha, "Champions · " + (r.tipo || "Convocatoria") + (r.tema ? " · " + r.tema : ""), "champion", "#/coord/m3?tab=champion"));
-    s.all("colaboraciones").forEach(r => push(r.fecha, "Colaboración · " + (r.institucion || ""), "colaboracion", "#/coord/m5?tab=colaboraciones"));
+    s.all("colaboraciones").forEach(r => push(r.fecha, "Colaboración · " + (r.institucion || ""), "colaboracion", "#/coord/m5?tab=colaboraciones", { extra: r.tipo || "" }));
     s.all("agendaEventos").forEach(r => {
       const startIso = isoDay(r.fecha); if (!startIso) return;
       const endIso = r.fechaFin ? isoDay(r.fechaFin) : startIso;
@@ -77,7 +109,17 @@
         if (pr) push(pr.toISOString(), "Revisión protocolo · " + (r.nombre || ""), "protocolo", "#/coord/m2?tab=protocolos", { deadline: true });
       });
     }
-    return ev.sort((a, b) => a.d - b.d);
+    const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+    ev.forEach(e => {
+      if (e.propio) {
+        const r = S().get("agendaEventos", e.id) || {};
+        e.cat = r.categoria || ""; e.estado = r.estado || "programada";
+      } else {
+        e.cat = catDerivada(e.tipo, e.titulo + " " + (e.extra || ""));
+        e.estado = e.estadoSrc || (e.done ? "realizada" : (e.deadline && e.d < hoy0) ? "pendiente" : "programada");
+      }
+    });
+    return ev.sort((a, b) => a.d - b.d || String(a.hora || "").localeCompare(String(b.hora || "")));
   }
 
   function eventoForm(rec, done, preset) {
@@ -89,6 +131,8 @@
         { name: "fecha", label: "Fecha (desde)", type: "date", required: true, value: rec ? rec.fecha : (preset || u.hoyISO()) },
         { name: "fechaFin", label: "Fecha de término (opcional)", type: "date", value: rec && rec.fechaFin ? rec.fechaFin : "", hint: "Déjala vacía si el evento es de un solo día." },
         { name: "hora", label: "Hora (opcional)", type: "time", value: rec ? rec.hora : "" },
+        { name: "categoria", label: "Categoría", type: "select", options: cats().map(c => ({ value: c.k, label: c.lab })), placeholder: "Sin categoría", value: rec ? (rec.categoria || "") : "" },
+        { name: "estado", label: "Estado", type: "select", options: ESTADOS.map(e => ({ value: e.k, label: e.lab })), value: rec ? (rec.estado || "programada") : "programada" },
         { name: "nota", label: "Nota (opcional)", type: "textarea", full: true, value: rec ? rec.nota : "" }
       ], {}),
       footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar</button>`,
@@ -301,131 +345,190 @@
       <div id="agenda-body"></div>`;
   }
 
+  /* ---------- Ficha de una actividad (abrir/editar desde el calendario) ---------- */
+  function eventoDetalle(e, done) {
+    const u = ui();
+    if (e.propio) { eventoForm(S().get("agendaEventos", e.id), done); return; }
+    const c = catOf(e.cat), st = estOf(e.estado), m = TIPO[e.tipo] || {};
+    u.modal({
+      title: "Actividad de la agenda",
+      body: `<div class="agx-det">
+        <div class="agx-det__t"><span class="agx-tag" style="--tc:${c.c}"></span>${u.esc(e.titulo)}</div>
+        <div class="agx-det__m">${u.fechaCL(e.d)}${e.hora ? " · " + u.esc(e.hora) : ""}</div>
+        <div class="agx-det__chips"><span class="agx-cat" style="--tc:${c.c}">${u.esc(c.lab)}</span>
+          <span class="agx-est" style="--ec:${st.c}">${u.esc(st.lab)}</span><span class="agx-src">${m.ic || ""} Origen: ${u.esc(m.lab || "")}</span></div>
+        <p class="kpi__sub" style="margin:.6rem 0 0">Esta actividad viene de otro módulo. Su fecha y su estado se editan en el registro de origen.</p></div>`,
+      footer: `<button class="btn btn--ghost" data-close>Cerrar</button>
+        ${e.col && e.dateField ? `<button class="btn btn--ghost" id="agx-fecha">📅 Editar fecha</button>` : ""}
+        ${e.ruta ? `<a class="btn btn--primary" href="${e.ruta}" id="agx-go">Abrir registro ↗</a>` : ""}`,
+      onMount(m2) {
+        const f = m2.querySelector("#agx-fecha"); if (f) f.onclick = () => editarFechaVencido(e.col, e.rid, e.dateField, () => { u.closeModal(); done(); });
+        const g = m2.querySelector("#agx-go"); if (g) g.onclick = () => u.closeModal();
+      }
+    });
+  }
+
+  /* ---------- Gestión de categorías (seleccionar, agregar, editar) ---------- */
+  function categoriasForm(done) {
+    const u = ui();
+    const row = c => `<div class="agx-crow" data-k="${u.esc(c.k)}"><input type="color" value="${c.c}" data-cc><input class="input input--sm" value="${u.esc(c.lab)}" data-cl placeholder="Nombre de la categoría"></div>`;
+    u.modal({
+      title: "Categorías de la agenda",
+      body: `<p class="card__hint">Cambia el nombre o el color, o agrega nuevas. Las actividades conservan su categoría.</p>
+        <div id="agx-cats" class="agx-cats">${cats().map(row).join("")}</div>
+        <button type="button" class="btn btn--ghost btn--sm" id="agx-addcat">+ Agregar categoría</button>
+        <button type="button" class="btn btn--ghost btn--sm" id="agx-defcat" style="margin-left:.3rem">↩️ Restaurar colores sugeridos</button>`,
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar categorías</button>`,
+      onMount(m) {
+        const box = m.querySelector("#agx-cats");
+        m.querySelector("#agx-addcat").onclick = () => box.insertAdjacentHTML("beforeend", row({ k: "c" + Date.now().toString(36), lab: "", c: "#0f8f83" }));
+        m.querySelector("#agx-defcat").onclick = () => { box.innerHTML = CAT_DEF.concat(cats().filter(c => !CAT_DEF.some(d => d.k === c.k))).map(row).join(""); };
+        m.querySelector("[data-save]").onclick = () => {
+          const list = [...box.querySelectorAll(".agx-crow")].map(r => ({ k: r.dataset.k, lab: r.querySelector("[data-cl]").value.trim(), c: r.querySelector("[data-cc]").value })).filter(c => c.lab);
+          if (!list.length) { u.toast("Debe quedar al menos una categoría", "danger"); return; }
+          S().setConfig("agenda.categorias", list); u.closeModal(); u.toast("Categorías guardadas", "ok"); done();
+        };
+      }
+    });
+  }
+
+  /* ===================== VISTA PRINCIPAL ===================== */
   function agendaBind() {
     const container = document.getElementById("agenda-body");
     const u = ui();
-    let monthOffset = 0, hiddenTypes = {}, showProx = true;
+    const pref = k => { try { return localStorage.getItem("ubpc:agenda." + k); } catch (e) { return null; } };
+    const savePref = (k, v) => { try { localStorage.setItem("ubpc:agenda." + k, v); } catch (e) {} };
+    let vista = pref("vista") || "semana", finde = pref("finde") === "1";
+    let cursor = new Date(); cursor.setHours(0, 0, 0, 0);
+    const offCats = {}; let fEstado = "";
+    const isoOf = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    const lunes = d => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+    const addD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+    const DOWL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+    function rango() {
+      if (vista === "dia") return { ini: new Date(cursor), fin: new Date(cursor) };
+      if (vista === "semana") { const l = lunes(cursor); return { ini: l, fin: addD(l, finde ? 6 : 4) }; }
+      const ini = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+      return { ini, fin: new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0) };
+    }
+    function mover(n) {
+      if (vista === "dia") { cursor = addD(cursor, n); if (!finde) { while ([0, 6].includes(cursor.getDay())) cursor = addD(cursor, n || 1); } }
+      else if (vista === "semana") cursor = addD(cursor, 7 * n);
+      else cursor = new Date(cursor.getFullYear(), cursor.getMonth() + n, 1);
+      draw();
+    }
+    function tituloRango(r) {
+      if (vista === "dia") return DOWL[(r.ini.getDay() + 6) % 7] + " " + u.fechaCL(r.ini);
+      if (vista === "semana") return "Semana del " + r.ini.getDate() + " " + MESES[r.ini.getMonth()].slice(0, 3) + " al " + r.fin.getDate() + " " + MESES[r.fin.getMonth()].slice(0, 3) + " " + r.fin.getFullYear();
+      return MESES[r.ini.getMonth()][0].toUpperCase() + MESES[r.ini.getMonth()].slice(1) + " " + r.ini.getFullYear();
+    }
 
     const draw = () => {
-      const events = buildEvents().filter(e => !hiddenTypes[e.tipo]);
       const today = new Date(); today.setHours(0, 0, 0, 0);
-      const in8 = new Date(today); in8.setDate(in8.getDate() + 8);
+      const todayIso = isoOf(today);
+      const all = buildEvents();
+      const events = all.filter(e => !offCats[e.cat || ""] && (!fEstado || e.estado === fEstado));
       const byIso = {}; events.forEach(e => { (byIso[e.iso] = byIso[e.iso] || []).push(e); });
-      // Para los conteos, un evento con rango se cuenta UNA vez (no un día por celda).
       const uniq = arr => { const s = {}; return arr.filter(e => { if (e.propio && e.id) { if (s[e.id]) return false; s[e.id] = 1; } return true; }); };
+      const in8 = addD(today, 8);
+      const r = rango(), iniIso = isoOf(r.ini), finIso = isoOf(r.fin);
+      const enRango = uniq(events.filter(e => e.iso >= iniIso && e.iso <= finIso));
+      const vencidos = all.filter(e => e.deadline && !e.done && e.d < today);
+      const ref = []; // eventos referenciados por índice (para abrirlos)
+      const chip = (e, big) => { const c = catOf(e.cat), st = estOf(e.estado), i = ref.push(e) - 1;
+        const over = e.deadline && !e.done && e.d < today;
+        return `<button type="button" class="agx-ev${big ? " agx-ev--big" : ""}${over ? " is-over" : ""}${/suspend/.test(e.estado) ? " is-off" : ""}" data-ev="${i}" style="--tc:${c.c}" title="${u.esc(e.titulo)} · ${u.esc(c.lab)} · ${u.esc(st.lab)}">
+          <span class="agx-tag"></span><span class="agx-ev__t">${e.hora ? `<b>${u.esc(e.hora)}</b> ` : ""}${u.esc(e.titulo)}</span>
+          ${big ? `<span class="agx-ev__m"><span class="agx-cat" style="--tc:${c.c}">${u.esc(c.lab)}</span><span class="agx-est" style="--ec:${st.c}">${u.esc(st.lab)}</span>${e.nota ? `<span class="kpi__sub">${u.esc(e.nota)}</span>` : ""}</span>`
+            : `<span class="agx-dot" style="--ec:${st.c}" title="${u.esc(st.lab)}"></span>`}</button>`; };
 
-      const proximos = uniq(events.filter(e => e.d >= today)).length;
-      const venc7 = uniq(events.filter(e => e.d >= today && e.d < in8)).length;
-      const vencidos = events.filter(e => e.deadline && !e.done && e.d < today);
-
-      // ---- Calendario del mes ----
-      const base = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
-      const y = base.getFullYear(), mo = base.getMonth();
-      const days = new Date(y, mo + 1, 0).getDate();
-      const lead = (new Date(y, mo, 1).getDay() + 6) % 7;
-      const mesEventos = uniq(events.filter(e => e.d.getFullYear() === y && e.d.getMonth() === mo)).length;
-      const MAXCHIP = 3;
-      let cells = "";
-      for (let i = 0; i < lead; i++) cells += `<div class="agc-day agc-day--blank"></div>`;
-      for (let dnum = 1; dnum <= days; dnum++) {
-        const iso = y + "-" + pad(mo + 1) + "-" + pad(dnum);
-        const evs = byIso[iso] || [];
-        const isToday = iso === (today.getFullYear() + "-" + pad(today.getMonth() + 1) + "-" + pad(today.getDate()));
-        const overdue = evs.some(e => e.deadline && !e.done && dateFromIso(iso) < today);
-        // Bloques de evento estilo Outlook, con el color del proceso
-        const chips = evs.slice(0, MAXCHIP).map(e => {
-          const m = TIPO[e.tipo];
-          const over = e.deadline && !e.done && e.d < today;
-          const label = (e.hora ? `<b>${u.esc(e.hora)}</b> ` : "") + u.esc(e.titulo);
-          return `<span class="agc-chip${over ? " is-over" : ""}${e.done ? " is-done" : ""}" style="--cc:${m.c}"
-            ${e.propio ? `data-cev="${e.id}"` : `data-cruta="${u.esc(e.ruta || "")}"`}
-            title="${u.esc(e.titulo)} · ${m.lab}">${label}</span>`;
-        }).join("");
-        const more = evs.length > MAXCHIP ? `<span class="agc-more">+${evs.length - MAXCHIP} más</span>` : "";
-        cells += `<div class="agc-day${isToday ? " is-today" : ""}${evs.length ? " has-ev" : ""}${overdue ? " is-over" : ""}"
-          data-iso="${iso}" title="Ver / agregar evento el ${dnum}">
-          <span class="agc-day__n">${dnum}</span>
-          <div class="agc-day__evs">${chips}${more}</div>
-          ${evs.length ? "" : `<span class="agc-day__add">＋</span>`}</div>`;
-      }
-
-      // ---- Próximos eventos (bajo el calendario) ----
-      // Eventos propios con rango se listan UNA sola vez (en su día de inicio).
-      const _seenProx = {};
-      const proxEvents = events.filter(e => e.d >= today).filter(e => {
-        if (e.propio && e.id) { if (_seenProx[e.id]) return false; _seenProx[e.id] = 1; }
-        return true;
-      }).slice(0, 60);
-      // Panel inferior: solo próximos eventos (o pista). El detalle de cada día
-      // ahora se abre en una ventana al hacer clic en el día, no aquí abajo.
-      let panelTitle, panelActions, panelBody;
-      if (showProx) {
-        panelTitle = "Próximos eventos";
-        panelActions = `<button class="btn btn--ghost btn--sm" id="agc-hideprox">Ocultar</button>
-          <button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`;
-        panelBody = proxAccordion(proxEvents, today, u);
+      let cuerpo = "";
+      if (vista === "semana" || vista === "dia") {
+        const ndays = vista === "dia" ? 1 : (finde ? 7 : 5);
+        const cols = []; for (let i = 0; i < ndays; i++) cols.push(addD(r.ini, i));
+        // Actividades de fin de semana ocultas: se avisa, no se pierden.
+        const findeOcultos = vista === "semana" && !finde ? [5, 6].reduce((a, i) => a + (byIso[isoOf(addD(r.ini, i))] || []).length, 0) : 0;
+        cuerpo = `<div class="agx-week" style="--nd:${ndays}">${cols.map(d => { const iso = isoOf(d), evs = byIso[iso] || [];
+          return `<div class="agx-col${iso === todayIso ? " is-today" : ""}" data-iso="${iso}">
+            <div class="agx-col__h"><span>${DOWL[(d.getDay() + 6) % 7]}</span><b>${d.getDate()}</b><button type="button" class="agx-add" data-add="${iso}" title="Agregar actividad">＋</button></div>
+            <div class="agx-col__b">${evs.length ? evs.map(e => chip(e, vista === "dia")).join("") : `<span class="agx-none">Sin actividades</span>`}</div></div>`; }).join("")}</div>
+          ${findeOcultos ? `<p class="agx-note">ℹ️ Hay ${findeOcultos} actividad(es) el fin de semana. <button type="button" class="btn btn--ghost btn--sm" id="agx-verfinde">Mostrar fines de semana</button></p>` : ""}`;
+      } else if (vista === "mes") {
+        const y = r.ini.getFullYear(), mo = r.ini.getMonth(), days = r.fin.getDate();
+        const ncol = finde ? 7 : 5;
+        let cells = "", lead = (r.ini.getDay() + 6) % 7;
+        if (!finde && lead > 4) lead = 0;
+        for (let i = 0; i < lead; i++) cells += `<div class="agx-day agx-day--blank"></div>`;
+        let findeOcultos = 0;
+        for (let dn = 1; dn <= days; dn++) {
+          const d = new Date(y, mo, dn), dow = (d.getDay() + 6) % 7, iso = isoOf(d), evs = byIso[iso] || [];
+          if (!finde && dow > 4) { findeOcultos += evs.length; continue; }
+          cells += `<div class="agx-day${iso === todayIso ? " is-today" : ""}" data-iso="${iso}"><div class="agx-day__h"><b>${dn}</b><button type="button" class="agx-add" data-add="${iso}" title="Agregar">＋</button></div>
+            ${evs.slice(0, 4).map(e => chip(e)).join("")}${evs.length > 4 ? `<button type="button" class="agx-more" data-dia="${iso}">+${evs.length - 4} más</button>` : ""}</div>`;
+        }
+        cuerpo = `<div class="agx-mhead" style="--nc:${ncol}">${DOWL.slice(0, ncol).map(x => `<span>${x.slice(0, 3)}</span>`).join("")}</div>
+          <div class="agx-month" style="--nc:${ncol}">${cells}</div>
+          ${findeOcultos ? `<p class="agx-note">ℹ️ Hay ${findeOcultos} actividad(es) en fines de semana. <button type="button" class="btn btn--ghost btn--sm" id="agx-verfinde">Mostrar fines de semana</button></p>` : ""}`;
       } else {
-        panelTitle = "Agenda del mes";
-        panelActions = `<button class="btn btn--ghost btn--sm" id="agc-showprox">🗓️ Ver próximos eventos</button>
-          <button class="btn btn--primary btn--sm" id="agc-newev">+ Nuevo evento</button>`;
-        panelBody = `<div class="agc-empty"><span>👆</span><p>Haz clic en un día del calendario para ver o agregar lo que está agendado.</p></div>`;
+        // Listado del mes del cursor, agrupado por día
+        const lista = enRango;
+        const dias = [...new Set(lista.map(e => e.iso))];
+        cuerpo = lista.length ? `<div class="agx-list">${dias.map(iso => { const d = dateFromIso(iso);
+          return `<div class="agx-lday${iso === todayIso ? " is-today" : ""}"><div class="agx-lday__h"><b>${d.getDate()}</b><span>${DOWL[(d.getDay() + 6) % 7].slice(0, 3)}</span></div>
+            <div class="agx-lday__b">${lista.filter(e => e.iso === iso).map(e => chip(e, true)).join("")}</div></div>`; }).join("")}</div>`
+          : `<p class="agx-none" style="padding:1rem">Sin actividades en el período con los filtros elegidos.</p>`;
       }
 
-      const vencHTML = vencidos.length ? `<div class="card agc-venc" style="border-left:4px solid var(--danger)">
-          <h3 class="card__title" style="color:var(--danger);margin:0 0 .4rem">⏰ Vencidos (${vencidos.length})</h3>
-          <div class="agc-list" style="max-height:230px;overflow:auto">${vencidos.map(e => itemHTML(e, today, u)).join("")}</div></div>` : "";
-
-      const legend = `<div class="agc-legend-t">Filtra por tipo (toca para mostrar/ocultar):</div>` +
-        `<div class="agc-legend">${Object.keys(TIPO).map(k => `<button class="agc-leg${hiddenTypes[k] ? " is-off" : ""}" data-legtype="${k}" style="--lc:${TIPO[k].c}" type="button" title="Mostrar u ocultar ${TIPO[k].lab}"><i></i>${TIPO[k].lab}</button>`).join("")}</div>`;
-
+      const legend = `<div class="agx-legend">${cats().concat([{ k: "", lab: "Sin categoría", c: "#b7c1cc" }]).map(c => `<button type="button" class="agx-leg${offCats[c.k] ? " is-off" : ""}" data-cat="${u.esc(c.k)}" style="--tc:${c.c}"><i></i>${u.esc(c.lab)}</button>`).join("")}
+        <button type="button" class="agx-leg agx-leg--cfg" id="agx-cats">⚙️ Categorías</button></div>`;
       const remActivo = remOn();
+      const SH = U.components.resource.secHead;
       container.innerHTML = `
-        <div class="grid grid--kpi agc-kpis" style="margin-bottom:.7rem">
-          ${kpi("Próximos", proximos, "Eventos desde hoy", "info", "🗓️")}
-          ${kpi("En 7 días", venc7, "Esta semana", "warn", "⏳")}
+        ${SH("📌", "Resumen", "Lo próximo, lo de esta semana y lo vencido")}
+        <div class="grid grid--kpi agc-kpis">
+          ${kpi("En el período", enRango.length, tituloRango(r), "info", "🗓️")}
+          ${kpi("Próximos 7 días", uniq(events.filter(e => e.d >= today && e.d < in8)).length, "Desde hoy", "warn", "⏳")}
+          ${kpi("Realizadas", enRango.filter(e => e.estado === "realizada").length, "En el período", "ok", "✅")}
           ${kpi("Vencidos", vencidos.length, "Plazos sin cerrar", vencidos.length ? "danger" : "ok", "⏰")}
-          ${kpi("Este mes", mesEventos, MESES[mo] + " " + y, "info", "📆")}
         </div>
-        <div style="display:flex;justify-content:flex-end;align-items:center;gap:.5rem;margin-bottom:.7rem;flex-wrap:wrap">
-          <span class="kpi__sub" style="margin-right:auto">${remActivo ? "🔔 Recibirás avisos de lo de hoy y lo vencido." : "🔕 Activa los recordatorios para que el portal te avise."}</span>
-          <button class="btn btn--${remActivo ? "ghost" : "primary"} btn--sm" id="agc-remind">${remActivo ? "🔔 Recordatorios activados" : "🔔 Activar recordatorios"}</button>
-        </div>
-        <div class="card agc-cal-card" style="--mc:${MES_COLOR[mo]}">
-          <div class="agc-cal-head">
-            <button class="btn-icon" id="agc-prev" aria-label="Mes anterior">‹</button>
-            <strong>${MESES[mo][0].toUpperCase() + MESES[mo].slice(1)} ${y}</strong>
-            <button class="btn-icon" id="agc-next" aria-label="Mes siguiente">›</button>
+        ${SH("🗓️", "Calendario", "Haz clic en una actividad para abrirla o editarla · ＋ agrega una actividad ese día")}
+        <div class="card agx-card">
+          <div class="agx-bar">
+            <div class="agx-nav"><button class="btn-icon" id="agx-prev" aria-label="Anterior">‹</button><button class="btn btn--ghost btn--sm" id="agx-hoy">Hoy</button><button class="btn-icon" id="agx-next" aria-label="Siguiente">›</button>
+              <strong class="agx-title">${tituloRango(r)}</strong></div>
+            <div class="agx-views" role="tablist">${[["dia", "Día"], ["semana", "Semana laboral"], ["mes", "Mes"], ["lista", "Listado"]].map(([k, l]) => `<button type="button" class="agx-vb${vista === k ? " is-on" : ""}" data-vista="${k}">${l}</button>`).join("")}</div>
+            <div class="agx-tools">
+              <select class="select input--sm" id="agx-est" aria-label="Estado"><option value="">Estado: todos</option>${ESTADOS.map(e => `<option value="${e.k}"${fEstado === e.k ? " selected" : ""}>${e.lab}</option>`).join("")}</select>
+              <label class="agx-chk"><input type="checkbox" id="agx-finde"${finde ? " checked" : ""}> Fines de semana</label>
+              <button class="btn btn--primary btn--sm" id="agc-newev">+ Nueva actividad</button></div>
           </div>
-          <div class="agc-grid agc-dow">${DOW.map(d => `<div class="agc-dow__c">${d}</div>`).join("")}</div>
-          <div class="agc-grid agc-grid--big">${cells}</div>
           ${legend}
-        </div>`;
+          ${cuerpo}
+        </div>
+        ${vencidos.length ? `${SH("⏰", "Vencidos (" + vencidos.length + ")", "Plazos sin cerrar · edita la fecha o abre el registro")}
+          <div class="card agc-venc"><div class="agc-list" style="max-height:240px;overflow:auto">${vencidos.map(e => itemHTML(e, today, u)).join("")}</div></div>` : ""}
+        <div class="agx-rem"><span class="kpi__sub">${remActivo ? "🔔 Recibirás avisos de lo de hoy y lo vencido." : "🔕 Activa los recordatorios para que el portal te avise."}</span>
+          <button class="btn btn--${remActivo ? "ghost" : "primary"} btn--sm" id="agc-remind">${remActivo ? "🔔 Recordatorios activados" : "🔔 Activar recordatorios"}</button></div>`;
 
-      document.getElementById("agc-prev").onclick = () => { monthOffset--; draw(); };
-      document.getElementById("agc-next").onclick = () => { monthOffset++; draw(); };
-      const rem = document.getElementById("agc-remind");
-      if (rem) rem.onclick = () => { if (remOn()) { disableReminders(); draw(); } else { enableReminders(draw); } };
-      const sp = document.getElementById("agc-showprox"); if (sp) sp.onclick = () => { showProx = true; draw(); };
-      const hp = document.getElementById("agc-hideprox"); if (hp) hp.onclick = () => { showProx = false; draw(); };
-      // Clic en un día: abre la ventana del día para ver y AGREGAR ahí mismo.
-      container.querySelectorAll("[data-iso]").forEach(b => b.onclick = () => dayModal(b.dataset.iso, draw));
-      // Clic en un bloque de evento: abre igualmente la ventana de ese día.
-      container.querySelectorAll(".agc-chip").forEach(c => c.onclick = ev => {
-        ev.stopPropagation();
-        const day = c.closest(".agc-day");
-        if (day && day.dataset.iso) dayModal(day.dataset.iso, draw);
-      });
-      const nev = document.getElementById("agc-newev"); if (nev) nev.onclick = () => eventoForm(null, draw);
-      container.querySelectorAll("[data-legtype]").forEach(b => b.onclick = () => {
-        const t = b.dataset.legtype; hiddenTypes[t] = !hiddenTypes[t]; draw();
-      });
-      // Acciones de las filas del panel de próximos/vencidos (editar/eliminar/fecha).
+      const $ = id => document.getElementById(id);
+      $("agx-prev").onclick = () => mover(-1); $("agx-next").onclick = () => mover(1);
+      $("agx-hoy").onclick = () => { cursor = new Date(); cursor.setHours(0, 0, 0, 0); draw(); };
+      container.querySelectorAll("[data-vista]").forEach(b => b.onclick = () => { vista = b.dataset.vista; savePref("vista", vista); draw(); });
+      $("agx-est").onchange = e => { fEstado = e.target.value; draw(); };
+      $("agx-finde").onchange = e => { finde = e.target.checked; savePref("finde", finde ? "1" : "0"); draw(); };
+      const vf = $("agx-verfinde"); if (vf) vf.onclick = () => { finde = true; savePref("finde", "1"); draw(); };
+      $("agc-newev").onclick = () => eventoForm(null, draw);
+      $("agx-cats").onclick = () => categoriasForm(draw);
+      container.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { const k = b.dataset.cat; offCats[k] = !offCats[k]; draw(); });
+      container.querySelectorAll("[data-ev]").forEach(b => b.onclick = ev => { ev.stopPropagation(); eventoDetalle(ref[Number(b.dataset.ev)], draw); });
+      container.querySelectorAll("[data-add]").forEach(b => b.onclick = ev => { ev.stopPropagation(); eventoForm(null, draw, b.dataset.add); });
+      container.querySelectorAll("[data-dia]").forEach(b => b.onclick = ev => { ev.stopPropagation(); dayModal(b.dataset.dia, draw); });
+      const rem = $("agc-remind"); if (rem) rem.onclick = () => { if (remOn()) { disableReminders(); draw(); } else { enableReminders(draw); } };
       bindItemActions(container, draw);
     };
     draw();
 
-    // Al llegar desde "Próximos pasos" (tareas vencidas): resalta con una
-    // lucecita intermitente lo que está vencido, para ubicarlo de inmediato.
     if (/[?&]focus=vencidos/.test(location.hash)) {
       setTimeout(() => {
         const card = container.querySelector(".agc-venc") || container.querySelector(".kpi--danger");

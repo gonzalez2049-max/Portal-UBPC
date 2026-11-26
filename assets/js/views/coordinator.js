@@ -381,10 +381,31 @@
         return { name: k, color: guiaCol(k),
           values: labels.map(l => (l in byLabel && byLabel[l] != null) ? byLabel[l] : null) };
       });
+      // Barras agrupadas por período: una barra por guía·unidad, con el COLOR DE LA UNIDAD.
+      const uniOf = k => (k.split(" · ")[1] || k);
+      const colOf = k => U.data.unidadColor(uniOf(k));
+      const W = 1100, H = 260, pl = 40, pr = 16, pt = 18, pb = 34;
+      const iw = W - pl - pr, ih = H - pt - pb, gw = iw / Math.max(1, labels.length);
+      const y = v => pt + ih - ih * Math.max(0, Math.min(100, v)) / 100;
+      let svg = [0, 25, 50, 75, 100].map(v => `<line x1="${pl}" y1="${y(v)}" x2="${W - pr}" y2="${y(v)}" stroke="var(--chart-grid,#eef2f8)"/><text x="${pl - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--text-muted)">${v}</text>`).join("");
+      labels.forEach((lab, li) => {
+        const items = series.map(sr => ({ k: sr.name, v: sr.values[li] })).filter(x => x.v != null);
+        const n = items.length, bw = Math.min(46, (gw * .8) / Math.max(1, n)), x0 = pl + li * gw + (gw - bw * n) / 2;
+        items.forEach((it, i) => {
+          const x = x0 + i * bw, h = ih * Math.max(0, Math.min(100, it.v)) / 100, c = colOf(it.k);
+          svg += `<rect x="${x + 2}" y="${y(it.v)}" width="${bw - 4}" height="${h}" rx="4" fill="${c}"><title>${u.esc(it.k)} · ${lab}: ${it.v}%</title></rect>
+            <text x="${x + bw / 2}" y="${y(it.v) - 5}" text-anchor="middle" font-size="11" font-weight="800" fill="${it.v >= meta ? "#1f7d48" : "#b02a3a"}">${it.v}%</text>`;
+        });
+        svg += `<text x="${pl + li * gw + gw / 2}" y="${H - 10}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text-2)">${u.esc(lab)}</text>`;
+      });
+      svg += `<line x1="${pl}" y1="${y(meta)}" x2="${W - pr}" y2="${y(meta)}" stroke="var(--morado,#7a5cd0)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="${W - pr}" y="${y(meta) - 6}" text-anchor="end" font-size="11" font-weight="700" fill="var(--morado,#7a5cd0)" paint-order="stroke" stroke="#fff" stroke-width="3.5">Meta ${meta}%</text>`;
+      const bajo = series.map(sr => ({ k: sr.name, v: sr.values.filter(v => v != null).slice(-1)[0] })).filter(x => x.v != null && x.v < meta);
       return `${selector}
-        <div class="card__hint" style="margin-top:0"><strong>Todas las guías</strong> · Meta institucional ${meta}%</div>
-        ${U.charts.lineChart({ labels, series, meta, hideValues: keys.length > 2 })}
-        <p class="narrativo" style="margin:.6rem 0 0"><strong>Interpretación:</strong> Comparación del cumplimiento global de las ${keys.length} guía(s) frente a la meta ${meta}%. Elige una guía en el selector para ver su tendencia en detalle.</p>`;
+        <div class="card__hint" style="margin-top:0"><strong>Todas las guías</strong> · cada unidad con su color · Meta institucional ${meta}%</div>
+        <svg viewBox="0 0 ${W} ${H}" width="100%" style="height:auto;display:block;max-height:300px" role="img" aria-label="Cumplimiento por unidad y período">${svg}</svg>
+        <div class="tend-leg">${keys.map(k => `<span><i style="background:${colOf(k)}"></i>${u.esc(k)}</span>`).join("")}<span><i style="background:var(--morado,#7a5cd0);height:3px"></i>Meta ${meta}%</span></div>
+        <p class="narrativo" style="margin:.6rem 0 0"><strong>Interpretación:</strong> Cumplimiento global por unidad en cada período frente a la meta ${meta}%. ${bajo.length ? `Bajo la meta en su última medición: ${bajo.map(x => u.esc(uniOf(x.k)) + " (" + x.v + "%)").join(", ")}.` : "Todas las unidades están en la meta en su última medición."} Elige una guía·unidad en el selector para ver su tendencia en detalle.</p>`;
     }
 
     // ----- Modo una guía: su serie temporal -----
