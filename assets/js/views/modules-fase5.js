@@ -124,9 +124,182 @@
   }
   const pct1 = v => v == null ? "—" : (Math.round(v * 10) / 10) + "%";
 
+  /* ============================================================
+     ANÁLISIS DE RESULTADOS Y ACCIONES DE MEJORA · Epidemiología LPP
+     - Usa SOLO los registros existentes (epiLPP), por mes y con el filtro de unidad.
+     - Cada mes se calcula con la suma de conteos de ese mes (no acumula pacientes
+       entre meses: un mismo paciente puede repetirse en meses distintos).
+     - Variaciones con valores SIN redondear; se redondea solo al mostrar.
+     - Denominador 0 o dato faltante → indicador sin dato (no se inventa).
+     - Metas: solo las que defina la UBPC (configurables). Sin meta → «Sin meta establecida».
+     ============================================================ */
+  const EPI_IND = [
+    { k: "inc", lab: "Incidencia intrahospitalaria", menor: true, cfg: "epi.meta.incidencia" },
+    { k: "prev", lab: "Prevalencia", menor: true, cfg: "epi.meta.prevalencia" },
+    { k: "lib", lab: "Pacientes libres de LPP intrahospitalaria", menor: false, cfg: "epi.meta.libres" }
+  ];
+  const EPI_UMBRAL_ESTABLE = 0.5;   // pp: variación menor se considera «estable»
+  const EPI_UMBRAL_EVAL = 20;       // %: variación de evaluados que obliga a revisar registros
+  function epiMeta(ind) {
+    const v = S().getConfig(ind.cfg, "");
+    return (v === "" || v == null || isNaN(Number(v))) ? null : Number(v);
+  }
+  // Agregado de UN mes (con filtro). Solo suma registros con datos válidos para cada indicador.
+  function epiMes(recs, per, inFilter) {
+    const l = recs.filter(r => r.periodo === per && inFilter(r));
+    const a = { n: l.filter(r => Number(r.evaluados) > 0).length, ev: 0, sin: 0, intra: 0, con: 0, nInc: 0, nPrev: 0 };
+    l.forEach(r => {
+      const c = epiCalc(r);
+      if (c.evaluados != null) a.ev += c.evaluados;
+      if (c.sinLPP != null && c.sinLPP > 0 && c.lppIntra != null) { a.sin += c.sinLPP; a.intra += c.lppIntra; a.nInc++; }
+      if (c.evaluados != null && c.evaluados > 0 && c.conLPP != null) { a.con += c.conLPP; a.evPrev = (a.evPrev || 0) + c.evaluados; a.nPrev++; }
+    });
+    const inc = a.sin > 0 ? a.intra / a.sin * 100 : null;
+    const prev = a.evPrev > 0 ? a.con / a.evPrev * 100 : null;
+    return { per, n: a.n, ev: l.length ? a.ev : null, inc, prev, lib: inc != null ? 100 - inc : null };
+  }
+  const ppFmt = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(Math.round(v * 10) / 10).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " pp";
+  const pcFmt = v => v == null ? "—" : (Math.round(v * 10) / 10).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+  // Dirección de un cambio: "fav" | "desf" | "est" (según si menor es mejor)
+  function epiDir(delta, menor) {
+    if (delta == null) return null;
+    if (Math.abs(delta) < EPI_UMBRAL_ESTABLE) return "est";
+    return (menor ? delta < 0 : delta > 0) ? "fav" : "desf";
+  }
+  function epiAnalisis(recs, per, inFilter) {
+    const pers = [...new Set(recs.filter(inFilter).map(r => r.periodo).filter(Boolean))].sort().filter(p => p <= per);
+    const meses = pers.map(p => epiMes(recs, p, inFilter));
+    const cur = meses[meses.length - 1] || null, ant = meses[meses.length - 2] || null, ant2 = meses[meses.length - 3] || null;
+    const filas = EPI_IND.map(ind => {
+      const v = cur ? cur[ind.k] : null, v1 = ant ? ant[ind.k] : null, v2 = ant2 ? ant2[ind.k] : null;
+      const delta = (v != null && v1 != null) ? v - v1 : null;
+      const dir = epiDir(delta, ind.menor);
+      let tend = "ins", tendTxt = "Información insuficiente";
+      if (v != null && v1 != null && v2 != null) {
+        const d1 = epiDir(v1 - v2, ind.menor), d2 = dir, net = epiDir(v - v2, ind.menor);
+        if (d1 === "fav" && d2 === "fav") { tend = "fav+"; tendTxt = "Favorable sostenida"; }
+        else if (d1 === "desf" && d2 === "desf") { tend = "desf+"; tendTxt = "Desfavorable sostenida"; }
+        else if (net === "fav") { tend = "fav"; tendTxt = "Favorable"; }
+        else if (net === "desf") { tend = "desf"; tendTxt = "Desfavorable"; }
+        else { tend = "est"; tendTxt = "Estable"; }
+      }
+      const sem = v == null || dir == null ? "gris" : dir === "fav" ? "verde" : dir === "est" ? "amarillo" : "rojo";
+      const meta = epiMeta(ind);
+      const enMeta = (v == null || meta == null) ? null : (ind.menor ? v <= meta : v >= meta);
+      const metaTxt = meta == null ? "Sin meta establecida" : (enMeta == null ? "Sin dato" : (enMeta ? "Dentro de la meta" : "Fuera de la meta"));
+      const metaRef = meta == null ? "" : (ind.menor ? "≤ " : "≥ ") + pcFmt(meta);
+      // Interpretación (una línea, sin inventar causas)
+      let interp;
+      if (v == null) interp = "Sin denominador válido en el mes: no se puede calcular.";
+      else if (delta == null) interp = `Primer mes con dato${meta != null ? "; " + metaTxt.toLowerCase() : ""}.`;
+      else {
+        const verbo = dir === "est" ? "se mantiene estable" : (delta > 0 ? "aumenta" : "disminuye") + " " + ppFmt(Math.abs(delta)).replace("+", "");
+        interp = `${verbo.charAt(0).toUpperCase() + verbo.slice(1)} respecto del mes anterior (${dir === "fav" ? "favorable" : dir === "desf" ? "desfavorable" : "sin cambio relevante"})${meta != null ? "; " + metaTxt.toLowerCase() : ""}.`;
+      }
+      // Acción sugerida (reglas definidas por la UBPC; máx. una línea)
+      let accion;
+      if (v == null || delta == null) accion = "Completar los registros mensuales para evaluar la evolución.";
+      else if (tend === "desf+") accion = "Resultado desfavorable sostenido: priorizar auditorías y planes de mejora.";
+      else if (tend === "fav+") accion = "Resultado favorable sostenido: mantener y compartir buenas prácticas.";
+      else if (ind.k === "prev" && delta > 0 && dir === "desf") accion = "Revisar el origen de las LPP (ingreso o intrahospitalaria) y las necesidades de cuidados.";
+      else if ((ind.k === "inc" && dir === "desf") || (ind.k === "lib" && dir === "desf")) accion = "Revisar nuevos casos y el cumplimiento de las medidas preventivas.";
+      else if ((ind.k === "inc" || ind.k === "lib") && dir === "fav") accion = "Mantener y monitorear las estrategias preventivas.";
+      else if (ind.k === "prev" && dir === "fav") accion = "Mantener el seguimiento de los pacientes con LPP.";
+      else accion = enMeta === false ? "Resultado estable fuera de la meta: reforzar las medidas preventivas." : "Mantener el monitoreo mensual.";
+      return { ind, v, v1, delta, dir, tend, tendTxt, sem, meta, enMeta, metaTxt, metaRef, interp, accion };
+    });
+    // Variación de pacientes evaluados (cobertura / calidad del registro)
+    let evalAlerta = null;
+    if (cur && ant && cur.ev != null && ant.ev != null && ant.ev > 0) {
+      const dEv = (cur.ev - ant.ev) / ant.ev * 100;
+      if (Math.abs(dEv) >= EPI_UMBRAL_EVAL)
+        evalAlerta = { dEv, cur: cur.ev, ant: ant.ev, nCur: cur.n, nAnt: ant.n };
+    }
+    return { cur, ant, filas, evalAlerta, nMeses: meses.length };
+  }
+  function epiConclusion(A, filtroTxt) {
+    const u = ui();
+    if (!A.cur) return null;
+    const f = k => A.filas.find(x => x.ind.k === k);
+    const inc = f("inc"), prev = f("prev"), lib = f("lib");
+    const mes = periodoNT(A.cur.per), mesAnt = A.ant ? periodoNTshort(A.ant.per) : null;
+    const metaInc = inc.meta != null ? ` (${inc.metaTxt.toLowerCase()} ${inc.metaRef})` : "";
+    const l1 = `En ${mes} (${filtroTxt}), la incidencia intrahospitalaria fue ${pcFmt(inc.v)}${metaInc}, la prevalencia ${pcFmt(prev.v)} y ${pcFmt(lib.v)} de los pacientes se mantuvo libre de LPP intrahospitalaria.`;
+    let l2;
+    if (!A.ant || inc.delta == null) l2 = "Aún no hay un mes anterior comparable para evaluar la evolución.";
+    else l2 = `Respecto de ${mesAnt}, la incidencia ${inc.dir === "est" ? "se mantuvo estable" : (inc.delta > 0 ? "aumentó" : "disminuyó") + " " + ppFmt(Math.abs(inc.delta)).replace("+", "")} y la prevalencia ${prev.delta == null ? "no es comparable" : prev.dir === "est" ? "se mantuvo estable" : (prev.delta > 0 ? "aumentó" : "disminuyó") + " " + ppFmt(Math.abs(prev.delta)).replace("+", "")}; tendencia de 3 meses de la incidencia: ${inc.tendTxt.toLowerCase()}.`;
+    // Acción prioritaria: la de mayor gravedad
+    const sostDesf = A.filas.find(x => x.tend === "desf+");
+    const l3 = sostDesf ? "Priorizar auditorías y planes de mejora en las unidades con resultados desfavorables sostenidos."
+      : inc.dir === "desf" ? "Revisar los nuevos casos y el cumplimiento de las medidas preventivas."
+      : prev.dir === "desf" ? "Revisar el origen de las LPP y las necesidades de cuidados."
+      : A.evalAlerta ? "Revisar la cobertura y la calidad de los registros antes de concluir."
+      : A.filas.every(x => x.tend === "fav+") || inc.tend === "fav+" ? "Mantener y compartir las buenas prácticas preventivas."
+      : inc.delta == null ? "Completar los registros mensuales para evaluar la evolución."
+      : inc.enMeta === false ? "Reforzar las medidas preventivas hasta alcanzar la meta."
+      : "Mantener y monitorear las estrategias preventivas.";
+    return [l1, l2, l3];
+  }
+  function epiAnalisisHTML(recs, per, inFilter, filtroTxt, periodos) {
+    const u = ui();
+    if (!per) return "";
+    const A = epiAnalisis(recs, per, inFilter);
+    const SEM = { verde: ["#1f9d57", "Favorable"], amarillo: ["#d98514", "Estable"], rojo: ["#c62f3b", "Desfavorable"], gris: ["#8a94a6", "Insuficiente"] };
+    const TCOL = { "fav+": "#1f9d57", fav: "#1f9d57", est: "#d98514", desf: "#c62f3b", "desf+": "#c62f3b", ins: "#8a94a6" };
+    const filas = A.filas.map(x => {
+      const [sc, sl] = SEM[x.sem];
+      const metaCls = x.meta == null ? "nd" : x.enMeta == null ? "nd" : x.enMeta ? "ok" : "bad";
+      return `<tr>
+        <td><span class="epa-sem" style="background:${sc}" title="${sl}"></span><strong>${u.esc(x.ind.lab)}</strong></td>
+        <td class="num"><strong>${pcFmt(x.v)}</strong></td>
+        <td class="num" style="color:${x.dir ? SEM[x.sem][0] : "inherit"}">${x.delta == null ? "—" : ppFmt(x.delta)}</td>
+        <td><span class="epa-tag" style="--tc:${TCOL[x.tend]}">${u.esc(x.tendTxt)}</span></td>
+        <td><span class="epa-meta epa-meta--${metaCls}">${u.esc(x.metaTxt)}${x.metaRef ? ` <small>${u.esc(x.metaRef)}</small>` : ""}</span></td>
+        <td class="epa-int"><div>${u.esc(x.interp)}</div><div class="epa-acc">➜ ${u.esc(x.accion)}</div></td></tr>`;
+    }).join("");
+    const conc = epiConclusion(A, filtroTxt);
+    const ev = A.evalAlerta;
+    const evTxt = ev ? `<div class="epa-alert">⚠️ Pacientes evaluados ${ev.dEv > 0 ? "aumentan" : "disminuyen"} ${Math.abs(Math.round(ev.dEv))}% (${ev.ant} → ${ev.cur}; unidades que reportan: ${ev.nAnt} → ${ev.nCur}). <strong>Revisar la cobertura y la calidad de los registros.</strong></div>` : "";
+    return `<div class="card epa" style="margin-top:1rem">
+      <div class="section__head" style="margin-bottom:.45rem"><div><h3 class="card__title" style="margin:0">Análisis de resultados y acciones de mejora</h3>
+        <p class="card__hint" style="margin:0">${u.esc(filtroTxt)} · comparado con ${A.ant ? u.esc(periodoNT(A.ant.per)) : "—"} · semáforo según variación mensual (±${String(EPI_UMBRAL_ESTABLE).replace(".", ",")} pp = estable) · meta evaluada por separado</p></div>
+        <div class="flex" style="gap:.5rem;align-items:center;flex-wrap:wrap">
+          <select class="select" id="epa-per" style="max-width:190px" aria-label="Mes analizado">${periodos.slice().reverse().map(p => `<option value="${u.esc(p)}"${p === per ? " selected" : ""}>${u.esc(periodoNT(p))}</option>`).join("")}</select>
+          <button class="btn btn--ghost btn--sm" id="epa-metas">⚙️ Metas</button></div></div>
+      <div style="overflow-x:auto"><table class="tbl epa-tbl"><thead><tr>
+        <th>Indicador</th><th class="num">${A.cur ? u.esc(periodoNTshort(A.cur.per)) : "Mes"}</th><th class="num">Variación</th><th>Tendencia 3 meses</th><th>Meta</th><th>Interpretación y acción sugerida</th>
+      </tr></thead><tbody>${filas}</tbody></table></div>
+      ${evTxt}
+      ${conc ? `<div class="epa-conc">
+        <div><b>¿Cómo estamos?</b> ${u.esc(conc[0])}</div>
+        <div><b>¿Cómo hemos evolucionado?</b> ${u.esc(conc[1])}</div>
+        <div><b>¿Qué debemos hacer?</b> ${u.esc(conc[2])}</div></div>` : ""}
+    </div>`;
+  }
+  function epiMetasForm(done) {
+    const u = ui();
+    u.modal({
+      title: "Metas institucionales · Epidemiología LPP",
+      body: `<p class="card__hint">Define solo metas aprobadas por la institución. Deja en blanco si no existe meta: el análisis mostrará «Sin meta establecida».</p>`
+        + u.formHTML(EPI_IND.map(ind => ({ name: ind.k, label: `${ind.lab} (%) · ${ind.menor ? "meta máxima (≤)" : "meta mínima (≥)"}`, type: "number", attrs: 'step="0.1" min="0" max="100"', value: epiMeta(ind) != null ? epiMeta(ind) : "" })), {}),
+      footer: `<button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--primary" data-save>Guardar metas</button>`,
+      onMount(m) {
+        m.querySelector("[data-save]").onclick = () => {
+          const d = u.readForm(m);
+          for (const ind of EPI_IND) {
+            const v = d[ind.k];
+            if (v !== "" && v != null && (isNaN(Number(v)) || Number(v) < 0 || Number(v) > 100)) { u.toast("Las metas deben estar entre 0 y 100%", "danger"); return; }
+          }
+          EPI_IND.forEach(ind => S().setConfig(ind.cfg, d[ind.k] === "" || d[ind.k] == null ? "" : Number(d[ind.k])));
+          u.closeModal(); u.toast("Metas guardadas", "ok"); done();
+        };
+      }
+    });
+  }
+
   function epidemiologia234(box) {
     const u = ui();
-    let filtro = "Todas";
+    let filtro = "Todas", perSel = null;
     const render = () => {
       const recs = S().all("epiLPP");
       const periodos = [...new Set(recs.map(r => r.periodo).filter(Boolean))].sort();
@@ -190,7 +363,7 @@
             ${kpiA("Incidencia intrahosp. (acumulada)", pct1(accInc), accInc != null && accInc <= 5 ? "ok" : accInc != null && accInc <= 10 ? "warn" : "danger", "LPP intra / ingresan sin LPP")}
             ${kpiA("Prevalencia (acumulada)", pct1(accPrev), "info", "con ≥1 LPP / evaluados")}
             ${kpiA("Pacientes libres de LPP intra", pct1(accLibres), "ok", "100 − incidencia")}
-            ${kpiA("Pacientes evaluados (total)", acc.ev || 0, "info", filtro === "Todas" ? "Institucional" : u.esc(filtro))}
+            ${kpiA("Evaluaciones registradas (suma mensual)", acc.ev || 0, "info", (filtro === "Todas" ? "Institucional" : filtro) + " · no son pacientes únicos")}
           </div>
         </div>
         <div class="card" style="margin-top:1rem">
@@ -199,11 +372,16 @@
             <select class="select" id="epi-filtro" style="max-width:230px"><option>Todas</option>${unidades.map(x => `<option ${x === filtro ? "selected" : ""}>${u.esc(x)}</option>`).join("")}</select></div>
           ${trend}
         </div>
+        ${(() => { const pf = [...new Set(recs.filter(inFilter).map(r => r.periodo).filter(Boolean))].sort();
+          const per = (perSel && pf.indexOf(perSel) >= 0) ? perSel : pf[pf.length - 1];
+          return epiAnalisisHTML(recs, per, inFilter, filtro === "Todas" ? "Institucional" : filtro, pf); })()}
         <div class="section__head" style="margin-top:1.1rem"><div><h3 class="section__title" style="margin:0">Resultado mensual por unidad</h3><p class="section__hint">Cálculo automático de incidencia, prevalencia y % libres</p></div>
           <button class="btn btn--primary btn--sm" id="epi-new">+ Agregar registro</button></div>
         ${hist}`;
 
       document.getElementById("epi-filtro").onchange = e => { filtro = e.target.value; render(); };
+      const eps = document.getElementById("epa-per"); if (eps) eps.onchange = e => { perSel = e.target.value; render(); };
+      const emb = document.getElementById("epa-metas"); if (emb) emb.onclick = () => epiMetasForm(render);
       document.getElementById("epi-new").onclick = () => formEpi(null, render);
       box.querySelectorAll("[data-eedit]").forEach(b => b.onclick = () => formEpi(S().get("epiLPP", b.dataset.eedit), render));
       box.querySelectorAll("[data-edel]").forEach(b => b.onclick = () => u.confirmDelete("¿Eliminar este registro epidemiológico?", () => { S().remove("epiLPP", b.dataset.edel); render(); }));
