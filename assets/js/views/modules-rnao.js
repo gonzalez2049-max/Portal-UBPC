@@ -1453,12 +1453,14 @@
   }
 
   /* ===================== ÍNDICE DE IMPLEMENTACIÓN ===================== */
-  function indiceTab(box) {
-    const u = ui();
+  // Mismo cálculo de siempre (no cambia resultados):
+  //   Índice = cumplimiento prom. × 0,60 + cobertura (unidades evaluadas, máx. 5) × 25 + Red Champion activa × 15.
+  // Se presenta como una tarjeta por guía, todas con el mismo diseño, con lectura e indicadores.
+  function indiceDatos() {
     const evals = S().all("evaluacionesRNAO");
-    if (!evals.length) { box.innerHTML = u.empty("Sin datos para el índice de implementación.", "Registra evaluaciones y unidades implementadoras.", "📈"); return; }
     const champions = S().all("redChampion").filter(c => c.estado === "Activo");
-    const filas = CAT().guiasArea.map(g => {
+    const meta = CS().metaInstitucional ? CS().metaInstitucional() : 90;
+    return CAT().guiasArea.map(g => {
       const eg = evals.filter(e => e.guia === g);
       const seg = eg.filter(e => e.tipo === "Seguimiento");
       const unidades = new Set(eg.map(e => e.unidad).filter(x => x && x !== "Todas las unidades"));
@@ -1466,22 +1468,94 @@
       const prom = globals.length ? Math.round(globals.reduce((a, b) => a + b, 0) / globals.length) : null;
       const champG = champions.filter(c => c.guia === g);
       const champ = champG.length;
-      // Champions con actividad reciente (nivel "activo") → mide participación, no sólo presencia
       const activos = champG.filter(c => champStats(c.id).nivel === "activo").length;
-      // índice compuesto (0-100): cumplimiento 60% + cobertura seguimiento 25% + participación Champion 15%.
-      // El componente Champion premia a los ACTIVOS (participación), no la mera cantidad.
       const champScore = champ ? (activos / champ) * Math.min(champ, 3) / 3 : 0;
-      const idx = prom == null ? 0 : Math.round(prom * 0.6 + Math.min(unidades.size, 5) / 5 * 25 + champScore * 15);
-      return { g, unidades: unidades.size, seg: seg.length, prom, champ, activos, idx };
+      const pC = prom == null ? 0 : prom * 0.6, pU = Math.min(unidades.size, 5) / 5 * 25, pR = champScore * 15;
+      const idx = prom == null ? null : Math.round(pC + pU + pR);
+      // Indicadores de la guía: última evaluación de cada unidad, promedio por indicador.
+      const ult = {};
+      eg.forEach(e => { const k = e.unidad || "—"; const f = e.fecha || e.periodo || e.fechaCreacion || "";
+        if (!ult[k] || String(f) > String(ult[k]._f)) ult[k] = Object.assign({ _f: f }, e); });
+      const acc = {};
+      Object.values(ult).forEach(e => (e.indicadores || []).forEach(i => {
+        const v = CS().pctIndicador(i); if (v == null || !i.nombre) return;
+        (acc[i.nombre] = acc[i.nombre] || []).push(v);
+      }));
+      const inds = Object.keys(acc).map(n => ({ n, v: Math.round(acc[n].reduce((a, b) => a + b, 0) / acc[n].length), u: acc[n].length }))
+        .sort((a, b) => a.v - b.v);
+      return { g, unidades: unidades.size, seg: seg.length, nEval: eg.length, prom, champ, activos, idx, pC, pU, pR, inds, meta };
     });
-    box.innerHTML = `<p class="section__hint">Índice compuesto por guía: cumplimiento (60%), cobertura de seguimiento (25%) y participación de la Red Champion (15%, según Champions activos).</p>
-      <div class="table-wrap"><table class="tbl"><thead><tr>
-        <th>Guía</th><th class="right">Unidades</th><th class="right">Seguimientos</th><th class="right">Cumplimiento prom.</th><th class="right">Champions (activos)</th><th class="right">Índice</th></tr></thead><tbody>
-        ${filas.map(f => { return `<tr><td>${U.data.guiaChip(f.g)}</td>
-          <td class="num">${f.unidades}</td><td class="num">${f.seg}</td>
-          <td class="num">${f.prom != null ? f.prom + "%" : "—"}</td><td class="num">${f.champ} <span class="kpi__sub">(${f.activos})</span></td>
-          <td class="num"><strong style="color:${f.idx >= 75 ? "var(--verde)" : f.idx >= 50 ? "var(--naranjo)" : "var(--danger)"}">${f.idx}</strong></td></tr>`; }).join("")}
-      </tbody></table></div>`;
+  }
+  function indiceNivel(idx) {
+    if (idx == null) return { k: "nd", l: "Sin evaluaciones", c: "#8a94a6" };
+    if (idx >= 75) return { k: "ok", l: "Implementación consolidada", c: "#1f9d57" };
+    if (idx >= 50) return { k: "warn", l: "Implementación en desarrollo", c: "#d98514" };
+    return { k: "bad", l: "Implementación inicial · requiere apoyo", c: "#c62f3b" };
+  }
+  function indiceLectura(f) {
+    if (f.idx == null) return { txt: "Aún no hay evaluaciones registradas para esta guía, por lo que no se puede calcular el índice.",
+      acc: "Registrar la evaluación de línea base en las unidades implementadoras." };
+    const bajo = f.inds.filter(i => i.v < f.meta);
+    // Componente que más limita el índice (lo que le falta respecto de su máximo).
+    const falta = [
+      { k: "cump", d: 60 - f.pC }, { k: "cob", d: 25 - f.pU }, { k: "champ", d: 15 - f.pR }
+    ].sort((a, b) => b.d - a.d)[0];
+    const nom = { cump: "el cumplimiento de los indicadores", cob: "la cobertura de unidades evaluadas", champ: "la participación de la Red Champion" }[falta.k];
+    let txt = `Índice ${f.idx}/100. El resultado está limitado principalmente por ${nom}`;
+    txt += falta.k === "cump" ? ` (promedio ${f.prom}% vs meta ${f.meta}%).`
+      : falta.k === "cob" ? ` (${f.unidades} de 5 unidades para puntaje completo).`
+      : ` (${f.activos} de ${f.champ} Champion(s) con actividad en los últimos 60 días).`;
+    if (!f.seg) txt += " Solo hay evaluaciones de línea base: falta seguimiento para ver la evolución.";
+    let acc;
+    if (falta.k === "cump" && bajo.length) acc = `Reforzar los indicadores bajo la meta: ${bajo.slice(0, 2).map(i => i.n).join("; ")}${bajo.length > 2 ? "…" : ""}.`;
+    else if (falta.k === "cump") acc = "Fortalecer el cumplimiento de las recomendaciones en las unidades evaluadas.";
+    else if (falta.k === "cob") acc = "Ampliar la evaluación a más unidades implementadoras de la guía.";
+    else acc = f.champ ? "Reactivar la Red Champion: registrar y promover su participación en actividades." : "Conformar la Red Champion de la guía.";
+    if (!f.seg && f.idx != null) acc += " Programar la evaluación de seguimiento.";
+    return { txt, acc };
+  }
+  function indiceTab(box) {
+    const u = ui();
+    const evals = S().all("evaluacionesRNAO");
+    if (!evals.length) { box.innerHTML = u.empty("Sin datos para el índice de implementación.", "Registra evaluaciones y unidades implementadoras.", "📈"); return; }
+    const filas = indiceDatos();
+    const con = filas.filter(f => f.idx != null);
+    const prom = con.length ? Math.round(con.reduce((a, f) => a + f.idx, 0) / con.length) : null;
+    const comp = (lab, det, pts, max, color) => `<div class="ii-comp">
+        <div class="ii-comp__h"><span>${lab}</span><b>${Math.round(pts)}<small>/${max} pts</small></b></div>
+        <div class="ii-bar"><i style="width:${Math.max(0, Math.min(100, pts / max * 100))}%;background:${color}"></i></div>
+        <div class="ii-comp__d">${det}</div></div>`;
+    const cards = filas.map(f => {
+      const c = U.data.guiaColor(f.g), nv = indiceNivel(f.idx), L = indiceLectura(f);
+      const inds = f.inds.length ? `<div class="ii-inds"><div class="ii-sub">Indicadores de la guía <small>(última evaluación por unidad · meta ${f.meta}%)</small></div>
+          ${f.inds.map(i => `<div class="ii-ind ${i.v < f.meta ? "is-low" : ""}"><span class="ii-ind__n">${u.esc(i.n)}</span>
+            <span class="ii-ind__bar"><i style="width:${Math.min(100, i.v)}%"></i><em style="left:${Math.min(100, f.meta)}%"></em></span>
+            <b>${i.v}%</b></div>`).join("")}</div>`
+        : `<div class="ii-inds ii-inds--empty">Sin indicadores registrados en las evaluaciones de esta guía.</div>`;
+      return `<section class="ii-card" style="--gc:${c};--nc:${nv.c}">
+        <header class="ii-head">
+          <div><div class="ii-eb">Guía BPSO</div><h3 class="ii-title">${u.esc(f.g)}</h3>
+            <div class="ii-meta">${f.nEval} evaluación(es) · ${f.seg} de seguimiento · ${f.unidades} unidad(es)</div></div>
+          <div class="ii-score"><b>${f.idx == null ? "—" : f.idx}</b><span>${u.esc(nv.l)}</span></div>
+        </header>
+        ${f.idx == null ? "" : `<div class="ii-body">
+          <div class="ii-comps">
+            ${comp("Cumplimiento", f.prom == null ? "Sin evaluaciones" : `Promedio ${f.prom}% · aporta el 60%`, f.pC, 60, "#0f8f83")}
+            ${comp("Cobertura", `${f.unidades} unidad(es) evaluada(s) · 5 = máximo`, f.pU, 25, "#1554b8")}
+            ${comp("Red Champion", `${f.activos} activo(s) de ${f.champ} · aporta el 15%`, f.pR, 15, "#7a5cd0")}
+          </div>
+          ${inds}
+        </div>`}
+        <footer class="ii-read"><div><b>Lectura:</b> ${u.esc(L.txt)}</div><div class="ii-acc">➜ ${u.esc(L.acc)}</div></footer>
+      </section>`;
+    }).join("");
+    box.innerHTML = `<div class="ii-top">
+        <div><div class="ii-eb">Índice de implementación RNAO/BPSO</div>
+          <p class="ii-how">Mide de 0 a 100 qué tan instalada está cada guía. Suma 3 partes: <span style="color:#0f8f83">● Cumplimiento</span> de indicadores (60 pts), <span style="color:#1554b8">● Cobertura</span> de unidades evaluadas (25 pts) y <span style="color:#7a5cd0">● Red Champion</span> activa (15 pts).
+          <span class="ii-legend"><i style="background:#1f9d57"></i>≥75 consolidada <i style="background:#d98514"></i>50–74 en desarrollo <i style="background:#c62f3b"></i>&lt;50 inicial</span></p></div>
+        <div class="ii-score ii-score--sum" style="--nc:${indiceNivel(prom).c}"><b>${prom == null ? "—" : prom}</b><span>Promedio de guías evaluadas (${con.length}/${filas.length})</span></div>
+      </div>
+      <div class="ii-list">${cards}</div>`;
   }
 
   /* ---------- Registro ---------- */
