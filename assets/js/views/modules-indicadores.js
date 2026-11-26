@@ -1292,7 +1292,7 @@
     const keys = Object.keys(pts).sort().slice(-12);
     if (keys.length < 2) return `<p class="dash-empty">Se necesitan mediciones en al menos dos períodos para ver la evolución.</p>`;
     const vals = keys.map(k => { const v = Object.values(pts[k]); return { k, en: v.filter(x => x === "verde").length, n: v.length }; });
-    return U.charts.lineChart({ labels: keys, series: [{ name: "% de indicadores en meta", color: "#0f8f83", values: vals.map(v => Math.round(v.en / v.n * 100)) }], height: 190 })
+    return U.charts.lineChart({ labels: keys, series: [{ name: "Logro global de metas (% de indicadores en meta)", color: "#0f8f83", values: vals.map(v => Math.round(v.en / v.n * 100)) }], height: 190 })
       + `<details class="ixx-more ixx-more--in"><summary>Indicadores medidos por período</summary><div class="kpi__sub">${vals.map(v => v.k + ": " + v.en + " de " + v.n + " en meta").join(" · ")}</div></details>`;
   }
 
@@ -1383,7 +1383,7 @@
       <div class="ixx-dash">
         <div class="ixx-dash__side">
         <div class="dash-card ixx-dash__main"><div class="dash-card__h"><h4>🎯 Resultado vs meta</h4><span>Último período · toca para ver el historial</span></div>${rvm}</div>
-        <div class="dash-card ixx-evo"><div class="dash-card__h"><h4>📈 % en meta por período</h4>
+        <div class="dash-card ixx-evo"><div class="dash-card__h"><h4 title="De los indicadores oficiales medidos en cada período, qué porcentaje cumplió su meta (con la meta vigente en ese momento).">📈 Logro global de metas <small class="ixx-h4sub">% de indicadores oficiales que cumplieron su meta en cada período</small></h4>
           <span><select class="select ixx-gran" id="ixx-gran">${["mensual", "trimestral", "anual"].map(g => `<option value="${g}"${_gran === g ? " selected" : ""}>${g[0].toUpperCase() + g.slice(1)}</option>`).join("")}</select></span></div>${evolucionMeta(list, _gran)}</div>
         </div>
         <div class="ixx-dash__side">

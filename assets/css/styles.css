@@ -3052,3 +3052,5 @@ body.night .ixx-info[open] > div{ background:#16251f; } body.night .ixx-origen, 
 .ixx-side2{ display:grid; grid-template-columns:340px minmax(0,1fr); gap:.75rem; align-items:start; }
 .ixx-side2__c{ display:flex; flex-direction:column; gap:.7rem; } .ixx-side2 .ixx-pu{ margin:0; }
 @media (max-width:900px){ .ixx-side2{ grid-template-columns:1fr; } }
+
+.ixx-h4sub{ display:block; font-size:11px; font-weight:600; color:var(--text-muted,#6b7a90); margin-top:1px; }
