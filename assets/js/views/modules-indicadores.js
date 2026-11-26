@@ -1035,8 +1035,10 @@
     const r = { resumen: renderResumen, registrados: renderRegistrados, rnao: renderRnao, nt234: renderNT, epi: renderEpiTab, capacidad: renderCapacidad, fichas: renderFichas, evi: renderEviTab }[_tab] || renderResumen;
     try { r(_box); } catch (e) { _box.innerHTML = ui().empty("No se pudo mostrar esta sección.", String(e && e.message || e), "⚠️"); }
   }
-  const SH = (ico, t, sub) => U.components.resource.secHead(ico, t, sub);
-  const intro = (t) => `<p class="ixx-intro">${t}</p>`;
+  // Encabezado uniforme: título + subtítulo breve; la explicación queda en ⓘ (desplegable).
+  const SH = (ico, t, sub) => `<div class="ixx-h"><h3>${ico} ${ui().esc(t)}</h3>${sub ? `<span>${ui().esc(sub)}</span>` : ""}</div>`;
+  const intro = (t) => `<details class="ixx-info"><summary title="Cómo se lee">ⓘ Cómo se lee</summary><div>${t}</div></details>`;
+  const head = (ico, t, sub, info, right) => `<div class="ixx-head"><div class="ixx-head__t"><h3>${ico} ${ui().esc(t)}</h3>${sub ? `<span>${ui().esc(sub)}</span>` : ""}</div>${info ? intro(info) : ""}${right ? `<div class="ixx-head__r">${right}</div>` : ""}</div>`;
 
   /* ---------- Filtros ---------- */
   const optsDe = arr => [...new Set(arr.filter(x => x != null && String(x).trim() !== ""))].sort();
@@ -1227,14 +1229,14 @@
   }
   function indTabla(list) {
     const u = ui(); const o = optUnidad();
-    return `<div class="table-wrap"><table class="tbl tbl--compact ixx-tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Programa</th><th class="num">Resultado</th><th>Período</th><th>Meta</th><th>Estado</th><th class="num">Variación</th><th>Ficha</th><th class="right">Acciones</th></tr></thead><tbody>
+    return `<div class="table-wrap"><table class="tbl tbl--compact ixx-tbl"><thead><tr><th>Indicador</th><th class="c">Tipo</th><th class="c">Programa</th><th class="c">Resultado</th><th class="c">Período</th><th class="c">Meta</th><th class="c">Estado</th><th class="c">Variación</th><th class="c">Ficha</th><th class="c">Acciones</th></tr></thead><tbody>
       ${list.map(i => { const k = semaforo(i, o), t = tendencia(i, o), pi = proximaInfo(i), comp = fichaCompletitud(i);
-        return `<tr><td><b>${u.esc(i.nombre)}</b><div class="kpi__sub">${u.esc(i.guia || "General")}${pi && pi.overdue ? ` · <span style="color:#c62f3b;font-weight:700">medición pendiente</span>` : ""}</div></td>
-          <td>${chipTipo(i.tipo)}</td><td>${chipProg(i.programa)}</td>
-          <td class="num"><b style="color:${SEM[k].c}">${fmtV(currentValue(i, o), i)}</b></td><td>${u.esc(ultimoPeriodo(i, o) || "—")}</td><td class="nowrap">${u.esc(metaTxt(i))}</td>
-          <td>${semBadge(k)}</td><td class="num" style="color:${t.fav == null ? "inherit" : t.fav ? "#1f9d57" : "#c62f3b"}">${t.d == null ? "—" : u.esc(t.txt)}</td>
-          <td><button class="btn btn--ghost btn--sm" data-ificha="${i.id}">📋 ${comp}%</button></td>
-          <td class="acciones"><div class="btn-row" style="justify-content:flex-end;flex-wrap:nowrap"><button class="btn btn--ghost btn--sm" data-idet="${i.id}">Historial</button><button class="btn btn--primary btn--sm" data-iseg="${i.id}">+ Medición</button><button class="btn-icon" data-ied="${i.id}">✏️</button><button class="btn-icon" data-idel="${i.id}">🗑️</button></div></td></tr>`; }).join("")}
+        return `<tr><td class="l"><b>${u.esc(i.nombre)}</b><div class="kpi__sub">${u.esc(i.guia || "General")}${pi && pi.overdue ? ` · <span style="color:#c62f3b;font-weight:700">⏰ pendiente</span>` : ""}</div></td>
+          <td class="c">${chipTipo(i.tipo)}</td><td class="c">${chipProg(i.programa)}</td>
+          <td class="c"><b class="ixx-res" style="color:${SEM[k].c}">${fmtV(currentValue(i, o), i)}</b></td><td class="c">${u.esc(ultimoPeriodo(i, o) || "—")}</td><td class="c">${u.esc(metaTxt(i))}</td>
+          <td class="c">${semBadge(k)}</td><td class="c" style="color:${t.fav == null ? "inherit" : t.fav ? "#1f9d57" : "#c62f3b"};font-weight:700">${t.d == null ? "—" : t.arrow + " " + u.esc(t.txt)}</td>
+          <td class="c"><button class="btn btn--ghost btn--sm" data-ificha="${i.id}">📋 ${comp}%</button></td>
+          <td class="c"><div class="btn-row" style="justify-content:center;flex-wrap:nowrap"><button class="btn btn--ghost btn--sm" data-idet="${i.id}">Historial</button><button class="btn btn--primary btn--sm" data-iseg="${i.id}">+ Medición</button><button class="btn-icon" data-ied="${i.id}">✏️</button><button class="btn-icon" data-idel="${i.id}">🗑️</button></div></td></tr>`; }).join("")}
       </tbody></table></div>`;
   }
   function bindIndActions(root) {
@@ -1254,12 +1256,12 @@
     return `<article class="ixx-card ixx-card--con ixx-card--${c.sem}">
       <div class="ixx-card__top">${chipTipo(c.tipo)}${chipProg(c.programa)}${semBadge(c.sem)}</div>
       <h4 class="ixx-card__n">${u.esc(c.nombre)}</h4>
-      <div class="ixx-card__g">📡 ${u.esc(c.fuente)} · actualizado ${fmtFecha(c.fecha)}</div>
+      <div class="ixx-card__g"><span class="ixx-tag-src" title="Calculado automáticamente desde ${u.esc(c.fuente)}">📡 ${u.esc(c.fuente)}</span> act. ${fmtFecha(c.fecha)}</div>
       <div class="ixx-card__fig"><div class="ixx-card__v" style="color:${sm.c}">${c.valor == null ? "—" : String(c.valor).replace(".", ",") + "%"}</div>
         <div class="ixx-card__m"><span>${c.meta == null || c.meta === "" ? "Sin meta establecida" : (c.sentido === "Menor es mejor" ? "≤ " : "≥ ") + c.meta + "%"}</span><span>${u.esc(c.periodo || "")}</span></div>
         <div class="ixx-card__t" style="color:${tcol}">${c.variacion == null ? "—" : (c.variacion > 0 ? "▲ +" : c.variacion < 0 ? "▼ " : "→ ") + String(c.variacion).replace(".", ",") + " pts"}<small>${c.fav == null ? "tendencia" : c.fav ? "favorable" : "desfavorable"}</small></div></div>
       ${spark ? `<div class="ixx-card__sp">${spark}</div>` : ""}
-      <div class="ixx-card__note">${u.esc(c.nota || "")}</div>
+      <details class="ixx-more ixx-more--card"><summary>Cálculo</summary><div>${u.esc(c.nota || "")}</div></details>
       <div class="ixx-card__act"><a class="btn btn--ghost btn--sm" href="${c.ruta}">↗ Ir al módulo de origen</a><span style="flex:1"></span>
         ${c.oficial ? `<button class="btn btn--ghost btn--sm" data-ificha="${c.oficial.id}">📋 Ficha (oficial)</button>` : `<button class="btn btn--ghost btn--sm" data-icon="${u.esc(c.key)}" title="Agregar al registro oficial con su ficha técnica">＋ Incorporar como oficial</button>`}</div>
     </article>`;
@@ -1291,7 +1293,7 @@
     if (keys.length < 2) return `<p class="dash-empty">Se necesitan mediciones en al menos dos períodos para ver la evolución.</p>`;
     const vals = keys.map(k => { const v = Object.values(pts[k]); return { k, en: v.filter(x => x === "verde").length, n: v.length }; });
     return U.charts.lineChart({ labels: keys, series: [{ name: "% de indicadores en meta", color: "#0f8f83", values: vals.map(v => Math.round(v.en / v.n * 100)) }], height: 190 })
-      + `<div class="kpi__sub" style="text-align:center">Indicadores medidos por período: ${vals.map(v => v.k + " (" + v.en + "/" + v.n + ")").join(" · ")}</div>`;
+      + `<details class="ixx-more ixx-more--in"><summary>Indicadores medidos por período</summary><div class="kpi__sub">${vals.map(v => v.k + ": " + v.en + " de " + v.n + " en meta").join(" · ")}</div></details>`;
   }
 
   /* ---------- Análisis y acciones (reglas, sin inventar causas) ---------- */
@@ -1340,35 +1342,58 @@
     const porProg = optsDe(list.map(i => i.programa || "Sin programa")).map(pp => { const l = list.filter(i => (i.programa || "Sin programa") === pp), g = { l: pp, total: l.length, verde: 0, amarillo: 0, rojo: 0, sd: 0 }; l.forEach(i => g[semaforo(i, optUnidad())]++); return g; });
     const porTipo = TIPOS.map(t => { const l = list.filter(i => i.tipo === t), g = { l: t, total: l.length, verde: 0, amarillo: 0, rojo: 0, sd: 0 }; l.forEach(i => g[semaforo(i, optUnidad())]++); return g; }).filter(g => g.total);
     const conG = [{ l: "Conectados (no duplicados)", total: conAct.length, verde: conAct.filter(c => c.sem === "verde").length, amarillo: conAct.filter(c => c.sem === "amarillo").length, rojo: conAct.filter(c => c.sem === "rojo").length, sd: conAct.filter(c => c.sem === "sd").length }];
+    // Resultado vs meta: barra del último valor, marca de la meta y tendencia (protagonismo visual)
+    const o = optUnidad();
+    const medidos = list.filter(i => currentValue(i, o) != null).sort((a, b) => ({ rojo: 0, amarillo: 1, sd: 2, verde: 3 }[semaforo(a, o)] - { rojo: 0, amarillo: 1, sd: 2, verde: 3 }[semaforo(b, o)]));
+    const rvm = medidos.length ? `<div class="ixx-rvm">${medidos.map(i => { const v = currentValue(i, o), m = Number(i.meta), kk = semaforo(i, o), t = tendencia(i, o);
+        const esc100 = Math.max(100, v || 0, isNaN(m) ? 0 : m);
+        return `<button type="button" class="ixx-rvm__r" data-idet="${i.id}"><span class="ixx-rvm__n" title="${u.esc(i.nombre)}">${u.esc(i.nombre)}</span>
+          <span class="ixx-rvm__b"><i style="width:${Math.max(1, v / esc100 * 100)}%;background:${SEM[kk].c}"></i>${isNaN(m) || i.meta === "" || i.meta == null ? "" : `<em style="left:${m / esc100 * 100}%" title="Meta ${u.esc(metaTxt(i))}"></em>`}</span>
+          <b style="color:${SEM[kk].c}">${fmtV(v, i)}</b><small>${u.esc(metaTxt(i).replace("Sin meta establecida", "sin meta"))}</small>
+          <span class="ixx-rvm__t" style="color:${t.fav == null ? "var(--text-muted)" : t.fav ? "#1f9d57" : "#c62f3b"}">${t.d == null ? "·" : t.arrow}</span></button>`; }).join("")}</div>
+      <div class="ixx-leg"><span><i style="background:#1f9d57"></i>En meta</span><span><i style="background:#e0912f"></i>Seguimiento</span><span><i style="background:#c62f3b"></i>Intervención</span><span><em></em>Meta</span><span>▲▼ tendencia</span></div>`
+      : `<p class="dash-empty">Sin mediciones registradas.</p>`;
+    const donut = (() => { const tot = list.length || 1, segs = [["verde", A.verdes.length], ["amarillo", A.amar.length], ["rojo", A.rojos.length], ["sd", list.length - A.verdes.length - A.amar.length - A.rojos.length]];
+      let acc = 0; const R = 42, C = 2 * Math.PI * R; const col = { verde: "#1f9d57", amarillo: "#e0912f", rojo: "#c62f3b", sd: "#c9d1da" };
+      const arcs = segs.filter(x => x[1]).map(([k2, n]) => { const len = n / tot * C, arc = `<circle cx="55" cy="55" r="${R}" fill="none" stroke="${col[k2]}" stroke-width="14" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-acc}" transform="rotate(-90 55 55)"><title>${SEM[k2].l}: ${n}</title></circle>`; acc += len; return arc; }).join("");
+      return `<div class="ixx-donut"><svg viewBox="0 0 110 110">${arcs || `<circle cx="55" cy="55" r="${R}" fill="none" stroke="#e3e8ee" stroke-width="14"/>`}<text x="55" y="53" text-anchor="middle" font-size="22" font-weight="800" fill="var(--text,#17263d)">${list.length ? Math.round(A.verdes.length / list.length * 100) + "%" : "—"}</text><text x="55" y="70" text-anchor="middle" font-size="9" fill="var(--text-muted,#6b7a90)">en meta</text></svg>
+        <div class="ixx-donut__l">${segs.map(([k2, n]) => `<span><i style="background:${col[k2]}"></i>${SEM[k2].l}<b>${n}</b></span>`).join("")}</div></div>`; })();
+    const b0 = A.brechas[0];
+    const ana3 = [
+      ["Situación actual", list.length ? `${A.verdes.length} de ${list.length} en meta · ${A.amar.length} en seguimiento · ${A.rojos.length} en intervención.` : "Sin indicadores registrados."],
+      ["Principal brecha", b0 ? `${b0.i.nombre}: ${String(b0.b).replace(".", ",")} pts de la meta${b0.t.fav === true ? " (mejorando)" : b0.t.fav === false ? " (empeorando)" : ""}.` : "Sin brechas respecto de las metas definidas."],
+      ["Acción recomendada", A.acciones.length ? A.acciones[0].t + "." : "Mantener la medición según la periodicidad de cada ficha."]
+    ];
     box.innerHTML = `
-      ${SH("📊", "Resumen ejecutivo", "Estado general, evolución, brechas y acciones prioritarias")}
-      ${intro("Vista para decidir: cuántos indicadores están en meta, cuáles requieren intervención y qué hacer primero. Los indicadores <b>registrados</b> (oficiales, con ficha) y los <b>conectados</b> (calculados desde otros módulos) se cuentan por separado y sin duplicar.")}
+      ${head("📊", "Resumen ejecutivo", "Estado, brechas y acciones", "Los indicadores <b>oficiales</b> (registrados, con ficha) y los <b>conectados</b> (calculados desde otros módulos) se cuentan por separado y sin duplicar. Estado = cumplimiento de la meta de la ficha; tendencia = variación respecto de la medición anterior (se leen por separado).", `<button class="btn btn--primary btn--sm" id="ixx-inf">📄 Informe</button>`)}
       ${filtrosHTML(["per", "prog", "guia", "unidad", "tipo", "fuente"])}
-      <div class="grid grid--kpi ixx-kpis">
-        ${k("Indicadores oficiales", list.length, "Registrados con ficha técnica", "info", "📏")}
-        ${k("Conectados", conAct.length, "Desde otros módulos (sin duplicar)", "info", "📡")}
-        ${k("En meta", A.verdes.length, "Oficiales en verde", "ok", "🟢")}
-        ${k("En seguimiento", A.amar.length, "Oficiales en amarillo", "warn", "🟡")}
-        ${k("Requieren intervención", A.rojos.length, "Oficiales en rojo", "danger", "🔴")}
-        ${k("Sin medición", A.sinMed.length, "Sin datos registrados", "info", "⚪")}
-        ${k("Mediciones pendientes", A.pend.length, "Según la periodicidad de la ficha", A.pend.length ? "danger" : "ok", "⏰")}
-        ${k("Fichas incompletas", A.incompletas.length, "Con antecedentes pendientes", A.incompletas.length ? "warn" : "ok", "📋")}
+      <div class="grid grid--kpi ixx-kpis4">
+        ${k("Indicadores oficiales", list.length, conAct.length + " conectados aparte", "info", "📏")}
+        ${k("En meta", A.verdes.length, list.length ? Math.round(A.verdes.length / list.length * 100) + "% del total" : "—", "ok", "🟢")}
+        ${k("En seguimiento", A.amar.length, "Cerca de la meta", "warn", "🟡")}
+        ${k("Requieren intervención", A.rojos.length, "Fuera del margen", "danger", "🔴")}
       </div>
-      <div class="dash-grid ixx-res">
-        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>🧭 Análisis</h4><span>Automático según los datos y metas de cada ficha</span></div>
-          <div class="ixx-ana">${A.lineas.map(([q, t]) => `<div><b>${q}</b> ${u.esc(t)}</div>`).join("")}</div></div>
-        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>✅ Acciones prioritarias sugeridas</h4><span>Ordenadas por prioridad</span></div>
-          ${A.acciones.length ? `<ol class="ixx-acc">${A.acciones.slice(0, 6).map(a => `<li><b>${u.esc(a.t)}</b><span>${u.esc(a.d)}</span>${a.r ? `<a href="${a.r}">↗ ir</a>` : a.tab ? `<a href="#/coord/indicadores?tab=${a.tab}">↗ ir</a>` : ""}</li>`).join("")}</ol>` : `<p class="dash-empty">Sin acciones prioritarias con los datos actuales.</p>`}</div>
-        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>🏷️ Estado por programa</h4><span>Oficiales · verde/amarillo/rojo/gris</span></div>${barrasEstado(porProg.concat(conAct.length ? conG : []))}</div>
-        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>🧩 Estado por tipo</h4><span>Estructura · Proceso · Resultado · Impacto</span></div>${barrasEstado(porTipo)}</div>
-        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>📈 Evolución: % de indicadores en meta</h4>
+      <details class="ixx-more"><summary>Más indicadores del resumen <span>${conAct.length} conectados · ${A.sinMed.length} sin medición · ${A.pend.length} pendientes · ${A.incompletas.length} fichas incompletas</span></summary>
+        <div class="grid grid--kpi ixx-kpis4">
+          ${k("Conectados", conAct.length, "Desde otros módulos", "info", "📡")}
+          ${k("Sin medición", A.sinMed.length, "Sin datos", "info", "⚪")}
+          ${k("Mediciones pendientes", A.pend.length, "Según periodicidad", A.pend.length ? "danger" : "ok", "⏰")}
+          ${k("Fichas incompletas", A.incompletas.length, "Antecedentes pendientes", A.incompletas.length ? "warn" : "ok", "📋")}
+        </div></details>
+      <div class="ixx-dash">
+        <div class="ixx-dash__side">
+        <div class="dash-card ixx-dash__main"><div class="dash-card__h"><h4>🎯 Resultado vs meta</h4><span>Último período · toca para ver el historial</span></div>${rvm}</div>
+        <div class="dash-card ixx-evo"><div class="dash-card__h"><h4>📈 % en meta por período</h4>
           <span><select class="select ixx-gran" id="ixx-gran">${["mensual", "trimestral", "anual"].map(g => `<option value="${g}"${_gran === g ? " selected" : ""}>${g[0].toUpperCase() + g.slice(1)}</option>`).join("")}</select></span></div>${evolucionMeta(list, _gran)}</div>
-        <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>📉 Principales brechas</h4><span>Distancia a la meta (pts) · toca para ver el historial</span></div>
-          ${A.brechas.length ? `<div class="ixx-br">${A.brechas.slice(0, 7).map(x => { const t = x.t; return `<button type="button" class="ixx-br__r" data-idet="${x.i.id}"><span class="ixx-br__n">${u.esc(x.i.nombre)}</span>
-            <span class="ixx-br__b"><i style="width:${Math.min(100, x.b * 2)}%;background:${SEM[semaforo(x.i, optUnidad())].c}"></i></span><b>${String(x.b).replace(".", ",")} pts</b>
-            <small style="color:${t.fav == null ? "inherit" : t.fav ? "#1f9d57" : "#c62f3b"}">${t.d == null ? "" : t.fav ? "▲ mejora" : "▼ empeora"}</small></button>`; }).join("")}</div>` : `<p class="dash-empty">No hay brechas respecto de las metas definidas.</p>`}</div>
-      </div>
-      <div class="btn-row" style="justify-content:flex-end;margin-top:.8rem"><button class="btn btn--primary btn--sm" id="ixx-inf">📄 Generar informe</button></div>`;
+        </div>
+        <div class="ixx-dash__side">
+          <div class="dash-card"><div class="dash-card__h"><h4>🧭 Análisis</h4></div><div class="ixx-ana3">${ana3.map(([q, t], n) => `<div><span class="ixx-ana3__n">${n + 1}</span><div><b>${q}</b><p>${u.esc(t)}</p></div></div>`).join("")}</div>
+            ${A.acciones.length > 1 ? `<details class="ixx-more ixx-more--in"><summary>Ver todas las acciones (${A.acciones.length})</summary><ol class="ixx-acc">${A.acciones.map(a => `<li><b>${u.esc(a.t)}</b><span>${u.esc(a.d)}</span>${a.r ? `<a href="${a.r}">↗ ir</a>` : a.tab ? `<a href="#/coord/indicadores?tab=${a.tab}">↗ ir</a>` : ""}</li>`).join("")}</ol></details>` : ""}</div>
+          <div class="dash-card"><div class="dash-card__h"><h4>🟢 Estado general</h4></div>${donut}</div>
+          <div class="dash-card"><div class="dash-card__h"><h4>🏷️ Estado por programa</h4></div>${barrasEstado(porProg.concat(conAct.length ? conG : []))}
+            <details class="ixx-more ixx-more--in"><summary>Por tipo de indicador</summary>${barrasEstado(porTipo)}</details></div>
+        </div>
+      </div>`;
     bindFiltros(box); bindIndActions(box);
     const g = box.querySelector("#ixx-gran"); if (g) g.onchange = () => { _gran = g.value; renderTab(); };
     box.querySelector("#ixx-inf").onclick = () => informeModal();
@@ -1384,8 +1409,7 @@
     const prio = list.filter(i => ["rojo", "amarillo"].includes(semaforo(i, o))).sort(worst);
     const grupos = optsDe(list.map(i => i.programa || "Sin programa"));
     box.innerHTML = `
-      ${SH("📏", "Indicadores registrados", "Indicadores oficiales de la UBPC, cada uno con su ficha técnica")}
-      ${intro("Cada indicador muestra su último resultado por período, la meta de su ficha, el estado y la variación respecto de la medición anterior. <b>El estado (meta) y la tendencia se leen por separado:</b> un indicador puede mejorar y seguir fuera de la meta.")}
+      ${head("📏", "Indicadores registrados", "Oficiales, con ficha técnica", "Cada tarjeta muestra el último resultado por período, la meta de su ficha, el estado y la variación respecto de la medición anterior. <b>Estado (meta) y tendencia se leen por separado:</b> un indicador puede mejorar y seguir fuera de la meta.")}
       ${filtrosHTML(["per", "prog", "guia", "unidad", "tipo", "estado", "fuente"])}
       <div class="ixx-bar"><div class="agx-views"><button type="button" class="agx-vb${_vista === "tarjetas" ? " is-on" : ""}" data-vis="tarjetas">▦ Tarjetas</button><button type="button" class="agx-vb${_vista === "tabla" ? " is-on" : ""}" data-vis="tabla">☰ Tabla</button></div>
         <span class="kpi__sub">${list.length} indicador(es)</span><span style="flex:1"></span>
@@ -1405,14 +1429,13 @@
   function seccionConectada(box, cfg) {
     const u = ui(); const con = conectados().filter(cfg.filtro);
     const ofi = aplicarFiltros(ordenados(S().all("indicadores"))).filter(cfg.filtroOficial);
+    const fecha = con.map(c => c.fecha).filter(Boolean).sort().pop();
     box.innerHTML = `
-      ${SH(cfg.ico, cfg.titulo, cfg.sub)}
-      ${intro(cfg.intro)}
-      <div class="ixx-src"><span>📡 Fuente: <b>${u.esc(cfg.fuente)}</b></span><span>Se actualiza sola al registrar en el módulo de origen</span><a class="btn btn--ghost btn--sm" href="${cfg.ruta}">↗ Ir a ${u.esc(cfg.fuente)}</a></div>
-      ${cfg.extra ? cfg.extra() : ""}
-      ${con.length ? `${SH("📡", "Indicadores conectados", "Calculados automáticamente · solo lectura")}
-        <div class="ixx-congrid"><div class="ixx-grid ixx-grid--con">${con.map(conCard).join("")}</div>${cfg.porUnidad ? porUnidadHTML(cfg.porUnidad()) : ""}</div>` : `<p class="dash-empty">Aún no hay datos en el módulo de origen.</p>`}
-      ${SH("📏", "Indicadores oficiales de esta línea", "Registrados con ficha técnica")}
+      ${head(cfg.ico, cfg.titulo, cfg.sub, cfg.intro, `<a class="ixx-origen" href="${cfg.ruta}" title="Ir al módulo de origen">📡 ${u.esc(cfg.fuente)}${fecha ? " · " + fmtFecha(fecha) : ""} ↗</a>`)}
+      ${con.length ? (con.length <= 2 && cfg.porUnidad
+          ? `<div class="ixx-side2"><div class="ixx-side2__c">${con.map(conCard).join("")}</div>${porUnidadHTML(cfg.porUnidad())}</div>`
+          : `<div class="ixx-grid ixx-grid--con">${con.map(conCard).join("")}</div>${cfg.porUnidad ? porUnidadHTML(cfg.porUnidad()) : ""}`) : `<p class="dash-empty">Aún no hay datos en el módulo de origen.</p>`}
+      <div class="ixx-h ixx-h--sub"><h4>📏 Indicadores oficiales de esta línea</h4><span>${ofi.length}</span></div>
       ${filtrosHTML(["per", "unidad", "tipo", "estado"])}
       ${ofi.length ? `<div class="ixx-grid">${ofi.map(indCard).join("")}</div>` : `<p class="dash-empty">No hay indicadores oficiales en esta línea con los filtros elegidos.</p>`}`;
     bindFiltros(box); bindIndActions(box);
@@ -1421,12 +1444,12 @@
   function porUnidadHTML(d) {
     const u = ui(); if (!d || !d.rows.length) return "";
     return `<div class="dash-card ixx-pu"><div class="dash-card__h"><h4>🏥 ${u.esc(d.titulo)}</h4><span>${u.esc(d.sub || "Último período de cada unidad")}</span></div>
-      <div class="table-wrap"><table class="tbl tbl--compact"><thead><tr><th>${u.esc(d.col || "Unidad")}</th><th class="num">Resultado</th><th>Período</th><th>Estado</th><th class="num">Variación</th></tr></thead><tbody>
+      <div class="table-wrap"><table class="tbl tbl--compact ixx-tbl"><thead><tr><th>${u.esc(d.col || "Unidad")}</th><th class="c">Resultado</th><th class="c">Período</th><th class="c">Estado</th><th class="c">Variación</th></tr></thead><tbody>
       ${d.rows.sort((a, b) => (a.v == null) - (b.v == null) || (d.menor ? b.v - a.v : a.v - b.v)).map(r => { const k = r.v == null ? "sd" : semaforoDe({ sentido: d.menor ? "Menor es mejor" : "Mayor es mejor", meta: d.meta == null ? "" : d.meta }, r.v);
         const fav = r.dv == null || r.dv === 0 ? null : (d.menor ? r.dv < 0 : r.dv > 0);
-        return `<tr><td><b>${u.esc(r.l)}</b></td><td class="num"><b style="color:${SEM[k].c}">${r.v == null ? "—" : String(r.v).replace(".", ",") + "%"}</b></td><td>${u.esc(r.p || "")}</td><td>${semBadge(k)}</td>
-          <td class="num" style="color:${fav == null ? "inherit" : fav ? "#1f9d57" : "#c62f3b"}">${r.dv == null ? "—" : (r.dv > 0 ? "+" : "") + String(r.dv).replace(".", ",") + " pts"}</td></tr>`; }).join("")}
-      </tbody></table></div>${d.meta == null ? `<p class="kpi__sub" style="margin:.3rem 0 0">Sin meta establecida en el módulo de origen: el estado se muestra en gris.</p>` : ""}</div>`;
+        return `<tr><td class="l"><b>${u.esc(r.l)}</b></td><td class="c"><b class="ixx-res" style="color:${SEM[k].c}">${r.v == null ? "—" : String(r.v).replace(".", ",") + "%"}</b></td><td class="c">${u.esc(r.p || "")}</td><td class="c">${semBadge(k)}</td>
+          <td class="c" style="color:${fav == null ? "inherit" : fav ? "#1f9d57" : "#c62f3b"}">${r.dv == null ? "—" : (r.dv > 0 ? "+" : "") + String(r.dv).replace(".", ",") + " pts"}</td></tr>`; }).join("")}
+      </tbody></table></div>${d.meta == null ? `<p class="kpi__sub" style="margin:.3rem 0 0">Sin meta en el módulo de origen (estado en gris).</p>` : ""}</div>`;
   }
   const ultimos2 = pts => { pts.sort((a, b) => String(a.p).localeCompare(String(b.p))); const l = pts[pts.length - 1], p0 = pts[pts.length - 2]; return { v: l ? l.v : null, p: l ? l.p : "", dv: l && p0 ? d2(l.v - p0.v) : null }; };
   function renderRnao(box) {
@@ -1453,8 +1476,7 @@
           rows: uns.map(un => { const pts = optsDe(recs.filter(r => r.unidad === un).map(r => r.periodo)).map(p => { const m = NT.epiMes ? NT.epiMes(recs, p, r => r.unidad === un) : null; return m && m.inc != null ? { p, v: d2(m.inc) } : null; }).filter(Boolean); return Object.assign({ l: un }, ultimos2(pts)); }) }; } });
   }
   function renderCapacidad(box) {
-    box.innerHTML = `${SH("🧮", "Capacidad Operativa UBPC", "Indicador de gestión institucional · justificación de recurso humano")}
-      ${intro("Se presenta aparte de los indicadores clínicos porque mide la <b>carga de trabajo de la Unidad</b>, no un resultado asistencial. Arriba, el resumen; despliega «Ver evolución, cálculo, evidencia y recomendación» para el análisis completo.")}
+    box.innerHTML = `${head("🧮", "Capacidad Operativa UBPC", "Gestión institucional · recurso humano", "Va aparte de los indicadores clínicos porque mide la <b>carga de trabajo de la Unidad</b>, no un resultado asistencial. Despliega «Ver evolución, cálculo, evidencia y recomendación» para el análisis completo.")}
       <div class="ixx-cap">${fichaCapacidadOperativa()}</div>`;
     renderICO();
   }
@@ -1464,18 +1486,17 @@
     const u = ui(); const list = aplicarFiltros(ordenados(S().all("indicadores")));
     const inc = list.filter(i => fichaFaltantes(i).length).length;
     box.innerHTML = `
-      ${SH("📋", "Fichas técnicas", "Matriz consolidada · se alimenta automáticamente de los indicadores registrados")}
-      ${intro("Cada indicador registrado <b>es</b> su ficha técnica: al crear o editar un indicador se actualiza aquí, sin volver a pedir los datos. Los cambios de fórmula, meta o semaforización generan una nueva versión y conservan las mediciones históricas con la meta vigente al medir.")}
+      ${head("📋", "Fichas técnicas", "Matriz consolidada", "Cada indicador registrado <b>es</b> su ficha técnica: al crear o editar un indicador se actualiza aquí. Los cambios de fórmula, meta o semaforización generan una versión nueva y las mediciones históricas conservan la meta vigente al medir.")}
       ${filtrosHTML(["prog", "guia", "tipo"])}
       <div class="ixx-bar"><span class="kpi__sub">${list.length} ficha(s) · <b style="color:${inc ? "#c86a1f" : "#1f9d57"}">${inc} incompleta(s)</b></span><span style="flex:1"></span>
         <button class="btn btn--ghost btn--sm" id="fx-csv">⬇️ Exportar matriz (CSV)</button><button class="btn btn--ghost btn--sm" id="fx-print">🖨️ Imprimir todas</button><button class="btn btn--primary btn--sm" id="mtx-new">+ Nuevo indicador</button></div>
-      ${list.length ? `<div class="table-wrap"><table class="tbl tbl--compact ixx-tbl"><thead><tr><th>Indicador</th><th>Tipo</th><th>Programa</th><th>Fórmula</th><th>Meta</th><th>Periodicidad</th><th>Versión</th><th>Completitud</th><th class="right">Acciones</th></tr></thead><tbody>
+      ${list.length ? `<div class="table-wrap"><table class="tbl tbl--compact ixx-tbl"><thead><tr><th>Indicador</th><th class="c">Tipo</th><th class="c">Programa</th><th class="c">Meta</th><th class="c">Periodicidad</th><th class="c">Versión</th><th class="c">Completitud</th><th class="c">Acciones</th></tr></thead><tbody>
         ${list.map(i => { const falt = fichaFaltantes(i), c = fichaCompletitud(i);
-          return `<tr><td><b>${u.esc(i.nombre)}</b>${falt.length ? `<div class="kpi__sub" style="color:#c86a1f">Pendiente: ${u.esc(falt.slice(0, 4).join(", "))}${falt.length > 4 ? "…" : ""}</div>` : ""}</td>
-            <td>${chipTipo(i.tipo)}</td><td>${chipProg(i.programa)}</td><td class="kpi__sub" style="max-width:280px">${u.esc(i.formula || (i.tipo === "Estructura" ? "Verificación de estructura" : "—"))}</td>
-            <td class="nowrap">${u.esc(metaTxt(i))}</td><td>${u.esc(i.periodicidad || "—")}</td><td>v${i.fichaVersion || 1}</td>
-            <td><div class="ixx-cbar"><i style="width:${c}%;background:${c === 100 ? "#1f9d57" : c >= 70 ? "#e0912f" : "#c62f3b"}"></i></div><small>${c}%</small></td>
-            <td class="acciones"><div class="btn-row" style="justify-content:flex-end;flex-wrap:nowrap"><button class="btn btn--ghost btn--sm" data-ificha="${i.id}">📋 Ver</button><button class="btn-icon" data-ied="${i.id}" title="Editar">✏️</button><button class="btn-icon" data-fprint="${i.id}" title="Imprimir / PDF">🖨️</button><button class="btn-icon" data-mtxver="${i.id}" title="Versiones">🕘</button></div></td></tr>`; }).join("")}
+          return `<tr><td class="l"><b>${u.esc(i.nombre)}</b>${falt.length ? `<details class="ixx-more ixx-more--row"><summary>${falt.length} antecedente(s) pendiente(s)</summary><div>${u.esc(falt.join(", "))}</div></details>` : ""}</td>
+            <td class="c">${chipTipo(i.tipo)}</td><td class="c">${chipProg(i.programa)}</td>
+            <td class="c">${u.esc(metaTxt(i))}</td><td class="c">${u.esc(i.periodicidad || "—")}</td><td class="c">v${i.fichaVersion || 1}</td>
+            <td class="c"><div class="ixx-cbar"><i style="width:${c}%;background:${c === 100 ? "#1f9d57" : c >= 70 ? "#e0912f" : "#c62f3b"}"></i></div><small>${c}%</small></td>
+            <td class="c"><div class="btn-row" style="justify-content:center;flex-wrap:nowrap"><button class="btn btn--ghost btn--sm" data-ificha="${i.id}">📋 Ver</button><button class="btn-icon" data-ied="${i.id}" title="Editar">✏️</button><button class="btn-icon" data-fprint="${i.id}" title="Imprimir / PDF">🖨️</button><button class="btn-icon" data-mtxver="${i.id}" title="Versiones">🕘</button></div></td></tr>`; }).join("")}
         </tbody></table></div>` : u.empty("Aún no hay fichas técnicas.", "Crea un indicador para generar su ficha.", "🗂️")}`;
     bindFiltros(box); bindIndActions(box);
     box.querySelector("#mtx-new").onclick = () => ficha(null);
@@ -1536,9 +1557,7 @@
     const sugeridos = recomendaciones().filter(r => !existentes.has(normNombre(r.nombre)) && !cubre[r.fuente]);
     const conSug = con.filter(c => !c.oficial);
     box.innerHTML = `
-      ${SH("💡", "Recomendaciones de EVI", "Apoyo a la gestión · no son indicadores oficiales")}
-      <div class="ixx-evi"><img src="assets/img/evi-full.png?v=20260731yy" alt="EVI">
-        <div><b>EVI revisa tus datos y te sugiere qué hacer.</b><div class="kpi__sub">Ninguna sugerencia se convierte en indicador oficial ni fija metas sin tu aprobación: al aceptarla se abre la ficha para que la revises y completes.</div></div></div>
+      ${head("💡", "Recomendaciones de EVI", "Apoyo a la gestión · no oficiales", "EVI revisa los datos del portal y sugiere indicadores y acciones. Ninguna sugerencia se convierte en indicador oficial ni fija metas sin tu aprobación: «Revisar y aceptar» abre la ficha para que la completes.", `<img class="ixx-evi-mini" src="assets/img/evi-agenda.webp" alt="EVI">`)}
       <div class="dash-grid">
         <div class="dash-card" style="grid-column:span 2"><div class="dash-card__h"><h4>➕ Indicadores sugeridos</h4><span>Desde los datos de otros módulos</span></div>
           ${sugeridos.length || conSug.length ? `<div class="ixx-sug">${sugeridos.map((r, i) => `<div class="ixx-sug__r">${chipTipo(r.tipo)}<span>${u.esc(r.nombre)}<small>Fuente: ${u.esc(r.fuente)}</small></span><button class="btn btn--ghost btn--sm" data-rec="${i}">Revisar y aceptar</button></div>`).join("")}
