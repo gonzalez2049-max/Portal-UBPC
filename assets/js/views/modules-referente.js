@@ -46,6 +46,7 @@
   function capacitacion() { return page("Capacitación clínica por turno", "Registro de capacitaciones clínicas por turno y estamento.", "ref-cap"); }
   function capacitacionBind() {
     R().mount(document.getElementById("ref-cap"), {
+      dash: { date: "fecha", dateLabel: "fecha", tipo: "estamento", tipoLabel: "estamento", unidad: "unidad", charts: ["mes", "tipo", "unidad"] },
       collection: "capacitacionRef", title: "Capacitación por turno", icon: "🎓",
       hint: "Capacitaciones clínicas realizadas por turno.",
       newLabel: "Nueva capacitación", emptyMsg: "Aún no hay capacitaciones registradas.",
@@ -241,6 +242,7 @@
   function monitoreo() { return page("Monitoreo e implementación", "Auditorías clínicas, indicadores, brechas e intervenciones.", "ref-mon"); }
   function monitoreoBind() {
     R().mount(document.getElementById("ref-mon"), {
+      dash: { date: "fecha", dateLabel: "fecha", estado: "estado", tipo: "tipoRegistro", tipoLabel: "tipo de registro", unidad: "unidad", charts: ["mes", "avance", "unidad"], avanceTitle: "Avance del monitoreo", finLab: "completados" },
       collection: "monitoreoRef", title: "Registro de monitoreo", icon: "📈",
       hint: "Auditorías, indicadores, brechas e intervenciones técnicas.",
       newLabel: "Nuevo registro", emptyMsg: "Aún no hay registros de monitoreo.",

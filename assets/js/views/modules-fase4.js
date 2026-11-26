@@ -263,6 +263,7 @@
     draw();
     R().mount(document.getElementById("cap-res"), {
       afterChange: draw,
+      dash: { date: "fecha", dateLabel: "fecha de la actividad", estado: "estado", tipo: "tipo", tipoLabel: "tipo de actividad", unidad: "unidadResp", charts: ["avance", "tipo", "unidad"], avanceTitle: "Cumplimiento de actividades programadas", finLab: "realizadas", labels: { fin: "Completadas", curso: "En curso", pend: "Pendientes" }, intro: "Cumplimiento de lo programado y distribución (la evolución de personas capacitadas está arriba)." },
       collection: "actividades", title: "Actividad " + programa, icon: "🎓", withCode: true,
       filter: pred,
       hint: "Actividades de capacitación " + programa + " con estamento, personas capacitadas y cobertura. Código UBPC-CAP-AAAA-000.",

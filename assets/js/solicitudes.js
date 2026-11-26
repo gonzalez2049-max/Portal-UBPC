@@ -318,6 +318,7 @@
   /* ---------- Panel del Coordinador ---------- */
   function coordPanel(container) {
     U.components.resource.mount(container, {
+      dash: { date: "fechaEnvio", dateLabel: "fecha de envío", estado: "estado", plazo: "plazo", tipo: "prioridad", tipoLabel: "prioridad", unidad: "unidad", charts: ["mes", "avance", "unidad"], avanceTitle: "Solicitudes resueltas", finLab: "cerradas o resueltas", grupo: r => /cerrad|resuelt|entreg|complet|finaliz/i.test(r.estado || "") ? "fin" : /recib|pendien|nuev|enviad/i.test(r.estado || "") ? "pend" : r.estado ? "curso" : "nd" },
       collection: "solicitudes", title: "Solicitud de apoyo técnico",
       hint: "Solicitudes en ambos sentidos con el Referente Técnico. No se eliminan las solicitudes cerradas.",
       newLabel: "Nueva solicitud", icon: "📨",

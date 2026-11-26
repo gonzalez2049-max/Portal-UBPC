@@ -1391,6 +1391,7 @@
   function mountConvoc(el, box) {
     const u = ui();
     U.components.resource.mount(el, {
+      dash: { date: "fecha", dateLabel: "fecha de la convocatoria", tipo: "tipo", tipoLabel: "tipo de actividad", unidad: "unidad", charts: ["mes", "tipo", "unidad"] },
       collection: "convocatoriaChampion", title: "Convocatoria", icon: "📅",
       hint: "", newLabel: "Nueva convocatoria", wideForm: true,
       emptyMsg: "Aún no hay convocatorias registradas.",

@@ -39,13 +39,14 @@
     const list = S().all("apoyoMejora");
     const fin = list.filter(a => /finaliz/i.test(a.estado || "")).length;
     const unidades = new Set(list.map(a => a.unidad).filter(Boolean)).size;
-    document.getElementById("m1-kpi").innerHTML = kpiStrip([
+    document.getElementById("m1-kpi").innerHTML = R().secHead("📌", "Resumen de indicadores", "Procesos de apoyo técnico de la UBPC") + kpiStrip([
       { label: "Procesos apoyados", value: list.length, sub: list.length ? "Registrados en total" : "Aún sin procesos", kind: "info" },
       { label: "Unidades apoyadas", value: unidades, sub: unidades ? "Con apoyo registrado" : "Sin unidades aún", kind: "ok" },
       { label: "En desarrollo", value: list.length - fin, sub: "Procesos activos", kind: "warn" },
       { label: "Finalizados", value: fin, sub: "Procesos concluidos", kind: "ok" }
     ]);
     R().mount(document.getElementById("m1-body"), {
+      dash: { date: r => r.fecha || r.fechaCreacion, dateLabel: "fecha de registro", estado: "estado", unidad: "unidad", charts: ["mes", "avance", "unidad"], avanceTitle: "Avance de los procesos", finLab: "finalizados", labels: { fin: "Finalizados", curso: "En desarrollo / curso", pend: "Pendientes" } },
       collection: "apoyoMejora", title: "Proceso de apoyo", icon: "🤝",
       hint: "Registra el apoyo técnico, la intervención y el resultado por unidad.",
       newLabel: "Nuevo proceso",
@@ -277,6 +278,7 @@
         ${kpiC(obs, "Marcados obsoletos", obs ? "danger" : "ok")}
       </div><div id="prot-res"></div>`;
     R().mount(document.getElementById("prot-res"), {
+      dash: { date: "fecha", dateLabel: "fecha de emisión", estado: "estadoFormato", unidad: "unidad", tipo: "vigencia", tipoLabel: "vigencia", charts: ["mes", "avance", "unidad"], avanceTitle: "Protocolos vigentes", finLab: "vigentes o actualizados", labels: { fin: "Vigentes / actualizados", curso: "En revisión", pend: "Por vencer", out: "Obsoletos" }, grupo: r => /vigente|actualiz/i.test(r.estadoFormato || "") ? "fin" : /obsolet/i.test(r.estadoFormato || "") ? "out" : /vencer/i.test(r.estadoFormato || "") ? "pend" : r.estadoFormato ? "curso" : "nd", pendientes: [{ lab: "Por vencer", fn: r => /vencer/i.test(r.estadoFormato || "") }, { lab: "En revisión", fn: r => /revisi/i.test(r.estadoFormato || "") }, { lab: "Obsoletos (requieren actualización)", fn: r => /obsolet/i.test(r.estadoFormato || "") }] },
       collection: "protocolosEnf", title: "Protocolo de enfermería", icon: "📋", withCode: true, wideForm: true,
       hint: "Registro de control de protocolos de enfermería. La próxima revisión se calcula desde la fecha y la vigencia; el estado del formato lo declara la Coordinación UBPC.",
       newLabel: "Nuevo protocolo",
@@ -362,37 +364,15 @@
       <div class="kpi__label">${lab}</div><div class="kpi__value">${val}</div><div class="kpi__sub">${u.esc(sub)}</div></div>`;
     const chips = CAT().estadosDoc.map(e => { const n = by(e); return n ? `<span style="display:inline-flex;align-items:center;gap:.35rem;margin:.15rem .5rem .15rem 0">${u.estadoBadge(e)}<strong>${n}</strong></span>` : ""; }).join("")
       || `<span class="kpi__sub">Aún sin documentos.</span>`;
-    el.innerHTML = `
-      <div class="grid grid--kpi" style="margin-bottom:.8rem">
+    el.innerHTML = R().secHead("📌", "Resumen de indicadores", "Inventario documental de la UBPC") + `
+      <div class="grid grid--kpi" style="margin-bottom:.4rem">
         ${card("Total documentos", total, "Registrados en la unidad", "var(--c-celeste)")}
         ${card("Vigentes", vigentes, "Aprobados y en uso", "var(--verde)")}
         ${card("En proceso", enProceso, "Borrador · revisión · Calidad", "var(--naranjo)")}
         ${card("Con V°B° UBPC", revisados + " · " + pctRev + "%", "Revisados por la Unidad", pctRev >= 70 ? "var(--verde)" : "var(--morado)")}
         ${card("Productividad " + yr, esteAnio, esteMes + " este mes", "var(--c-azul)")}
       </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="flex" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.4rem">
-          <h3 class="card__title" style="margin:0">Estado del inventario documental</h3>
-          <span class="kpi__sub">Cobertura de revisión UBPC: <strong>${pctRev}%</strong> (${revisados}/${total})</span>
-        </div>
-        <div class="pin-prog" style="margin:.5rem 0 .7rem"><div class="pin-prog__bar" style="width:${pctRev}%;background:${pctRev >= 70 ? "var(--verde)" : "var(--naranjo)"}"></div></div>
-        <div>${chips}</div>
-      </div>
-      ${(() => {
-        const estColor = e => /vigente/i.test(e) ? "var(--verde)" : /borrador|revisi|enviado/i.test(e) ? "var(--naranjo)" : /obsoleto/i.test(e) ? "#8a94a6" : "var(--celeste)";
-        const items = CAT().estadosDoc.map(e => ({ label: e, value: by(e) })).filter(x => x.value > 0);
-        if (!items.length) return "";
-        const maxD = Math.max.apply(0, items.map(i => i.value).concat([1]));
-        const porAvanzar = enProceso;
-        return `<div class="card" style="margin-bottom:1rem">
-          <h3 class="card__title">Documentos por estado · qué avanzar</h3>
-          <p class="card__hint" style="margin:.1rem 0 .55rem">${porAvanzar ? `Hay <strong>${porAvanzar}</strong> documento(s) en borrador/revisión por avanzar a vigente.` : "Sin documentos pendientes de avanzar."}</p>
-          <div class="bars">${items.map(i => `<div style="margin-bottom:.55rem">
-            <div class="flex" style="justify-content:space-between;font-size:13px;font-weight:600"><span><span class="bars__dot" style="background:${estColor(i.label)}"></span>${u.esc(i.label)}</span><span><b>${i.value}</b></span></div>
-            <div style="background:var(--chart-track,#e9eff7);border-radius:6px;height:13px;overflow:hidden">
-              <div style="width:${Math.round(i.value / maxD * 100)}%;height:100%;background:${estColor(i.label)};border-radius:6px"></div></div></div>`).join("")}</div>
-        </div>`;
-      })()}`;
+`;
   }
 
   function documentosTab(box) {
@@ -400,6 +380,7 @@
     const kpisEl = document.getElementById("doc-kpis");
     documentosKPIs(kpisEl);
     R().mount(document.getElementById("doc-list"), {
+      dash: { date: "fecha", dateLabel: "fecha del documento", estado: "estado", tipo: "tipo", tipoLabel: "tipo documental", unidad: "unidadResponsable", charts: ["mes", "avance", "estado", "tipo", "pendientes", "unidad"], avanceTitle: "Documentos vigentes", finLab: "vigentes", labels: { fin: "Vigentes", curso: "En revisión / Calidad", pend: "En borrador", out: "Obsoletos" }, pendTitle: "Pendientes de gestión", pendientes: [{ lab: "Sin V°B° UBPC", fn: r => !/s[íi]/i.test(r.revisadoUBP || "") }, { lab: "En revisión / validación", fn: r => /revisi|valid/i.test(r.estado || "") }, { lab: "En borrador", fn: r => /borrador/i.test(r.estado || "") }, { lab: "No enviados a Calidad", fn: r => !/s[íi]/i.test(r.envioCalidad || "") && !/vigente|obsolet|enviado/i.test(r.estado || "") }] },
       collection: "documentos", title: "Documento", icon: "📄", withCode: true,
       afterChange: () => documentosKPIs(kpisEl),
       hint: "Cada documento recibe un código automático permanente (UBPC-DOC-AAAA-000) y conserva su historial de versiones.",
@@ -583,6 +564,7 @@
 
   function m5Reuniones(box, onAcuerdo) {
     R().mount(box, {
+      dash: { date: "fecha", dateLabel: "fecha de la reunión", tipo: "tipo", tipoLabel: "tipo de reunión", charts: ["mes", "tipo"] },
       collection: "reuniones", title: "Reunión / acta", icon: "📅", withCode: true, wideForm: true,
       hint: "Cada registro recibe código UBPC-REU-AAAA-000.",
       newLabel: "Nueva reunión / acta",
@@ -649,6 +631,7 @@
     box.innerHTML = `<div id="doc-registro"></div><div class="section__head" style="margin-top:1.4rem"><div><h3 class="section__title">Otros respaldos</h3><p class="section__hint">Documentos externos, escaneos, presentaciones y enlaces.</p></div></div><div id="respaldos-mount"></div>`;
     renderRegistroMaestro(document.getElementById("doc-registro"));
     R().mount(document.getElementById("respaldos-mount"), {
+      dash: { date: "fecha", dateLabel: "fecha", estado: "estado", tipo: "tipo", plazo: "plazo", charts: ["mes", "avance", "tipo"], avanceTitle: "Avance de los respaldos" },
       collection: "respaldos", title: "Documento o respaldo", icon: "🗄️",
       hint: "Documentos, informes, actas, presentaciones, memorandos y resoluciones.",
       newLabel: "Nuevo respaldo",
@@ -673,6 +656,7 @@
   }
   function m5Acuerdos(box) {
     R().mount(box, {
+      dash: { date: "plazo", dateLabel: "mes del plazo", estado: "estado", plazo: "plazo", tipo: "responsable", tipoLabel: "responsable", charts: ["mes", "avance", "tipo"], avanceTitle: "Cumplimiento de acuerdos", finLab: "cumplidos", labels: { fin: "Cumplidos", curso: "En curso", pend: "Pendientes" } },
       collection: "acuerdos", title: "Acuerdo o acción", icon: "🤝", withCode: true,
       hint: "Compromisos derivados de reuniones. Código UBPC-ACU-AAAA-000.",
       newLabel: "Nuevo acuerdo",

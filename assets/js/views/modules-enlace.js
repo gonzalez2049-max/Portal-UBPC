@@ -227,6 +227,7 @@
     const manage = mode === "coord";
     syncTaskBank(); // asigna códigos faltantes y los deja en el banco de códigos
     R().mount(box, {
+      dash: { date: r => r.fechaLimite || r.fechaCreacion, dateLabel: "fecha límite", estado: "columna", plazo: "fechaLimite", tipo: "prioridad", tipoLabel: "prioridad", charts: ["mes", "avance", "tipo"], avanceTitle: "Avance de tareas", finLab: "completadas" },
       collection: "kanban", title: "Tarea", icon: "✅", withCode: true, readOnly: !manage,
       hint: manage ? "Tareas asignadas al Referente, con código, prioridad, fecha límite y estado."
         : "Tareas que te asignó la Coordinación. Ábrelas para ver el detalle y actualizar su estado.",
